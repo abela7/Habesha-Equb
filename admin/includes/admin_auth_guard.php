@@ -199,8 +199,8 @@ function validate_admin_data_access($requested_admin_id = null) {
 if (!defined('SKIP_ADMIN_AUTH_CHECK')) {
     $admin_id = require_admin_auth();
     
-    // Log page access for security monitoring
-    $current_page = basename($_SERVER['PHP_SELF']);
-    log_admin_activity("page_access", "Accessed: $current_page");
+    // Future: Add page access logging when activity log table is created
+    // $current_page = basename($_SERVER['PHP_SELF']);
+    // log_admin_activity("page_access", "Accessed: $current_page");
 }
 ?> 

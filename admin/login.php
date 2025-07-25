@@ -74,6 +74,12 @@ $csrf_token = generate_csrf_token();
             <div class="alert alert-success" id="successAlert"></div>
             <div class="alert alert-error" id="errorAlert"></div>
             <div class="alert alert-info" id="infoAlert"></div>
+            
+            <?php if (!empty($message)): ?>
+            <div class="alert alert-<?php echo $message_type; ?> show">
+                <?php echo htmlspecialchars($message); ?>
+            </div>
+            <?php endif; ?>
 
             <!-- Login form -->
             <form id="loginForm" novalidate>

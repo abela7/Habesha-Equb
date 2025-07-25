@@ -1125,10 +1125,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Logout function (unchanged)
+// Enhanced logout function with better error handling
 async function handleLogout() {
     if (confirm('Are you sure you want to logout?')) {
         try {
+            // First try API logout
             const response = await fetch('api/auth.php', {
                 method: 'POST',
                 headers: {
@@ -1140,13 +1141,16 @@ async function handleLogout() {
             const data = await response.json();
             
             if (data.success) {
-                window.location.href = 'login.php';
+                // Redirect to logout page for complete cleanup
+                window.location.href = 'logout.php';
             } else {
-                alert('Logout failed. Please try again.');
+                // Fallback to direct logout page
+                window.location.href = 'logout.php';
             }
         } catch (error) {
             console.error('Logout error:', error);
-            alert('An error occurred during logout.');
+            // Fallback to direct logout page even on error
+            window.location.href = 'logout.php';
         }
     }
 }
