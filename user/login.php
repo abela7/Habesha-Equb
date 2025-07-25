@@ -6,6 +6,10 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
+// Include auth guard functions (but skip auth check for login page)
+define('SKIP_AUTH_CHECK', true);
+require_once 'includes/auth_guard.php';
+
 // Handle language switching
 if (isset($_POST['language'])) {
     setLanguage($_POST['language']);
@@ -20,9 +24,17 @@ if (!isset($_SESSION['csrf_token'])) {
 $csrf_token = $_SESSION['csrf_token'];
 
 // Check if user is already logged in
-if (isset($_SESSION['user_id'])) {
+if (isset($_SESSION['user_id']) && isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
     header('Location: dashboard.php');
     exit;
+}
+
+// Handle logout message
+$message = '';
+$message_type = 'info';
+if (isset($_GET['msg'])) {
+    $message = sanitize_input($_GET['msg']);
+    $message_type = 'info';
 }
 ?>
 <!DOCTYPE html>
@@ -790,6 +802,11 @@ if (isset($_SESSION['user_id'])) {
                 <!-- Alert Messages -->
                 <div class="alert alert-success" id="successAlert"></div>
                 <div class="alert alert-error" id="errorAlert"></div>
+                <?php if (!empty($message)): ?>
+                <div class="alert alert-<?php echo $message_type; ?> show">
+                    <?php echo htmlspecialchars($message); ?>
+                </div>
+                <?php endif; ?>
 
                 <!-- Login Form (Default) -->
                 <form class="auth-form active" id="loginForm">

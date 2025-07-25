@@ -12,24 +12,30 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
+// Secure authentication check
+define('SKIP_AUTH_CHECK', true);
+require_once 'auth_guard.php';
+
 // Get current page for active states
 $current_page = basename($_SERVER['PHP_SELF']);
 
-// Get REAL member data from database
-$user_id = $_SESSION['user_id'] ?? 1;
-$member_name = 'John Doe'; // Default fallback
+// Get REAL member data from database - only if user is authenticated
+$user_id = get_current_user_id();
+$member_name = 'Guest'; // Default fallback
 
-try {
-    $stmt = $pdo->prepare("SELECT first_name, last_name FROM members WHERE id = ? AND is_active = 1");
-    $stmt->execute([$user_id]);
-    $member_data = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($member_data) {
-        $member_name = trim($member_data['first_name'] . ' ' . $member_data['last_name']);
+if ($user_id) {
+    try {
+        $stmt = $pdo->prepare("SELECT first_name, last_name FROM members WHERE id = ? AND is_active = 1");
+        $stmt->execute([$user_id]);
+        $member_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($member_data) {
+            $member_name = trim($member_data['first_name'] . ' ' . $member_data['last_name']);
+        }
+    } catch (PDOException $e) {
+        // Keep default if database error
+        error_log("Navigation member data error: " . $e->getMessage());
     }
-} catch (PDOException $e) {
-    // Keep default if database error
-    error_log("Navigation member data error: " . $e->getMessage());
 }
 
 // Generate CSRF token for language switching

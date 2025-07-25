@@ -17,6 +17,10 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
+// Secure authentication check
+require_once 'includes/auth_guard.php';
+$current_user_id = get_current_user_id();
+
 // Get member ID from request
 $member_id = (int)($_GET['id'] ?? 0);
 
@@ -24,6 +28,10 @@ if (!$member_id) {
     header('Location: members.php');
     exit;
 }
+
+// Security check: Users can only view their own profile or public profiles
+// For now, let's allow viewing public profiles but restrict private data
+$viewing_own_profile = ($member_id === $current_user_id);
 
 // Get detailed member information
 try {

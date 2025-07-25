@@ -5,8 +5,17 @@
  * Returns JSON responses for AJAX calls
  */
 
+// Start session first
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Include database connection
 require_once '../../includes/db.php';
+
+// Define to skip auth check for utility functions
+define('SKIP_AUTH_CHECK', true);
+require_once '../includes/auth_guard.php';
 
 // Set JSON header for all responses
 header('Content-Type: application/json');

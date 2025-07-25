@@ -17,8 +17,9 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
-// Get current member data
-$user_id = $_SESSION['user_id'] ?? 1; // Michael Werkneh = ID 1
+// Secure authentication check
+require_once 'includes/auth_guard.php';
+$user_id = get_current_user_id();
 
 // Get member information
 try {

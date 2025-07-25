@@ -17,13 +17,9 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-$user_id = $_SESSION['user_id'];
+// Secure authentication check
+require_once 'includes/auth_guard.php';
+$user_id = get_current_user_id();
 
 // Get REAL member data from database
 try {
