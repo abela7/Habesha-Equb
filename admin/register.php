@@ -7,8 +7,12 @@
 // Include database and start session
 require_once '../includes/db.php';
 
+// Include admin auth guard functions (but skip auth check for registration page)
+define('SKIP_ADMIN_AUTH_CHECK', true);
+require_once 'includes/admin_auth_guard.php';
+
 // Redirect if already logged in
-if (isset($_SESSION['admin_id']) && $_SESSION['admin_id']) {
+if (is_admin_authenticated()) {
     header('Location: dashboard.php');
     exit;
 }

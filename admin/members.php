@@ -7,13 +7,10 @@
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
-    header('Location: login.php');
-    exit;
-}
-
-$admin_username = $_SESSION['admin_username'] ?? 'Admin';
+// Secure admin authentication check
+require_once 'includes/admin_auth_guard.php';
+$admin_id = get_current_admin_id();
+$admin_username = get_current_admin_username() ?? 'Admin';
 
 // Get members data
 try {

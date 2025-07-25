@@ -8,9 +8,13 @@
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
+// Secure admin authentication check for navigation
+define('SKIP_ADMIN_AUTH_CHECK', true);
+require_once 'admin_auth_guard.php';
+
 // Get current page for active states
 $current_page = basename($_SERVER['PHP_SELF']);
-$admin_username = $_SESSION['admin_username'] ?? 'Admin';
+$admin_username = get_current_admin_username() ?? 'Admin';
 
 // Generate CSRF token for language switching
 $csrf_token = generate_csrf_token();
