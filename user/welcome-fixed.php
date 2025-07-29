@@ -495,7 +495,7 @@ function t($key, $default = '') {
             document.getElementById('step1').style.display = 'none';
             document.getElementById('loading').classList.add('active');
 
-            fetch('api/welcome.php', {
+            fetch('api/welcome-simple.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -544,7 +544,7 @@ function t($key, $default = '') {
             document.getElementById('step2').style.display = 'none';
             document.getElementById('loading').classList.add('active');
 
-            fetch('api/welcome.php', {
+            fetch('api/welcome-simple.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
