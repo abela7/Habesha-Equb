@@ -1,6 +1,6 @@
 <?php
 /**
- * HabeshaEqub Admin Translation Management
+ * Habesha-Equb Admin Translation Management
  * Direct editing of language files (en.json and am.json)
  */
 
