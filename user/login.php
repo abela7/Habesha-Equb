@@ -909,20 +909,37 @@ if (isset($_GET['msg'])) {
                     <input type="hidden" name="action" value="register">
 
                     <div class="form-group">
-                        <label class="form-label" for="register_full_name">
+                        <label class="form-label" for="register_first_name">
                             <i class="fas fa-user"></i>
-                            <?php echo t('user_auth.full_name'); ?>
+                            <?php echo t('user_auth.first_name'); ?>
                         </label>
                         <input 
                             type="text" 
-                            id="register_full_name" 
-                            name="full_name" 
+                            id="register_first_name" 
+                            name="first_name" 
                             class="form-control" 
-                            placeholder="<?php echo t('user_auth.full_name_placeholder'); ?>"
-                            autocomplete="name"
+                            placeholder="<?php echo t('user_auth.first_name_placeholder'); ?>"
+                            autocomplete="given-name"
                             required
                         >
-                        <div class="error-message" id="registerFullNameError"></div>
+                        <div class="error-message" id="registerFirstNameError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="register_last_name">
+                            <i class="fas fa-user"></i>
+                            <?php echo t('user_auth.last_name'); ?>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="register_last_name" 
+                            name="last_name" 
+                            class="form-control" 
+                            placeholder="<?php echo t('user_auth.last_name_placeholder'); ?>"
+                            autocomplete="family-name"
+                            required
+                        >
+                        <div class="error-message" id="registerLastNameError"></div>
                     </div>
 
                     <div class="form-group">
@@ -1161,7 +1178,8 @@ if (isset($_GET['msg'])) {
             }
 
             validateRegisterForm(form) {
-                const fullName = form.querySelector('#register_full_name');
+                const firstName = form.querySelector('#register_first_name');
+                const lastName = form.querySelector('#register_last_name');
                 const email = form.querySelector('#register_email');
                 const phone = form.querySelector('#register_phone');
                 const password = form.querySelector('#register_password');
@@ -1169,8 +1187,13 @@ if (isset($_GET['msg'])) {
                 const agreeTerms = form.querySelector('#agree_terms');
                 let isValid = true;
 
-                if (fullName.value.trim().length < 2) {
-                    this.showFieldError(fullName, '<?php echo t('user_auth.full_name_required'); ?>');
+                if (firstName.value.trim().length < 2) {
+                    this.showFieldError(firstName, '<?php echo t('user_auth.first_name_required'); ?>');
+                    isValid = false;
+                }
+
+                if (lastName.value.trim().length < 2) {
+                    this.showFieldError(lastName, '<?php echo t('user_auth.last_name_required'); ?>');
                     isValid = false;
                 }
 

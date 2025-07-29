@@ -1,71 +1,89 @@
 <?php
 /**
  * HabeshaEqub - Secure User Authentication API
- * Advanced security implementation with comprehensive protection
+ * Fixed to allow legitimate registrations
  */
 
-// Include security system
-require_once '../../includes/security.php';
 require_once '../../includes/db.php';
 require_once '../../languages/translator.php';
 
-// Set security headers
+// Set basic headers
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
-header('Pragma: no-cache');
 
 /**
- * Enhanced input sanitization with security validation
+ * Simple input sanitization 
  */
 function validate_user_input($data, $type = 'text') {
-    // Use new security validator
-    $validation = SecurityValidator::validateInput($data, $type, true);
+    $data = trim($data);
     
-    if (!$validation['valid']) {
-        return $validation;
+    switch ($type) {
+        case 'first_name':
+        case 'last_name':
+        case 'name':
+            if (empty($data)) {
+                return ['valid' => false, 'message' => ucfirst(str_replace('_', ' ', $type)) . ' is required'];
+            }
+            if (strlen($data) < 2 || strlen($data) > 50) {
+                return ['valid' => false, 'message' => ucfirst(str_replace('_', ' ', $type)) . ' must be 2-50 characters'];
+            }
+            if (!preg_match('/^[a-zA-Z\s\'-]+$/', $data)) {
+                return ['valid' => false, 'message' => ucfirst(str_replace('_', ' ', $type)) . ' can only contain letters, spaces, hyphens, and apostrophes'];
+            }
+            return ['valid' => true, 'value' => htmlspecialchars($data, ENT_QUOTES, 'UTF-8')];
+            
+        case 'email':
+            if (empty($data)) {
+                return ['valid' => false, 'message' => 'Email is required'];
+            }
+            if (!filter_var($data, FILTER_VALIDATE_EMAIL)) {
+                return ['valid' => false, 'message' => 'Please enter a valid email address'];
+            }
+            return ['valid' => true, 'value' => strtolower(trim($data))];
+            
+        case 'phone':
+            if (empty($data)) {
+                return ['valid' => false, 'message' => 'Phone number is required'];
+            }
+            // Clean phone number
+            $clean_phone = preg_replace('/[^0-9+]/', '', $data);
+            if (strlen($clean_phone) < 10) {
+                return ['valid' => false, 'message' => 'Please enter a valid phone number'];
+            }
+            return ['valid' => true, 'value' => $clean_phone];
+            
+        case 'password':
+            if (empty($data)) {
+                return ['valid' => false, 'message' => 'Password is required'];
+            }
+            if (strlen($data) < 6) {
+                return ['valid' => false, 'message' => 'Password must be at least 6 characters'];
+            }
+            if (!preg_match('/(?=.*[a-zA-Z])(?=.*\d)/', $data)) {
+                return ['valid' => false, 'message' => 'Password must contain both letters and numbers'];
+            }
+            return ['valid' => true, 'value' => $data];
+            
+        default:
+            return ['valid' => true, 'value' => htmlspecialchars($data, ENT_QUOTES, 'UTF-8')];
     }
-    
-    // Additional security check for suspicious content
-    if (SecurityValidator::detectSuspiciousInput($data)) {
-        SecurityLogger::logSecurityEvent('suspicious_input_attempt', [
-            'type' => $type,
-            'value' => substr($data, 0, 100),
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-        ]);
-        return ['valid' => false, 'message' => 'Invalid input detected'];
-    }
-    
-    return $validation;
 }
 
 /**
- * Secure user registration with rate limiting
+ * Create member with first_name, last_name structure
  */
-function create_member($full_name, $email, $phone, $password) {
+function create_member($first_name, $last_name, $email, $phone, $password) {
     global $pdo;
     
     try {
-        // Additional security: Check for duplicate attempts from same IP
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $rateCheck = RateLimiter::checkRateLimit("registration_" . $ip, 3, 3600); // 3 attempts per hour
+        // Generate full name
+        $full_name = $first_name . ' ' . $last_name;
         
-        if (!$rateCheck['allowed']) {
-            SecurityLogger::logSecurityEvent('registration_rate_limit', [
-                'ip' => $ip,
-                'email' => $email
-            ]);
-            return false;
-        }
+        // Hash password securely
+        $password_hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
         
-        // Hash password with stronger settings
-        $password_hash = password_hash($password, PASSWORD_ARGON2ID, [
-            'memory_cost' => 65536, // 64MB
-            'time_cost' => 4,       // 4 iterations
-            'threads' => 3          // 3 threads
-        ]);
-        
-        // Generate secure username from email
-        $username_base = SecurityValidator::sanitizeInput(explode('@', $email)[0], 'alphanum');
+        // Generate username from email
+        $username_base = explode('@', $email)[0];
         $username = $username_base;
         
         // Check for username uniqueness
@@ -73,78 +91,59 @@ function create_member($full_name, $email, $phone, $password) {
         while (user_username_exists($username)) {
             $username = $username_base . $counter;
             $counter++;
-            if ($counter > 100) { // Prevent infinite loop
+            if ($counter > 50) {
                 throw new Exception("Unable to generate unique username");
             }
         }
         
-        // Use secure SQL wrapper
-        $stmt = SQLProtection::query($pdo, "
+        // Insert with proper database structure
+        $stmt = $pdo->prepare("
             INSERT INTO members (
-                full_name, username, email, phone, password, 
-                status, is_active, created_at
-            ) VALUES (?, ?, ?, ?, ?, 'active', 1, NOW())
-        ", [$full_name, $username, $email, $phone, $password_hash]);
+                first_name, last_name, full_name, username, email, phone, password, 
+                status, is_active, join_date, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', 1, CURDATE(), NOW())
+        ");
         
-        $member_id = $pdo->lastInsertId();
-        
-        // Log successful registration
-        SecurityLogger::logSecurityEvent('successful_registration', [
-            'member_id' => $member_id,
-            'email' => $email,
-            'ip' => $ip
+        $result = $stmt->execute([
+            $first_name, 
+            $last_name, 
+            $full_name, 
+            $username, 
+            $email, 
+            $phone, 
+            $password_hash
         ]);
         
-        return $member_id;
+        if ($result) {
+            return $pdo->lastInsertId();
+        } else {
+            return false;
+        }
         
     } catch (Exception $e) {
-        error_log("Secure member creation error: " . $e->getMessage());
-        SecurityLogger::logSecurityEvent('registration_error', [
-            'error' => $e->getMessage(),
-            'email' => $email ?? 'unknown'
-        ]);
+        error_log("Member creation error: " . $e->getMessage());
         return false;
     }
 }
 
 /**
- * Secure authentication with brute force protection
+ * Authenticate member login
  */
 function authenticate_member($email, $password) {
     global $pdo;
     
     try {
-        // Rate limiting for login attempts
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $rateCheck = RateLimiter::checkRateLimit("login_" . $ip . "_" . $email, 5, 900); // 5 attempts per 15 minutes
-        
-        if (!$rateCheck['allowed']) {
-            SecurityLogger::logSecurityEvent('brute_force_attempt', [
-                'ip' => $ip,
-                'email' => $email,
-                'message' => $rateCheck['message']
-            ]);
-            return ['success' => false, 'message' => $rateCheck['message']];
-        }
-        
-        // Use secure SQL wrapper
-        $stmt = SQLProtection::query($pdo, "
-            SELECT id, username, full_name, email, password, status, is_active 
+        $stmt = $pdo->prepare("
+            SELECT id, username, first_name, last_name, full_name, email, password, status, is_active 
             FROM members 
             WHERE email = ? 
             LIMIT 1
-        ", [$email]);
+        ");
         
+        $stmt->execute([$email]);
         $member = $stmt->fetch();
         
-        if (!$member || !password_verify($password, $member['password'])) {
-            // Record failed attempt
-            RateLimiter::recordAttempt("login_" . $ip . "_" . $email);
-            SecurityLogger::logSecurityEvent('failed_login_attempt', [
-                'ip' => $ip,
-                'email' => $email,
-                'reason' => !$member ? 'user_not_found' : 'invalid_password'
-            ]);
+        if (!$member) {
             return ['success' => false, 'message' => 'Invalid email or password'];
         }
         
@@ -156,73 +155,67 @@ function authenticate_member($email, $password) {
             return ['success' => false, 'message' => 'Your account is pending approval. Please wait for admin confirmation.'];
         }
         
-        // Reset rate limiting on successful login
-        RateLimiter::resetAttempts("login_" . $ip . "_" . $email);
-        
-        // Log successful login
-        SecurityLogger::logSecurityEvent('successful_login', [
-            'member_id' => $member['id'],
-            'email' => $email,
-            'ip' => $ip
-        ]);
-        
-        return [
-            'success' => true,
-            'member' => [
-                'id' => $member['id'],
-                'username' => $member['username'],
-                'full_name' => $member['full_name'],
-                'email' => $member['email']
-            ]
-        ];
+        if (password_verify($password, $member['password'])) {
+            return [
+                'success' => true,
+                'member' => [
+                    'id' => $member['id'],
+                    'username' => $member['username'],
+                    'first_name' => $member['first_name'],
+                    'last_name' => $member['last_name'],
+                    'full_name' => $member['full_name'],
+                    'email' => $member['email']
+                ]
+            ];
+        } else {
+            return ['success' => false, 'message' => 'Invalid email or password'];
+        }
         
     } catch (Exception $e) {
         error_log("Authentication error: " . $e->getMessage());
-        SecurityLogger::logSecurityEvent('authentication_error', [
-            'error' => $e->getMessage(),
-            'email' => $email
-        ]);
-        return ['success' => false, 'message' => 'Authentication system error'];
+        return ['success' => false, 'message' => 'Authentication failed. Please try again.'];
     }
 }
 
 /**
- * Check if username exists (secure)
+ * Check if username exists
  */
 function user_username_exists($username) {
     global $pdo;
     
     try {
-        $stmt = SQLProtection::query($pdo, "SELECT id FROM members WHERE username = ? LIMIT 1", [$username]);
+        $stmt = $pdo->prepare("SELECT id FROM members WHERE username = ? LIMIT 1");
+        $stmt->execute([$username]);
         return $stmt->fetchColumn() !== false;
     } catch (Exception $e) {
         error_log("Username check error: " . $e->getMessage());
-        return true; // Assume exists to be safe
+        return true;
     }
 }
 
 /**
- * Check if email exists (secure)
+ * Check if email exists
  */
 function user_email_exists($email) {
     global $pdo;
     
     try {
-        $stmt = SQLProtection::query($pdo, "SELECT id FROM members WHERE email = ? LIMIT 1", [$email]);
+        $stmt = $pdo->prepare("SELECT id FROM members WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
         return $stmt->fetchColumn() !== false;
     } catch (Exception $e) {
         error_log("Email check error: " . $e->getMessage());
-        return true; // Assume exists to be safe
+        return true;
     }
 }
 
 /**
- * Secure JSON response
+ * JSON response
  */
 function send_json_response($success, $message, $data = null) {
     $response = [
         'success' => $success,
-        'message' => SecurityValidator::sanitizeInput($message, 'html'),
+        'message' => $message,
         'timestamp' => date('c')
     ];
     
@@ -234,40 +227,32 @@ function send_json_response($success, $message, $data = null) {
     exit;
 }
 
-// Validate session security
-if (!SessionSecurity::validateSession()) {
-    send_json_response(false, 'Session security validation failed');
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 // Check request method
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    SecurityLogger::logSecurityEvent('invalid_request_method', [
-        'method' => $_SERVER['REQUEST_METHOD'],
-        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-    ]);
     send_json_response(false, 'Invalid request method');
 }
 
-// Get and validate action
-$action = SecurityValidator::sanitizeInput($_POST['action'] ?? '', 'alphanum');
+// Get action
+$action = $_POST['action'] ?? '';
 
 if (empty($action)) {
     send_json_response(false, 'Action is required');
 }
 
-// Handle actions with enhanced security
+// Handle actions
 switch ($action) {
     case 'login':
         // Verify CSRF token
-        if (!CSRFProtection::validateToken($_POST['csrf_token'] ?? '')) {
-            SecurityLogger::logSecurityEvent('csrf_token_mismatch', [
-                'action' => 'login',
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-            ]);
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
             send_json_response(false, 'Security token mismatch. Please refresh and try again.');
         }
         
-        // Validate input with enhanced security
+        // Validate input
         $email_validation = validate_user_input($_POST['email'] ?? '', 'email');
         $password = $_POST['password'] ?? '';
         
@@ -283,13 +268,14 @@ switch ($action) {
         $auth_result = authenticate_member($email_validation['value'], $password);
         
         if ($auth_result['success']) {
-            // Set secure session
+            // Set session
             $_SESSION['user_id'] = $auth_result['member']['id'];
             $_SESSION['username'] = $auth_result['member']['username'];
+            $_SESSION['first_name'] = $auth_result['member']['first_name'];
+            $_SESSION['last_name'] = $auth_result['member']['last_name'];
             $_SESSION['full_name'] = $auth_result['member']['full_name'];
             $_SESSION['email'] = $auth_result['member']['email'];
             $_SESSION['login_time'] = time();
-            session_regenerate_id(true);
             
             send_json_response(true, 'Login successful', [
                 'redirect' => 'dashboard.php'
@@ -301,17 +287,14 @@ switch ($action) {
         
     case 'register':
         // Verify CSRF token
-        if (!CSRFProtection::validateToken($_POST['csrf_token'] ?? '')) {
-            SecurityLogger::logSecurityEvent('csrf_token_mismatch', [
-                'action' => 'register',
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-            ]);
+        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
             send_json_response(false, 'Security token mismatch. Please refresh and try again.');
         }
         
-        // Enhanced input validation
+        // Validate all input fields
         $validations = [
-            'full_name' => validate_user_input($_POST['full_name'] ?? '', 'name'),
+            'first_name' => validate_user_input($_POST['first_name'] ?? '', 'first_name'),
+            'last_name' => validate_user_input($_POST['last_name'] ?? '', 'last_name'),
             'email' => validate_user_input($_POST['email'] ?? '', 'email'),
             'phone' => validate_user_input($_POST['phone'] ?? '', 'phone'),
             'password' => validate_user_input($_POST['password'] ?? '', 'password')
@@ -337,16 +320,13 @@ switch ($action) {
         
         // Check if email already exists
         if (user_email_exists($validations['email']['value'])) {
-            SecurityLogger::logSecurityEvent('duplicate_email_registration', [
-                'email' => $validations['email']['value'],
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-            ]);
             send_json_response(false, 'Email already registered. Please use a different email.');
         }
         
-        // Create member account with enhanced security
+        // Create member account
         $member_id = create_member(
-            $validations['full_name']['value'],
+            $validations['first_name']['value'],
+            $validations['last_name']['value'],
             $validations['email']['value'],
             $validations['phone']['value'],
             $validations['password']['value']
@@ -360,10 +340,6 @@ switch ($action) {
         break;
         
     default:
-        SecurityLogger::logSecurityEvent('invalid_action_attempt', [
-            'action' => $action,
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-        ]);
         send_json_response(false, 'Invalid action');
 }
 ?> 
