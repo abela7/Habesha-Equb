@@ -1010,7 +1010,7 @@ if (isset($_GET['msg'])) {
 
                 <!-- Footer Links -->
                 <div class="auth-footer">
-                    <a href="../admin/login.php"><?php echo t('user_auth.admin_login'); ?></a>
+                    <!-- Admin login link removed for security -->
                 </div>
             </div>
         </div>
