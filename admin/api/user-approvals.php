@@ -11,6 +11,9 @@ require_once '../includes/admin_auth_guard.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
 
+// Debug logging
+error_log("User Approval API called - Method: " . $_SERVER['REQUEST_METHOD'] . " - Time: " . date('Y-m-d H:i:s'));
+
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -73,12 +76,17 @@ try {
     }
     
 } catch (Exception $e) {
-    error_log("User Approval API Error: " . $e->getMessage());
+    error_log("User Approval API Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'debug' => [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]
     ]);
     exit;
 }
