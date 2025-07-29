@@ -152,7 +152,9 @@ try {
     echo "<!-- Debug: Language: $current_lang -->\n";
     
     try {
-        $translator = new Translator($current_lang);
+        // Set language in session for translator
+        $_SESSION['app_language'] = $current_lang;
+        $translator = Translator::getInstance();
         echo "<!-- Debug: Translator created -->\n";
     } catch (Exception $e) {
         echo "<!-- Debug: Translator error: " . $e->getMessage() . " -->\n";
