@@ -23,6 +23,10 @@ try {
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
         ]
     );
+    
+    // Create alias for backward compatibility
+    $db = $pdo;
+    
 } catch (PDOException $e) {
     error_log("Database connection failed: " . $e->getMessage());
     die("Database connection failed. Please check configuration.");

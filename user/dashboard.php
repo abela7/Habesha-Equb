@@ -27,7 +27,7 @@ setUserLanguageFromDatabase($user_id);
 
 // Get REAL member data from database
 try {
-    $stmt = $pdo->prepare("
+    $stmt = $db->prepare("
         SELECT m.*, 
                COUNT(p.id) as total_payments,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
