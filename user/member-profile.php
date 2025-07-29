@@ -124,9 +124,17 @@ try {
     exit;
 }
 
-// Calculate member data
-$member_name = trim($member['first_name'] . ' ' . $member['last_name']);
-$initials = substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1);
+// Calculate member data - FORCE FRESH CALCULATION
+// DEBUG: Let's see what we actually got
+$debug_info = "ID: " . $member['id'] . ", First: '" . $member['first_name'] . "', Last: '" . $member['last_name'] . "'";
+
+// DIRECT name calculation - no caching, no tricks
+$member_first_name = $member['first_name'] ?? 'Unknown';
+$member_last_name = $member['last_name'] ?? 'Unknown';
+$member_name = trim($member_first_name . ' ' . $member_last_name);
+
+// Force fresh initials
+$initials = substr($member_first_name, 0, 1) . substr($member_last_name, 0, 1);
 $member_since = date('M Y', strtotime($member['created_at']));
 $payout_status = $member['total_payouts_received'] > 0 ? 'received' : ($member['payout_position'] == 1 ? 'current' : 'upcoming');
 $expected_payout_formatted = date('M Y', strtotime($member['expected_payout_date']));
@@ -590,6 +598,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php echo strtoupper($initials); ?>
                     </div>
                     <div class="profile-info">
+                        <!-- DEBUG INFO - REMOVE AFTER FIXING -->
+                        <div style="background: red; color: white; padding: 5px; margin-bottom: 10px; font-size: 12px;">
+                            <strong>DEBUG:</strong> <?php echo $debug_info; ?><br>
+                            <strong>Calculated Name:</strong> "<?php echo $member_name; ?>"<br>
+                            <strong>Member ID from URL:</strong> <?php echo $member_id; ?><br>
+                            <strong>Member ID from DB:</strong> <?php echo $member['id']; ?>
+                        </div>
+                        <!-- END DEBUG -->
                         <h2><?php echo htmlspecialchars($member_name, ENT_QUOTES); ?></h2>
                         <div class="profile-meta">
                             <div class="meta-item">
