@@ -728,5 +728,68 @@
     "back_dashboard": "ወደ ዳሽቦርድ ተመለስ",
     "your_position_stat": "የእርስዎ ቦታ",
     "remaining_stat": "ቀሪ"
+  },
+  "equb_management": {
+    "page_title": "የእቁብ አስተዳደር",
+    "title": "የእቁብ አስተዳደር ስርዓት",
+    "subtitle": "ሁሉንም የፋይናንስ አስተዳደር እና የጊዜ አስተዳደር",
+    "create_new": "አዲስ የእቁብ ጊዜ ፍጠር",
+    "equb_terms": "የእቁብ ጊዜዎች",
+    "stats": {
+      "total_equbs": "ጠቅላላ የእቁብ ጊዜዎች",
+      "active_equbs": "ንቁ ጊዜዎች",
+      "total_pool": "ጠቅላላ የገንዘብ መጠን",
+      "total_members": "የተመዘገቡ አባላት",
+      "all_terms": "ሁሉም ጊዜዎች",
+      "currently_running": "አሁን እየሰሩ ያሉ",
+      "combined_value": "የተጣመረ ዋጋ",
+      "enrolled_members": "የተመዘገቡ አባላት"
+    },
+    "status": {
+      "planning": "በእቅድ ላይ",
+      "active": "ንቁ",
+      "completed": "ተጠናቅቋል",
+      "suspended": "ታግዷል",
+      "cancelled": "ተሰርዟል"
+    },
+    "filters": {
+      "search": "ፈልግ",
+      "search_placeholder": "በእቁብ ስም ወይም መለያ ፈልግ...",
+      "status": "ሁኔታ",
+      "date_range": "የቀን ክልል"
+    },
+    "form": {
+      "equb_name": "የእቁብ ስም",
+      "equb_name_help": "ለዚህ የእቁብ ጊዜ ልዩ፣ መግለጫ ስም ይምረጡ",
+      "description": "መግለጫ",
+      "status": "ሁኔታ",
+      "max_members": "ከፍተኛ አባላት",
+      "duration_months": "ጊዜ (ወራት)",
+      "start_date": "መጀመሪያ ቀን",
+      "end_date": "መጨረሻ ቀን",
+      "end_date_help": "በጊዜ ላይ በመመስረት በራስ-ሰር ይሰላል",
+      "payout_day": "የወር ክፍያ ቀን",
+      "admin_fee": "የአስተዳዳሪ ክፍያ (£)",
+      "late_fee": "የመዘግየት ቅጣት (£)",
+      "grace_period": "የቅዳሜ ጊዜ (ቀናት)",
+      "payment_tiers": "የክፍያ ደረጃዎች",
+      "add_tier": "የክፍያ ደረጃ አክል",
+      "registration_start": "የምዝገባ መጀመሪያ ቀን",
+      "registration_end": "የምዝገባ መጨረሻ ቀን",
+      "auto_assign": "የክፍያ ቦታዎችን በራስ-ሰር ይመድቡ",
+      "approval_required": "የአስተዳዳሪ ፈቃድ ያስፈልጋል",
+      "is_public": "ለህዝብ እይታ",
+      "is_featured": "የተለየ እቁብ",
+      "notes": "የአስተዳዳሪ ማስታወሻዎች"
+    },
+    "actions": {
+      "view": "ዝርዝሮችን ይመልከቱ",
+      "edit": "ጊዜን ያርትዑ",
+      "delete": "ጊዜን ሰርዝ"
+    }
+  },
+  "settings": {
+    "equb_management": "የእቁብ አስተዳደር",
+    "equb_description": "የእቁብ ጊዜዎችን፣ የክፍያ ደረጃዎችን እና የአባላት ምደባዎችን ይፍጠሩ እና ያስተዳድሩ"
   }
 } 

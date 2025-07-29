@@ -68,6 +68,30 @@ $t = Translator::getInstance();
                 </a>
             </div>
 
+            <!-- Equb Management -->
+            <div class="settings-category">
+                <div class="category-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m17-4a4 4 0 0 0-8 0m8 8a4 4 0 0 0-8 0"/>
+                    </svg>
+                </div>
+                <h3>Equb Management</h3>
+                <p>Manage and monitor equb transactions, reports, and financial data</p>
+                <div class="category-features">
+                    <span class="feature-tag">Transaction History</span>
+                    <span class="feature-tag">Reports</span>
+                    <span class="feature-tag">Financial Analytics</span>
+                </div>
+                <a href="equb-management.php" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Manage Equbs
+                </a>
+            </div>
+
             <!-- System Configuration -->
             <div class="settings-category">
                 <div class="category-icon">
@@ -282,18 +306,59 @@ $t = Translator::getInstance();
         }
 
         .settings-category {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid #e2e8f0;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .settings-category::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .settings-category:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .settings-category:hover::before {
+            opacity: 1;
+        }
+
+        /* Special styling for equb management */
+        .settings-category:nth-child(2) {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-color: #0369a1;
+        }
+
+        .settings-category:nth-child(2) .category-icon {
+            background: linear-gradient(135deg, #0369a1, #0284c7);
+        }
+
+        .settings-category:nth-child(2):hover {
+            border-color: #0284c7;
+            box-shadow: 0 20px 40px rgba(3, 105, 161, 0.2);
+        }
+
+        .settings-category:nth-child(2) .btn-primary {
+            background: linear-gradient(135deg, #0369a1, #0284c7);
+        }
+
+        .settings-category:nth-child(2) .btn-primary:hover {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            border-color: var(--color-teal);
         }
 
         .category-icon {

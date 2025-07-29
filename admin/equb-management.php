@@ -6,7 +6,7 @@ require_once '../languages/translator.php';
 
 $t = Translator::getInstance();
 
-// Page security check
+// Page security-check
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;

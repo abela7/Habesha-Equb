@@ -728,5 +728,68 @@
     "validation_error": "Please check your input and try again.",
     "unauthorized": "You are not authorized to perform this action.",
     "rule_not_found": "Rule not found."
+  },
+  "equb_management": {
+    "page_title": "Equb Management",
+    "title": "Equb Management System",
+    "subtitle": "Comprehensive financial management and term administration",
+    "create_new": "Create New Equb Term",
+    "equb_terms": "Equb Terms",
+    "stats": {
+      "total_equbs": "Total Equb Terms",
+      "active_equbs": "Active Terms",
+      "total_pool": "Total Pool Value",
+      "total_members": "Enrolled Members",
+      "all_terms": "All terms",
+      "currently_running": "Currently running",
+      "combined_value": "Combined value",
+      "enrolled_members": "Enrolled members"
+    },
+    "status": {
+      "planning": "Planning",
+      "active": "Active", 
+      "completed": "Completed",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "search": "Search",
+      "search_placeholder": "Search by equb name or ID...",
+      "status": "Status",
+      "date_range": "Date Range"
+    },
+    "form": {
+      "equb_name": "Equb Name",
+      "equb_name_help": "Choose a unique, descriptive name for this equb term",
+      "description": "Description",
+      "status": "Status",
+      "max_members": "Maximum Members",
+      "duration_months": "Duration (Months)",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "end_date_help": "Automatically calculated based on duration",
+      "payout_day": "Payout Day of Month",
+      "admin_fee": "Admin Fee (£)",
+      "late_fee": "Late Fee (£)",
+      "grace_period": "Grace Period (Days)",
+      "payment_tiers": "Payment Tiers",
+      "add_tier": "Add Payment Tier",
+      "registration_start": "Registration Start Date",
+      "registration_end": "Registration End Date",
+      "auto_assign": "Auto-assign Payout Positions",
+      "approval_required": "Require Admin Approval",
+      "is_public": "Public Visibility",
+      "is_featured": "Featured Equb",
+      "notes": "Admin Notes"
+    },
+    "actions": {
+      "view": "View Details",
+      "edit": "Edit Term",
+      "delete": "Delete Term"
+    }
+  },
+  "settings": {
+    "equb_management": "Equb Management",
+    "equb_description": "Create and manage equb terms, payment tiers, and member assignments"
   }
 } 

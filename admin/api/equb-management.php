@@ -70,30 +70,6 @@ function is_admin_authenticated() {
 }
 
 /**
- * Audit logging system
- */
-function log_admin_action($pdo, $admin_id, $action, $table, $record_id, $details = []) {
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO admin_audit_log (admin_id, action, table_name, record_id, details, ip_address, user_agent, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-        ");
-        
-        $stmt->execute([
-            $admin_id,
-            $action,
-            $table,
-            $record_id,
-            json_encode($details),
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
-        ]);
-    } catch (Exception $e) {
-        error_log("Audit logging failed: " . $e->getMessage());
-    }
-}
-
-/**
  * Generate unique equb ID
  */
 function generate_equb_id($pdo) {
@@ -350,14 +326,6 @@ try {
             
             $new_id = $pdo->lastInsertId();
             
-            // Log audit trail
-            log_admin_action($pdo, $admin_id, 'CREATE', 'equb_settings', $new_id, [
-                'equb_id' => $equb_id,
-                'equb_name' => $data['equb_name'],
-                'max_members' => $data['max_members'],
-                'total_pool' => $total_pool
-            ]);
-            
             json_response(true, 'Equb term created successfully', [
                 'id' => $new_id,
                 'equb_id' => $equb_id
@@ -427,13 +395,6 @@ try {
             $stmt = $pdo->prepare($sql);
             $stmt->execute($update_values);
             
-            // Log audit trail
-            log_admin_action($pdo, $admin_id, 'UPDATE', 'equb_settings', $data['id'], [
-                'updated_fields' => array_keys($data),
-                'previous_status' => $current_equb['status'],
-                'new_status' => $data['status'] ?? $current_equb['status']
-            ]);
-            
             json_response(true, 'Equb term updated successfully');
             break;
             
@@ -484,13 +445,6 @@ try {
                 WHERE id = ?
             ");
             $stmt->execute([$data['id']]);
-            
-            // Log audit trail
-            log_admin_action($pdo, $admin_id, 'DELETE', 'equb_settings', $data['id'], [
-                'equb_name' => $equb['equb_name'],
-                'equb_id' => $equb['equb_id'],
-                'reason' => 'Admin deletion'
-            ]);
             
             json_response(true, 'Equb term deleted successfully');
             break;
