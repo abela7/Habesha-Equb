@@ -55,9 +55,36 @@ try {
     $rules = $rules_stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (Exception $e) {
-    error_log("Welcome page error: " . $e->getMessage());
-    header('Location: login.php?msg=' . urlencode('An error occurred. Please try again.'));
-    exit;
+    error_log("Welcome page error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    
+    // Check if it's a column not found error
+    if (strpos($e->getMessage(), 'rules_agreed') !== false || strpos($e->getMessage(), 'Unknown column') !== false) {
+        // Column doesn't exist, show friendly error
+        die("
+        <div style='padding: 40px; text-align: center; font-family: Arial, sans-serif;'>
+            <h2 style='color: #dc3545;'>Database Update Required</h2>
+            <p>The database needs to be updated to support the welcome page.</p>
+            <p>Please run this SQL command in phpMyAdmin:</p>
+            <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px; border-left: 4px solid #007bff;'>
+                <code style='font-size: 14px;'>
+                ALTER TABLE members ADD COLUMN rules_agreed tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=Agreed to rules, 0=Not agreed' AFTER language_preference;
+                </code>
+            </div>
+            <p><a href='login.php' style='color: #007bff;'>← Back to Login</a></p>
+        </div>
+        ");
+    }
+    
+    // Show detailed error for debugging
+    die("
+    <div style='padding: 40px; text-align: center; font-family: Arial, sans-serif;'>
+        <h2 style='color: #dc3545;'>Welcome Page Error</h2>
+        <p><strong>Error:</strong> " . htmlspecialchars($e->getMessage()) . "</p>
+        <p><strong>File:</strong> " . htmlspecialchars($e->getFile()) . "</p>
+        <p><strong>Line:</strong> " . $e->getLine() . "</p>
+        <p><a href='login.php' style='color: #007bff;'>← Back to Login</a></p>
+    </div>
+    ");
 }
 
 // Set initial language preference
