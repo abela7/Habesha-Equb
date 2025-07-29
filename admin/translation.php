@@ -29,7 +29,7 @@ foreach ($language_files as $lang => $file) {
 
 // Include language handler for UI
 require_once '../languages/translator.php';
-$t = new Translator();
+$t = Translator::getInstance();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $t->getCurrentLanguage(); ?>">

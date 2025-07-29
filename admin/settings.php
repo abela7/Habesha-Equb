@@ -12,7 +12,7 @@ $admin_username = get_current_admin_username();
 
 // Include language handler
 require_once '../languages/translator.php';
-$t = new Translator();
+$t = Translator::getInstance();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $t->getCurrentLanguage(); ?>">
