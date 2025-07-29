@@ -14,6 +14,61 @@ $admin_username = get_current_admin_username() ?? 'Admin';
 
 // Get system settings
 try {
+    // First, create table if it doesn't exist
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS system_settings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            setting_key VARCHAR(100) NOT NULL UNIQUE,
+            setting_value TEXT,
+            setting_category VARCHAR(50) DEFAULT 'general',
+            setting_type VARCHAR(20) DEFAULT 'text',
+            setting_description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_category (setting_category),
+            INDEX idx_key (setting_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+    
+    // Check if we have any settings, if not, populate defaults
+    $count_stmt = $pdo->query("SELECT COUNT(*) FROM system_settings");
+    $settings_count = $count_stmt->fetchColumn();
+    
+    if ($settings_count == 0) {
+        // Insert default settings
+        $default_settings = [
+            ['app_name', 'HabeshaEqub', 'general', 'text', 'The name of your application shown throughout the system'],
+            ['app_description', 'Ethiopian traditional savings group management system', 'general', 'text', 'Brief description of your equb application'],
+            ['maintenance_mode', '0', 'general', 'boolean', 'Enable to put the system in maintenance mode'],
+            ['session_timeout', '60', 'general', 'select', 'User session timeout in minutes'],
+            ['default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members'],
+            ['default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system'],
+            ['default_language', 'en', 'defaults', 'select', 'Default language for new users'],
+            ['auto_activate_members', '1', 'defaults', 'boolean', 'Automatically activate new member registrations'],
+            ['date_format', 'm/d/Y', 'preferences', 'select', 'How dates are displayed throughout the system'],
+            ['timezone', 'Africa/Addis_Ababa', 'preferences', 'select', 'System timezone for all date/time operations'],
+            ['items_per_page', '25', 'preferences', 'select', 'Number of items to show per page in lists'],
+            ['enable_notifications', '1', 'preferences', 'boolean', 'Enable system notifications for users'],
+            ['smtp_host', '', 'email', 'text', 'SMTP server hostname'],
+            ['smtp_port', '587', 'email', 'number', 'SMTP server port (587 for TLS, 465 for SSL)'],
+            ['from_email', '', 'email', 'text', 'Email address used as sender for system emails'],
+            ['from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails'],
+            ['currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts'],
+            ['currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount'],
+            ['decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency'],
+            ['thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands']
+        ];
+        
+        $insert_stmt = $pdo->prepare("
+            INSERT INTO system_settings (setting_key, setting_value, setting_category, setting_type, setting_description, created_at) 
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        
+        foreach ($default_settings as $setting) {
+            $insert_stmt->execute($setting);
+        }
+    }
+    
     $stmt = $pdo->query("
         SELECT setting_key, setting_value, setting_category, setting_type, setting_description 
         FROM system_settings 
@@ -25,10 +80,30 @@ try {
     $settings = [];
 }
 
-// Group settings by category
+// Group settings by category and create lookup array
 $grouped_settings = [];
+$settings_values = [];
 foreach ($settings as $setting) {
     $grouped_settings[$setting['setting_category']][] = $setting;
+    $settings_values[$setting['setting_key']] = $setting['setting_value'];
+}
+
+// Helper function to get setting value
+function getSetting($key, $default = '') {
+    global $settings_values;
+    return isset($settings_values[$key]) ? $settings_values[$key] : $default;
+}
+
+// Helper function to check if setting is checked
+function isSettingChecked($key) {
+    global $settings_values;
+    return isset($settings_values[$key]) && $settings_values[$key] == '1';
+}
+
+// Helper function to get selected option
+function isSettingSelected($key, $value) {
+    global $settings_values;
+    return isset($settings_values[$key]) && $settings_values[$key] == $value;
 }
 
 // Default categories if no settings exist
@@ -599,7 +674,7 @@ $default_categories = [
                         <div class="setting-description">The name of your application shown throughout the system</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="app_name" value="HabeshaEqub" data-category="general">
+                        <input type="text" class="form-control" name="app_name" value="<?php echo htmlspecialchars(getSetting('app_name', 'HabeshaEqub')); ?>" data-category="general">
                     </div>
                 </div>
 
@@ -609,7 +684,7 @@ $default_categories = [
                         <div class="setting-description">Brief description of your equb application</div>
                     </div>
                     <div class="setting-control">
-                        <textarea class="form-control" name="app_description" rows="3" data-category="general">Ethiopian traditional savings group management system</textarea>
+                        <textarea class="form-control" name="app_description" rows="3" data-category="general"><?php echo htmlspecialchars(getSetting('app_description', 'Ethiopian traditional savings group management system')); ?></textarea>
                     </div>
                 </div>
 
@@ -620,7 +695,7 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="maintenance_mode" data-category="general">
+                            <input class="form-check-input" type="checkbox" name="maintenance_mode" data-category="general" <?php echo isSettingChecked('maintenance_mode') ? 'checked' : ''; ?>>
                             <label class="form-check-label">Enable Maintenance Mode</label>
                         </div>
                     </div>
@@ -633,10 +708,10 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="session_timeout" data-category="general">
-                            <option value="30">30 minutes</option>
-                            <option value="60" selected>1 hour</option>
-                            <option value="120">2 hours</option>
-                            <option value="480">8 hours</option>
+                            <option value="30" <?php echo isSettingSelected('session_timeout', '30') ? 'selected' : ''; ?>>30 minutes</option>
+                            <option value="60" <?php echo isSettingSelected('session_timeout', '60') || getSetting('session_timeout') == '' ? 'selected' : ''; ?>>1 hour</option>
+                            <option value="120" <?php echo isSettingSelected('session_timeout', '120') ? 'selected' : ''; ?>>2 hours</option>
+                            <option value="480" <?php echo isSettingSelected('session_timeout', '480') ? 'selected' : ''; ?>>8 hours</option>
                         </select>
                     </div>
                 </div>
@@ -659,7 +734,7 @@ $default_categories = [
                         <div class="setting-description">Default monthly contribution amount for new members</div>
                     </div>
                     <div class="setting-control">
-                        <input type="number" class="form-control" name="default_contribution" value="1000" min="0" step="100" data-category="defaults">
+                        <input type="number" class="form-control" name="default_contribution" value="<?php echo htmlspecialchars(getSetting('default_contribution', '1000')); ?>" min="0" step="100" data-category="defaults">
                     </div>
                 </div>
 
@@ -670,10 +745,10 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="default_currency" data-category="defaults">
-                            <option value="GBP" selected>British Pound (£)</option>
-                            <option value="ETB">Ethiopian Birr (ETB)</option>
-                            <option value="USD">US Dollar (USD)</option>
-                            <option value="EUR">Euro (EUR)</option>
+                            <option value="GBP" <?php echo isSettingSelected('default_currency', 'GBP') || getSetting('default_currency') == '' ? 'selected' : ''; ?>>British Pound (£)</option>
+                            <option value="ETB" <?php echo isSettingSelected('default_currency', 'ETB') ? 'selected' : ''; ?>>Ethiopian Birr (ETB)</option>
+                            <option value="USD" <?php echo isSettingSelected('default_currency', 'USD') ? 'selected' : ''; ?>>US Dollar (USD)</option>
+                            <option value="EUR" <?php echo isSettingSelected('default_currency', 'EUR') ? 'selected' : ''; ?>>Euro (EUR)</option>
                         </select>
                     </div>
                 </div>
@@ -685,8 +760,8 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="default_language" data-category="defaults">
-                            <option value="en" selected>English</option>
-                            <option value="am">አማርኛ (Amharic)</option>
+                            <option value="en" <?php echo isSettingSelected('default_language', 'en') || getSetting('default_language') == '' ? 'selected' : ''; ?>>English</option>
+                            <option value="am" <?php echo isSettingSelected('default_language', 'am') ? 'selected' : ''; ?>>አማርኛ (Amharic)</option>
                         </select>
                     </div>
                 </div>
@@ -698,7 +773,7 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="auto_activate_members" checked data-category="defaults">
+                            <input class="form-check-input" type="checkbox" name="auto_activate_members" data-category="defaults" <?php echo isSettingChecked('auto_activate_members') || getSetting('auto_activate_members') == '' ? 'checked' : ''; ?>>
                             <label class="form-check-label">Auto-activate new members</label>
                         </div>
                     </div>
@@ -723,10 +798,10 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="date_format" data-category="preferences">
-                            <option value="Y-m-d">2024-01-15 (YYYY-MM-DD)</option>
-                            <option value="m/d/Y" selected>01/15/2024 (MM/DD/YYYY)</option>
-                            <option value="d/m/Y">15/01/2024 (DD/MM/YYYY)</option>
-                            <option value="M j, Y">Jan 15, 2024</option>
+                            <option value="Y-m-d" <?php echo isSettingSelected('date_format', 'Y-m-d') ? 'selected' : ''; ?>>2024-01-15 (YYYY-MM-DD)</option>
+                            <option value="m/d/Y" <?php echo isSettingSelected('date_format', 'm/d/Y') || getSetting('date_format') == '' ? 'selected' : ''; ?>>01/15/2024 (MM/DD/YYYY)</option>
+                            <option value="d/m/Y" <?php echo isSettingSelected('date_format', 'd/m/Y') ? 'selected' : ''; ?>>15/01/2024 (DD/MM/YYYY)</option>
+                            <option value="M j, Y" <?php echo isSettingSelected('date_format', 'M j, Y') ? 'selected' : ''; ?>>Jan 15, 2024</option>
                         </select>
                     </div>
                 </div>
@@ -738,9 +813,9 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="timezone" data-category="preferences">
-                            <option value="Africa/Addis_Ababa" selected>Africa/Addis Ababa (UTC+3)</option>
-                            <option value="UTC">UTC (UTC+0)</option>
-                            <option value="America/New_York">America/New York (UTC-5)</option>
+                            <option value="Africa/Addis_Ababa" <?php echo isSettingSelected('timezone', 'Africa/Addis_Ababa') || getSetting('timezone') == '' ? 'selected' : ''; ?>>Africa/Addis Ababa (UTC+3)</option>
+                            <option value="UTC" <?php echo isSettingSelected('timezone', 'UTC') ? 'selected' : ''; ?>>UTC (UTC+0)</option>
+                            <option value="America/New_York" <?php echo isSettingSelected('timezone', 'America/New_York') ? 'selected' : ''; ?>>America/New York (UTC-5)</option>
                         </select>
                     </div>
                 </div>
@@ -752,10 +827,10 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="items_per_page" data-category="preferences">
-                            <option value="10">10 items</option>
-                            <option value="25" selected>25 items</option>
-                            <option value="50">50 items</option>
-                            <option value="100">100 items</option>
+                            <option value="10" <?php echo isSettingSelected('items_per_page', '10') ? 'selected' : ''; ?>>10 items</option>
+                            <option value="25" <?php echo isSettingSelected('items_per_page', '25') || getSetting('items_per_page') == '' ? 'selected' : ''; ?>>25 items</option>
+                            <option value="50" <?php echo isSettingSelected('items_per_page', '50') ? 'selected' : ''; ?>>50 items</option>
+                            <option value="100" <?php echo isSettingSelected('items_per_page', '100') ? 'selected' : ''; ?>>100 items</option>
                         </select>
                     </div>
                 </div>
@@ -767,7 +842,7 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="enable_notifications" checked data-category="preferences">
+                            <input class="form-check-input" type="checkbox" name="enable_notifications" data-category="preferences" <?php echo isSettingChecked('enable_notifications') || getSetting('enable_notifications') == '' ? 'checked' : ''; ?>>
                             <label class="form-check-label">Enable notifications</label>
                         </div>
                     </div>
@@ -791,7 +866,7 @@ $default_categories = [
                         <div class="setting-description">SMTP server hostname</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="smtp_host" placeholder="smtp.gmail.com" data-category="email">
+                        <input type="text" class="form-control" name="smtp_host" value="<?php echo htmlspecialchars(getSetting('smtp_host')); ?>" placeholder="smtp.gmail.com" data-category="email">
                     </div>
                 </div>
 
@@ -801,7 +876,7 @@ $default_categories = [
                         <div class="setting-description">SMTP server port (587 for TLS, 465 for SSL)</div>
                     </div>
                     <div class="setting-control">
-                        <input type="number" class="form-control" name="smtp_port" value="587" data-category="email">
+                        <input type="number" class="form-control" name="smtp_port" value="<?php echo htmlspecialchars(getSetting('smtp_port', '587')); ?>" data-category="email">
                     </div>
                 </div>
 
@@ -811,7 +886,7 @@ $default_categories = [
                         <div class="setting-description">Email address used as sender for system emails</div>
                     </div>
                     <div class="setting-control">
-                        <input type="email" class="form-control" name="from_email" placeholder="noreply@habeshaequb.com" data-category="email">
+                        <input type="email" class="form-control" name="from_email" value="<?php echo htmlspecialchars(getSetting('from_email')); ?>" placeholder="noreply@habeshaequb.com" data-category="email">
                     </div>
                 </div>
 
@@ -821,7 +896,7 @@ $default_categories = [
                         <div class="setting-description">Name displayed as sender for system emails</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="from_name" value="HabeshaEqub System" data-category="email">
+                        <input type="text" class="form-control" name="from_name" value="<?php echo htmlspecialchars(getSetting('from_name', 'HabeshaEqub System')); ?>" data-category="email">
                     </div>
                 </div>
             </div>
@@ -843,7 +918,7 @@ $default_categories = [
                         <div class="setting-description">Symbol to display for currency amounts</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="currency_symbol" value="£" data-category="currency">
+                        <input type="text" class="form-control" name="currency_symbol" value="<?php echo htmlspecialchars(getSetting('currency_symbol', '£')); ?>" data-category="currency">
                     </div>
                 </div>
 
@@ -854,8 +929,8 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="currency_position" data-category="currency">
-                            <option value="before" selected>Before amount (£1,000)</option>
-                            <option value="after">After amount (1,000 £)</option>
+                            <option value="before" <?php echo isSettingSelected('currency_position', 'before') || getSetting('currency_position') == '' ? 'selected' : ''; ?>>Before amount (£1,000)</option>
+                            <option value="after" <?php echo isSettingSelected('currency_position', 'after') ? 'selected' : ''; ?>>After amount (1,000 £)</option>
                         </select>
                     </div>
                 </div>
@@ -867,8 +942,8 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="decimal_places" data-category="currency">
-                            <option value="0">0 (1000)</option>
-                            <option value="2" selected>2 (1000.00)</option>
+                            <option value="0" <?php echo isSettingSelected('decimal_places', '0') ? 'selected' : ''; ?>>0 (1000)</option>
+                            <option value="2" <?php echo isSettingSelected('decimal_places', '2') || getSetting('decimal_places') == '' ? 'selected' : ''; ?>>2 (1000.00)</option>
                         </select>
                     </div>
                 </div>
@@ -880,13 +955,32 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="thousands_separator" data-category="currency">
-                            <option value="," selected>Comma (1,000)</option>
-                            <option value=".">Period (1.000)</option>
-                            <option value=" ">Space (1 000)</option>
-                            <option value="">None (1000)</option>
+                            <option value="," <?php echo isSettingSelected('thousands_separator', ',') || getSetting('thousands_separator') == '' ? 'selected' : ''; ?>>Comma (1,000)</option>
+                            <option value="." <?php echo isSettingSelected('thousands_separator', '.') ? 'selected' : ''; ?>>Period (1.000)</option>
+                            <option value=" " <?php echo isSettingSelected('thousands_separator', ' ') ? 'selected' : ''; ?>>Space (1 000)</option>
+                            <option value="" <?php echo getSetting('thousands_separator') === '' && isset($settings_values['thousands_separator']) ? 'selected' : ''; ?>>None (1000)</option>
                         </select>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Debug Information (for testing) -->
+        <div class="config-section" style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 1px solid #dee2e6;">
+            <h4 style="color: var(--color-purple); margin-bottom: 16px;">
+                <i class="fas fa-bug me-2"></i>
+                Debug Information
+            </h4>
+            <div style="font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: white; padding: 12px; border-radius: 8px;">
+                <strong>Settings Count:</strong> <?php echo count($settings); ?><br>
+                <strong>Settings Loaded:</strong><br>
+                <?php foreach ($settings_values as $key => $value): ?>
+                    <?php echo htmlspecialchars($key); ?>: <?php echo htmlspecialchars($value); ?><br>
+                <?php endforeach; ?>
+                
+                <?php if (empty($settings_values)): ?>
+                    <span style="color: red;">No settings found in database. Check if table exists and is populated.</span>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -997,6 +1091,8 @@ $default_categories = [
             const formData = new FormData();
             const settings = {};
             
+            console.log('Starting save process...');
+            
             document.querySelectorAll('[data-category]').forEach(element => {
                 const name = element.name;
                 const category = element.dataset.category;
@@ -1004,8 +1100,10 @@ $default_categories = [
                 
                 if (element.type === 'checkbox') {
                     value = element.checked ? '1' : '0';
+                    console.log(`Checkbox ${name}: ${element.checked} -> ${value}`);
                 } else {
                     value = element.value;
+                    console.log(`Field ${name}: ${value}`);
                 }
                 
                 settings[name] = {
@@ -1013,6 +1111,8 @@ $default_categories = [
                     category: category
                 };
             });
+            
+            console.log('Settings to save:', settings);
             
             formData.append('action', 'save_all');
             formData.append('settings', JSON.stringify(settings));
@@ -1025,18 +1125,33 @@ $default_categories = [
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    hasChanges = false;
-                    updateChangeIndicators();
-                    showNotification('Settings saved successfully!', 'success');
-                } else {
-                    showNotification('Error: ' + data.message, 'error');
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.text();
+            })
+            .then(text => {
+                console.log('Raw response:', text);
+                try {
+                    const data = JSON.parse(text);
+                    console.log('Parsed response:', data);
+                    
+                    if (data.success) {
+                        hasChanges = false;
+                        updateChangeIndicators();
+                        showNotification('Settings saved successfully!', 'success');
+                        console.log('Settings saved successfully!');
+                    } else {
+                        console.error('Save failed:', data.message);
+                        showNotification('Error: ' + data.message, 'error');
+                    }
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    console.error('Raw response was:', text);
+                    showNotification('Invalid response from server', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Fetch error:', error);
                 showNotification('Failed to save settings', 'error');
             })
             .finally(() => {
