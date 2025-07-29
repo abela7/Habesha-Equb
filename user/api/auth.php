@@ -109,8 +109,8 @@ function create_member($first_name, $last_name, $email, $phone, $password) {
             INSERT INTO members (
                 member_id, first_name, last_name, full_name, username, email, phone, password,
                 monthly_payment, payout_position, guarantor_first_name, guarantor_last_name, guarantor_phone,
-                status, is_active, join_date, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, CURDATE(), NOW())
+                language_preference, status, is_active, join_date, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, CURDATE(), NOW())
         ");
         
         $result = $stmt->execute([
@@ -126,7 +126,8 @@ function create_member($first_name, $last_name, $email, $phone, $password) {
             $next_position, // Auto-assign next position
             'Pending', // Default guarantor info - to be updated later
             'Pending',
-            'Pending'
+            'Pending',
+            0 // Default to English (0=English, 1=Amharic)
         ]);
         
         if ($result) {
@@ -308,14 +309,16 @@ switch ($action) {
         $auth_result = authenticate_member($email_validation['value'], $password);
         
         if ($auth_result['success']) {
-            // Set session
+            // Set complete session data for authentication
             $_SESSION['user_id'] = $auth_result['member']['id'];
+            $_SESSION['user_logged_in'] = true;  // CRITICAL: Required by auth_guard
+            $_SESSION['user_login_time'] = time(); // CRITICAL: Required by auth_guard
             $_SESSION['username'] = $auth_result['member']['username'];
             $_SESSION['first_name'] = $auth_result['member']['first_name'];
             $_SESSION['last_name'] = $auth_result['member']['last_name'];
             $_SESSION['full_name'] = $auth_result['member']['full_name'];
             $_SESSION['email'] = $auth_result['member']['email'];
-            $_SESSION['login_time'] = time();
+            $_SESSION['login_time'] = time(); // Legacy compatibility
             
             send_json_response(true, 'Login successful', [
                 'redirect' => 'dashboard.php'
