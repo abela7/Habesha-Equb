@@ -92,13 +92,13 @@ $t = Translator::getInstance();
             </div>
 
             <!-- System Configuration -->
-            <div class="settings-category coming-soon-module">
+            <div class="settings-category active-module">
                 <div class="module-header">
                     <div class="module-icon accent">
                         <i class="fas fa-cog" style="font-size: 24px;"></i>
                     </div>
                     <div class="module-status">
-                        <span class="status-badge status-coming-soon">Coming Soon</span>
+                        <span class="status-badge status-active">Active</span>
                     </div>
                 </div>
                 <h3>System Configuration</h3>
@@ -108,7 +108,7 @@ $t = Translator::getInstance();
                     <span class="feature-tag">Defaults</span>
                     <span class="feature-tag">Preferences</span>
                 </div>
-                <a href="#" class="btn btn-secondary" onclick="showComingSoon('System Configuration')">
+                <a href="system-configuration.php" class="btn btn-primary">
                     <i class="fas fa-wrench me-2"></i>
                     Configure System
                 </a>
