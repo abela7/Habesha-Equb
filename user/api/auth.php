@@ -70,7 +70,7 @@ function validate_user_input($data, $type = 'text') {
 }
 
 /**
- * Create member with first_name, last_name structure
+ * Create member with all required fields
  */
 function create_member($first_name, $last_name, $email, $phone, $password) {
     global $pdo;
@@ -81,6 +81,9 @@ function create_member($first_name, $last_name, $email, $phone, $password) {
         
         // Hash password securely
         $password_hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        
+        // Generate member_id
+        $member_id = generate_member_id($first_name, $last_name);
         
         // Generate username from email
         $username_base = explode('@', $email)[0];
@@ -96,22 +99,34 @@ function create_member($first_name, $last_name, $email, $phone, $password) {
             }
         }
         
-        // Insert with proper database structure
+        // Get next available payout position
+        $stmt = $pdo->prepare("SELECT COALESCE(MAX(payout_position), 0) + 1 as next_position FROM members WHERE payout_position > 0");
+        $stmt->execute();
+        $next_position = $stmt->fetchColumn();
+        
+        // Insert with ALL required fields
         $stmt = $pdo->prepare("
             INSERT INTO members (
-                first_name, last_name, full_name, username, email, phone, password, 
+                member_id, first_name, last_name, full_name, username, email, phone, password,
+                monthly_payment, payout_position, guarantor_first_name, guarantor_last_name, guarantor_phone,
                 status, is_active, join_date, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', 1, CURDATE(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 1, CURDATE(), NOW())
         ");
         
         $result = $stmt->execute([
+            $member_id,
             $first_name, 
             $last_name, 
             $full_name, 
             $username, 
             $email, 
             $phone, 
-            $password_hash
+            $password_hash,
+            0.00, // Default monthly payment - to be set later
+            $next_position, // Auto-assign next position
+            'Pending', // Default guarantor info - to be updated later
+            'Pending',
+            'Pending'
         ]);
         
         if ($result) {
@@ -124,6 +139,31 @@ function create_member($first_name, $last_name, $email, $phone, $password) {
         error_log("Member creation error: " . $e->getMessage());
         return false;
     }
+}
+
+/**
+ * Generate unique member ID
+ */
+function generate_member_id($first_name, $last_name) {
+    global $pdo;
+    
+    // Create base ID from initials
+    $first_initial = strtoupper(substr($first_name, 0, 1));
+    $last_initial = strtoupper(substr($last_name, 0, 1));
+    
+    $base_id = "HEM-{$first_initial}{$last_initial}";
+    
+    // Find next available number
+    $counter = 1;
+    do {
+        $member_id = $base_id . $counter;
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM members WHERE member_id = ?");
+        $stmt->execute([$member_id]);
+        $exists = $stmt->fetchColumn() > 0;
+        $counter++;
+    } while ($exists && $counter <= 999);
+    
+    return $member_id;
 }
 
 /**
