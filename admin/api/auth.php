@@ -206,12 +206,16 @@ try {
     $action = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
+        error_log("Admin API POST request - Action: " . $action);
+        error_log("POST data: " . print_r($_POST, true));
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $action = $_GET['action'] ?? '';
+        error_log("Admin API GET request - Action: " . $action);
     }
 
     // Validate action
     if (empty($action)) {
+        error_log("Admin API error: No action specified");
         send_json_response(false, 'No action specified');
     }
 
@@ -307,6 +311,7 @@ try {
 } catch (Exception $e) {
     // Log error for debugging
     error_log("Auth API error: " . $e->getMessage());
+    error_log("Auth API error trace: " . $e->getTraceAsString());
     
     // Send generic error message (don't expose internal errors)
     send_json_response(false, 'An unexpected error occurred. Please try again.');

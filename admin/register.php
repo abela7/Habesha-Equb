@@ -71,6 +71,7 @@ $csrf_token = generate_csrf_token();
             <form id="registerForm" novalidate>
                 <!-- CSRF Protection -->
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                <input type="hidden" name="action" value="register">
                 
                 <!-- Username field -->
                 <div class="form-group">
