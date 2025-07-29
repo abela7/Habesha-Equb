@@ -23,20 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 session_start();
 require_once '../../includes/db.php';
 
-// Database connection with proper error handling
+// Use existing database connection from db.php
 try {
-    $pdo = new PDO(
-        "mysql:host=localhost;dbname=habeshjv_habeshaequb;charset=utf8mb4",
-        "habeshjv_habeshaequb",
-        "Habesha@2024#equb",
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
-        ]
-    );
-} catch (PDOException $e) {
+    // The $pdo connection is already available from db.php
+    if (!isset($pdo)) {
+        json_response(false, 'Database connection not available', ['error' => 'CONNECTION_FAILED']);
+    }
+} catch (Exception $e) {
     json_response(false, 'Database connection failed', ['error' => 'CONNECTION_FAILED']);
 }
 

@@ -17,7 +17,12 @@
     "member": "member",
     "unknown_month": "Unknown Month",
     "on": "on",
-    "of": "of"
+    "of": "of",
+    "refresh": "Refresh",
+    "export": "Export",
+    "filters": "Filters",
+    "all": "All",
+    "apply": "Apply"
   },
   "navigation": {
     "dashboard": "Dashboard",
