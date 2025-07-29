@@ -37,8 +37,8 @@ $t = Translator::getInstance();
 
     <div class="admin-container">
         <div class="admin-header">
-            <h1>System Settings</h1>
-            <p>Manage system configuration, translations, and administrative settings</p>
+            <h1 style="color: var(--color-deep-purple); margin-bottom: 8px;">System Settings</h1>
+            <p style="color: var(--color-dark-purple); margin: 0; font-size: 1.1rem;">Manage system configuration, translations, and administrative settings</p>
         </div>
 
         <!-- Settings Categories -->
@@ -298,6 +298,19 @@ $t = Translator::getInstance();
     </script>
 
     <style>
+        /* Professional Color Palette - Elegant & Consistent */
+        :root {
+            --color-cream: #F1ECE2;
+            --color-dark-purple: #4D4052;
+            --color-deep-purple: #301934;
+            --color-gold: #DAA520;
+            --color-light-gold: #CDAF56;
+            --color-brown: #5D4225;
+            --color-white: #FFFFFF;
+            --color-light-bg: #F1ECE2;
+            --color-border: rgba(77, 64, 82, 0.15);
+        }
+
         .settings-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -306,13 +319,14 @@ $t = Translator::getInstance();
         }
 
         .settings-category {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-cream) 100%);
             border-radius: 16px;
             padding: 32px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--color-border);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 6px rgba(77, 64, 82, 0.05);
         }
 
         .settings-category::before {
@@ -322,48 +336,59 @@ $t = Translator::getInstance();
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(90deg, var(--color-gold), var(--color-light-gold));
             opacity: 0;
             transition: opacity 0.3s ease;
         }
 
         .settings-category:hover {
             transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            border-color: var(--primary-color);
+            box-shadow: 0 20px 40px rgba(77, 64, 82, 0.15);
+            border-color: var(--color-gold);
         }
 
         .settings-category:hover::before {
             opacity: 1;
         }
 
-        /* Special styling for equb management */
+        /* Special styling for Translation Management */
+        .settings-category:nth-child(1) {
+            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-cream) 100%);
+            border-color: var(--color-gold);
+        }
+
+        .settings-category:nth-child(1) .category-icon {
+            background: linear-gradient(135deg, var(--color-gold), var(--color-light-gold));
+        }
+
+        /* Special styling for Equb Management */
         .settings-category:nth-child(2) {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border-color: #0369a1;
+            background: linear-gradient(135deg, #FAF7F0 0%, var(--color-cream) 100%);
+            border-color: var(--color-deep-purple);
         }
 
         .settings-category:nth-child(2) .category-icon {
-            background: linear-gradient(135deg, #0369a1, #0284c7);
+            background: linear-gradient(135deg, var(--color-deep-purple), var(--color-dark-purple));
         }
 
         .settings-category:nth-child(2):hover {
-            border-color: #0284c7;
-            box-shadow: 0 20px 40px rgba(3, 105, 161, 0.2);
+            border-color: var(--color-deep-purple);
+            box-shadow: 0 20px 40px rgba(48, 25, 52, 0.2);
         }
 
         .settings-category:nth-child(2) .btn-primary {
-            background: linear-gradient(135deg, #0369a1, #0284c7);
+            background: linear-gradient(135deg, var(--color-deep-purple), var(--color-dark-purple));
+            color: var(--color-white);
         }
 
         .settings-category:nth-child(2) .btn-primary:hover {
-            background: linear-gradient(135deg, #0284c7, #0369a1);
+            background: linear-gradient(135deg, var(--color-dark-purple), var(--color-deep-purple));
             transform: translateY(-2px);
         }
 
         .category-icon {
-            background: linear-gradient(135deg, var(--color-teal), var(--color-purple));
-            color: white;
+            background: linear-gradient(135deg, var(--color-dark-purple), var(--color-deep-purple));
+            color: var(--color-white);
             width: 64px;
             height: 64px;
             border-radius: 12px;
@@ -371,17 +396,18 @@ $t = Translator::getInstance();
             align-items: center;
             justify-content: center;
             margin-bottom: 16px;
+            box-shadow: 0 4px 8px rgba(77, 64, 82, 0.2);
         }
 
         .settings-category h3 {
             margin: 0 0 8px 0;
-            color: #1f2937;
+            color: var(--color-deep-purple);
             font-size: 1.25rem;
             font-weight: 600;
         }
 
         .settings-category p {
-            color: #6b7280;
+            color: var(--color-dark-purple);
             margin: 0 0 16px 0;
             line-height: 1.5;
         }
@@ -392,14 +418,15 @@ $t = Translator::getInstance();
 
         .feature-tag {
             display: inline-block;
-            background: #f3f4f6;
-            color: #374151;
+            background: var(--color-cream);
+            color: var(--color-brown);
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 500;
             margin-right: 8px;
             margin-bottom: 4px;
+            border: 1px solid var(--color-border);
         }
 
         .settings-category .btn {
@@ -418,35 +445,38 @@ $t = Translator::getInstance();
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--color-teal), var(--color-purple));
-            color: white;
+            background: linear-gradient(135deg, var(--color-gold), var(--color-light-gold));
+            color: var(--color-deep-purple);
+            box-shadow: 0 4px 8px rgba(218, 165, 32, 0.2);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #0d9488, #7c3aed);
-            transform: translateY(-1px);
+            background: linear-gradient(135deg, var(--color-light-gold), var(--color-gold));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(218, 165, 32, 0.3);
         }
 
         .btn-secondary {
-            background: #f9fafb;
-            color: #374151;
-            border: 1px solid #d1d5db;
+            background: var(--color-cream);
+            color: var(--color-dark-purple);
+            border: 1px solid var(--color-border);
         }
 
         .btn-secondary:hover {
-            background: #f3f4f6;
-            border-color: #9ca3af;
+            background: var(--color-white);
+            border-color: var(--color-gold);
+            color: var(--color-deep-purple);
         }
 
         .system-info-section {
             margin-top: 3rem;
             padding-top: 2rem;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid var(--color-border);
         }
 
         .system-info-section h2 {
             margin-bottom: 1.5rem;
-            color: #1f2937;
+            color: var(--color-deep-purple);
         }
 
         .info-grid {
@@ -456,15 +486,23 @@ $t = Translator::getInstance();
         }
 
         .info-card {
-            background: #f9fafb;
+            background: var(--color-cream);
             padding: 16px;
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--color-border);
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            background: var(--color-white);
+            border-color: var(--color-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(77, 64, 82, 0.1);
         }
 
         .info-card h4 {
             margin: 0 0 8px 0;
-            color: #374151;
+            color: var(--color-brown);
             font-size: 0.875rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -473,7 +511,7 @@ $t = Translator::getInstance();
 
         .info-card p {
             margin: 0;
-            color: #1f2937;
+            color: var(--color-deep-purple);
             font-weight: 500;
         }
 
@@ -485,71 +523,81 @@ $t = Translator::getInstance();
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(77, 64, 82, 0.5);
             backdrop-filter: blur(4px);
         }
 
         .modal-content {
-            background-color: white;
+            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-cream) 100%);
             margin: 5% auto;
             padding: 0;
             border-radius: 12px;
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(77, 64, 82, 0.2);
+            border: 1px solid var(--color-border);
         }
 
         .modal-header {
             padding: 20px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--color-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(90deg, var(--color-gold), var(--color-light-gold));
+            border-radius: 12px 12px 0 0;
         }
 
         .modal-header h3 {
             margin: 0;
-            color: #1f2937;
+            color: var(--color-deep-purple);
+            font-weight: 600;
         }
 
         .close {
-            color: #9ca3af;
+            color: var(--color-dark-purple);
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.3s ease;
         }
 
         .close:hover {
-            color: #374151;
+            color: var(--color-deep-purple);
         }
 
         .modal-body {
             padding: 20px;
+            color: var(--color-dark-purple);
         }
 
         .coming-soon-features {
             margin-top: 16px;
             padding: 16px;
-            background: #f9fafb;
+            background: var(--color-white);
             border-radius: 8px;
+            border: 1px solid var(--color-border);
         }
 
         .coming-soon-features h4 {
             margin: 0 0 8px 0;
-            color: #374151;
+            color: var(--color-brown);
             font-size: 0.875rem;
+            font-weight: 600;
         }
 
         .coming-soon-features ul {
             margin: 0;
             padding-left: 20px;
-            color: #6b7280;
+            color: var(--color-dark-purple);
         }
 
         .modal-footer {
             padding: 20px;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid var(--color-border);
             text-align: right;
+            background: var(--color-cream);
+            border-radius: 0 0 12px 12px;
         }
 
         @media (max-width: 768px) {
