@@ -4,8 +4,41 @@
  * Handles admin approval/decline actions for member registrations
  */
 
-require_once '../../includes/db.php';
-require_once '../includes/admin_auth_guard.php';
+// Enable error reporting for debugging
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Set up error handler to return JSON
+set_error_handler(function($severity, $message, $file, $line) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'PHP Error: ' . $message,
+        'debug' => [
+            'file' => $file,
+            'line' => $line,
+            'severity' => $severity
+        ]
+    ]);
+    exit;
+});
+
+// Include database and auth with error handling
+try {
+    require_once '../../includes/db.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()]);
+    exit;
+}
+
+try {
+    require_once '../includes/admin_auth_guard.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Auth system failed: ' . $e->getMessage()]);
+    exit;
+}
 
 // Set JSON response headers
 header('Content-Type: application/json; charset=utf-8');
@@ -27,6 +60,17 @@ if (!$admin_id) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Admin authentication required']);
     exit;
+}
+
+// Ensure database connection is available
+if (!isset($db)) {
+    if (isset($pdo)) {
+        $db = $pdo;
+    } else {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection not available']);
+        exit;
+    }
 }
 
 try {

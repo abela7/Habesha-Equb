@@ -667,7 +667,7 @@ $total_recent = count($recent_actions);
             showLoading(button);
             
             try {
-                const response = await fetch('api/user-approvals.php', {
+                const response = await fetch('api/user-approvals-fixed.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -703,7 +703,7 @@ $total_recent = count($recent_actions);
             showLoading(button);
             
             try {
-                const response = await fetch('api/user-approvals.php', {
+                const response = await fetch('api/user-approvals-fixed.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
