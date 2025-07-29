@@ -5,6 +5,13 @@
  * Returns JSON responses for AJAX calls
  */
 
+// Prevent any output before JSON response
+ob_start();
+
+// Disable error display to prevent HTML output
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 // Start session first
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -23,6 +30,8 @@ try {
 } catch (PDOException $e) {
     error_log("Database connection test: FAILED - " . $e->getMessage());
     error_log("Database connection test: Error code - " . $e->getCode());
+    // Clear any output buffer
+    ob_end_clean();
     send_json_response(false, 'Database connection failed: ' . $e->getMessage());
 }
 
@@ -54,9 +63,11 @@ try {
             error_log("Admins table created successfully");
         } catch (PDOException $create_error) {
             error_log("Failed to create admins table: " . $create_error->getMessage());
+            ob_end_clean();
             send_json_response(false, 'Database setup failed. Please contact administrator.');
         }
     } else {
+        ob_end_clean();
         send_json_response(false, 'Database table error: ' . $e->getMessage());
     }
 }
@@ -64,6 +75,9 @@ try {
 // Define to skip auth check for utility functions
 define('SKIP_ADMIN_AUTH_CHECK', true);
 require_once '../includes/admin_auth_guard.php';
+
+// Clear any output buffer before setting headers
+ob_end_clean();
 
 // Set JSON header for all responses
 header('Content-Type: application/json');
@@ -84,6 +98,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
  * Send JSON response and exit
  */
 function send_json_response($success, $message = '', $data = []) {
+    // Ensure no output has been sent
+    if (ob_get_length()) {
+        ob_end_clean();
+    }
+    
     $response = [
         'success' => $success,
         'message' => $message,

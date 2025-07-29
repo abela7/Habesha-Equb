@@ -9,18 +9,21 @@
 require_once __DIR__ . '/admin_session_config.php';
 require_once __DIR__ . '/../../includes/db.php';
 
-// Security headers for admin section
-header("X-Content-Type-Options: nosniff");
-header("X-Frame-Options: DENY");
-header("X-XSS-Protection: 1; mode=block");
-header("Referrer-Policy: strict-origin-when-cross-origin");
-header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
-header("Pragma: no-cache");
-header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+// Only set headers if this is not an API call
+if (!defined('SKIP_ADMIN_AUTH_CHECK') || !strpos($_SERVER['REQUEST_URI'], '/api/')) {
+    // Security headers for admin section
+    header("X-Content-Type-Options: nosniff");
+    header("X-Frame-Options: DENY");
+    header("X-XSS-Protection: 1; mode=block");
+    header("Referrer-Policy: strict-origin-when-cross-origin");
+    header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
+    header("Pragma: no-cache");
+    header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
 
-// Force HTTPS in production (optional)
-if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-    header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+    // Force HTTPS in production (optional)
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+    }
 }
 
 /**

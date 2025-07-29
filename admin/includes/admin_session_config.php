@@ -22,15 +22,19 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.sid_length', '48');
     ini_set('session.sid_bits_per_character', '6');
     
-    session_start();
+    // Start session silently
+    @session_start();
 }
 
 // Enhanced session regeneration for admin (every 10 minutes for security)
-if (!isset($_SESSION['admin_last_regeneration'])) {
-    $_SESSION['admin_last_regeneration'] = time();
-} elseif (time() - $_SESSION['admin_last_regeneration'] > 600) { // 10 minutes
-    session_regenerate_id(true);
-    $_SESSION['admin_last_regeneration'] = time();
+// Only if this is not an API call to prevent interference
+if (!strpos($_SERVER['REQUEST_URI'], '/api/')) {
+    if (!isset($_SESSION['admin_last_regeneration'])) {
+        $_SESSION['admin_last_regeneration'] = time();
+    } elseif (time() - $_SESSION['admin_last_regeneration'] > 600) { // 10 minutes
+        @session_regenerate_id(true);
+        $_SESSION['admin_last_regeneration'] = time();
+    }
 }
 
 // Track admin session for security monitoring
