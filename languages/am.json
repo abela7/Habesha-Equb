@@ -765,7 +765,7 @@
       "status": "ሁኔታ",
       "max_members": "ከፍተኛ አባላት",
       "duration_months": "ጊዜ (ወራት)",
-      "start_date": "መጀመሪያ ቀን",
+      "start_date": "የሚጀምርበት ቀን",
       "end_date": "መጨረሻ ቀን",
       "end_date_help": "በጊዜ ላይ በመመስረት በራስ-ሰር ይሰላል",
       "payout_day": "የወር ክፍያ ቀን",
