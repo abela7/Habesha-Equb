@@ -13,6 +13,25 @@ if (session_status() === PHP_SESSION_NONE) {
 // Include database connection
 require_once '../../includes/db.php';
 
+// Test database connection
+try {
+    $test_stmt = $pdo->query("SELECT 1");
+    error_log("Database connection test: SUCCESS");
+} catch (PDOException $e) {
+    error_log("Database connection test: FAILED - " . $e->getMessage());
+    send_json_response(false, 'Database connection failed');
+}
+
+// Test admins table
+try {
+    $test_stmt = $pdo->query("SELECT COUNT(*) FROM admins");
+    $admin_count = $test_stmt->fetchColumn();
+    error_log("Admins table test: SUCCESS - Found " . $admin_count . " admins");
+} catch (PDOException $e) {
+    error_log("Admins table test: FAILED - " . $e->getMessage());
+    send_json_response(false, 'Database table error');
+}
+
 // Define to skip auth check for utility functions
 define('SKIP_ADMIN_AUTH_CHECK', true);
 require_once '../includes/admin_auth_guard.php';
@@ -104,19 +123,28 @@ function create_admin($username, $password) {
     global $pdo;
     
     try {
+        error_log("Creating admin account for username: " . $username);
+        
         // Hash password with bcrypt
         $password_hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        error_log("Password hashed successfully");
         
         $stmt = $pdo->prepare("
-            INSERT INTO admins (username, password, is_active) 
-            VALUES (?, ?, 1)
+            INSERT INTO admins (username, password, is_active, language_preference) 
+            VALUES (?, ?, 1, 1)
         ");
         
+        error_log("Prepared statement for admin creation");
         $stmt->execute([$username, $password_hash]);
-        return $pdo->lastInsertId();
+        $admin_id = $pdo->lastInsertId();
+        error_log("Admin created successfully with ID: " . $admin_id);
+        
+        return $admin_id;
         
     } catch (PDOException $e) {
         error_log("Admin creation error: " . $e->getMessage());
+        error_log("Admin creation error code: " . $e->getCode());
+        error_log("Admin creation error trace: " . $e->getTraceAsString());
         return false;
     }
 }
@@ -253,38 +281,53 @@ try {
             break;
             
         case 'register':
+            error_log("Processing registration request");
+            
             // Verify CSRF token
             if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+                error_log("CSRF token validation failed");
                 send_json_response(false, 'Security token mismatch. Please refresh and try again.');
             }
+            
+            error_log("CSRF token validated successfully");
             
             // Validate input
             $username_validation = validate_input($_POST['username'] ?? '', 'username');
             if (!$username_validation['valid']) {
+                error_log("Username validation failed: " . $username_validation['message']);
                 send_json_response(false, $username_validation['message']);
             }
             
             $password_validation = validate_input($_POST['password'] ?? '', 'password');
             if (!$password_validation['valid']) {
+                error_log("Password validation failed: " . $password_validation['message']);
                 send_json_response(false, $password_validation['message']);
             }
             
             $confirm_password = $_POST['confirm_password'] ?? '';
             if ($password_validation['value'] !== $confirm_password) {
+                error_log("Password confirmation failed");
                 send_json_response(false, 'Passwords do not match');
             }
             
+            error_log("All validations passed, checking if username exists");
+            
             // Check if username already exists
             if (username_exists($username_validation['value'])) {
+                error_log("Username already exists: " . $username_validation['value']);
                 send_json_response(false, 'Username already exists. Please choose a different one.');
             }
+            
+            error_log("Username is available, creating admin account");
             
             // Create admin account
             $admin_id = create_admin($username_validation['value'], $password_validation['value']);
             
             if ($admin_id) {
+                error_log("Admin account created successfully with ID: " . $admin_id);
                 send_json_response(true, 'Admin account created successfully! You can now login.');
             } else {
+                error_log("Failed to create admin account");
                 send_json_response(false, 'Failed to create admin account. Please try again.');
             }
             break;
