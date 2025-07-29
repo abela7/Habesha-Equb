@@ -13,23 +13,52 @@ if (session_status() === PHP_SESSION_NONE) {
 // Include database connection
 require_once '../../includes/db.php';
 
-// Test database connection
+// Enhanced error logging
+error_log("Admin API started - Request method: " . $_SERVER['REQUEST_METHOD']);
+
+// Test database connection with better error handling
 try {
     $test_stmt = $pdo->query("SELECT 1");
     error_log("Database connection test: SUCCESS");
 } catch (PDOException $e) {
     error_log("Database connection test: FAILED - " . $e->getMessage());
-    send_json_response(false, 'Database connection failed');
+    error_log("Database connection test: Error code - " . $e->getCode());
+    send_json_response(false, 'Database connection failed: ' . $e->getMessage());
 }
 
-// Test admins table
+// Test admins table with better error handling
 try {
     $test_stmt = $pdo->query("SELECT COUNT(*) FROM admins");
     $admin_count = $test_stmt->fetchColumn();
     error_log("Admins table test: SUCCESS - Found " . $admin_count . " admins");
 } catch (PDOException $e) {
     error_log("Admins table test: FAILED - " . $e->getMessage());
-    send_json_response(false, 'Database table error');
+    error_log("Admins table test: Error code - " . $e->getCode());
+    
+    // Check if table doesn't exist and create it
+    if ($e->getCode() == '42S02') { // Table doesn't exist
+        error_log("Admins table doesn't exist, attempting to create it");
+        try {
+            $create_table_sql = "
+                CREATE TABLE IF NOT EXISTS admins (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    is_active TINYINT(1) DEFAULT 1,
+                    language_preference TINYINT(1) DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ";
+            $pdo->exec($create_table_sql);
+            error_log("Admins table created successfully");
+        } catch (PDOException $create_error) {
+            error_log("Failed to create admins table: " . $create_error->getMessage());
+            send_json_response(false, 'Database setup failed. Please contact administrator.');
+        }
+    } else {
+        send_json_response(false, 'Database table error: ' . $e->getMessage());
+    }
 }
 
 // Define to skip auth check for utility functions
@@ -55,12 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
  * Send JSON response and exit
  */
 function send_json_response($success, $message = '', $data = []) {
-    echo json_encode([
+    $response = [
         'success' => $success,
         'message' => $message,
         'data' => $data,
         'timestamp' => time()
-    ]);
+    ];
+    
+    error_log("Sending JSON response: " . json_encode($response));
+    echo json_encode($response);
     exit;
 }
 
@@ -109,7 +141,9 @@ function username_exists($username) {
     try {
         $stmt = $pdo->prepare("SELECT id FROM admins WHERE username = ? LIMIT 1");
         $stmt->execute([$username]);
-        return $stmt->fetchColumn() !== false;
+        $exists = $stmt->fetchColumn() !== false;
+        error_log("Username check for '$username': " . ($exists ? 'EXISTS' : 'AVAILABLE'));
+        return $exists;
     } catch (PDOException $e) {
         error_log("Username check error: " . $e->getMessage());
         return true; // Assume exists to be safe

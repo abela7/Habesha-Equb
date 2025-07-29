@@ -119,13 +119,33 @@ class AuthManager {
             formData.append('confirm_password', confirmPassword);
             formData.append('csrf_token', form.querySelector('input[name="csrf_token"]').value);
 
+            console.log('Sending registration request to:', 'api/auth.php');
+            console.log('Form data:', {
+                action: 'register',
+                username: username,
+                password: '***',
+                confirm_password: '***',
+                csrf_token: form.querySelector('input[name="csrf_token"]').value
+            });
+
             // Send AJAX request
             const response = await fetch('api/auth.php', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
+            console.log('Response data:', result);
 
             if (result.success) {
                 this.showAlert('success', result.message || 'Registration successful! You can now login.');
@@ -141,7 +161,20 @@ class AuthManager {
 
         } catch (error) {
             console.error('Registration error:', error);
-            this.showAlert('error', 'Network error. Please check your connection and try again.');
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            // Provide more specific error messages
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                this.showAlert('error', 'Network error. Please check your connection and try again.');
+            } else if (error.message.includes('HTTP error')) {
+                this.showAlert('error', 'Server error. Please try again later.');
+            } else {
+                this.showAlert('error', 'An unexpected error occurred. Please try again.');
+            }
         } finally {
             this.setLoadingState(submitBtn, false);
         }
