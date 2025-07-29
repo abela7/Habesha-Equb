@@ -23,6 +23,7 @@ $t = Translator::getInstance();
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
@@ -45,12 +46,14 @@ $t = Translator::getInstance();
         <div class="settings-grid">
             
             <!-- Translation Management -->
-            <div class="settings-category">
-                <div class="category-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M19 22s-3-3-3-6 3-6 3-6"/>
-                        <path d="M16 12s3 3 3 6-3 6-3 6"/>
-                    </svg>
+            <div class="settings-category active-module">
+                <div class="module-header">
+                    <div class="module-icon primary">
+                        <i class="fas fa-language" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="module-status">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
                 </div>
                 <h3>Translation Management</h3>
                 <p>Manage English and Amharic translations for the entire system</p>
@@ -60,21 +63,20 @@ $t = Translator::getInstance();
                     <span class="feature-tag">Bi-lingual</span>
                 </div>
                 <a href="translation.php" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
+                    <i class="fas fa-edit me-2"></i>
                     Manage Translations
                 </a>
             </div>
 
             <!-- Equb Management -->
-            <div class="settings-category">
-                <div class="category-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m17-4a4 4 0 0 0-8 0m8 8a4 4 0 0 0-8 0"/>
-                    </svg>
+            <div class="settings-category active-module">
+                <div class="module-header">
+                    <div class="module-icon secondary">
+                        <i class="fas fa-chart-pie" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="module-status">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
                 </div>
                 <h3>Equb Management</h3>
                 <p>Manage and monitor equb transactions, reports, and financial data</p>
@@ -84,21 +86,20 @@ $t = Translator::getInstance();
                     <span class="feature-tag">Financial Analytics</span>
                 </div>
                 <a href="equb-management.php" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
+                    <i class="fas fa-cogs me-2"></i>
                     Manage Equbs
                 </a>
             </div>
 
             <!-- System Configuration -->
-            <div class="settings-category">
-                <div class="category-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m17-4a4 4 0 0 0-8 0m8 8a4 4 0 0 0-8 0"/>
-                    </svg>
+            <div class="settings-category coming-soon-module">
+                <div class="module-header">
+                    <div class="module-icon accent">
+                        <i class="fas fa-cog" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="module-status">
+                        <span class="status-badge status-coming-soon">Coming Soon</span>
+                    </div>
                 </div>
                 <h3>System Configuration</h3>
                 <p>Configure general system settings, defaults, and preferences</p>
@@ -108,22 +109,20 @@ $t = Translator::getInstance();
                     <span class="feature-tag">Preferences</span>
                 </div>
                 <a href="#" class="btn btn-secondary" onclick="showComingSoon('System Configuration')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 15h-2v-6h2zm0-8h-2V7h2z"/>
-                    </svg>
+                    <i class="fas fa-wrench me-2"></i>
                     Configure System
                 </a>
             </div>
 
-            <!-- User Management -->
-            <div class="settings-category">
-                <div class="category-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
+            <!-- Admin Management -->
+            <div class="settings-category coming-soon-module">
+                <div class="module-header">
+                    <div class="module-icon warning">
+                        <i class="fas fa-users-cog" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="module-status">
+                        <span class="status-badge status-coming-soon">Coming Soon</span>
+                    </div>
                 </div>
                 <h3>Admin Management</h3>
                 <p>Manage admin accounts, permissions, and access controls</p>
@@ -133,11 +132,7 @@ $t = Translator::getInstance();
                     <span class="feature-tag">Security</span>
                 </div>
                 <a href="#" class="btn btn-secondary" onclick="showComingSoon('Admin Management')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 15l2 2 4-4"/>
-                        <path d="M21 12c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
-                        <path d="M3 12c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
-                    </svg>
+                    <i class="fas fa-user-shield me-2"></i>
                     Manage Admins
                 </a>
             </div>
@@ -298,135 +293,129 @@ $t = Translator::getInstance();
     </script>
 
     <style>
-        /* Professional Color Palette - Elegant & Consistent */
-        :root {
-            --color-cream: #F1ECE2;
-            --color-dark-purple: #4D4052;
-            --color-deep-purple: #301934;
-            --color-gold: #DAA520;
-            --color-light-gold: #CDAF56;
-            --color-brown: #5D4225;
-            --color-white: #FFFFFF;
-            --color-light-bg: #F1ECE2;
-            --color-border: rgba(77, 64, 82, 0.15);
-        }
-
+        /* Import dashboard styling for consistency */
+        
         .settings-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 24px;
+            gap: 32px;
             margin: 2rem 0;
         }
 
+        /* Use the exact same module card styling as dashboard */
         .settings-category {
-            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-cream) 100%);
-            border-radius: 16px;
+            background: white;
+            border-radius: 20px;
             padding: 32px;
-            border: 1px solid var(--color-border);
-            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: all 0.4s ease;
+            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            height: 100%;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(77, 64, 82, 0.05);
-        }
-
-        .settings-category::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--color-gold), var(--color-light-gold));
-            opacity: 0;
-            transition: opacity 0.3s ease;
         }
 
         .settings-category:hover {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .active-module:hover {
             transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(77, 64, 82, 0.15);
-            border-color: var(--color-gold);
+            box-shadow: 0 20px 60px rgba(48, 25, 67, 0.15);
+            border-color: var(--color-teal);
         }
 
-        .settings-category:hover::before {
-            opacity: 1;
+        .coming-soon-module {
+            opacity: 0.7;
+            cursor: default;
         }
 
-        /* Special styling for Translation Management */
-        .settings-category:nth-child(1) {
-            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-cream) 100%);
-            border-color: var(--color-gold);
-        }
-
-        .settings-category:nth-child(1) .category-icon {
-            background: linear-gradient(135deg, var(--color-gold), var(--color-light-gold));
-        }
-
-        /* Special styling for Equb Management */
-        .settings-category:nth-child(2) {
-            background: linear-gradient(135deg, #FAF7F0 0%, var(--color-cream) 100%);
-            border-color: var(--color-deep-purple);
-        }
-
-        .settings-category:nth-child(2) .category-icon {
-            background: linear-gradient(135deg, var(--color-deep-purple), var(--color-dark-purple));
-        }
-
-        .settings-category:nth-child(2):hover {
-            border-color: var(--color-deep-purple);
-            box-shadow: 0 20px 40px rgba(48, 25, 52, 0.2);
-        }
-
-        .settings-category:nth-child(2) .btn-primary {
-            background: linear-gradient(135deg, var(--color-deep-purple), var(--color-dark-purple));
-            color: var(--color-white);
-        }
-
-        .settings-category:nth-child(2) .btn-primary:hover {
-            background: linear-gradient(135deg, var(--color-dark-purple), var(--color-deep-purple));
+        .coming-soon-module:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(48, 25, 67, 0.08);
         }
 
-        .category-icon {
-            background: linear-gradient(135deg, var(--color-dark-purple), var(--color-deep-purple));
-            color: var(--color-white);
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .module-icon {
             width: 64px;
             height: 64px;
-            border-radius: 12px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 8px rgba(77, 64, 82, 0.2);
+            color: white;
+        }
+
+        .module-icon.primary { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
+        .module-icon.secondary { background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); }
+        .module-icon.accent { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
+        .module-icon.warning { background: linear-gradient(135deg, var(--color-coral) 0%, #D63447 100%); }
+        .module-icon.info { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
+        .module-icon.neutral { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
+
+        .module-status {
+            text-align: right;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.status-active {
+            background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+            color: #065F46;
+        }
+
+        .status-badge.status-coming-soon {
+            background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+            color: #92400E;
         }
 
         .settings-category h3 {
-            margin: 0 0 8px 0;
-            color: var(--color-deep-purple);
-            font-size: 1.25rem;
-            font-weight: 600;
+            margin: 0 0 12px 0;
+            color: var(--color-purple);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
         }
 
         .settings-category p {
-            color: var(--color-dark-purple);
-            margin: 0 0 16px 0;
-            line-height: 1.5;
+            color: var(--text-secondary);
+            margin: 0 0 20px 0;
+            line-height: 1.6;
+            font-size: 15px;
         }
 
         .category-features {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .feature-tag {
             display: inline-block;
             background: var(--color-cream);
-            color: var(--color-brown);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
             font-weight: 500;
             margin-right: 8px;
-            margin-bottom: 4px;
-            border: 1px solid var(--color-border);
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
         }
 
         .settings-category .btn {
@@ -435,37 +424,40 @@ $t = Translator::getInstance();
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 12px 16px;
+            padding: 16px 24px;
             font-weight: 600;
             text-decoration: none;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 15px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--color-gold), var(--color-light-gold));
-            color: var(--color-deep-purple);
-            box-shadow: 0 4px 8px rgba(218, 165, 32, 0.2);
+            background: linear-gradient(135deg, var(--color-teal), #0F5147);
+            color: white;
+            box-shadow: 0 4px 12px rgba(19, 102, 92, 0.3);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, var(--color-light-gold), var(--color-gold));
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(218, 165, 32, 0.3);
+            box-shadow: 0 8px 24px rgba(19, 102, 92, 0.4);
+            color: white;
+            text-decoration: none;
         }
 
         .btn-secondary {
             background: var(--color-cream);
-            color: var(--color-dark-purple);
-            border: 1px solid var(--color-border);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
 
         .btn-secondary:hover {
-            background: var(--color-white);
-            border-color: var(--color-gold);
-            color: var(--color-deep-purple);
+            background: white;
+            border-color: var(--color-teal);
+            color: var(--color-teal);
+            text-decoration: none;
         }
 
         .system-info-section {
