@@ -6,6 +6,11 @@
 
 require_once '../../includes/db.php';
 
+// Start session for login
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Set headers
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
@@ -63,7 +68,7 @@ switch ($action) {
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_username'] = $admin['username'];
             $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_login_time'] = time();
+            $_SESSION['login_time'] = time(); // Auth guard expects 'login_time', not 'admin_login_time'
             
             json_response(true, 'Login successful', ['redirect' => 'dashboard.php']);
             
