@@ -914,16 +914,6 @@ body.no-scroll {
         <!-- System -->
         <div class="nav-section">
             <div class="nav-section-title">System</div>
-            <a href="admin-management.php" class="nav-item <?php echo ($current_page === 'admin-management.php') ? 'active' : ''; ?>">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    <path d="M12 1l3 5-3 5-3-5 3-5z"/>
-                </svg>
-                <span class="nav-text">Admin Management</span>
-            </a>
             <a href="rules.php" class="nav-item <?php echo ($current_page === 'rules.php') ? 'active' : ''; ?>">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -990,7 +980,7 @@ body.no-scroll {
                     'reports.php' => t('navigation.reports'),
                     'profile.php' => t('navigation.profile'),
                     'notifications.php' => t('navigation.notifications'),
-                    'admin-management.php' => 'Admin Management',
+
                     'rules.php' => t('navigation.rules'),
                     'settings.php' => t('navigation.settings')
                 ];

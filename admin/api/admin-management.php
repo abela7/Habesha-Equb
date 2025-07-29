@@ -6,8 +6,10 @@
 
 require_once '../../includes/db.php';
 
-// Secure admin authentication check
-require_once '../includes/admin_auth_guard.php';
+// Start session first
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Set headers
 header('Content-Type: application/json; charset=utf-8');
@@ -26,8 +28,13 @@ function json_response($success, $message, $data = null) {
     exit;
 }
 
+// Simple admin authentication check for API
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    json_response(false, 'Unauthorized access');
+}
+
 // Get current admin info
-$current_admin_id = get_current_admin_id();
+$current_admin_id = $_SESSION['admin_id'];
 
 // Handle GET requests
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -36,8 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     
     if ($action === 'get' && $admin_id) {
         try {
+            // Validate admin_id is numeric
+            if (!is_numeric($admin_id)) {
+                json_response(false, 'Invalid admin ID');
+            }
+            
             $stmt = $pdo->prepare("SELECT id, username, email, phone, is_active, language_preference FROM admins WHERE id = ?");
-            $stmt->execute([$admin_id]);
+            $stmt->execute([(int)$admin_id]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($admin) {
@@ -47,10 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             }
         } catch (Exception $e) {
             error_log("Admin Management API GET error: " . $e->getMessage());
-            json_response(false, 'Failed to retrieve admin data');
+            json_response(false, 'Failed to retrieve admin data: ' . $e->getMessage());
         }
     } else {
-        json_response(false, 'Invalid GET request');
+        json_response(false, 'Invalid GET request - missing action or ID');
     }
 }
 
