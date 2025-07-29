@@ -157,7 +157,11 @@ $csrf_token = generate_csrf_token();
                             required
                         >
                         <label for="agree_terms" style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.4;">
-                            I agree to the terms and conditions and will use this admin account responsibly
+                            I agree to the 
+                            <a href="terms-of-service.php" target="_blank" class="terms-link">Terms of Service</a> 
+                            and 
+                            <a href="privacy-policy.php" target="_blank" class="terms-link">Privacy Policy</a>
+                            and will use this admin account responsibly
                         </label>
                     </div>
                 </div>
@@ -359,6 +363,22 @@ $csrf_token = generate_csrf_token();
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+        
+        /* Terms and Privacy Policy Links */
+        .terms-link {
+            color: var(--color-teal);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+            padding-bottom: 1px;
+        }
+        
+        .terms-link:hover {
+            color: var(--color-purple);
+            border-bottom-color: var(--color-purple);
+            text-shadow: 0 0 1px rgba(77, 64, 82, 0.3);
         }
         
         @media (max-width: 480px) {
