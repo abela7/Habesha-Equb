@@ -21,7 +21,7 @@ require_once '../languages/translator.php';
 require_once 'includes/auth_guard.php';
 $current_user_id = get_current_user_id();
 
-// Get all ACTIVE members with their financial data - show ALL active members, not just approved ones
+// Get ONLY PUBLIC, APPROVED, ACTIVE members - proper privacy and security
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
@@ -36,13 +36,13 @@ try {
                    NULL
                ) as last_payout_date,
                (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed') as total_payouts_received,
-               -- Calculate expected payout amount (total members * monthly payment - based on actual active members)
-               (SELECT COUNT(*) FROM members WHERE is_active = 1) * GREATEST(m.monthly_payment, 500) as expected_payout,
+               -- Calculate expected payout amount (total public members * monthly payment)
+               (SELECT COUNT(*) FROM members WHERE is_active = 1 AND is_approved = 1 AND go_public = 1) * m.monthly_payment as expected_payout,
                -- Calculate next payout date based on position
                DATE_ADD('2024-06-01', INTERVAL (m.payout_position - 1) MONTH) as expected_payout_date
         FROM members m 
         LEFT JOIN payments p ON m.id = p.member_id
-        WHERE m.is_active = 1
+        WHERE m.is_active = 1 AND m.is_approved = 1 AND m.go_public = 1
         GROUP BY m.id
         ORDER BY 
             CASE WHEN m.payout_position = 0 THEN 999 ELSE m.payout_position END ASC,
@@ -51,8 +51,8 @@ try {
     $stmt->execute();
     $public_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get total member count for statistics - ALL active members regardless of approval
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1");
+    // Get total member count for statistics - only approved members
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1 AND is_approved = 1");
     $stmt->execute();
     $total_members = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
     

@@ -29,6 +29,9 @@ if (!$member_id) {
     exit;
 }
 
+// DEBUG: Log the member ID being requested
+error_log("Member Profile Debug - Requested ID: " . $member_id);
+
 // Security check: Users can only view their own profile or public profiles
 // For now, let's allow viewing public profiles but restrict private data
 $viewing_own_profile = ($member_id === $current_user_id);
@@ -56,13 +59,17 @@ try {
                (SELECT COUNT(*) FROM payments p WHERE p.member_id = m.id) as total_payment_records
         FROM members m 
         LEFT JOIN payments p ON m.id = p.member_id
-        WHERE m.id = ? AND m.is_active = 1 AND m.go_public = 1 AND m.is_approved = 1
+        WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
     ");
     $stmt->execute([$member_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
     
+    // DEBUG: Log what member was actually fetched
+    error_log("Member Profile Debug - Fetched member: " . print_r($member, true));
+    
     if (!$member) {
+        error_log("Member Profile Debug - No member found for ID: " . $member_id);
         header('Location: members.php');
         exit;
     }
