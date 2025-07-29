@@ -21,19 +21,10 @@ require_once '../languages/translator.php';
 require_once 'includes/auth_guard.php';
 $current_user_id = get_current_user_id();
 
-// DEBUG: Show exactly what we received
-error_log("=== FULL URL DEBUG ===");
-error_log("REQUEST_URI: " . $_SERVER['REQUEST_URI']);
-error_log("GET parameters: " . print_r($_GET, true));
-error_log("Raw ID parameter: " . ($_GET['id'] ?? 'NOT SET'));
-
 // Get member ID from request
 $member_id = (int)($_GET['id'] ?? 0);
 
-error_log("Converted member_id: " . $member_id);
-
 if (!$member_id) {
-    error_log("No member_id - redirecting to members.php");
     header('Location: members.php');
     exit;
 }
@@ -44,14 +35,7 @@ $viewing_own_profile = ($member_id === $current_user_id);
 
 // Get detailed member information
 try {
-    // DEBUG: Check what member_id we're actually using
-    error_log("=== DEBUG: About to query for member_id: " . $member_id . " ===");
-    
-    // First, let's test with a simple query to see if the basic member lookup works
-    $stmt = $pdo->prepare("SELECT id, first_name, last_name, email FROM members WHERE id = ? AND is_active = 1");
-    
-    // If that works, we'll use the full query
-    $full_stmt = $pdo->prepare("
+    $stmt = $pdo->prepare("
         SELECT m.*, 
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END), 0) as payments_made,
@@ -76,20 +60,10 @@ try {
         GROUP BY m.id
     ");
     
-    // Use the full query for now
-    $stmt = $full_stmt;
-    
-    // DEBUG: Log the exact SQL and parameter being used
-    error_log("=== DEBUG: SQL Query being executed with parameter: " . $member_id . " ===");
-    
     $stmt->execute([$member_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // DEBUG: Log what member was actually fetched
-    error_log("Member Profile Debug - Fetched member: " . print_r($member, true));
-    
     if (!$member) {
-        error_log("Member Profile Debug - No member found for ID: " . $member_id);
         header('Location: members.php');
         exit;
     }
@@ -124,17 +98,9 @@ try {
     exit;
 }
 
-// Calculate member data - FORCE FRESH CALCULATION
-// DEBUG: Let's see what we actually got
-$debug_info = "ID: " . $member['id'] . ", First: '" . $member['first_name'] . "', Last: '" . $member['last_name'] . "'";
-
-// DIRECT name calculation - no caching, no tricks
-$member_first_name = $member['first_name'] ?? 'Unknown';
-$member_last_name = $member['last_name'] ?? 'Unknown';
-$profile_member_name = trim($member_first_name . ' ' . $member_last_name);
-
-// Force fresh initials
-$initials = substr($member_first_name, 0, 1) . substr($member_last_name, 0, 1);
+// Calculate member data
+$profile_member_name = trim($member['first_name'] . ' ' . $member['last_name']);
+$initials = substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1);
 $member_since = date('M Y', strtotime($member['created_at']));
 $payout_status = $member['total_payouts_received'] > 0 ? 'received' : ($member['payout_position'] == 1 ? 'current' : 'upcoming');
 $expected_payout_formatted = date('M Y', strtotime($member['expected_payout_date']));
@@ -598,14 +564,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php echo strtoupper($initials); ?>
                     </div>
                     <div class="profile-info">
-                        <!-- DEBUG INFO - REMOVE AFTER FIXING -->
-                        <div style="background: red; color: white; padding: 5px; margin-bottom: 10px; font-size: 12px;">
-                            <strong>DEBUG:</strong> <?php echo $debug_info; ?><br>
-                            <strong>Calculated Name:</strong> "<?php echo $profile_member_name; ?>"<br>
-                            <strong>Member ID from URL:</strong> <?php echo $member_id; ?><br>
-                            <strong>Member ID from DB:</strong> <?php echo $member['id']; ?>
-                        </div>
-                        <!-- END DEBUG -->
                         <h2><?php echo htmlspecialchars($profile_member_name, ENT_QUOTES); ?></h2>
                         <div class="profile-meta">
                             <div class="meta-item">
