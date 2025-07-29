@@ -13,7 +13,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 $admin_id = $_SESSION['admin_id'];
-$page_title = $t->get('equb_management.page_title');
+$page_title = $t->translate('equb_management.page_title');
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['app_language'] ?? 'en'; ?>">
@@ -728,20 +728,20 @@ $page_title = $t->get('equb_management.page_title');
                     <i class="fas fa-chart-line"></i>
                 </div>
                 <div>
-                    <h1><?php echo $t->get('equb_management.title'); ?></h1>
+                    <h1><?php echo $t->translate('equb_management.title'); ?></h1>
                     <p style="font-size: 0.875rem; color: var(--color-muted); margin: 0;">
-                        <?php echo $t->get('equb_management.subtitle'); ?>
+                        <?php echo $t->translate('equb_management.subtitle'); ?>
                     </p>
                 </div>
             </div>
             <div class="header-actions">
                 <button class="btn btn-outline" onclick="refreshData()">
                     <i class="fas fa-sync-alt"></i>
-                    <?php echo $t->get('common.refresh'); ?>
+                    <?php echo $t->translate('common.refresh'); ?>
                 </button>
                 <button class="btn btn-primary" onclick="openCreateModal()">
                     <i class="fas fa-plus"></i>
-                    <?php echo $t->get('equb_management.create_new'); ?>
+                    <?php echo $t->translate('equb_management.create_new'); ?>
                 </button>
             </div>
         </div>
@@ -756,13 +756,13 @@ $page_title = $t->get('equb_management.page_title');
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-header">
-                    <span class="stat-title"><?php echo $t->get('equb_management.stats.total_equbs'); ?></span>
+                    <span class="stat-title"><?php echo $t->translate('equb_management.stats.total_equbs'); ?></span>
                     <div class="stat-icon primary">
                         <i class="fas fa-chart-pie"></i>
                     </div>
                 </div>
                 <div class="stat-value" id="totalEqubs">-</div>
-                <div class="stat-label"><?php echo $t->get('equb_management.stats.all_terms'); ?></div>
+                <div class="stat-label"><?php echo $t->translate('equb_management.stats.all_terms'); ?></div>
                 <div class="stat-trend">
                     <i class="fas fa-arrow-up trend-up"></i>
                     <span id="totalEqubsTrend">-</span>
@@ -771,35 +771,35 @@ $page_title = $t->get('equb_management.page_title');
 
             <div class="stat-card">
                 <div class="stat-header">
-                    <span class="stat-title"><?php echo $t->get('equb_management.stats.active_equbs'); ?></span>
+                    <span class="stat-title"><?php echo $t->translate('equb_management.stats.active_equbs'); ?></span>
                     <div class="stat-icon success">
                         <i class="fas fa-play-circle"></i>
                     </div>
                 </div>
                 <div class="stat-value" id="activeEqubs">-</div>
-                <div class="stat-label"><?php echo $t->get('equb_management.stats.currently_running'); ?></div>
+                <div class="stat-label"><?php echo $t->translate('equb_management.stats.currently_running'); ?></div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-header">
-                    <span class="stat-title"><?php echo $t->get('equb_management.stats.total_pool'); ?></span>
+                    <span class="stat-title"><?php echo $t->translate('equb_management.stats.total_pool'); ?></span>
                     <div class="stat-icon warning">
                         <i class="fas fa-pound-sign"></i>
                     </div>
                 </div>
                 <div class="stat-value" id="totalPool">-</div>
-                <div class="stat-label"><?php echo $t->get('equb_management.stats.combined_value'); ?></div>
+                <div class="stat-label"><?php echo $t->translate('equb_management.stats.combined_value'); ?></div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-header">
-                    <span class="stat-title"><?php echo $t->get('equb_management.stats.total_members'); ?></span>
+                    <span class="stat-title"><?php echo $t->translate('equb_management.stats.total_members'); ?></span>
                     <div class="stat-icon danger">
                         <i class="fas fa-users"></i>
                     </div>
                 </div>
                 <div class="stat-value" id="totalMembers">-</div>
-                <div class="stat-label"><?php echo $t->get('equb_management.stats.enrolled_members'); ?></div>
+                <div class="stat-label"><?php echo $t->translate('equb_management.stats.enrolled_members'); ?></div>
             </div>
         </div>
 
@@ -808,16 +808,16 @@ $page_title = $t->get('equb_management.page_title');
             <div class="panel-header">
                 <div class="panel-title">
                     <i class="fas fa-list"></i>
-                    <?php echo $t->get('equb_management.equb_terms'); ?>
+                    <?php echo $t->translate('equb_management.equb_terms'); ?>
                 </div>
                 <div class="panel-actions">
                     <button class="btn btn-outline btn-sm" onclick="exportData()">
                         <i class="fas fa-download"></i>
-                        <?php echo $t->get('common.export'); ?>
+                        <?php echo $t->translate('common.export'); ?>
                     </button>
                     <button class="btn btn-outline btn-sm" onclick="toggleFilters()">
                         <i class="fas fa-filter"></i>
-                        <?php echo $t->get('common.filters'); ?>
+                        <?php echo $t->translate('common.filters'); ?>
                     </button>
                 </div>
             </div>
@@ -826,26 +826,26 @@ $page_title = $t->get('equb_management.page_title');
             <div class="filters-section" id="filtersSection" style="display: none;">
                 <div class="filters-grid">
                     <div class="form-group">
-                        <label class="form-label"><?php echo $t->get('equb_management.filters.search'); ?></label>
+                        <label class="form-label"><?php echo $t->translate('equb_management.filters.search'); ?></label>
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
                             <input type="text" class="form-control" id="searchInput" 
-                                   placeholder="<?php echo $t->get('equb_management.filters.search_placeholder'); ?>">
+                                   placeholder="<?php echo $t->translate('equb_management.filters.search_placeholder'); ?>">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label"><?php echo $t->get('equb_management.filters.status'); ?></label>
+                        <label class="form-label"><?php echo $t->translate('equb_management.filters.status'); ?></label>
                         <select class="form-control" id="statusFilter">
-                            <option value=""><?php echo $t->get('common.all'); ?></option>
-                            <option value="planning"><?php echo $t->get('equb_management.status.planning'); ?></option>
-                            <option value="active"><?php echo $t->get('equb_management.status.active'); ?></option>
-                            <option value="completed"><?php echo $t->get('equb_management.status.completed'); ?></option>
-                            <option value="suspended"><?php echo $t->get('equb_management.status.suspended'); ?></option>
-                            <option value="cancelled"><?php echo $t->get('equb_management.status.cancelled'); ?></option>
+                            <option value=""><?php echo $t->translate('common.all'); ?></option>
+                            <option value="planning"><?php echo $t->translate('equb_management.status.planning'); ?></option>
+                            <option value="active"><?php echo $t->translate('equb_management.status.active'); ?></option>
+                            <option value="completed"><?php echo $t->translate('equb_management.status.completed'); ?></option>
+                            <option value="suspended"><?php echo $t->translate('equb_management.status.suspended'); ?></option>
+                            <option value="cancelled"><?php echo $t->translate('equb_management.status.cancelled'); ?></option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label"><?php echo $t->get('equb_management.filters.date_range'); ?></label>
+                        <label class="form-label"><?php echo $t->translate('equb_management.filters.date_range'); ?></label>
                         <input type="date" class="form-control" id="dateFromFilter">
                     </div>
                     <div class="form-group">
@@ -856,7 +856,7 @@ $page_title = $t->get('equb_management.page_title');
                         <label class="form-label" style="opacity: 0;">-</label>
                         <button class="btn btn-primary" onclick="applyFilters()">
                             <i class="fas fa-search"></i>
-                            <?php echo $t->get('common.apply'); ?>
+                            <?php echo $t->translate('common.apply'); ?>
                         </button>
                     </div>
                 </div>
@@ -866,7 +866,7 @@ $page_title = $t->get('equb_management.page_title');
             <div id="tableContainer">
                 <div class="loading">
                     <div class="spinner"></div>
-                    <?php echo $t->get('common.loading'); ?>...
+                    <?php echo $t->translate('common.loading'); ?>...
                 </div>
             </div>
         </div>
@@ -876,7 +876,7 @@ $page_title = $t->get('equb_management.page_title');
     <div id="equbModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle"><?php echo $t->get('equb_management.create_new'); ?></h3>
+                <h3 class="modal-title" id="modalTitle"><?php echo $t->translate('equb_management.create_new'); ?></h3>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -886,94 +886,94 @@ $page_title = $t->get('equb_management.page_title');
                     <!-- Basic Information -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.equb_name'); ?> *</label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.equb_name'); ?> *</label>
                             <input type="text" class="form-control" id="equbName" name="equb_name" required>
-                            <div class="form-help"><?php echo $t->get('equb_management.form.equb_name_help'); ?></div>
+                            <div class="form-help"><?php echo $t->translate('equb_management.form.equb_name_help'); ?></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.status'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.status'); ?></label>
                             <select class="form-control" id="equbStatus" name="status">
-                                <option value="planning"><?php echo $t->get('equb_management.status.planning'); ?></option>
-                                <option value="active"><?php echo $t->get('equb_management.status.active'); ?></option>
-                                <option value="completed"><?php echo $t->get('equb_management.status.completed'); ?></option>
-                                <option value="suspended"><?php echo $t->get('equb_management.status.suspended'); ?></option>
-                                <option value="cancelled"><?php echo $t->get('equb_management.status.cancelled'); ?></option>
+                                <option value="planning"><?php echo $t->translate('equb_management.status.planning'); ?></option>
+                                <option value="active"><?php echo $t->translate('equb_management.status.active'); ?></option>
+                                <option value="completed"><?php echo $t->translate('equb_management.status.completed'); ?></option>
+                                <option value="suspended"><?php echo $t->translate('equb_management.status.suspended'); ?></option>
+                                <option value="cancelled"><?php echo $t->translate('equb_management.status.cancelled'); ?></option>
                             </select>
                         </div>
                     </div>
 
                     <div class="form-group form-group-full">
-                        <label class="form-label"><?php echo $t->get('equb_management.form.description'); ?></label>
+                        <label class="form-label"><?php echo $t->translate('equb_management.form.description'); ?></label>
                         <textarea class="form-control" id="equbDescription" name="equb_description" rows="3"></textarea>
                     </div>
 
                     <!-- Term Configuration -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.max_members'); ?> *</label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.max_members'); ?> *</label>
                             <input type="number" class="form-control" id="maxMembers" name="max_members" min="2" max="50" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.duration_months'); ?> *</label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.duration_months'); ?> *</label>
                             <input type="number" class="form-control" id="durationMonths" name="duration_months" min="1" max="24" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.start_date'); ?> *</label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.start_date'); ?> *</label>
                             <input type="date" class="form-control" id="startDate" name="start_date" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.end_date'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.end_date'); ?></label>
                             <input type="date" class="form-control" id="endDate" name="end_date" readonly>
-                            <div class="form-help"><?php echo $t->get('equb_management.form.end_date_help'); ?></div>
+                            <div class="form-help"><?php echo $t->translate('equb_management.form.end_date_help'); ?></div>
                         </div>
                     </div>
 
                     <!-- Payment Configuration -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.payout_day'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.payout_day'); ?></label>
                             <input type="number" class="form-control" id="payoutDay" name="payout_day" min="1" max="31" value="5">
                         </div>
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.admin_fee'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.admin_fee'); ?></label>
                             <input type="number" class="form-control" id="adminFee" name="admin_fee" step="0.01" min="0" value="10.00">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.late_fee'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.late_fee'); ?></label>
                             <input type="number" class="form-control" id="lateFee" name="late_fee" step="0.01" min="0" value="20.00">
                         </div>
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.grace_period'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.grace_period'); ?></label>
                             <input type="number" class="form-control" id="gracePeriod" name="grace_period_days" min="0" max="10" value="2">
                         </div>
                     </div>
 
                     <!-- Payment Tiers -->
                     <div class="form-group form-group-full">
-                        <label class="form-label"><?php echo $t->get('equb_management.form.payment_tiers'); ?> *</label>
+                        <label class="form-label"><?php echo $t->translate('equb_management.form.payment_tiers'); ?> *</label>
                         <div id="paymentTiersContainer">
                             <!-- Dynamic payment tiers will be added here -->
                         </div>
                         <button type="button" class="btn btn-outline btn-sm" onclick="addPaymentTier()">
                             <i class="fas fa-plus"></i>
-                            <?php echo $t->get('equb_management.form.add_tier'); ?>
+                            <?php echo $t->translate('equb_management.form.add_tier'); ?>
                         </button>
                     </div>
 
                     <!-- Registration Settings -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.registration_start'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.registration_start'); ?></label>
                             <input type="date" class="form-control" id="registrationStart" name="registration_start_date">
                         </div>
                         <div class="form-group">
-                            <label class="form-label"><?php echo $t->get('equb_management.form.registration_end'); ?></label>
+                            <label class="form-label"><?php echo $t->translate('equb_management.form.registration_end'); ?></label>
                             <input type="date" class="form-control" id="registrationEnd" name="registration_end_date">
                         </div>
                     </div>
@@ -983,13 +983,13 @@ $page_title = $t->get('equb_management.page_title');
                         <div class="form-group">
                             <label class="form-label">
                                 <input type="checkbox" id="autoAssignPositions" name="auto_assign_positions" checked>
-                                <?php echo $t->get('equb_management.form.auto_assign'); ?>
+                                <?php echo $t->translate('equb_management.form.auto_assign'); ?>
                             </label>
                         </div>
                         <div class="form-group">
                             <label class="form-label">
                                 <input type="checkbox" id="approvalRequired" name="approval_required" checked>
-                                <?php echo $t->get('equb_management.form.approval_required'); ?>
+                                <?php echo $t->translate('equb_management.form.approval_required'); ?>
                             </label>
                         </div>
                     </div>
@@ -998,31 +998,31 @@ $page_title = $t->get('equb_management.page_title');
                         <div class="form-group">
                             <label class="form-label">
                                 <input type="checkbox" id="isPublic" name="is_public" checked>
-                                <?php echo $t->get('equb_management.form.is_public'); ?>
+                                <?php echo $t->translate('equb_management.form.is_public'); ?>
                             </label>
                         </div>
                         <div class="form-group">
                             <label class="form-label">
                                 <input type="checkbox" id="isFeatured" name="is_featured">
-                                <?php echo $t->get('equb_management.form.is_featured'); ?>
+                                <?php echo $t->translate('equb_management.form.is_featured'); ?>
                             </label>
                         </div>
                     </div>
 
                     <!-- Notes -->
                     <div class="form-group form-group-full">
-                        <label class="form-label"><?php echo $t->get('equb_management.form.notes'); ?></label>
+                        <label class="form-label"><?php echo $t->translate('equb_management.form.notes'); ?></label>
                         <textarea class="form-control" id="equbNotes" name="notes" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeModal()">
-                    <?php echo $t->get('common.cancel'); ?>
+                    <?php echo $t->translate('common.cancel'); ?>
                 </button>
                 <button type="button" class="btn btn-primary" onclick="saveEqub()">
                     <i class="fas fa-save"></i>
-                    <?php echo $t->get('common.save'); ?>
+                    <?php echo $t->translate('common.save'); ?>
                 </button>
             </div>
         </div>
