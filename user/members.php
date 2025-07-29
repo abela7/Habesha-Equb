@@ -21,7 +21,7 @@ require_once '../languages/translator.php';
 require_once 'includes/auth_guard.php';
 $current_user_id = get_current_user_id();
 
-// Get all PUBLIC members (go_public = 1) with their financial data
+// Get all ACTIVE members with their financial data - show ALL active members, not just approved ones
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
@@ -36,21 +36,23 @@ try {
                    NULL
                ) as last_payout_date,
                (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed') as total_payouts_received,
-               -- Calculate expected payout amount (total members * monthly payment)
-               (SELECT COUNT(*) FROM members WHERE is_active = 1) * m.monthly_payment as expected_payout,
+               -- Calculate expected payout amount (total members * monthly payment - based on actual active members)
+               (SELECT COUNT(*) FROM members WHERE is_active = 1) * GREATEST(m.monthly_payment, 500) as expected_payout,
                -- Calculate next payout date based on position
                DATE_ADD('2024-06-01', INTERVAL (m.payout_position - 1) MONTH) as expected_payout_date
         FROM members m 
         LEFT JOIN payments p ON m.id = p.member_id
-        WHERE m.is_active = 1 AND m.go_public = 1 AND m.is_approved = 1
+        WHERE m.is_active = 1
         GROUP BY m.id
-        ORDER BY m.payout_position ASC
+        ORDER BY 
+            CASE WHEN m.payout_position = 0 THEN 999 ELSE m.payout_position END ASC,
+            m.created_at DESC
     ");
     $stmt->execute();
     $public_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get total member count for statistics
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1 AND is_approved = 1");
+    // Get total member count for statistics - ALL active members regardless of approval
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1");
     $stmt->execute();
     $total_members = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
     
@@ -723,8 +725,22 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php
                         $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
                         $initials = substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1);
-                        $payout_status = $member['total_payouts_received'] > 0 ? 'received' : ($member['payout_position'] == 1 ? 'pending' : 'upcoming');
-                        $expected_payout_formatted = date('M Y', strtotime($member['expected_payout_date']));
+                        
+                        // Handle payout status logic
+                        if ($member['total_payouts_received'] > 0) {
+                            $payout_status = 'received';
+                        } elseif ($member['payout_position'] == 0) {
+                            $payout_status = 'new_member';
+                        } elseif ($member['payout_position'] == 1) {
+                            $payout_status = 'pending';
+                        } else {
+                            $payout_status = 'upcoming';
+                        }
+                        
+                        // Handle date formatting for new members
+                        $expected_payout_formatted = ($member['expected_payout_date'] && $member['payout_position'] > 0) 
+                            ? date('M Y', strtotime($member['expected_payout_date'])) 
+                            : 'TBD';
                         ?>
                         <div class="member-card" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
                             <div class="member-header">
@@ -733,14 +749,26 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                                 <div class="member-info">
                                     <h3><?php echo htmlspecialchars($member_name, ENT_QUOTES); ?></h3>
-                                    <div class="member-position"><?php echo t('members_directory.position'); ?> #<?php echo $member['payout_position']; ?></div>
+                                    <div class="member-position">
+                                        <?php if ($member['payout_position'] > 0): ?>
+                                            <?php echo t('members_directory.position'); ?> #<?php echo $member['payout_position']; ?>
+                                        <?php else: ?>
+                                            New Member
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="member-stats">
                                 <div class="stat-block">
                                     <div class="stat-label"><?php echo t('members_directory.monthly'); ?></div>
-                                    <div class="stat-value">£<?php echo number_format($member['monthly_payment'], 0); ?></div>
+                                    <div class="stat-value">
+                                        <?php if ($member['monthly_payment'] > 0): ?>
+                                            £<?php echo number_format($member['monthly_payment'], 0); ?>
+                                        <?php else: ?>
+                                            TBD
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 <div class="stat-block">
                                     <div class="stat-label"><?php echo t('members_directory.paid_total'); ?></div>
@@ -748,7 +776,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                                 <div class="stat-block">
                                     <div class="stat-label"><?php echo t('members_directory.expected'); ?></div>
-                                    <div class="stat-value">£<?php echo number_format($member['expected_payout'], 0); ?></div>
+                                    <div class="stat-value">
+                                        <?php if ($member['monthly_payment'] > 0): ?>
+                                            £<?php echo number_format($member['expected_payout'], 0); ?>
+                                        <?php else: ?>
+                                            TBD
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 <div class="stat-block">
                                     <div class="stat-label"><?php echo t('members_directory.payout_date'); ?></div>
@@ -760,8 +794,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="payout-status">
                                     <div class="status-indicator status-<?php echo $payout_status; ?>"></div>
                                     <?php 
-                                    echo $payout_status === 'received' ? t('members_directory.received') : 
-                                         ($payout_status === 'pending' ? t('members_directory.current') : t('members_directory.upcoming')); 
+                                    if ($payout_status === 'received') {
+                                        echo t('members_directory.received');
+                                    } elseif ($payout_status === 'pending') {
+                                        echo t('members_directory.current');
+                                    } elseif ($payout_status === 'new_member') {
+                                        echo 'New Member';
+                                    } else {
+                                        echo t('members_directory.upcoming');
+                                    }
                                     ?>
                                 </div>
                                 <button class="view-profile-btn" onclick="openMemberProfile(<?php echo $member['id']; ?>)">
