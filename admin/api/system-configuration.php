@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     // Default Values
                     ['default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members'],
-                    ['default_currency', 'ETB', 'defaults', 'select', 'Default currency for the system'],
+                    ['default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system'],
                     ['default_language', 'en', 'defaults', 'select', 'Default language for new users'],
                     ['auto_activate_members', '1', 'defaults', 'boolean', 'Automatically activate new member registrations'],
                     
@@ -193,8 +193,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ['from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails'],
                     
                     // Currency Settings
-                    ['currency_symbol', 'ETB', 'currency', 'text', 'Symbol to display for currency amounts'],
-                    ['currency_position', 'after', 'currency', 'select', 'Position of currency symbol relative to amount'],
+                    ['currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts'],
+                    ['currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount'],
                     ['decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency'],
                     ['thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands']
                 ];

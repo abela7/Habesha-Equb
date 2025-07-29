@@ -108,40 +108,115 @@ $default_categories = [
         }
 
         .page-actions .btn {
-            padding: 12px 24px;
-            font-weight: 600;
-            border-radius: 12px;
-            transition: all 0.3s ease;
+            padding: 16px 32px;
+            font-weight: 700;
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             border: none;
-            box-shadow: 0 4px 12px rgba(48, 25, 67, 0.15);
+            min-width: 180px;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-save-config {
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
             color: white;
             font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            border: none;
+            box-shadow: 
+                0 4px 15px rgba(16, 185, 129, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-save-config::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-save-config:hover::before {
+            left: 100%;
         }
 
         .btn-save-config:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(19, 102, 92, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 30px rgba(16, 185, 129, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             color: white;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-save-config:active {
+            transform: translateY(-1px);
+            box-shadow: 
+                0 4px 15px rgba(16, 185, 129, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .btn-reset-config {
-            background: linear-gradient(135deg, var(--color-coral) 0%, #D63447 100%);
+            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
             color: white;
             font-size: 16px;
-            margin-left: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            margin-left: 16px;
+            border: none;
+            box-shadow: 
+                0 4px 15px rgba(239, 68, 68, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-reset-config::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-reset-config:hover::before {
+            left: 100%;
         }
 
         .btn-reset-config:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(214, 52, 71, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 30px rgba(239, 68, 68, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             color: white;
+            background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+        }
+
+        .btn-reset-config:active {
+            transform: translateY(-1px);
+            box-shadow: 
+                0 4px 15px rgba(239, 68, 68, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         /* Configuration Categories */
@@ -595,7 +670,8 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="default_currency" data-category="defaults">
-                            <option value="ETB" selected>Ethiopian Birr (ETB)</option>
+                            <option value="GBP" selected>British Pound (£)</option>
+                            <option value="ETB">Ethiopian Birr (ETB)</option>
                             <option value="USD">US Dollar (USD)</option>
                             <option value="EUR">Euro (EUR)</option>
                         </select>
@@ -767,7 +843,7 @@ $default_categories = [
                         <div class="setting-description">Symbol to display for currency amounts</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="currency_symbol" value="ETB" data-category="currency">
+                        <input type="text" class="form-control" name="currency_symbol" value="£" data-category="currency">
                     </div>
                 </div>
 
@@ -778,8 +854,8 @@ $default_categories = [
                     </div>
                     <div class="setting-control">
                         <select class="form-select" name="currency_position" data-category="currency">
-                            <option value="before">Before amount (ETB 1,000)</option>
-                            <option value="after" selected>After amount (1,000 ETB)</option>
+                            <option value="before" selected>Before amount (£1,000)</option>
+                            <option value="after">After amount (1,000 £)</option>
                         </select>
                     </div>
                 </div>

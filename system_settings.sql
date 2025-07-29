@@ -24,7 +24,7 @@ INSERT INTO `system_settings` (`setting_key`, `setting_value`, `setting_category
 
 -- Default Values
 ('default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members', NOW()),
-('default_currency', 'ETB', 'defaults', 'select', 'Default currency for the system', NOW()),
+('default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system', NOW()),
 ('default_language', 'en', 'defaults', 'select', 'Default language for new users', NOW()),
 ('auto_activate_members', '1', 'defaults', 'boolean', 'Automatically activate new member registrations', NOW()),
 
@@ -41,7 +41,7 @@ INSERT INTO `system_settings` (`setting_key`, `setting_value`, `setting_category
 ('from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails', NOW()),
 
 -- Currency Settings
-('currency_symbol', 'ETB', 'currency', 'text', 'Symbol to display for currency amounts', NOW()),
-('currency_position', 'after', 'currency', 'select', 'Position of currency symbol relative to amount', NOW()),
+('currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts', NOW()),
+('currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount', NOW()),
 ('decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency', NOW()),
 ('thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands', NOW()); 
