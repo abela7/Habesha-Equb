@@ -1198,6 +1198,34 @@ $csrf_token = generate_csrf_token();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
+
+        // Language switching functionality for rules content
+        function switchRuleLanguage(language) {
+            console.log('Setting rules language to:', language);
+            
+            const englishContent = document.querySelectorAll('.rule-content-en');
+            const amharicContent = document.querySelectorAll('.rule-content-am');
+            
+            if (language === 'am') {
+                // Show Amharic, hide English
+                englishContent.forEach(el => el.style.display = 'none');
+                amharicContent.forEach(el => el.style.display = 'block');
+                console.log('Showing Amharic rules content');
+            } else {
+                // Show English, hide Amharic (default)
+                englishContent.forEach(el => el.style.display = 'block');
+                amharicContent.forEach(el => el.style.display = 'none');
+                console.log('Showing English rules content');
+            }
+        }
+
+        // Initialize language display on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get current language from PHP and set content accordingly
+            const currentLanguage = '<?php echo getCurrentLanguage(); ?>';
+            console.log('Current language from PHP:', currentLanguage);
+            switchRuleLanguage(currentLanguage);
+        });
     </script>
 
     <!-- Close navigation -->
