@@ -21,16 +21,22 @@ require_once '../languages/translator.php';
 require_once 'includes/auth_guard.php';
 $current_user_id = get_current_user_id();
 
+// DEBUG: Show exactly what we received
+error_log("=== FULL URL DEBUG ===");
+error_log("REQUEST_URI: " . $_SERVER['REQUEST_URI']);
+error_log("GET parameters: " . print_r($_GET, true));
+error_log("Raw ID parameter: " . ($_GET['id'] ?? 'NOT SET'));
+
 // Get member ID from request
 $member_id = (int)($_GET['id'] ?? 0);
 
+error_log("Converted member_id: " . $member_id);
+
 if (!$member_id) {
+    error_log("No member_id - redirecting to members.php");
     header('Location: members.php');
     exit;
 }
-
-// DEBUG: Log the member ID being requested
-error_log("Member Profile Debug - Requested ID: " . $member_id);
 
 // Security check: Users can only view their own profile or public profiles
 // For now, let's allow viewing public profiles but restrict private data
@@ -38,7 +44,14 @@ $viewing_own_profile = ($member_id === $current_user_id);
 
 // Get detailed member information
 try {
-    $stmt = $pdo->prepare("
+    // DEBUG: Check what member_id we're actually using
+    error_log("=== DEBUG: About to query for member_id: " . $member_id . " ===");
+    
+    // First, let's test with a simple query to see if the basic member lookup works
+    $stmt = $pdo->prepare("SELECT id, first_name, last_name, email FROM members WHERE id = ? AND is_active = 1");
+    
+    // If that works, we'll use the full query
+    $full_stmt = $pdo->prepare("
         SELECT m.*, 
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END), 0) as payments_made,
@@ -62,6 +75,13 @@ try {
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
     ");
+    
+    // Use the full query for now
+    $stmt = $full_stmt;
+    
+    // DEBUG: Log the exact SQL and parameter being used
+    error_log("=== DEBUG: SQL Query being executed with parameter: " . $member_id . " ===");
+    
     $stmt->execute([$member_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
     
