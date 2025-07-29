@@ -484,7 +484,245 @@ switch ($action) {
         ]);
         break;
         
+    case 'scan':
+        // Scan codebase for translation keys
+        $scan_directories = $data['directories'] ?? [
+            '../../admin/',
+            '../../user/',
+            '../../languages/',
+            '../../'
+        ];
+        
+        $found_keys = [];
+        $errors = [];
+        
+        try {
+            foreach ($scan_directories as $dir) {
+                $real_dir = realpath($dir);
+                if ($real_dir && is_dir($real_dir)) {
+                    $keys = scanDirectoryForTranslationKeys($real_dir);
+                    $found_keys = array_merge($found_keys, $keys);
+                } else {
+                    $errors[] = "Directory not found: $dir";
+                }
+            }
+            
+            // Remove duplicates
+            $found_keys = array_unique($found_keys);
+            sort($found_keys);
+            
+            // Load existing translations to compare
+            $existing_keys = [];
+            foreach ($language_files as $lang => $file_path) {
+                if (file_exists($file_path)) {
+                    $content = file_get_contents($file_path);
+                    $decoded = json_decode($content, true);
+                    if ($decoded) {
+                        $existing_keys = array_merge($existing_keys, flattenTranslationKeys($decoded, $lang));
+                    }
+                }
+            }
+            
+            // Find new keys that don't exist in any language file
+            $new_keys = [];
+            $existing_keys_flat = array_map(function($key) {
+                return explode('.', $key, 2)[1] ?? $key; // Remove language prefix
+            }, $existing_keys);
+            
+            foreach ($found_keys as $key) {
+                if (!in_array($key, $existing_keys_flat)) {
+                    $new_keys[] = $key;
+                }
+            }
+            
+            json_response(true, 'Codebase scan completed', [
+                'found_keys' => $found_keys,
+                'total_found' => count($found_keys),
+                'new_keys' => $new_keys,
+                'total_new' => count($new_keys),
+                'existing_keys' => count($existing_keys_flat),
+                'scan_directories' => array_filter($scan_directories, function($dir) {
+                    return realpath($dir) && is_dir(realpath($dir));
+                }),
+                'errors' => $errors
+            ]);
+            
+        } catch (Exception $e) {
+            json_response(false, 'Scan failed: ' . $e->getMessage(), [
+                'errors' => [$e->getMessage()]
+            ]);
+        }
+        break;
+        
+    case 'add_new_keys':
+        // Add newly discovered keys to translation files
+        $new_keys = $data['keys'] ?? [];
+        $default_section = $data['section'] ?? 'new';
+        
+        if (empty($new_keys)) {
+            json_response(false, 'No keys provided');
+        }
+        
+        $added_keys = [];
+        $errors = [];
+        
+        try {
+            // Load current translations
+            $current_translations = [];
+            foreach ($language_files as $lang => $file_path) {
+                if (file_exists($file_path)) {
+                    $content = file_get_contents($file_path);
+                    $current_translations[$lang] = json_decode($content, true) ?: [];
+                } else {
+                    $current_translations[$lang] = [];
+                }
+            }
+            
+            // Add new keys to both languages
+            foreach ($new_keys as $key) {
+                // Parse section and key name
+                $parts = explode('.', $key, 2);
+                $section = count($parts) > 1 ? $parts[0] : $default_section;
+                $key_name = count($parts) > 1 ? $parts[1] : $key;
+                
+                // Add to both language files
+                foreach (['en', 'am'] as $lang) {
+                    if (!isset($current_translations[$lang][$section])) {
+                        $current_translations[$lang][$section] = [];
+                    }
+                    
+                    if (!isset($current_translations[$lang][$section][$key_name])) {
+                        // Set placeholder text indicating it needs translation
+                        $placeholder = ($lang === 'en') ? 
+                            "Translation needed: $key" : 
+                            "ትርጉም ያስፈልጋል: $key";
+                        
+                        $current_translations[$lang][$section][$key_name] = $placeholder;
+                        $added_keys[] = "$lang.$section.$key_name";
+                    }
+                }
+            }
+            
+            // Save updated translations
+            $saved_files = [];
+            foreach ($language_files as $lang => $file_path) {
+                if (isset($current_translations[$lang])) {
+                    try {
+                        // Create backup first
+                        if (file_exists($file_path)) {
+                            $backup_path = $file_path . '.backup.' . date('Y-m-d_H-i-s');
+                            copy($file_path, $backup_path);
+                        }
+                        
+                        // Format and save JSON
+                        $json_data = json_encode($current_translations[$lang], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                        
+                        if (file_put_contents($file_path, $json_data) !== false) {
+                            $saved_files[] = $lang;
+                        } else {
+                            $errors[] = "Failed to save $lang file";
+                        }
+                    } catch (Exception $e) {
+                        $errors[] = "Error saving $lang: " . $e->getMessage();
+                    }
+                }
+            }
+            
+            if (empty($errors)) {
+                json_response(true, 'New keys added successfully', [
+                    'added_keys' => $added_keys,
+                    'total_added' => count($added_keys),
+                    'saved_files' => $saved_files
+                ]);
+            } else {
+                json_response(false, 'Some keys failed to save: ' . implode(', ', $errors), [
+                    'added_keys' => $added_keys,
+                    'errors' => $errors
+                ]);
+            }
+            
+        } catch (Exception $e) {
+            json_response(false, 'Failed to add new keys: ' . $e->getMessage());
+        }
+        break;
+        
     default:
         json_response(false, 'Invalid action specified');
+}
+
+/**
+ * Scan directory recursively for translation keys
+ */
+function scanDirectoryForTranslationKeys($directory) {
+    $keys = [];
+    
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    
+    foreach ($iterator as $file) {
+        if ($file->isFile() && $file->getExtension() === 'php') {
+            $file_keys = extractTranslationKeysFromFile($file->getPathname());
+            $keys = array_merge($keys, $file_keys);
+        }
+    }
+    
+    return $keys;
+}
+
+/**
+ * Extract translation keys from a PHP file
+ */
+function extractTranslationKeysFromFile($file_path) {
+    $keys = [];
+    
+    try {
+        $content = file_get_contents($file_path);
+        if ($content === false) {
+            return $keys;
+        }
+        
+        // Pattern to match t('key') and t("key") calls
+        $patterns = [
+            "/t\s*\(\s*['\"]([^'\"]+)['\"]\s*\)/", // t('key') or t("key")
+            "/\$t->get\s*\(\s*['\"]([^'\"]+)['\"]\s*\)/" // $t->get('key')
+        ];
+        
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $content, $matches)) {
+                foreach ($matches[1] as $key) {
+                    // Clean and validate key
+                    $key = trim($key);
+                    if (!empty($key) && strlen($key) < 200) { // Reasonable length limit
+                        $keys[] = $key;
+                    }
+                }
+            }
+        }
+        
+    } catch (Exception $e) {
+        error_log("Error scanning file $file_path: " . $e->getMessage());
+    }
+    
+    return $keys;
+}
+
+/**
+ * Flatten nested translation keys for comparison
+ */
+function flattenTranslationKeys($translations, $prefix = '') {
+    $flat_keys = [];
+    
+    foreach ($translations as $section => $values) {
+        if (is_array($values)) {
+            foreach ($values as $key => $value) {
+                $full_key = $prefix ? "$prefix.$section.$key" : "$section.$key";
+                $flat_keys[] = $full_key;
+            }
+        }
+    }
+    
+    return $flat_keys;
 }
 ?>

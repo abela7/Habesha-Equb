@@ -120,6 +120,12 @@ $t = Translator::getInstance();
                         </svg>
                         Add Key
                     </button>
+                    <button class="btn btn-sm btn-warning" onclick="scanForNewKeys()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Scan Codebase
+                    </button>
                     <button class="btn btn-sm btn-outline" onclick="expandAll()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="6,9 12,15 18,9"/>
@@ -237,6 +243,97 @@ $t = Translator::getInstance();
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('addKeyModal')">Cancel</button>
                 <button class="btn btn-primary" onclick="createKey()">Add Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Results Modal -->
+    <div id="scanResultsModal" class="modal" style="display: none;">
+        <div class="modal-content scan-modal">
+            <div class="modal-header">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Codebase Scan Results
+                </h3>
+                <span class="close" onclick="closeModal('scanResultsModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Scan Summary -->
+                <div class="scan-summary">
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="summary-label">Total Found</span>
+                            <span class="summary-value" id="totalFoundKeys">0</span>
+                        </div>
+                        <div class="summary-item new">
+                            <span class="summary-label">New Keys</span>
+                            <span class="summary-value" id="newKeysCount">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Already Exist</span>
+                            <span class="summary-value" id="existingKeysCount">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Keys List -->
+                <div class="new-keys-section" id="newKeysSection" style="display: none;">
+                    <h4>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        New Translation Keys Found
+                    </h4>
+                    <p class="section-description">These translation keys were found in your code but don't exist in your language files yet.</p>
+                    
+                    <!-- Section Selection -->
+                    <div class="form-group">
+                        <label for="newKeysSection">Add to Section</label>
+                        <select id="newKeysSectionSelect" class="form-control">
+                            <option value="new">New (create new section)</option>
+                        </select>
+                    </div>
+
+                    <!-- Keys List -->
+                    <div class="new-keys-list" id="newKeysList">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- No New Keys Message -->
+                <div class="no-new-keys" id="noNewKeysMessage" style="display: none;">
+                    <div class="success-message">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                            <polyline points="22,4 12,14.01 9,11.01"/>
+                        </svg>
+                        <h4>All Keys Are Up to Date!</h4>
+                        <p>No new translation keys were found. All your t() calls are already defined in the language files.</p>
+                    </div>
+                </div>
+
+                <!-- Scan Progress -->
+                <div class="scan-progress" id="scanProgress" style="display: none;">
+                    <div class="progress-content">
+                        <div class="spinner"></div>
+                        <h4>Scanning Codebase...</h4>
+                        <p>Searching for translation keys in PHP files...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('scanResultsModal')">Close</button>
+                <button class="btn btn-primary" id="addNewKeysBtn" onclick="addNewKeysToTranslations()" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add Selected Keys
+                </button>
             </div>
         </div>
     </div>
@@ -661,6 +758,299 @@ $t = Translator::getInstance();
                 e.returnValue = '';
             }
         });
+
+        // === SCANNING FUNCTIONALITY ===
+        
+        // Global variable to store scan results
+        let scanResults = null;
+        
+        // Scan for new translation keys
+        async function scanForNewKeys() {
+            const modal = document.getElementById('scanResultsModal');
+            const progressDiv = document.getElementById('scanProgress');
+            const summaryDiv = document.querySelector('.scan-summary');
+            const newKeysSection = document.getElementById('newKeysSection');
+            const noNewKeysDiv = document.getElementById('noNewKeysMessage');
+            
+            // Show modal and progress
+            modal.style.display = 'block';
+            progressDiv.style.display = 'block';
+            summaryDiv.style.display = 'none';
+            newKeysSection.style.display = 'none';
+            noNewKeysDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('api/translations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'scan'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    scanResults = result.data;
+                    displayScanResults(result.data);
+                } else {
+                    showMessage('Scan failed: ' + result.message, 'error');
+                    closeModal('scanResultsModal');
+                }
+            } catch (error) {
+                console.error('Scan error:', error);
+                showMessage('Scan failed: ' + error.message, 'error');
+                closeModal('scanResultsModal');
+            } finally {
+                progressDiv.style.display = 'none';
+            }
+        }
+        
+        // Display scan results
+        function displayScanResults(data) {
+            const summaryDiv = document.querySelector('.scan-summary');
+            const newKeysSection = document.getElementById('newKeysSection');
+            const noNewKeysDiv = document.getElementById('noNewKeysMessage');
+            const addBtn = document.getElementById('addNewKeysBtn');
+            
+            // Update summary
+            document.getElementById('totalFoundKeys').textContent = data.total_found;
+            document.getElementById('newKeysCount').textContent = data.total_new;
+            document.getElementById('existingKeysCount').textContent = data.existing_keys;
+            
+            summaryDiv.style.display = 'block';
+            
+            if (data.total_new > 0) {
+                // Show new keys section
+                newKeysSection.style.display = 'block';
+                noNewKeysDiv.style.display = 'none';
+                addBtn.style.display = 'inline-flex';
+                
+                // Populate section select
+                populateNewKeysSectionSelect();
+                
+                // Display new keys
+                displayNewKeysList(data.new_keys);
+            } else {
+                // No new keys found
+                newKeysSection.style.display = 'none';
+                noNewKeysDiv.style.display = 'block';
+                addBtn.style.display = 'none';
+            }
+        }
+        
+        // Populate section select for new keys
+        function populateNewKeysSectionSelect() {
+            const select = document.getElementById('newKeysSectionSelect');
+            const data = translations[currentLanguage] || {};
+            
+            // Clear existing options except "new"
+            select.innerHTML = '<option value="new">New (create new section)</option>';
+            
+            // Add existing sections
+            Object.keys(data).forEach(section => {
+                const option = document.createElement('option');
+                option.value = section;
+                option.textContent = section.charAt(0).toUpperCase() + section.slice(1);
+                select.appendChild(option);
+            });
+        }
+        
+        // Display new keys list with checkboxes
+        function displayNewKeysList(newKeys) {
+            const container = document.getElementById('newKeysList');
+            
+            container.innerHTML = newKeys.map((key, index) => {
+                // Try to suggest a section based on the key name
+                const suggestedSection = suggestSectionForKey(key);
+                
+                return `
+                    <div class="new-key-item">
+                        <div class="key-checkbox">
+                            <input type="checkbox" id="newKey_${index}" value="${key}" checked>
+                            <label for="newKey_${index}" class="key-label">
+                                <span class="key-name">${key}</span>
+                                ${suggestedSection ? `<span class="suggested-section">→ ${suggestedSection}</span>` : ''}
+                            </label>
+                        </div>
+                        <div class="key-actions">
+                            <button class="btn-icon" onclick="previewKey('${key}')" title="Preview in context">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add select all / deselect all
+            const selectAllHtml = `
+                <div class="select-all-controls">
+                    <button class="btn btn-sm btn-outline" onclick="selectAllNewKeys(true)">Select All</button>
+                    <button class="btn btn-sm btn-outline" onclick="selectAllNewKeys(false)">Deselect All</button>
+                    <span class="selected-count" id="selectedKeysCount">${newKeys.length} of ${newKeys.length} selected</span>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('afterbegin', selectAllHtml);
+            
+            // Add event listeners to checkboxes
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedCount);
+            });
+            
+            updateSelectedCount();
+        }
+        
+        // Suggest section based on key name
+        function suggestSectionForKey(key) {
+            const keyLower = key.toLowerCase();
+            
+            // Common patterns
+            if (keyLower.includes('dashboard')) return 'dashboard';
+            if (keyLower.includes('member')) return 'members';
+            if (keyLower.includes('payment')) return 'payments';
+            if (keyLower.includes('payout')) return 'payouts';
+            if (keyLower.includes('report')) return 'reports';
+            if (keyLower.includes('auth') || keyLower.includes('login') || keyLower.includes('register')) return 'user_auth';
+            if (keyLower.includes('profile')) return 'profile';
+            if (keyLower.includes('navigation') || keyLower.includes('nav')) return 'navigation';
+            if (keyLower.includes('common') || keyLower.includes('button') || keyLower.includes('form')) return 'common';
+            if (keyLower.includes('error')) return 'errors';
+            
+            return null;
+        }
+        
+        // Select/deselect all new keys
+        function selectAllNewKeys(selectAll) {
+            const checkboxes = document.querySelectorAll('#newKeysList input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll;
+            });
+            updateSelectedCount();
+        }
+        
+        // Update selected count
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('#newKeysList input[type="checkbox"]');
+            const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const total = checkboxes.length;
+            
+            const countElement = document.getElementById('selectedKeysCount');
+            if (countElement) {
+                countElement.textContent = `${selected} of ${total} selected`;
+            }
+            
+            // Enable/disable add button
+            const addBtn = document.getElementById('addNewKeysBtn');
+            if (addBtn) {
+                addBtn.disabled = selected === 0;
+                if (selected === 0) {
+                    addBtn.classList.add('btn-disabled');
+                } else {
+                    addBtn.classList.remove('btn-disabled');
+                }
+            }
+        }
+        
+        // Add selected new keys to translations
+        async function addNewKeysToTranslations() {
+            const selectedKeys = Array.from(document.querySelectorAll('#newKeysList input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedKeys.length === 0) {
+                showMessage('No keys selected', 'error');
+                return;
+            }
+            
+            const targetSection = document.getElementById('newKeysSectionSelect').value;
+            const addBtn = document.getElementById('addNewKeysBtn');
+            const originalText = addBtn.innerHTML;
+            
+            // Show loading
+            addBtn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                Adding...
+            `;
+            addBtn.disabled = true;
+            
+            try {
+                const response = await fetch('api/translations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'add_new_keys',
+                        keys: selectedKeys,
+                        section: targetSection
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(`${result.data.total_added} keys added successfully!`, 'success');
+                    
+                    // Reload translations
+                    await reloadTranslations();
+                    
+                    // Close modal
+                    closeModal('scanResultsModal');
+                    
+                    // Switch to the section where keys were added if it's a new section
+                    if (targetSection === 'new') {
+                        markUnsaved();
+                    }
+                } else {
+                    showMessage('Failed to add keys: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Add keys error:', error);
+                showMessage('Failed to add keys: ' + error.message, 'error');
+            } finally {
+                addBtn.innerHTML = originalText;
+                addBtn.disabled = false;
+            }
+        }
+        
+        // Reload translations from server
+        async function reloadTranslations() {
+            try {
+                const response = await fetch('api/translations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'load'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    translations = result.data.translations;
+                    loadTranslationTree();
+                    updateStats();
+                    updateCounts();
+                    populateSectionSelect();
+                }
+            } catch (error) {
+                console.error('Failed to reload translations:', error);
+            }
+        }
+        
+        // Preview key in context (placeholder for future feature)
+        function previewKey(key) {
+            showMessage(`Preview feature coming soon for: ${key}`, 'info');
+        }
     </script>
 
     <!-- Styles -->
@@ -799,6 +1189,10 @@ $t = Translator::getInstance();
         .btn-warning {
             background: #f59e0b;
             color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
         }
 
         .translation-tree {
@@ -1107,6 +1501,273 @@ $t = Translator::getInstance();
 
             .translation-tree {
                 max-height: 60vh;
+            }
+        }
+
+        /* === SCANNING MODAL STYLES === */
+        .scan-modal .modal-content {
+            max-width: 700px;
+            width: 95%;
+        }
+
+        .scan-summary {
+            margin-bottom: 24px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .summary-item {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .summary-item.new {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .summary-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            display: block;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .summary-item.new .summary-value {
+            color: #d97706;
+        }
+
+        .new-keys-section {
+            margin-top: 24px;
+        }
+
+        .new-keys-section h4 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 8px 0;
+            color: #1f2937;
+            font-size: 1.125rem;
+        }
+
+        .section-description {
+            color: #6b7280;
+            margin-bottom: 20px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .select-all-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .selected-count {
+            margin-left: auto;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .new-keys-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .new-key-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background-color 0.2s ease;
+        }
+
+        .new-key-item:last-child {
+            border-bottom: none;
+        }
+
+        .new-key-item:hover {
+            background: #f9fafb;
+        }
+
+        .key-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .key-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color-teal);
+        }
+
+        .key-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin: 0;
+            flex: 1;
+        }
+
+        .key-name {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            color: #1f2937;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .suggested-section {
+            font-size: 0.75rem;
+            color: #059669;
+            font-weight: 500;
+            background: #d1fae5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .key-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .no-new-keys {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .success-message svg {
+            color: #10b981;
+        }
+
+        .success-message h4 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 1.25rem;
+        }
+
+        .success-message p {
+            margin: 0;
+            color: #6b7280;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .scan-progress {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .progress-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--color-teal);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .scan-progress h4 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 1.25rem;
+        }
+
+        .scan-progress p {
+            margin: 0;
+            color: #6b7280;
+        }
+
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Mobile responsive for scan modal */
+        @media (max-width: 768px) {
+            .scan-modal .modal-content {
+                width: 98%;
+                margin: 2% auto;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .select-all-controls {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .selected-count {
+                margin-left: 0;
+                width: 100%;
+                text-align: center;
+            }
+
+            .new-key-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .key-checkbox {
+                justify-content: flex-start;
+            }
+
+            .key-actions {
+                justify-content: flex-end;
             }
         }
     </style>
