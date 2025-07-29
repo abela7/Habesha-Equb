@@ -175,7 +175,7 @@ function authenticate_member($email, $password) {
     
     try {
         $stmt = $pdo->prepare("
-            SELECT id, username, first_name, last_name, full_name, email, password, status, is_active 
+            SELECT id, username, first_name, last_name, full_name, email, password, is_approved, is_active 
             FROM members 
             WHERE email = ? 
             LIMIT 1
@@ -189,11 +189,15 @@ function authenticate_member($email, $password) {
         }
         
         if (!$member['is_active']) {
-            return ['success' => false, 'message' => 'Your account is inactive. Please contact support.'];
+            return ['success' => false, 'message' => 'Your account has been declined. Please contact support.'];
         }
         
-        if ($member['status'] !== 'active') {
-            return ['success' => false, 'message' => 'Your account is pending approval. Please wait for admin confirmation.'];
+        if (!$member['is_approved']) {
+            return [
+                'success' => false, 
+                'message' => 'Your account is pending approval. Please wait for admin confirmation.',
+                'redirect' => 'waiting-approval.php?email=' . urlencode($email)
+            ];
         }
         
         if (password_verify($password, $member['password'])) {
@@ -376,7 +380,13 @@ switch ($action) {
         );
         
         if ($member_id) {
-            send_json_response(true, 'Registration successful! You can now login with your credentials.');
+            // Store pending user info in session for waiting page
+            $_SESSION['pending_email'] = $validations['email']['value'];
+            $_SESSION['pending_name'] = $validations['first_name']['value'] . ' ' . $validations['last_name']['value'];
+            
+            send_json_response(true, 'Registration successful! Your application is now under review.', [
+                'redirect' => 'waiting-approval.php?email=' . urlencode($validations['email']['value'])
+            ]);
         } else {
             send_json_response(false, 'Registration failed. Please try again later.');
         }

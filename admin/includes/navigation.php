@@ -868,6 +868,13 @@ body.no-scroll {
         <!-- Member Management -->
         <div class="nav-section">
             <div class="nav-section-title">Member Management</div>
+            <a href="user-approvals.php" class="nav-item <?php echo ($current_page === 'user-approvals.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <span class="nav-text">User Approvals</span>
+            </a>
             <a href="members.php" class="nav-item <?php echo ($current_page === 'members.php') ? 'active' : ''; ?>">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>

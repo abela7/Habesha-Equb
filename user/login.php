@@ -1104,12 +1104,18 @@ if (isset($_GET['msg'])) {
                     if (result.success) {
                         this.showAlert('success', '<?php echo t('user_auth.login_success'); ?>');
                         setTimeout(() => {
-                            window.location.href = 'dashboard.php';
+                            window.location.href = result.redirect || 'dashboard.php';
                         }, 1000);
                     } else {
                         this.showAlert('error', result.message || '<?php echo t('user_auth.login_error'); ?>');
                         if (result.field_errors) {
                             this.displayFieldErrors(result.field_errors, 'login');
+                        }
+                        // Check if there's a redirect for pending approval
+                        if (result.redirect) {
+                            setTimeout(() => {
+                                window.location.href = result.redirect;
+                            }, 2000);
                         }
                     }
                 } catch (error) {
@@ -1140,10 +1146,14 @@ if (isset($_GET['msg'])) {
                     const result = await response.json();
                     
                     if (result.success) {
-                        this.showAlert('success', '<?php echo t('user_auth.register_success'); ?>');
+                        this.showAlert('success', result.message || '<?php echo t('user_auth.register_success'); ?>');
                         form.reset();
                         setTimeout(() => {
-                            this.showLoginForm();
+                            if (result.redirect) {
+                                window.location.href = result.redirect;
+                            } else {
+                                this.showLoginForm();
+                            }
                         }, 2000);
                     } else {
                         this.showAlert('error', result.message || '<?php echo t('user_auth.register_error'); ?>');

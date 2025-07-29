@@ -1,0 +1,246 @@
+<?php
+/**
+ * HabeshaEqub - User Approval API
+ * Handles admin approval/decline actions for member registrations
+ */
+
+require_once '../../includes/db.php';
+require_once '../includes/admin_auth_guard.php';
+
+// Set JSON response headers
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, must-revalidate');
+
+// Only allow POST requests
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    exit;
+}
+
+// Check admin authentication
+$admin_id = get_current_admin_id();
+if (!$admin_id) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Admin authentication required']);
+    exit;
+}
+
+try {
+    // Get request data
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    
+    if (!$data || !isset($data['action']) || !isset($data['user_id'])) {
+        throw new Exception('Invalid request data');
+    }
+    
+    $action = sanitize_input($data['action']);
+    $user_id = (int)$data['user_id'];
+    $reason = isset($data['reason']) ? sanitize_input($data['reason']) : '';
+    
+    // Validate action
+    if (!in_array($action, ['approve', 'decline'])) {
+        throw new Exception('Invalid action. Must be "approve" or "decline"');
+    }
+    
+    // Verify user exists and is pending approval
+    $user_stmt = $db->prepare("
+        SELECT id, member_id, first_name, last_name, email, phone, is_approved, is_active 
+        FROM members 
+        WHERE id = ?
+    ");
+    $user_stmt->execute([$user_id]);
+    $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$user) {
+        throw new Exception('User not found');
+    }
+    
+    if ($user['is_approved'] == 1) {
+        throw new Exception('User is already approved');
+    }
+    
+    // Process the action
+    switch ($action) {
+        case 'approve':
+            handleUserApproval($db, $user_id, $user, $admin_id);
+            break;
+            
+        case 'decline':
+            handleUserDecline($db, $user_id, $user, $admin_id, $reason);
+            break;
+    }
+    
+} catch (Exception $e) {
+    error_log("User Approval API Error: " . $e->getMessage());
+    
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
+    exit;
+}
+
+/**
+ * Handle user approval
+ */
+function handleUserApproval($db, $user_id, $user, $admin_id) {
+    try {
+        $db->beginTransaction();
+        
+        // Update user approval status
+        $approve_stmt = $db->prepare("
+            UPDATE members 
+            SET is_approved = 1, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        ");
+        $approve_stmt->execute([$user_id]);
+        
+        if ($approve_stmt->rowCount() === 0) {
+            throw new Exception('Failed to approve user');
+        }
+        
+        // Log the approval action
+        $log_stmt = $db->prepare("
+            INSERT INTO notifications (
+                notification_id, 
+                recipient_type, 
+                recipient_id, 
+                type, 
+                channel, 
+                subject, 
+                message, 
+                language,
+                status,
+                sent_at,
+                sent_by_admin_id,
+                notes
+            ) VALUES (?, 'member', ?, 'approval', 'email', ?, ?, 'en', 'sent', NOW(), ?, ?)
+        ");
+        
+        $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
+        $subject = 'Welcome to HabeshaEqub - Account Approved';
+        $message = "Congratulations! Your HabeshaEqub account has been approved. You can now log in and start participating in our equb system.";
+        $notes = "User approved by admin ID: {$admin_id}";
+        
+        $log_stmt->execute([
+            $notification_id,
+            $user_id,
+            $subject,
+            $message,
+            $admin_id,
+            $notes
+        ]);
+        
+        $db->commit();
+        
+        // Log successful approval
+        error_log("Admin ID {$admin_id} approved user ID {$user_id} ({$user['member_id']})");
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'User approved successfully',
+            'data' => [
+                'user_id' => $user_id,
+                'member_id' => $user['member_id'],
+                'user_name' => $user['first_name'] . ' ' . $user['last_name'],
+                'action' => 'approved',
+                'approved_by' => $admin_id,
+                'approved_at' => date('Y-m-d H:i:s')
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        throw new Exception('Database error during approval: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Handle user decline
+ */
+function handleUserDecline($db, $user_id, $user, $admin_id, $reason) {
+    try {
+        $db->beginTransaction();
+        
+        // Update user status to inactive (decline)
+        $decline_stmt = $db->prepare("
+            UPDATE members 
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP, notes = ? 
+            WHERE id = ?
+        ");
+        $decline_stmt->execute(["DECLINED: {$reason}", $user_id]);
+        
+        if ($decline_stmt->rowCount() === 0) {
+            throw new Exception('Failed to decline user');
+        }
+        
+        // Log the decline action
+        $log_stmt = $db->prepare("
+            INSERT INTO notifications (
+                notification_id, 
+                recipient_type, 
+                recipient_id, 
+                type, 
+                channel, 
+                subject, 
+                message, 
+                language,
+                status,
+                sent_at,
+                sent_by_admin_id,
+                notes
+            ) VALUES (?, 'member', ?, 'general', 'email', ?, ?, 'en', 'sent', NOW(), ?, ?)
+        ");
+        
+        $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
+        $subject = 'HabeshaEqub Account Application Update';
+        $message = "Thank you for your interest in HabeshaEqub. Unfortunately, we cannot approve your account at this time. Reason: {$reason}";
+        $notes = "User declined by admin ID: {$admin_id}. Reason: {$reason}";
+        
+        $log_stmt->execute([
+            $notification_id,
+            $user_id,
+            $subject,
+            $message,
+            $admin_id,
+            $notes
+        ]);
+        
+        $db->commit();
+        
+        // Log successful decline
+        error_log("Admin ID {$admin_id} declined user ID {$user_id} ({$user['member_id']}) - Reason: {$reason}");
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'User declined successfully',
+            'data' => [
+                'user_id' => $user_id,
+                'member_id' => $user['member_id'],
+                'user_name' => $user['first_name'] . ' ' . $user['last_name'],
+                'action' => 'declined',
+                'declined_by' => $admin_id,
+                'declined_at' => date('Y-m-d H:i:s'),
+                'reason' => $reason
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        throw new Exception('Database error during decline: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Basic input sanitization
+ */
+function sanitize_input($input) {
+    if (is_string($input)) {
+        return trim(htmlspecialchars($input, ENT_QUOTES, 'UTF-8'));
+    }
+    return $input;
+}
+?> 
