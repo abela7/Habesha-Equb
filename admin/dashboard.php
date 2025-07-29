@@ -6,11 +6,15 @@
 
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../languages/user_language_handler.php';
 
 // Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username();
+
+// Set admin's language preference from database
+setAdminLanguageFromDatabase($admin_id);
 
 // Get members data for dashboard statistics
 try {

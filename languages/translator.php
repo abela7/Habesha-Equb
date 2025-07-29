@@ -6,9 +6,9 @@
 
 class Translator {
     private static $instance = null;
-    private $currentLanguage = 'en';
+    private $currentLanguage = 'am';
     private $translations = [];
-    private $fallbackLanguage = 'en';
+    private $fallbackLanguage = 'am';
     
     private function __construct() {
         // Start session if not already started
@@ -16,8 +16,8 @@ class Translator {
             session_start();
         }
         
-        // Get language from session or set default
-        $this->currentLanguage = $_SESSION['app_language'] ?? 'en';
+        // Get language from session or set default to Amharic
+        $this->currentLanguage = $_SESSION['app_language'] ?? 'am';
         $this->loadTranslations();
     }
     
@@ -49,7 +49,7 @@ class Translator {
     }
     
     /**
-     * Load fallback language (English)
+     * Load fallback language (Amharic)
      */
     private function loadFallback() {
         if ($this->currentLanguage !== $this->fallbackLanguage) {

@@ -16,10 +16,14 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../languages/user_language_handler.php';
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
+
+// Set user's language preference from database
+setUserLanguageFromDatabase($user_id);
 
 // Get REAL member data from database
 try {

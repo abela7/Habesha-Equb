@@ -6,12 +6,18 @@
 
 // Include database for session handling
 require_once 'includes/db.php';
+require_once 'languages/translator.php';
+
+// Set default language to Amharic for landing page
+if (!isset($_SESSION['app_language'])) {
+    setLanguage('am');
+}
 
 // Redirect to user login page
 header("Location: user/login.php");
 exit();
 ?>
-<html lang="en">
+<html lang="<?php echo getCurrentLanguage(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

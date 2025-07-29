@@ -6,6 +6,12 @@
 
 // Include database and start session
 require_once '../includes/db.php';
+require_once '../languages/translator.php';
+
+// Set default language to Amharic for admin login
+if (!isset($_SESSION['app_language'])) {
+    setLanguage('am');
+}
 
 // Include admin auth guard functions (but skip auth check for login page)
 define('SKIP_ADMIN_AUTH_CHECK', true);
@@ -29,7 +35,7 @@ if (isset($_GET['msg'])) {
 $csrf_token = generate_csrf_token();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getCurrentLanguage(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
