@@ -470,6 +470,22 @@ if (isset($_GET['msg'])) {
             font-weight: 500;
         }
         
+        /* Terms and Privacy Policy Links */
+        .terms-link {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+            padding-bottom: 1px;
+        }
+        
+        .terms-link:hover {
+            color: var(--brown);
+            border-bottom-color: var(--brown);
+            text-shadow: 0 0 1px rgba(93, 66, 37, 0.3);
+        }
+        
         .btn-primary {
             width: 100%;
             padding: 18px;

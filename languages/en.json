@@ -490,7 +490,7 @@
     "switch_to_login": "Already have an account?",
     "admin_login": "Admin Login →",
     "forgot_password": "Forgot your password?",
-    "terms_agree": "I agree to the Terms of Service and Privacy Policy",
+    "terms_agree": "I agree to the <a href=\"terms-of-service.php\" target=\"_blank\" class=\"terms-link\">Terms of Service</a> and <a href=\"privacy-policy.php\" target=\"_blank\" class=\"terms-link\">Privacy Policy</a>",
     "login_success": "Welcome back! Redirecting to your dashboard...",
     "register_success": "Account created successfully! You can now sign in.",
     "password_requirements": "Password must be at least 6 characters with letters and numbers",
