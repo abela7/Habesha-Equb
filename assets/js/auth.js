@@ -65,8 +65,22 @@ class AuthManager {
             // Send AJAX request
             const response = await fetch('api/auth.php', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned invalid response format');
+            }
 
             const result = await response.json();
 
@@ -75,7 +89,7 @@ class AuthManager {
                 
                 // Redirect after short delay
                 setTimeout(() => {
-                    window.location.href = result.redirect || 'dashboard.php';
+                    window.location.href = result.data?.redirect || 'dashboard.php';
                 }, 1500);
             } else {
                 this.showAlert('error', result.message || 'Login failed. Please try again.');
@@ -84,7 +98,16 @@ class AuthManager {
 
         } catch (error) {
             console.error('Login error:', error);
-            this.showAlert('error', 'Network error. Please check your connection and try again.');
+            
+            if (error.message.includes('HTTP')) {
+                this.showAlert('error', 'Server error. Please try again later.');
+            } else if (error.message.includes('invalid response format')) {
+                this.showAlert('error', 'Server configuration error. Please contact administrator.');
+            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                this.showAlert('error', 'Network error. Please check your connection and try again.');
+            } else {
+                this.showAlert('error', 'An unexpected error occurred. Please try again.');
+            }
             this.setLoadingState(submitBtn, false);
         }
     }
@@ -119,15 +142,6 @@ class AuthManager {
             formData.append('confirm_password', confirmPassword);
             formData.append('csrf_token', form.querySelector('input[name="csrf_token"]').value);
 
-            console.log('Sending registration request to:', 'api/auth.php');
-            console.log('Form data:', {
-                action: 'register',
-                username: username,
-                password: '***',
-                confirm_password: '***',
-                csrf_token: form.querySelector('input[name="csrf_token"]').value
-            });
-
             // Send AJAX request
             const response = await fetch('api/auth.php', {
                 method: 'POST',
@@ -137,21 +151,24 @@ class AuthManager {
                 }
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned invalid response format');
             }
 
             const result = await response.json();
-            console.log('Response data:', result);
 
             if (result.success) {
                 this.showAlert('success', result.message || 'Registration successful! You can now login.');
                 form.reset();
                 
-                // Optional: Auto-redirect to login page
+                // Auto-redirect to login page
                 setTimeout(() => {
                     window.location.href = 'login.php';
                 }, 2000);
@@ -161,17 +178,13 @@ class AuthManager {
 
         } catch (error) {
             console.error('Registration error:', error);
-            console.error('Error details:', {
-                name: error.name,
-                message: error.message,
-                stack: error.stack
-            });
             
-            // Provide more specific error messages
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                this.showAlert('error', 'Network error. Please check your connection and try again.');
-            } else if (error.message.includes('HTTP error')) {
+            if (error.message.includes('HTTP')) {
                 this.showAlert('error', 'Server error. Please try again later.');
+            } else if (error.message.includes('invalid response format')) {
+                this.showAlert('error', 'Server configuration error. Please contact administrator.');
+            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                this.showAlert('error', 'Network error. Please check your connection and try again.');
             } else {
                 this.showAlert('error', 'An unexpected error occurred. Please try again.');
             }
