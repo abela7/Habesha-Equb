@@ -115,13 +115,13 @@ $t = Translator::getInstance();
             </div>
 
             <!-- Admin Management -->
-            <div class="settings-category coming-soon-module">
+            <div class="settings-category active-module">
                 <div class="module-header">
                     <div class="module-icon warning">
                         <i class="fas fa-users-cog" style="font-size: 24px;"></i>
                     </div>
                     <div class="module-status">
-                        <span class="status-badge status-coming-soon">Coming Soon</span>
+                        <span class="status-badge status-active">Active</span>
                     </div>
                 </div>
                 <h3>Admin Management</h3>
@@ -131,7 +131,7 @@ $t = Translator::getInstance();
                     <span class="feature-tag">Permissions</span>
                     <span class="feature-tag">Security</span>
                 </div>
-                <a href="#" class="btn btn-secondary" onclick="showComingSoon('Admin Management')">
+                <a href="admin-management.php" class="btn btn-primary">
                     <i class="fas fa-user-shield me-2"></i>
                     Manage Admins
                 </a>
