@@ -74,7 +74,7 @@ try {
 // Ensure admins table exists
 try {
     $pdo->query("SELECT 1 FROM admins LIMIT 1");
-} catch (PDOException $e) {
+    } catch (PDOException $e) {
     // Create table if it doesn't exist
     try {
         $pdo->exec("
@@ -169,11 +169,11 @@ switch ($action) {
         } catch (PDOException $e) {
             json_response(false, 'Failed to create admin account');
         }
-        break;
-        
+            break;
+            
     case 'login':
         // Verify CSRF
-        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+            if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
             json_response(false, 'Security token mismatch');
         }
         
@@ -215,25 +215,25 @@ switch ($action) {
             }
         } catch (PDOException $e) {
             json_response(false, 'Authentication failed');
-        }
-        break;
-        
-    case 'logout':
+            }
+            break;
+            
+        case 'logout':
         $_SESSION = [];
         session_destroy();
         json_response(true, 'Logged out successfully');
-        break;
-        
-    case 'check_auth':
+            break;
+            
+        case 'check_auth':
         $authenticated = isset($_SESSION['admin_id']) && isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
         json_response(true, 'Auth status checked', [
             'authenticated' => $authenticated,
-            'admin_id' => $_SESSION['admin_id'] ?? null,
-            'username' => $_SESSION['admin_username'] ?? null
-        ]);
-        break;
-        
-    default:
+                'admin_id' => $_SESSION['admin_id'] ?? null,
+                'username' => $_SESSION['admin_username'] ?? null
+            ]);
+            break;
+            
+        default:
         json_response(false, 'Invalid action');
 }
 ?> 
