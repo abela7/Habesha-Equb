@@ -4,8 +4,8 @@
  * Fixed to allow legitimate registrations
  */
 
-require_once '../../includes/db.php';
-require_once '../../languages/translator.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../languages/translator.php';
 
 // Set basic headers
 header('Content-Type: application/json; charset=utf-8');

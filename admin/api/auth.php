@@ -256,15 +256,15 @@ switch ($action) {
         $password_validation = SecurityValidator::validateInput($_POST['password'] ?? '', 'password', true);
         $confirm_password = $_POST['confirm_password'] ?? '';
         
-        if (!$username_validation['valid']) {
+            if (!$username_validation['valid']) {
             json_response(false, $username_validation['message']);
-        }
-        
-        if (!$password_validation['valid']) {
+            }
+            
+            if (!$password_validation['valid']) {
             json_response(false, $password_validation['message']);
         }
         
-        if ($password_validation['value'] !== $confirm_password) {
+            if ($password_validation['value'] !== $confirm_password) {
             json_response(false, 'Passwords do not match');
         }
         
@@ -279,15 +279,15 @@ switch ($action) {
         }
         
         // Create admin with enhanced security
-        $admin_id = create_admin($username_validation['value'], $password_validation['value']);
-        
-        if ($admin_id) {
+            $admin_id = create_admin($username_validation['value'], $password_validation['value']);
+            
+            if ($admin_id) {
             json_response(true, 'Admin account created successfully! You can now login.');
-        } else {
+            } else {
             json_response(false, 'Registration failed. Username may already exist or rate limit exceeded.');
-        }
-        break;
-        
+            }
+            break;
+            
     default:
         SecurityLogger::logSecurityEvent('invalid_admin_action_attempt', [
             'action' => $action,
