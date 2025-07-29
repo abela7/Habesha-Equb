@@ -730,24 +730,38 @@ $inactive_admins = $total_admins - $active_admins;
             
             // Fetch admin data and populate form
             fetch(`api/admin-management.php?action=get&id=${adminId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const admin = data.admin;
-                        document.getElementById('adminId').value = admin.id;
-                        document.getElementById('username').value = admin.username;
-                        document.getElementById('email').value = admin.email || '';
-                        document.getElementById('phone').value = admin.phone || '';
-                        document.getElementById('languagePreference').value = admin.language_preference;
-                        document.getElementById('isActive').value = admin.is_active;
-                        adminModal.show();
-                    } else {
-                        alert('Error: ' + data.message);
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.text();
+                })
+                .then(text => {
+                    console.log('Raw response:', text);
+                    try {
+                        const data = JSON.parse(text);
+                        console.log('Parsed data:', data);
+                        
+                        if (data.success && data.data && data.data.admin) {
+                            const admin = data.data.admin;
+                            document.getElementById('adminId').value = admin.id;
+                            document.getElementById('username').value = admin.username || '';
+                            document.getElementById('email').value = admin.email || '';
+                            document.getElementById('phone').value = admin.phone || '';
+                            document.getElementById('languagePreference').value = admin.language_preference || '0';
+                            document.getElementById('isActive').value = admin.is_active || '1';
+                            adminModal.show();
+                        } else {
+                            console.error('API Error:', data);
+                            alert('Error: ' + (data.message || 'Failed to load admin data'));
+                        }
+                    } catch (e) {
+                        console.error('JSON Parse Error:', e);
+                        console.error('Raw text was:', text);
+                        alert('Invalid response from server: ' + text.substring(0, 100));
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to load admin data');
+                    console.error('Fetch Error:', error);
+                    alert('Network error: Failed to load admin data');
                 });
         }
 

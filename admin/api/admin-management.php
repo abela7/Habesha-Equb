@@ -4,6 +4,9 @@
  * Handle CRUD operations for admin accounts
  */
 
+// Start output buffering to catch any errors
+ob_start();
+
 require_once '../../includes/db.php';
 
 // Start session first
@@ -14,6 +17,11 @@ if (session_status() === PHP_SESSION_NONE) {
 // Set headers
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
+
+// Clean any previous output
+if (ob_get_length()) {
+    ob_clean();
+}
 
 /**
  * JSON response helper
@@ -41,16 +49,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $action = $_GET['action'] ?? '';
     $admin_id = $_GET['id'] ?? '';
     
+    error_log("Admin API GET request - Action: $action, ID: $admin_id");
+    
     if ($action === 'get' && $admin_id) {
         try {
             // Validate admin_id is numeric
             if (!is_numeric($admin_id)) {
+                error_log("Invalid admin ID provided: $admin_id");
                 json_response(false, 'Invalid admin ID');
             }
             
             $stmt = $pdo->prepare("SELECT id, username, email, phone, is_active, language_preference FROM admins WHERE id = ?");
             $stmt->execute([(int)$admin_id]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            error_log("Admin query result: " . json_encode($admin));
             
             if ($admin) {
                 json_response(true, 'Admin data retrieved successfully', ['admin' => $admin]);
@@ -62,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             json_response(false, 'Failed to retrieve admin data: ' . $e->getMessage());
         }
     } else {
+        error_log("Invalid GET request - Action: '$action', ID: '$admin_id'");
         json_response(false, 'Invalid GET request - missing action or ID');
     }
 }
