@@ -84,7 +84,7 @@ exit();
                             <h4>Admin Portal</h4>
                             <p>Manage members, track payments, handle payouts, and oversee all Equb operations.</p>
                             <div class="portal-actions">
-                                <a href="admin/login.php" class="btn btn-primary">Admin Login</a>
+                                <!-- Admin login link removed for security -->
                                 <a href="admin/register.php" class="portal-link">Register as Admin</a>
                             </div>
                         </div>

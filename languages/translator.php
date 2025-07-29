@@ -74,7 +74,7 @@ class Translator {
                 $value = $value[$k];
             } else {
                 // Return key if translation not found
-                error_log("Translation key not found: {$key}");
+                error_log("Translation key not found: {$key} for language: {$this->currentLanguage}");
                 return $key;
             }
         }

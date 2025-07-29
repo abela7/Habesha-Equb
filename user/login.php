@@ -6,6 +6,19 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
+// Set default language to Amharic for user login
+if (!isset($_SESSION['app_language'])) {
+    setLanguage('am');
+}
+
+// Force Amharic for testing
+setLanguage('am');
+
+// Force no caching
+header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+
 // Include auth guard functions (but skip auth check for login page)
 define('SKIP_AUTH_CHECK', true);
 require_once 'includes/auth_guard.php';
