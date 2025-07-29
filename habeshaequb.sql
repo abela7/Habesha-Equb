@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 29, 2025 at 03:41 PM
+-- Generation Time: Jul 29, 2025 at 07:24 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -39,6 +39,13 @@ CREATE TABLE `admins` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `admins`
+--
+
+INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`) VALUES
+(8, 'abel', NULL, NULL, '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-07-29 15:14:32');
+
 -- --------------------------------------------------------
 
 --
@@ -70,11 +77,62 @@ INSERT INTO `equb_rules` (`id`, `rule_number`, `rule_en`, `rule_am`, `is_active`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `equb_settings`
+--
+
+CREATE TABLE `equb_settings` (
+  `id` int(11) NOT NULL,
+  `equb_id` varchar(20) NOT NULL COMMENT 'Auto-generated: EQB-2024-001, EQB-2024-002, etc.',
+  `equb_name` varchar(100) NOT NULL COMMENT 'e.g., First Term Equb, Summer 2024 Equb',
+  `equb_description` text DEFAULT NULL COMMENT 'Detailed description of this equb term',
+  `status` enum('planning','active','completed','suspended','cancelled') NOT NULL DEFAULT 'planning',
+  `max_members` int(3) NOT NULL COMMENT 'Maximum number of members for this equb term',
+  `current_members` int(3) DEFAULT 0 COMMENT 'Current number of enrolled members',
+  `duration_months` int(2) NOT NULL COMMENT 'How many months this equb will run',
+  `start_date` date NOT NULL COMMENT 'Equb term start date',
+  `end_date` date NOT NULL COMMENT 'Calculated end date based on duration',
+  `payment_tiers` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'JSON: [{"amount":1000,"tag":"full","description":"Full Member"},{"amount":500,"tag":"half","description":"Half Member"}]' CHECK (json_valid(`payment_tiers`)),
+  `currency` varchar(5) DEFAULT '£' COMMENT 'Currency symbol',
+  `payout_day` int(2) DEFAULT 5 COMMENT 'Day of month for payouts (default: 5th)',
+  `admin_fee` decimal(8,2) DEFAULT 10.00 COMMENT 'Admin service fee per payout',
+  `late_fee` decimal(8,2) DEFAULT 20.00 COMMENT 'Late payment penalty',
+  `grace_period_days` int(2) DEFAULT 2 COMMENT 'Grace period for late payments',
+  `auto_assign_positions` tinyint(1) DEFAULT 1 COMMENT '1=Auto assign payout positions, 0=Manual',
+  `position_assignment_method` enum('random','registration_order','payment_amount','custom') DEFAULT 'registration_order',
+  `terms_en` text DEFAULT NULL COMMENT 'English terms and conditions for this specific equb',
+  `terms_am` text DEFAULT NULL COMMENT 'Amharic terms and conditions for this specific equb',
+  `special_rules` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'JSON array of special rules for this equb term' CHECK (json_valid(`special_rules`)),
+  `created_by_admin_id` int(11) NOT NULL,
+  `managed_by_admin_id` int(11) DEFAULT NULL COMMENT 'Current managing admin',
+  `approval_required` tinyint(1) DEFAULT 1 COMMENT '1=Admin must approve member registrations',
+  `registration_start_date` date DEFAULT NULL COMMENT 'When registration opens',
+  `registration_end_date` date DEFAULT NULL COMMENT 'When registration closes',
+  `is_public` tinyint(1) DEFAULT 1 COMMENT '1=Visible to public, 0=Private/Invitation only',
+  `is_featured` tinyint(1) DEFAULT 0 COMMENT '1=Featured on homepage',
+  `total_pool_amount` decimal(15,2) DEFAULT 0.00 COMMENT 'Total expected pool (calculated)',
+  `collected_amount` decimal(15,2) DEFAULT 0.00 COMMENT 'Total collected so far',
+  `distributed_amount` decimal(15,2) DEFAULT 0.00 COMMENT 'Total distributed so far',
+  `notes` text DEFAULT NULL COMMENT 'Admin notes about this equb term',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `equb_settings`
+--
+
+INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 'EQB-2024-001', 'First Term Equb 2024', 'Our inaugural equb for 2024 - open to all payment tiers', 'active', 5, 19, 5, '2024-05-15', '2024-10-15', '[{\"amount\":1000,\"tag\":\"full\",\"description\":\"Full Member - £1000/month\"},{\"amount\":500,\"tag\":\"half\",\"description\":\"Half Member - £500/month\"},{\"amount\":250,\"tag\":\"quarter\",\"description\":\"Quarter Member - £250/month\"}]', '£', 5, 10.00, 20.00, 2, 1, 'registration_order', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 0.00, 0.00, 0.00, NULL, '2025-07-29 16:22:18', '2025-07-29 18:22:49');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `members`
 --
 
 CREATE TABLE `members` (
   `id` int(11) NOT NULL,
+  `equb_settings_id` int(11) DEFAULT NULL COMMENT 'Which equb term this member belongs to',
   `member_id` varchar(20) NOT NULL COMMENT 'Auto-generated: HEM-AG1, HEM-AM2, etc.',
   `username` varchar(50) DEFAULT NULL,
   `first_name` varchar(50) NOT NULL,
@@ -111,13 +169,13 @@ CREATE TABLE `members` (
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 'HEM-MW1', 'MW123A', 'Michael', 'Werkneh', 'Michael Werkneh', 'michael.werkneh@email.com', '+447123456789', '$2y$12$kdwSiI7P37OpM7OVFH4rMOHH2W7Yywf08O3DItvLGCVH6ZKqI/qBi', 'active', 1000.00, 1, '2025-07-05', 6000.00, 1, 'Sarah', 'Werkneh', '+447123456790', 'sarah.werkneh@email.com', 'Wife', 1, 1, 1, '2024-05-15', '2025-07-25 00:54:39', 'email,sms', 1, 1, 'First member - received June payout', '2025-07-22 07:24:42', '2025-07-25 00:54:39'),
-(2, 'HEM-MN2', NULL, 'Maeruf', 'Nasir', NULL, 'maeruf.nasir@email.com', '+447234567890', 'MN456B', 'active', 1000.00, 2, '2025-08-05', 1000.00, 0, 'Ahmed', 'Nasir', '+447234567891', 'ahmed.nasir@email.com', 'Brother', 1, 1, 1, '2024-05-15', '2024-06-18 13:15:00', 'email', 1, 1, 'Active member - good payment record', '2025-07-22 07:24:42', '2025-07-24 02:43:23'),
-(3, 'HEM-TE3', NULL, 'Teddy', 'Elias', NULL, 'teddy.elias@email.com', '+447345678901', 'TE789C', 'active', 500.00, 3, '2025-09-05', 1500.00, 0, 'Helen', 'Elias', '+447345678902', 'helen.elias@email.com', 'Mother', 1, 1, 1, '2024-05-15', '2024-06-19 15:45:00', 'email,sms', 1, 1, 'Reliable member', '2025-07-22 07:24:42', '2025-07-24 02:43:26'),
-(4, 'HEM-KG4', NULL, 'Kokit', 'Gormesa', NULL, 'kokit.gormesa@email.com', '+447456789012', 'KG012D', 'active', 1000.00, 4, '2025-10-05', 1000.00, 0, 'Dawit', 'Gormesa', '+447456789013', 'dawit.gormesa@email.com', 'Husband', 1, 1, 1, '2024-05-15', '2024-06-17 11:20:00', 'sms', 1, 1, 'New member - very enthusiastic', '2025-07-22 07:24:42', '2025-07-24 02:43:30'),
-(5, 'HEM-MA5', NULL, 'Mahlet', 'Ayalew', NULL, 'mahlet.ayalew@email.com', '+447567890123', 'MA345E', 'active', 1000.00, 5, '2025-11-05', 1000.00, 0, 'Bereket', 'Ayalew', '+447567890124', 'bereket.ayalew@email.com', 'Father', 1, 1, 1, '2024-05-15', '2024-06-21 08:10:00', 'email,sms', 1, 1, 'Last position - patient member', '2025-07-22 07:24:42', '2025-07-24 02:43:33'),
-(6, '', 'boldsoar', '', '', 'Simone Fidradoeia', 'boldsoar@localglobalmail.com', '4244417325', '$2y$12$wviOog2FlA3Kw3YTrolEzu.Pylec7aDwWIoOYUNswzFBZ3uLLwGDq', 'active', 0.00, 0, NULL, 0.00, 0, '', '', '', NULL, NULL, 1, 0, 0, '0000-00-00', '2025-07-26 07:05:29', 'both', 1, 1, NULL, '2025-07-26 07:04:29', '2025-07-29 14:07:12');
+INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 1, 'HEM-MW1', 'MW123A', 'Michael', 'Werkneh', 'Michael Werkneh', 'michael.werkneh@email.com', '+447123456789', '$2y$12$kdwSiI7P37OpM7OVFH4rMOHH2W7Yywf08O3DItvLGCVH6ZKqI/qBi', 'active', 1000.00, 1, '2025-07-05', 6000.00, 1, 'Sarah', 'Werkneh', '+447123456790', 'sarah.werkneh@email.com', 'Wife', 1, 1, 1, '2024-05-15', '2025-07-25 00:54:39', 'email,sms', 1, 1, 'First member - received June payout', '2025-07-22 07:24:42', '2025-07-29 18:22:33'),
+(2, 1, 'HEM-MN2', NULL, 'Maeruf', 'Nasir', NULL, 'maeruf.nasir@email.com', '+447234567890', 'MN456B', 'active', 1000.00, 2, '2025-08-05', 1000.00, 0, 'Ahmed', 'Nasir', '+447234567891', 'ahmed.nasir@email.com', 'Brother', 1, 1, 1, '2024-05-15', '2024-06-18 13:15:00', 'email', 1, 1, 'Active member - good payment record', '2025-07-22 07:24:42', '2025-07-29 18:22:40'),
+(3, 1, 'HEM-TE3', NULL, 'Teddy', 'Elias', NULL, 'teddy.elias@email.com', '+447345678901', 'TE789C', 'active', 500.00, 3, '2025-09-05', 1500.00, 0, 'Helen', 'Elias', '+447345678902', 'helen.elias@email.com', 'Mother', 1, 1, 1, '2024-05-15', '2024-06-19 15:45:00', 'email,sms', 1, 1, 'Reliable member', '2025-07-22 07:24:42', '2025-07-29 18:22:46'),
+(4, NULL, 'HEM-KG4', NULL, 'Kokit', 'Gormesa', NULL, 'kokit.gormesa@email.com', '+447456789012', 'KG012D', 'active', 1000.00, 4, '2025-10-05', 1000.00, 0, 'Dawit', 'Gormesa', '+447456789013', 'dawit.gormesa@email.com', 'Husband', 1, 1, 1, '2024-05-15', '2024-06-17 11:20:00', 'sms', 1, 1, 'New member - very enthusiastic', '2025-07-22 07:24:42', '2025-07-24 02:43:30'),
+(5, NULL, 'HEM-MA5', NULL, 'Mahlet', 'Ayalew', NULL, 'mahlet.ayalew@email.com', '+447567890123', 'MA345E', 'active', 1000.00, 5, '2025-11-05', 1000.00, 0, 'Bereket', 'Ayalew', '+447567890124', 'bereket.ayalew@email.com', 'Father', 1, 1, 1, '2024-05-15', '2024-06-21 08:10:00', 'email,sms', 1, 1, 'Last position - patient member', '2025-07-22 07:24:42', '2025-07-24 02:43:33'),
+(6, NULL, '', 'boldsoar', '', '', 'Simone Fidradoeia', 'boldsoar@localglobalmail.com', '4244417325', '$2y$12$wviOog2FlA3Kw3YTrolEzu.Pylec7aDwWIoOYUNswzFBZ3uLLwGDq', 'active', 0.00, 0, NULL, 0.00, 0, '', '', '', NULL, NULL, 1, 0, 0, '0000-00-00', '2025-07-26 07:05:29', 'both', 1, 1, NULL, '2025-07-26 07:04:29', '2025-07-29 14:07:12');
 
 -- --------------------------------------------------------
 
@@ -259,6 +317,21 @@ ALTER TABLE `equb_rules`
   ADD KEY `idx_active` (`is_active`);
 
 --
+-- Indexes for table `equb_settings`
+--
+ALTER TABLE `equb_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `equb_id` (`equb_id`),
+  ADD UNIQUE KEY `idx_equb_id` (`equb_id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_start_date` (`start_date`),
+  ADD KEY `idx_end_date` (`end_date`),
+  ADD KEY `idx_created_by` (`created_by_admin_id`),
+  ADD KEY `idx_managed_by` (`managed_by_admin_id`),
+  ADD KEY `idx_public` (`is_public`),
+  ADD KEY `idx_featured` (`is_featured`);
+
+--
 -- Indexes for table `members`
 --
 ALTER TABLE `members`
@@ -270,7 +343,8 @@ ALTER TABLE `members`
   ADD KEY `idx_phone` (`phone`),
   ADD KEY `idx_active` (`is_active`),
   ADD KEY `idx_approved` (`is_approved`),
-  ADD KEY `idx_payout_position` (`payout_position`);
+  ADD KEY `idx_payout_position` (`payout_position`),
+  ADD KEY `idx_equb_settings` (`equb_settings_id`);
 
 --
 -- Indexes for table `notifications`
@@ -321,13 +395,19 @@ ALTER TABLE `payouts`
 -- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `equb_rules`
 --
 ALTER TABLE `equb_rules`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `equb_settings`
+--
+ALTER TABLE `equb_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `members`
@@ -356,6 +436,19 @@ ALTER TABLE `payouts`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `equb_settings`
+--
+ALTER TABLE `equb_settings`
+  ADD CONSTRAINT `equb_settings_ibfk_1` FOREIGN KEY (`created_by_admin_id`) REFERENCES `admins` (`id`),
+  ADD CONSTRAINT `equb_settings_ibfk_2` FOREIGN KEY (`managed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `members`
+--
+ALTER TABLE `members`
+  ADD CONSTRAINT `members_ibfk_1` FOREIGN KEY (`equb_settings_id`) REFERENCES `equb_settings` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `notifications`
