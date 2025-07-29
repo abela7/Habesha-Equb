@@ -131,7 +131,7 @@ $debug_info = "ID: " . $member['id'] . ", First: '" . $member['first_name'] . "'
 // DIRECT name calculation - no caching, no tricks
 $member_first_name = $member['first_name'] ?? 'Unknown';
 $member_last_name = $member['last_name'] ?? 'Unknown';
-$member_name = trim($member_first_name . ' ' . $member_last_name);
+$profile_member_name = trim($member_first_name . ' ' . $member_last_name);
 
 // Force fresh initials
 $initials = substr($member_first_name, 0, 1) . substr($member_last_name, 0, 1);
@@ -148,7 +148,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($member_name, ENT_QUOTES); ?> - <?php echo t('members_directory.member_profile'); ?> - HabeshaEqub</title>
+    <title><?php echo htmlspecialchars($profile_member_name, ENT_QUOTES); ?> - <?php echo t('members_directory.member_profile'); ?> - HabeshaEqub</title>
     
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
@@ -601,12 +601,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <!-- DEBUG INFO - REMOVE AFTER FIXING -->
                         <div style="background: red; color: white; padding: 5px; margin-bottom: 10px; font-size: 12px;">
                             <strong>DEBUG:</strong> <?php echo $debug_info; ?><br>
-                            <strong>Calculated Name:</strong> "<?php echo $member_name; ?>"<br>
+                            <strong>Calculated Name:</strong> "<?php echo $profile_member_name; ?>"<br>
                             <strong>Member ID from URL:</strong> <?php echo $member_id; ?><br>
                             <strong>Member ID from DB:</strong> <?php echo $member['id']; ?>
                         </div>
                         <!-- END DEBUG -->
-                        <h2><?php echo htmlspecialchars($member_name, ENT_QUOTES); ?></h2>
+                        <h2><?php echo htmlspecialchars($profile_member_name, ENT_QUOTES); ?></h2>
                         <div class="profile-meta">
                             <div class="meta-item">
                                 <i class="fas fa-trophy"></i>
