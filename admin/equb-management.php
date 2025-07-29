@@ -545,6 +545,177 @@ $csrf_token = generate_csrf_token();
         </div>
     </div>
 
+    <!-- View Details Modal -->
+    <div class="modal fade" id="viewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i>
+                        Equb Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewModalBody">
+                    <!-- Content loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div class="modal fade" id="equbModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">
+                        <i class="fas fa-plus me-2"></i>
+                        Create New Equb Term
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="equbForm">
+                        <input type="hidden" id="equbId" name="equb_id">
+                        
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Equb Name *</label>
+                                <input type="text" class="form-control" id="equbName" name="equb_name" required>
+                                <div class="form-text">Choose a unique, descriptive name for this equb term</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <select class="form-control" id="equbStatus" name="status">
+                                    <option value="planning">Planning</option>
+                                    <option value="active">Active</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="suspended">Suspended</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="equbDescription" name="equb_description" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Term Configuration -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Maximum Members *</label>
+                                <input type="number" class="form-control" id="maxMembers" name="max_members" min="2" max="50" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Duration (Months) *</label>
+                                <input type="number" class="form-control" id="durationMonths" name="duration_months" min="1" max="24" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date *</label>
+                                <input type="date" class="form-control" id="startDate" name="start_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" name="end_date" readonly>
+                                <div class="form-text">Automatically calculated based on duration</div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Configuration -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label">Payout Day of Month</label>
+                                <input type="number" class="form-control" id="payoutDay" name="payout_day" min="1" max="31" value="5">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Admin Fee (£)</label>
+                                <input type="number" class="form-control" id="adminFee" name="admin_fee" step="0.01" min="0" value="10.00">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Late Fee (£)</label>
+                                <input type="number" class="form-control" id="lateFee" name="late_fee" step="0.01" min="0" value="20.00">
+                            </div>
+                        </div>
+
+                        <!-- Payment Tiers -->
+                        <div class="mb-4">
+                            <label class="form-label">Payment Tiers *</label>
+                            <div id="paymentTiersContainer">
+                                <!-- Dynamic payment tiers will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addPaymentTier()">
+                                <i class="fas fa-plus me-1"></i>
+                                Add Payment Tier
+                            </button>
+                        </div>
+
+                        <!-- Settings -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="autoAssignPositions" name="auto_assign_positions" checked>
+                                    <label class="form-check-label" for="autoAssignPositions">
+                                        Auto-assign Payout Positions
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="approvalRequired" name="approval_required" checked>
+                                    <label class="form-check-label" for="approvalRequired">
+                                        Require Admin Approval
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isPublic" name="is_public" checked>
+                                    <label class="form-check-label" for="isPublic">
+                                        Public Visibility
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isFeatured" name="is_featured">
+                                    <label class="form-check-label" for="isFeatured">
+                                        Featured Equb
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-4">
+                            <label class="form-label">Admin Notes</label>
+                            <textarea class="form-control" id="equbNotes" name="notes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveEqub()">
+                        <i class="fas fa-save me-1"></i>
+                        Save Equb Term
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -553,10 +724,13 @@ $csrf_token = generate_csrf_token();
         // Global variables
         let equbsData = [];
         let filteredData = [];
+        let currentEditingId = null;
+        let paymentTierCounter = 0;
         
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             loadEqubData();
+            initializePaymentTiers();
         });
 
         // Load equb data from API
@@ -676,8 +850,305 @@ $csrf_token = generate_csrf_token();
             container.innerHTML = tableHtml;
         }
 
+        // View equb details
+        function viewEqub(id) {
+            const equb = equbsData.find(e => e.id == id);
+            if (!equb) return;
+
+            const paymentTiers = JSON.parse(equb.payment_tiers || '[]');
+            
+            const detailsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">Basic Information</h6>
+                        <table class="table table-borderless">
+                            <tr><td><strong>Equb ID:</strong></td><td>${equb.equb_id}</td></tr>
+                            <tr><td><strong>Name:</strong></td><td>${escapeHtml(equb.equb_name)}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td><span class="status-badge ${equb.status}">${formatStatus(equb.status)}</span></td></tr>
+                            <tr><td><strong>Description:</strong></td><td>${escapeHtml(equb.equb_description || 'N/A')}</td></tr>
+                        </table>
+                        
+                        <h6 class="text-primary mb-3 mt-4">Term Configuration</h6>
+                        <table class="table table-borderless">
+                            <tr><td><strong>Max Members:</strong></td><td>${equb.max_members}</td></tr>
+                            <tr><td><strong>Current Members:</strong></td><td>${equb.current_members}</td></tr>
+                            <tr><td><strong>Duration:</strong></td><td>${equb.duration_months} months</td></tr>
+                            <tr><td><strong>Start Date:</strong></td><td>${formatDate(equb.start_date)}</td></tr>
+                            <tr><td><strong>End Date:</strong></td><td>${formatDate(equb.end_date)}</td></tr>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">Financial Details</h6>
+                        <table class="table table-borderless">
+                            <tr><td><strong>Total Pool:</strong></td><td>£${parseFloat(equb.total_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
+                            <tr><td><strong>Collected:</strong></td><td>£${parseFloat(equb.collected_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
+                            <tr><td><strong>Distributed:</strong></td><td>£${parseFloat(equb.distributed_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
+                            <tr><td><strong>Payout Day:</strong></td><td>${equb.payout_day}th of each month</td></tr>
+                            <tr><td><strong>Admin Fee:</strong></td><td>£${parseFloat(equb.admin_fee || 0).toFixed(2)}</td></tr>
+                            <tr><td><strong>Late Fee:</strong></td><td>£${parseFloat(equb.late_fee || 0).toFixed(2)}</td></tr>
+                        </table>
+                        
+                        <h6 class="text-primary mb-3 mt-4">Payment Tiers</h6>
+                        <div class="payment-tiers">
+                            ${paymentTiers.map(tier => `
+                                <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                    <strong>${escapeHtml(tier.tag || 'N/A')}</strong>
+                                    <span>£${parseFloat(tier.amount || 0).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                ${equb.notes ? `
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6 class="text-primary mb-3">Admin Notes</h6>
+                            <div class="p-3 bg-light rounded">
+                                ${escapeHtml(equb.notes)}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById('viewModalBody').innerHTML = detailsHtml;
+            new bootstrap.Modal(document.getElementById('viewModal')).show();
+        }
+
+        // Edit equb
+        function editEqub(id) {
+            const equb = equbsData.find(e => e.id == id);
+            if (!equb) return;
+
+            currentEditingId = id;
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Equb Term';
+            
+            // Fill form with existing data
+            document.getElementById('equbId').value = equb.id;
+            document.getElementById('equbName').value = equb.equb_name;
+            document.getElementById('equbDescription').value = equb.equb_description || '';
+            document.getElementById('equbStatus').value = equb.status;
+            document.getElementById('maxMembers').value = equb.max_members;
+            document.getElementById('durationMonths').value = equb.duration_months;
+            document.getElementById('startDate').value = equb.start_date;
+            document.getElementById('endDate').value = equb.end_date;
+            document.getElementById('payoutDay').value = equb.payout_day;
+            document.getElementById('adminFee').value = equb.admin_fee;
+            document.getElementById('lateFee').value = equb.late_fee;
+            document.getElementById('autoAssignPositions').checked = equb.auto_assign_positions == 1;
+            document.getElementById('approvalRequired').checked = equb.approval_required == 1;
+            document.getElementById('isPublic').checked = equb.is_public == 1;
+            document.getElementById('isFeatured').checked = equb.is_featured == 1;
+            document.getElementById('equbNotes').value = equb.notes || '';
+            
+            // Load payment tiers
+            loadPaymentTiers(JSON.parse(equb.payment_tiers || '[]'));
+            
+            new bootstrap.Modal(document.getElementById('equbModal')).show();
+        }
+
+        // Delete equb
+        async function deleteEqub(id) {
+            const equb = equbsData.find(e => e.id == id);
+            if (!equb) return;
+
+            if (!confirm(`Are you sure you want to delete "${equb.equb_name}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('api/equb-management.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ 
+                        action: 'delete',
+                        id: id
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('success', data.message);
+                    loadEqubData(); // Reload data
+                } else {
+                    showAlert('error', data.message || 'Failed to delete equb term');
+                }
+            } catch (error) {
+                console.error('Error deleting equb:', error);
+                showAlert('error', 'Network error. Please try again.');
+            }
+        }
+
+        // Create new equb
+        function openCreateModal() {
+            currentEditingId = null;
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus me-2"></i>Create New Equb Term';
+            document.getElementById('equbForm').reset();
+            document.getElementById('equbId').value = '';
+            
+            // Reset payment tiers
+            initializePaymentTiers();
+            
+            new bootstrap.Modal(document.getElementById('equbModal')).show();
+        }
+
+        // Save equb (create or update)
+        async function saveEqub() {
+            const formData = new FormData(document.getElementById('equbForm'));
+            const data = Object.fromEntries(formData.entries());
+            
+            // Add payment tiers
+            data.payment_tiers = getPaymentTiersData();
+            
+            // Convert checkboxes to boolean
+            data.auto_assign_positions = document.getElementById('autoAssignPositions').checked;
+            data.approval_required = document.getElementById('approvalRequired').checked;
+            data.is_public = document.getElementById('isPublic').checked;
+            data.is_featured = document.getElementById('isFeatured').checked;
+            
+            const action = currentEditingId ? 'update' : 'create';
+            if (currentEditingId) {
+                data.id = currentEditingId;
+            }
+
+            try {
+                const response = await fetch('api/equb-management.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ 
+                        action: action,
+                        ...data
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('success', result.message);
+                    bootstrap.Modal.getInstance(document.getElementById('equbModal')).hide();
+                    loadEqubData(); // Reload data
+                } else {
+                    if (result.data && result.data.errors) {
+                        showAlert('error', 'Validation errors: ' + result.data.errors.join(', '));
+                    } else {
+                        showAlert('error', result.message || 'Failed to save equb term');
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving equb:', error);
+                showAlert('error', 'Network error. Please try again.');
+            }
+        }
+
+        // Payment tiers management
+        function initializePaymentTiers() {
+            paymentTierCounter = 0;
+            const container = document.getElementById('paymentTiersContainer');
+            container.innerHTML = '';
+            addPaymentTier(); // Add one default tier
+        }
+
+        function addPaymentTier(amount = '', tag = '', description = '') {
+            paymentTierCounter++;
+            const container = document.getElementById('paymentTiersContainer');
+            
+            const tierHtml = `
+                <div class="payment-tier mb-3" data-tier-id="${paymentTierCounter}">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Amount (£)</label>
+                            <input type="number" class="form-control tier-amount" step="0.01" min="0" value="${amount}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tag</label>
+                            <input type="text" class="form-control tier-tag" value="${tag}" placeholder="e.g., full, half" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Description</label>
+                            <input type="text" class="form-control tier-description" value="${description}" placeholder="e.g., Full Member - £1000/month">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-outline-danger btn-sm d-block" onclick="removePaymentTier(${paymentTierCounter})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', tierHtml);
+        }
+
+        function removePaymentTier(tierId) {
+            const tiers = document.querySelectorAll('.payment-tier');
+            if (tiers.length > 1) {
+                document.querySelector(`[data-tier-id="${tierId}"]`).remove();
+            } else {
+                showAlert('error', 'At least one payment tier is required');
+            }
+        }
+
+        function getPaymentTiersData() {
+            const tiers = [];
+            document.querySelectorAll('.payment-tier').forEach(tier => {
+                const amount = tier.querySelector('.tier-amount').value;
+                const tag = tier.querySelector('.tier-tag').value;
+                const description = tier.querySelector('.tier-description').value;
+                
+                if (amount && tag) {
+                    tiers.push({
+                        amount: parseFloat(amount),
+                        tag: tag,
+                        description: description
+                    });
+                }
+            });
+            return tiers;
+        }
+
+        function loadPaymentTiers(tiers) {
+            const container = document.getElementById('paymentTiersContainer');
+            container.innerHTML = '';
+            paymentTierCounter = 0;
+            
+            if (tiers && tiers.length > 0) {
+                tiers.forEach(tier => {
+                    addPaymentTier(tier.amount, tier.tag, tier.description);
+                });
+            } else {
+                addPaymentTier(); // Add default empty tier
+            }
+        }
+
+        // Auto-calculate end date when start date or duration changes
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'startDate' || e.target.id === 'durationMonths') {
+                const startDate = document.getElementById('startDate').value;
+                const duration = document.getElementById('durationMonths').value;
+                
+                if (startDate && duration) {
+                    const start = new Date(startDate);
+                    const end = new Date(start);
+                    end.setMonth(end.getMonth() + parseInt(duration));
+                    
+                    document.getElementById('endDate').value = end.toISOString().split('T')[0];
+                }
+            }
+        });
+
         // Utility functions
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -702,36 +1173,6 @@ $csrf_token = generate_csrf_token();
                 month: 'short',
                 year: 'numeric'
             });
-        }
-
-        // Action functions
-        function viewEqub(id) {
-            const equb = equbsData.find(e => e.id == id);
-            if (equb) {
-                showAlert('info', `Viewing details for: ${equb.equb_name}`);
-                // TODO: Implement view modal
-            }
-        }
-
-        function editEqub(id) {
-            const equb = equbsData.find(e => e.id == id);
-            if (equb) {
-                showAlert('info', `Editing: ${equb.equb_name}`);
-                // TODO: Implement edit modal
-            }
-        }
-
-        function deleteEqub(id) {
-            const equb = equbsData.find(e => e.id == id);
-            if (equb && confirm(`Are you sure you want to delete "${equb.equb_name}"?`)) {
-                showAlert('info', `Deleting: ${equb.equb_name}`);
-                // TODO: Implement delete functionality
-            }
-        }
-
-        function openCreateModal() {
-            showAlert('info', 'Create new equb functionality coming soon!');
-            // TODO: Implement create modal
         }
 
         // Filter functions
