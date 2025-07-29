@@ -99,10 +99,60 @@ function require_user_auth() {
         logout_and_redirect('Your session has expired. Please log in again.');
     }
     
+    // Check welcome flow completion (except for welcome page itself)
+    $current_page = basename($_SERVER['PHP_SELF']);
+    if ($current_page !== 'welcome.php') {
+        check_welcome_flow_completion();
+    }
+    
     // Update last activity time
     $_SESSION['user_last_activity'] = time();
     
     return get_current_user_id();
+}
+
+/**
+ * Check if user has completed the welcome flow (rules agreement)
+ * Redirects to welcome page if not completed
+ */
+function check_welcome_flow_completion() {
+    global $db;
+    
+    $user_id = get_current_user_id();
+    if (!$user_id) {
+        return;
+    }
+    
+    try {
+        $stmt = $db->prepare("
+            SELECT rules_agreed, is_approved 
+            FROM members 
+            WHERE id = ? AND is_active = 1
+        ");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            logout_and_redirect('User account not found.');
+            return;
+        }
+        
+        // Check if user is approved
+        if (!$user['is_approved']) {
+            logout_and_redirect('Your account is pending approval.');
+            return;
+        }
+        
+        // Check if user has agreed to rules
+        if ($user['rules_agreed'] != 1) {
+            header('Location: welcome.php');
+            exit;
+        }
+        
+    } catch (Exception $e) {
+        error_log("Welcome flow check error: " . $e->getMessage());
+        // Don't block access if there's a database error
+    }
 }
 
 // Note: generate_csrf_token(), verify_csrf_token(), and sanitize_input() 

@@ -802,5 +802,22 @@
   "settings": {
     "equb_management": "Equb Management",
     "equb_description": "Create and manage equb terms, payment tiers, and member assignments"
+  },
+  "welcome": {
+    "page_title": "Welcome to HabeshaEqub",
+    "title": "Welcome!",
+    "subtitle": "Let's get you started with your equb journey",
+    "continue": "Continue",
+    "back": "Back",
+    "language_selection": {
+      "title": "Choose Your Language",
+      "description": "Please select your preferred language for the system"
+    },
+    "rules_agreement": {
+      "title": "Equb Rules & Agreement",
+      "description": "Please read and agree to the following equb rules to continue",
+      "agreement_text": "I have read and understand all the rules. I agree to follow these rules.",
+      "agree_button": "I Agree"
+    }
   }
 } 
