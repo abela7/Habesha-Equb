@@ -19,10 +19,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $language = $_GET['lang'] ?? '';
     $redirect = $_GET['redirect'] ?? '../user/login.php';
     
+    // Debug logging
+    error_log("Language switch requested: " . $language);
+    error_log("Current session language before: " . ($_SESSION['app_language'] ?? 'not set'));
+    
     // Validate language
     if (in_array($language, ['en', 'am'])) {
         // Set the language using the translator
         setLanguage($language);
+        error_log("Language set to: " . $language);
+        error_log("Session language after: " . ($_SESSION['app_language'] ?? 'not set'));
     }
     
     // Redirect back to the page

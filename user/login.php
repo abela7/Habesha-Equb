@@ -6,13 +6,13 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
-// Set default language to Amharic for user login
+// Set default language to Amharic only if no language is set in session
 if (!isset($_SESSION['app_language'])) {
     setLanguage('am');
+    error_log("Setting default language to Amharic");
+} else {
+    error_log("Using existing language: " . $_SESSION['app_language']);
 }
-
-// Force Amharic for testing
-setLanguage('am');
 
 // Force no caching
 header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
@@ -48,6 +48,14 @@ $message_type = 'info';
 if (isset($_GET['msg'])) {
     $message = sanitize_input($_GET['msg']);
     $message_type = 'info';
+}
+
+// Debug: Clear session for testing
+if (isset($_GET['clear_session'])) {
+    session_destroy();
+    session_start();
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -787,6 +795,13 @@ if (isset($_GET['msg'])) {
                 <button class="language-option" onclick="changeLanguage('en')">English</button>
                 <button class="language-option" onclick="changeLanguage('am')">አማርኛ</button>
             </div>
+        </div>
+        
+        <!-- Debug info (remove after testing) -->
+        <div style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ccc; font-size: 12px; z-index: 9999;">
+            Debug: Session lang: <?php echo $_SESSION['app_language'] ?? 'not set'; ?><br>
+            Current lang: <?php echo getCurrentLanguage(); ?><br>
+            <a href="?clear_session=1">Clear Session</a>
         </div>
 
         <!-- Left Side - Creative Brand Section -->
