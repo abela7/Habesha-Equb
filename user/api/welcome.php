@@ -1,7 +1,7 @@
 <?php
 /**
  * HabeshaEqub - Welcome Page API
- * Handles language preference updates and rules agreement
+ * Handles-language preference updates and rules agreement
  */
 
 // Skip auth check for this API as it's part of the auth flow
