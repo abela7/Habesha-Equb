@@ -819,5 +819,34 @@
       "agreement_text": "ሁሉንም ህጎች አንብቤ ተረድቻለሁ፣ ይህንን ህግ ለመከተል",
       "agree_button": "ተስማምቻለሁ"
     }
+  },
+  "waiting_approval": {
+    "page_title": "ፈቃድ በመጠበቅ ላይ - ሐበሻ እቁብ",
+    "waiting_title": "ፈቃድ በመጠበቅ ላይ",
+    "declined_title": "ማመልከቻ ውድቅ ሆኗል",
+    "waiting_subtitle": "የእርስዎ ምዝገባ ቀርቧል",
+    "declined_subtitle": "ማመልከቻዎ ሊፀድቅ አልቻለም",
+    "pending_message": "የእርስዎ መለያ ፈቃድ በመጠበቅ ላይ ነው። እባኮዎን የአስተዳዳሪ ማረጋገጫ ይጠብቁ።",
+    "approval_under_review": "ማመልከቻ እየተገመገመ ነው",
+    "approval_message": "ተመዝግበዋል ነገር ግን የእቁብ አስተዳዳሪው በእቁብ ዝርዝር ውስጥ መሆን እንደሚችሉ ማረጋገጥ አለበት። አስተዳዳሪው ምዝገባዎን ከፈቀደ በኋላ ዳሽቦርዶን መድረስ ይችላሉ።",
+    "detailed_message": "ለሐበሻ እቁብ ስለተመዘገቡ እናመሰግናለን! ማመልከቻዎ በአሁኑ ጊዜ በአስተዳዳሪ ቡድናችን እየተገመገመ ነው። መለያዎ ከፀደቀ በኋላ የኢሜል ማሳወቂያ ይደርስዎታል።",
+    "waiting_time": "የመጠበቂያ ጊዜ",
+    "hours": "ሰዓቶች",
+    "what_happens_next": "ቀጥሎ ምን ይሆናል?",
+    "review_details": "የአስተዳዳሪ ቡድናችን የማመልከቻዎን ዝርዝሮች ይገመግማል",
+    "contact_guarantor": "ለማረጋገጥ ዋስትናዎን ልንጠይቅ እንችላለን",
+    "email_notification": "መለያዎ ሲፀድቅ ኢሜል ይደርስዎታል",
+    "login_access": "ከፀደቀ በኋላ ሎግ ኢን ሆነው መሳተፍ መጀመር ይችላሉ!",
+    "check_status": "ሁኔታ ይመልከቱ",
+    "try_login": "ለመግባት ይሞክሩ",
+    "back_to_login": "ወደ መግቢያ ተመለስ",
+    "auto_refresh_info": "ይህ ገጽ በየ 2 ደቂቃ በራሱ ይታደሳል",
+    "application_not_approved": "ማመልከቻ አልፀደቀም",
+    "declined_message": "እንዳለቀስ፣ ለሐበሻ እቁብ አባልነት ያቀረቡት ማመልከቻ በዚህ ጊዜ ሊፀድቅ አልቻለም።",
+    "account_approved": "መለያ ፀድቋል!",
+    "account_approved_message": "የሐበሻ እቁብ መለያዎ ፀድቋል።",
+    "redirecting": "ወደ መግቢያ ገጽ በመሄድ ላይ...",
+    "registered": "የተመዘገበበት",
+    "member_id": "የአባል መታወቂያ"
   }
 } 

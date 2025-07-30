@@ -23,6 +23,28 @@ if (!$user_email && isset($_GET['email'])) {
     $user_email = filter_var($_GET['email'], FILTER_VALIDATE_EMAIL);
 }
 
+// Set language from user preference or default to Amharic
+if (!isset($_SESSION['app_language'])) {
+    setLanguage('am');
+}
+
+// Load user's language preference if they have an account
+if ($user_email) {
+    try {
+        $lang_stmt = $db->prepare("SELECT language_preference FROM members WHERE email = ?");
+        $lang_stmt->execute([$user_email]);
+        $lang_result = $lang_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($lang_result) {
+            $user_language = ($lang_result['language_preference'] == 1) ? 'am' : 'en';
+            setLanguage($user_language);
+        }
+    } catch (Exception $e) {
+        // Fallback to default language if there's an error
+        error_log("Error loading user language preference: " . $e->getMessage());
+    }
+}
+
 // If still no email, redirect to registration
 if (!$user_email) {
     header('Location: login.php?msg=' . urlencode('Please register first'));
@@ -70,11 +92,11 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getCurrentLanguage(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waiting for Approval - HabeshaEqub</title>
+    <title><?php echo t('waiting_approval.page_title'); ?></title>
     
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../assets/img/favicon.ico">
@@ -473,10 +495,10 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
                     <i class="fas fa-<?php echo $declined ? 'times-circle' : 'hourglass-half'; ?>"></i>
                 </div>
                 <h1 class="waiting-title">
-                    <?php echo $declined ? 'Application Declined' : 'Waiting for Approval'; ?>
+                    <?php echo $declined ? t('waiting_approval.declined_title') : t('waiting_approval.waiting_title'); ?>
                 </h1>
                 <p class="waiting-subtitle">
-                    <?php echo $declined ? 'Your application could not be approved' : 'Your registration has been submitted'; ?>
+                    <?php echo $declined ? t('waiting_approval.declined_subtitle') : t('waiting_approval.waiting_subtitle'); ?>
                 </p>
             </div>
             
@@ -489,11 +511,11 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
                     <div class="user-meta">
                         <div class="meta-item">
                             <i class="fas fa-calendar-alt"></i>
-                            Registered: <?php echo $registration_date->format('M j, Y'); ?>
+                            <?php echo t('waiting_approval.registered'); ?>: <?php echo $registration_date->format('M j, Y'); ?>
                         </div>
                         <div class="meta-item">
                             <i class="fas fa-id-card"></i>
-                            Member ID: <?php echo htmlspecialchars($user['member_id']); ?>
+                            <?php echo t('waiting_approval.member_id'); ?>: <?php echo htmlspecialchars($user['member_id']); ?>
                         </div>
                     </div>
                 </div>
@@ -504,13 +526,13 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
                         <div class="declined-icon">
                             <i class="fas fa-times-circle"></i>
                         </div>
-                        <h4>Application Not Approved</h4>
-                        <p>Unfortunately, your application for HabeshaEqub membership could not be approved at this time.</p>
+                        <h4><?php echo t('waiting_approval.application_not_approved'); ?></h4>
+                        <p><?php echo t('waiting_approval.declined_message'); ?></p>
                         
                         <div class="action-buttons" style="margin-top: 20px;">
                             <a href="login.php" class="btn-custom btn-secondary-custom">
                                 <i class="fas fa-arrow-left"></i>
-                                Back to Login
+                                <?php echo t('waiting_approval.back_to_login'); ?>
                             </a>
                         </div>
                     </div>
@@ -519,16 +541,18 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
                     <div class="status-section">
                         <h3 class="status-title">
                             <i class="fas fa-clock"></i>
-                            Application Under Review
+                            <?php echo t('waiting_approval.approval_under_review'); ?>
                         </h3>
                         <p class="status-message">
-                            Thank you for registering with HabeshaEqub! Your application is currently being reviewed by our admin team. 
-                            You will receive an email notification once your account has been approved.
+                            <?php echo t('waiting_approval.approval_message'); ?>
+                        </p>
+                        <p class="status-message" style="margin-top: 15px; font-size: 0.95em; opacity: 0.9;">
+                            <?php echo t('waiting_approval.detailed_message'); ?>
                         </p>
                         
                         <div class="waiting-time">
                             <i class="fas fa-hourglass-half"></i>
-                            Waiting time: <?php echo $waiting_hours; ?> hours
+                            <?php echo t('waiting_approval.waiting_time'); ?>: <?php echo $waiting_hours; ?> <?php echo t('waiting_approval.hours'); ?>
                         </div>
                     </div>
 
@@ -536,24 +560,24 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
                     <div class="next-steps">
                         <h4 class="next-steps-title">
                             <i class="fas fa-list-check"></i>
-                            What happens next?
+                            <?php echo t('waiting_approval.what_happens_next'); ?>
                         </h4>
                         <ul class="next-steps-list">
                             <li>
                                 <i class="fas fa-user-check"></i>
-                                Our admin team will review your application details
+                                <?php echo t('waiting_approval.review_details'); ?>
                             </li>
                             <li>
                                 <i class="fas fa-phone"></i>
-                                We may contact your guarantor for verification
+                                <?php echo t('waiting_approval.contact_guarantor'); ?>
                             </li>
                             <li>
                                 <i class="fas fa-envelope"></i>
-                                You'll receive an email when your account is approved
+                                <?php echo t('waiting_approval.email_notification'); ?>
                             </li>
                             <li>
                                 <i class="fas fa-sign-in-alt"></i>
-                                Once approved, you can log in and start participating!
+                                <?php echo t('waiting_approval.login_access'); ?>
                             </li>
                         </ul>
                     </div>
@@ -562,17 +586,17 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
                     <div class="action-buttons">
                         <button type="button" class="btn-custom btn-primary-custom" onclick="refreshStatus()">
                             <i class="fas fa-sync-alt" id="refresh-icon"></i>
-                            Check Status
+                            <?php echo t('waiting_approval.check_status'); ?>
                         </button>
                         <a href="login.php" class="btn-custom btn-secondary-custom">
                             <i class="fas fa-sign-in-alt"></i>
-                            Try Login
+                            <?php echo t('waiting_approval.try_login'); ?>
                         </a>
                     </div>
                     
                     <div class="refresh-info">
                         <i class="fas fa-info-circle"></i>
-                        This page automatically refreshes every 2 minutes
+                        <?php echo t('waiting_approval.auto_refresh_info'); ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -652,9 +676,9 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
             overlay.innerHTML = `
                 <div style="text-align: center; animation: slideUp 0.8s ease-out;">
                     <i class="fas fa-check-circle" style="font-size: 4rem; margin-bottom: 20px;"></i>
-                    <h2 style="margin-bottom: 15px;">Account Approved!</h2>
-                    <p style="font-size: 1.2rem; margin-bottom: 25px;">Your HabeshaEqub account has been approved.</p>
-                    <p>Redirecting to login page...</p>
+                    <h2 style="margin-bottom: 15px;"><?php echo t('waiting_approval.account_approved'); ?></h2>
+                    <p style="font-size: 1.2rem; margin-bottom: 25px;"><?php echo t('waiting_approval.account_approved_message'); ?></p>
+                    <p><?php echo t('waiting_approval.redirecting'); ?></p>
                 </div>
             `;
             

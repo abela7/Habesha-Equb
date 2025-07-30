@@ -195,7 +195,7 @@ function authenticate_member($email, $password) {
         if (!$member['is_approved']) {
             return [
                 'success' => false, 
-                'message' => 'Your account is pending approval. Please wait for admin confirmation.',
+                'message' => t('waiting_approval.pending_message'),
                 'redirect' => 'waiting-approval.php?email=' . urlencode($email)
             ];
         }

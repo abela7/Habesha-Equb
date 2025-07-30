@@ -819,5 +819,34 @@
       "agreement_text": "I have read and understand all the rules. I agree to follow these rules.",
       "agree_button": "I Agree"
     }
+  },
+  "waiting_approval": {
+    "page_title": "Waiting for Approval - HabeshaEqub",
+    "waiting_title": "Waiting for Approval",
+    "declined_title": "Application Declined",
+    "waiting_subtitle": "Your registration has been submitted",
+    "declined_subtitle": "Your application could not be approved",
+    "pending_message": "Your account is pending approval. Please wait for admin confirmation.",
+    "approval_under_review": "Application Under Review",
+    "approval_message": "You are registered but the equb admin needs to verify if you are allowed to be on the equb list. Once the admin approves your registration, you will be able to access the dashboard.",
+    "detailed_message": "Thank you for registering with HabeshaEqub! Your application is currently being reviewed by our admin team. You will receive an email notification once your account has been approved.",
+    "waiting_time": "Waiting time",
+    "hours": "hours",
+    "what_happens_next": "What happens next?",
+    "review_details": "Our admin team will review your application details",
+    "contact_guarantor": "We may contact your guarantor for verification",
+    "email_notification": "You'll receive an email when your account is approved",
+    "login_access": "Once approved, you can log in and start participating!",
+    "check_status": "Check Status",
+    "try_login": "Try Login",
+    "back_to_login": "Back to Login",
+    "auto_refresh_info": "This page automatically refreshes every 2 minutes",
+    "application_not_approved": "Application Not Approved",
+    "declined_message": "Unfortunately, your application for HabeshaEqub membership could not be approved at this time.",
+    "account_approved": "Account Approved!",
+    "account_approved_message": "Your HabeshaEqub account has been approved.",
+    "redirecting": "Redirecting to login page...",
+    "registered": "Registered",
+    "member_id": "Member ID"
   }
 } 
