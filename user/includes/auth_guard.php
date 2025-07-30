@@ -8,6 +8,7 @@
 // Include secure session configuration and database functions
 require_once __DIR__ . '/session_config.php';
 require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../languages/user_language_handler.php';
 
 // Security headers
 header("X-Content-Type-Options: nosniff");
@@ -99,6 +100,12 @@ function require_user_auth() {
         logout_and_redirect('Your session has expired. Please log in again.');
     }
     
+    // Load user's language preference from database
+    $user_id = get_current_user_id();
+    if ($user_id) {
+        setUserLanguageFromDatabase($user_id);
+    }
+    
     // Check welcome flow completion (except for welcome page itself)
     $current_page = basename($_SERVER['PHP_SELF']);
     if ($current_page !== 'welcome.php') {
@@ -108,7 +115,7 @@ function require_user_auth() {
     // Update last activity time
     $_SESSION['user_last_activity'] = time();
     
-    return get_current_user_id();
+    return $user_id;
 }
 
 /**

@@ -13,11 +13,14 @@ require_once __DIR__ . '/translator.php';
  * @return bool Success status
  */
 function setUserLanguageFromDatabase($user_id) {
-    global $pdo;
+    global $pdo, $db;
+    
+    // Use whichever database connection is available
+    $database = isset($db) ? $db : $pdo;
     
     try {
         // Get user's language preference from database
-        $stmt = $pdo->prepare("SELECT language_preference FROM members WHERE id = ? AND is_active = 1");
+        $stmt = $database->prepare("SELECT language_preference FROM members WHERE id = ? AND is_active = 1");
         $stmt->execute([$user_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
