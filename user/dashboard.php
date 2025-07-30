@@ -815,7 +815,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .welcome-content p {
-        font-size: 15px;
+        font-size: 16px;
         color: #301934 !important;
     }
     
@@ -849,24 +849,24 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .stat-title-group h3 {
-        font-size: 16px;
+        font-size: 17px;
         color: var(--palette-dark-purple) !important;
         font-weight: 600;
     }
     
     .stat-title-group .stat-description {
-        font-size: 8px;
+        font-size: 10px;
         color: #301934 !important;
     }
     
     .action-title-group h4 {
-        font-size: 16px;
+        font-size: 17px;
         color: var(--palette-dark-purple) !important;
         font-weight: 600;
     }
     
     .action-title-group .action-description {
-        font-size: 8px;
+        font-size: 10px;
         color: #301934 !important;
     }
     
@@ -890,43 +890,43 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .metric-label {
-        font-size: 12px;
+        font-size: 13px;
         color: #301934 !important;
         font-weight: 500;
     }
     
     .section-title {
-        font-size: 20px;
+        font-size: 21px;
         color: var(--palette-deep-purple) !important;
         font-weight: 600;
     }
     
     .section-subtitle {
-        font-size: 9px;
+        font-size: 11px;
         color: #301934 !important;
     }
     
     .btn {
-        font-size: 14px;
+        font-size: 15px;
         padding: 12px 20px;
         font-weight: 600;
     }
     
     .badge {
-        font-size: 11px;
+        font-size: 12px;
         padding: 8px 12px;
         font-weight: 600;
     }
     
     .stat-detail {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--palette-dark-purple) !important;
         font-weight: 400;
         text-align: center;
     }
     
     .action-content p {
-        font-size: 9px;
+        font-size: 11px;
         color: #301934 !important;
     }
 }
@@ -937,7 +937,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .welcome-content h1 {
-        font-size: 20px;
+        font-size: 21px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -958,7 +958,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .metric-value {
-        font-size: 24px;
+        font-size: 25px;
         font-weight: 700;
     }
     
@@ -969,16 +969,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .stat-value {
-        font-size: 18px;
+        font-size: 19px;
         text-align: center;
     }
     
     .metric-value {
-        font-size: 16px;
+        font-size: 17px;
     }
     
     .section-title {
-        font-size: 16px;
+        font-size: 17px;
     }
     
     .progress-container {
