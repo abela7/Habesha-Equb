@@ -523,7 +523,7 @@
   "member_dashboard": {
     "page_title": "የአባል ዳሽቦርድ",
     "welcome": "%s እንኳን ደህና መጡ!",
-    "welcome_message": "ይህ የእርስዎ የግል እቁብ ሁኔታ ነው",
+    "welcome_message": "እቁብዎን በተመለከተ ሁሉንም ነገር እዚህ ላይ ይከታተሉ",
     "active_member": "የሐበሻ እቁብ አባል",
     "queue_position": "ወረፋ ",
     "monthly_contribution": "የሚጥሉት የእቁብ መጠን",
@@ -541,7 +541,7 @@
     "paid": "ተከፍሏል",
     "pending": "በመጠባበቅ ላይ",
     "payment_status": "የክፍያ ሁኔታ",
-    "pay_now": "እቁብህን ክፈል",
+    "pay_now": "እቁብዎን ክይፈሉ",
     "expected_date": "የሚጠበቅ ቀን",
     "quick_actions": "ወሳኝ ሊንኮች",
     "actions_description": "የእርስዎን እቁብ ተሳትፎ እና የመለያ ቅንብሮች ያስተዳድሩ",
