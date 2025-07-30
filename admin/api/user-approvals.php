@@ -154,6 +154,14 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
             throw new Exception('Failed to approve user');
         }
         
+        // Update device tracking for approved user
+        $device_stmt = $db->prepare("
+            UPDATE device_tracking 
+            SET is_approved = 1, last_seen = CURRENT_TIMESTAMP 
+            WHERE email = ?
+        ");
+        $device_stmt->execute([$user['email']]);
+        
         // Log the approval action
         $log_stmt = $db->prepare("
             INSERT INTO notifications (

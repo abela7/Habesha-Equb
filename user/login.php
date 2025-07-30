@@ -1134,6 +1134,10 @@ if (isset($_GET['msg'])) {
 
                 if (!this.validateRegisterForm(form)) return;
 
+                // Add device fingerprint to form data
+                const deviceFingerprint = generateDeviceFingerprint();
+                formData.append('device_fingerprint', deviceFingerprint);
+
                 this.setButtonLoading(submitBtn, true);
                 this.clearAllAlerts();
 
@@ -1373,6 +1377,27 @@ if (isset($_GET['msg'])) {
                 input.type = 'password';
                 icon.className = 'fas fa-eye';
             }
+        }
+
+        // Device fingerprinting functions
+        function generateDeviceFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('Device fingerprint', 2, 2);
+            
+            const fingerprint = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width + 'x' + screen.height,
+                screen.colorDepth,
+                new Date().getTimezoneOffset(),
+                navigator.hardwareConcurrency || 'unknown',
+                canvas.toDataURL()
+            ].join('|');
+            
+            return 'dv_' + btoa(fingerprint).substring(0, 16);
         }
 
         // Language functions

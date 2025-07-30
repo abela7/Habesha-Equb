@@ -1,16 +1,81 @@
 <?php
 /**
  * HabeshaEqub Main Index Page
- * Redirects users to the user dashboard!
+ * Checks device status and redirects appropriately
  */
 
-// Include database for session handling
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Include necessary files
 require_once 'includes/db.php';
 require_once 'languages/translator.php';
 
 // Set default language to Amharic for landing page
 if (!isset($_SESSION['app_language'])) {
     setLanguage('am');
+}
+
+// Device checking functions
+function generateDeviceFingerprint() {
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $accept_language = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+    $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+    $accept_encoding = $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '';
+    
+    $fingerprint_data = $user_agent . '|' . $accept_language . '|' . $accept_encoding . '|' . $remote_addr;
+    return 'dv_' . substr(hash('sha256', $fingerprint_data), 0, 16);
+}
+
+function checkDevicePendingStatus() {
+    global $db;
+    
+    $device_fingerprint = generateDeviceFingerprint();
+    
+    try {
+        $stmt = $db->prepare("
+            SELECT dt.email, dt.is_approved, m.first_name, m.last_name, m.is_approved as member_approved, m.is_active
+            FROM device_tracking dt
+            LEFT JOIN members m ON dt.email = m.email
+            WHERE dt.device_fingerprint = ? 
+            ORDER BY dt.last_seen DESC 
+            LIMIT 1
+        ");
+        
+        $stmt->execute([$device_fingerprint]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result && $result['member_approved'] == 0 && $result['is_active'] == 1) {
+            return [
+                'pending' => true,
+                'email' => $result['email'],
+                'name' => $result['first_name'] . ' ' . $result['last_name']
+            ];
+        }
+        
+        return ['pending' => false];
+        
+    } catch (Exception $e) {
+        error_log("Error checking device pending status: " . $e->getMessage());
+        return ['pending' => false];
+    }
+}
+
+// Check if this device has a pending registration
+$device_status = checkDevicePendingStatus();
+
+if ($device_status['pending']) {
+    // Redirect to waiting approval page
+    header("Location: user/waiting-approval.php?email=" . urlencode($device_status['email']));
+    exit();
+}
+
+// Check if user is already logged in
+if (isset($_SESSION['user_id']) && isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
+    header("Location: user/dashboard.php");
+    exit();
 }
 
 // Redirect to user login page

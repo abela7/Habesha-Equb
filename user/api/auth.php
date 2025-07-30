@@ -289,6 +289,111 @@ if (empty($action)) {
     send_json_response(false, 'Action is required');
 }
 
+/**
+ * Generate a device fingerprint for tracking
+ */
+function generateDeviceFingerprint() {
+    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $accept_language = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+    $remote_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+    $accept_encoding = $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '';
+    
+    // Create a unique fingerprint based on browser/device characteristics
+    $fingerprint_data = $user_agent . '|' . $accept_language . '|' . $accept_encoding . '|' . $remote_addr;
+    
+    return 'dv_' . substr(hash('sha256', $fingerprint_data), 0, 16);
+}
+
+/**
+ * Store device tracking information
+ */
+function storeDeviceTracking($email, $device_fingerprint) {
+    global $db;
+    
+    try {
+        // Create device_tracking table if it doesn't exist
+        $create_table_sql = "
+            CREATE TABLE IF NOT EXISTS device_tracking (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                email VARCHAR(255) NOT NULL,
+                device_fingerprint VARCHAR(32) NOT NULL,
+                user_agent TEXT,
+                ip_address VARCHAR(45),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                is_approved TINYINT(1) DEFAULT 0,
+                INDEX idx_email (email),
+                INDEX idx_fingerprint (device_fingerprint),
+                INDEX idx_approval (is_approved)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ";
+        
+        $db->exec($create_table_sql);
+        
+        // Store or update device tracking
+        $stmt = $db->prepare("
+            INSERT INTO device_tracking (email, device_fingerprint, user_agent, ip_address) 
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+            last_seen = CURRENT_TIMESTAMP,
+            user_agent = VALUES(user_agent),
+            ip_address = VALUES(ip_address)
+        ");
+        
+        $stmt->execute([
+            $email,
+            $device_fingerprint,
+            $_SERVER['HTTP_USER_AGENT'] ?? '',
+            $_SERVER['REMOTE_ADDR'] ?? ''
+        ]);
+        
+        return true;
+        
+    } catch (Exception $e) {
+        error_log("Error storing device tracking: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Check if device has pending registration
+ */
+function checkDevicePendingStatus($device_fingerprint = null) {
+    global $db;
+    
+    if (!$device_fingerprint) {
+        $device_fingerprint = generateDeviceFingerprint();
+    }
+    
+    try {
+        $stmt = $db->prepare("
+            SELECT dt.email, dt.is_approved, m.first_name, m.last_name, m.is_approved as member_approved, m.is_active
+            FROM device_tracking dt
+            LEFT JOIN members m ON dt.email = m.email
+            WHERE dt.device_fingerprint = ? 
+            ORDER BY dt.last_seen DESC 
+            LIMIT 1
+        ");
+        
+        $stmt->execute([$device_fingerprint]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result && $result['member_approved'] == 0 && $result['is_active'] == 1) {
+            return [
+                'pending' => true,
+                'email' => $result['email'],
+                'name' => $result['first_name'] . ' ' . $result['last_name']
+            ];
+        }
+        
+        return ['pending' => false];
+        
+    } catch (Exception $e) {
+        error_log("Error checking device pending status: " . $e->getMessage());
+        return ['pending' => false];
+    }
+}
+
 // Handle actions
 switch ($action) {
     case 'login':
@@ -380,12 +485,18 @@ switch ($action) {
         );
         
         if ($member_id) {
+            // Store device tracking information
+            $device_fingerprint = generateDeviceFingerprint();
+            storeDeviceTracking($validations['email']['value'], $device_fingerprint);
+            
             // Store pending user info in session for waiting page
             $_SESSION['pending_email'] = $validations['email']['value'];
             $_SESSION['pending_name'] = $validations['first_name']['value'] . ' ' . $validations['last_name']['value'];
+            $_SESSION['device_fingerprint'] = $device_fingerprint;
             
             send_json_response(true, 'Registration successful! Your application is now under review.', [
-                'redirect' => 'waiting-approval.php?email=' . urlencode($validations['email']['value'])
+                'redirect' => 'waiting-approval.php?email=' . urlencode($validations['email']['value']),
+                'device_fingerprint' => $device_fingerprint
             ]);
         } else {
             send_json_response(false, 'Registration failed. Please try again later.');
