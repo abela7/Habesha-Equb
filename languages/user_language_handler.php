@@ -1,6 +1,6 @@
 <?php
 /**
- * HabeshaEqub - User Language Preference Handler
+ * HabeshaEqub-User Language Preference Handler
  * Handles user language preferences from database
  */
 
