@@ -729,7 +729,7 @@
     "next_payment_amount": "Next Payment:",
     "due_date_with_days": "Due {date} ({days} days)",
     "payment_schedule": "Payment Schedule:",
-    "monthly_on": "Monthly on {day}",
+            "monthly_on": "Monthly on %s",
     "payments_remaining": "payments remaining",
     "months_total": "months total",
     "equb_progress": "Equb Progress",

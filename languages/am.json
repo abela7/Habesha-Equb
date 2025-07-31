@@ -754,7 +754,7 @@
     "next_payment_amount": "ቀጣይ ክፍያ:",
     "due_date_with_days": "የሚከፈልበት ቀን {date} ({days} ቀናት)",
     "payment_schedule": "የክፍያ መርሃግብር:",
-    "monthly_on": "ወርሃዊ በ {day}",
+            "monthly_on": "ወርሃዊ በ %s",
     "payments_remaining": "ቀሪ ክፍያዎች",
     "months_total": "ጠቅላላ ወሮች",
     "equb_progress": "የእቁብ እድገት",
