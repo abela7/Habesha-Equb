@@ -22,31 +22,58 @@ require_once '../includes/payout_sync_service.php';
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get member information with equb details
+// Get member information with CORRECT active equb term details
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
-               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
+               es.equb_name, es.equb_id, es.start_date, es.end_date, es.payout_day, es.duration_months, 
+               es.max_members, es.current_members, es.status as equb_status, es.currency,
+               es.admin_fee, es.late_fee, es.grace_period_days,
                COUNT(p.id) as total_payments,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(SUM(p.late_fee), 0) as total_late_fees,
                MAX(p.payment_date) as last_payment_date,
-               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members
+               
+               -- Calculate equb progress properly
+               CASE 
+                   WHEN es.start_date IS NOT NULL THEN 
+                       TIMESTAMPDIFF(MONTH, es.start_date, CURDATE()) + 1
+                   ELSE 1
+               END as months_elapsed_in_equb,
+               
+               -- Calculate remaining months in equb term
+               CASE 
+                   WHEN es.duration_months IS NOT NULL AND es.start_date IS NOT NULL THEN 
+                       GREATEST(0, es.duration_months - (TIMESTAMPDIFF(MONTH, es.start_date, CURDATE()) + 1))
+                   ELSE 0
+               END as remaining_months_in_equb,
+               
+               -- Days since equb started
+               CASE 
+                   WHEN es.start_date IS NOT NULL THEN 
+                       DATEDIFF(CURDATE(), es.start_date) + 1
+                   ELSE 1
+               END as equb_days_active
+               
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
-        WHERE m.id = ? AND m.is_active = 1
+        WHERE m.id = ? AND m.is_active = 1 AND es.status = 'active'
         GROUP BY m.id
     ");
     $stmt->execute([$user_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$member) {
-        die("❌ ERROR: No member found with ID $user_id");
+        die("❌ ERROR: No active member found with ID $user_id or member is not in an active equb term");
     }
     
     if (!$member['equb_settings_id']) {
-        die("❌ ERROR: Member is not assigned to any equb term. Please contact admin.");
+        die("❌ ERROR: Member is not assigned to any active equb term. Please contact admin.");
+    }
+    
+    if ($member['equb_status'] !== 'active') {
+        die("❌ ERROR: Member's equb term is not active (Status: " . $member['equb_status'] . "). Please contact admin.");
     }
 } catch (PDOException $e) {
     die("❌ DATABASE ERROR: " . $e->getMessage());
