@@ -1,56 +1,112 @@
 <?php
 /**
- * HabeshaEqub - Admin Dashboard
- * Main administrative dashboard with system overview and quick access to management modules
+ * HabeshaEqub - ENHANCED ADMIN DASHBOARD 
+ * Top-tier administrative dashboard with full multilingual support
+ * Completely rebuilt for £10M project standards
  */
 
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
-require_once '../languages/user_language_handler.php';
 
 // Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
-$admin_username = get_current_admin_username();
+$admin_username = get_current_admin_username() ?? 'Admin';
 
-// Set admin's language preference from database
-setAdminLanguageFromDatabase($admin_id);
-
-// Debug: Force English for troubleshooting
-setLanguage('en');
-
-// Debug logging
-error_log("Admin Dashboard Debug - Admin ID: $admin_id, Current Language: " . getCurrentLanguage());
-
-// Get members data for dashboard statistics
+// ENHANCED: Load admin's language preference properly
 try {
-    $stmt = $pdo->query("
-        SELECT m.*, 
-               COUNT(p.id) as total_payments,
-               COALESCE(SUM(p.amount), 0) as total_paid
-        FROM members m 
-        LEFT JOIN payments p ON m.id = p.member_id AND p.status = 'completed'
-        GROUP BY m.id 
-        ORDER BY m.payout_position ASC, m.created_at DESC
-    ");
-    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare("SELECT language_preference FROM admins WHERE id = ?");
+    $stmt->execute([$admin_id]);
+    $admin_data = $stmt->fetch();
+    
+    if ($admin_data) {
+        $lang = ($admin_data['language_preference'] == 1) ? 'am' : 'en';
+        setLanguage($lang);
+    } else {
+        setLanguage('am'); // Default to Amharic
+    }
+} catch (Exception $e) {
+    setLanguage('am'); // Fallback to Amharic
+}
+
+// ENHANCED: Get comprehensive dashboard statistics
+try {
+    // Members statistics
+    $members_stats = $pdo->query("
+        SELECT 
+            COUNT(*) as total_members,
+            COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_members,
+            COUNT(CASE WHEN is_approved = 1 THEN 1 END) as approved_members,
+            COUNT(CASE WHEN is_approved = 0 THEN 1 END) as pending_members
+        FROM members
+    ")->fetch();
+    
+    // Financial statistics
+    $financial_stats = $pdo->query("
+        SELECT 
+            COALESCE(SUM(CASE WHEN status = 'paid' THEN amount END), 0) as total_collected,
+            COALESCE(SUM(CASE WHEN status = 'pending' THEN amount END), 0) as pending_payments,
+            COUNT(CASE WHEN status = 'paid' THEN 1 END) as completed_payments,
+            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_payment_count
+        FROM payments
+    ")->fetch();
+    
+    // Payout statistics
+    $payout_stats = $pdo->query("
+        SELECT 
+            COALESCE(SUM(CASE WHEN status = 'completed' THEN net_amount END), 0) as total_payouts,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_payouts,
+            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_payouts
+        FROM payouts
+    ")->fetch();
+    
+    // Recent activities
+    $recent_members = $pdo->query("
+        SELECT first_name, last_name, email, created_at 
+        FROM members 
+        WHERE is_approved = 0 
+        ORDER BY created_at DESC 
+        LIMIT 5
+    ")->fetchAll();
+    
+    $recent_payments = $pdo->query("
+        SELECT p.amount, p.payment_date, m.first_name, m.last_name
+        FROM payments p
+        JOIN members m ON p.member_id = m.id
+        WHERE p.status = 'paid'
+        ORDER BY p.payment_date DESC
+        LIMIT 5
+    ")->fetchAll();
+    
 } catch (PDOException $e) {
-    error_log("Dashboard error fetching members: " . $e->getMessage());
-    $members = []; // Initialize as empty array to prevent errors
+    error_log("Enhanced dashboard error: " . $e->getMessage());
+    // Initialize safe defaults
+    $members_stats = ['total_members' => 0, 'active_members' => 0, 'approved_members' => 0, 'pending_members' => 0];
+    $financial_stats = ['total_collected' => 0, 'pending_payments' => 0, 'completed_payments' => 0, 'pending_payment_count' => 0];
+    $payout_stats = ['total_payouts' => 0, 'completed_payouts' => 0, 'scheduled_payouts' => 0];
+    $recent_members = [];
+    $recent_payments = [];
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getCurrentLanguage(); ?>" dir="<?php echo getCurrentLanguage() == 'ar' ? 'rtl' : 'ltr'; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo t('navigation.dashboard'); ?> - HabeshaEqub Admin</title>
     
+    <!-- Enhanced Meta Tags -->
+    <meta name="description" content="<?php echo t('dashboard.page_description'); ?>">
+    <meta name="robots" content="noindex, nofollow">
+    
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="../Pictures/Icon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../Pictures/Icon/favicon-16x16.png">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -62,284 +118,389 @@ try {
     <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
-        /* === TOP-TIER DASHBOARD DESIGN === */
+        /* === ENHANCED TOP-TIER ADMIN DASHBOARD DESIGN === */
         
-        /* Welcome Header */
-        .welcome-header {
+        :root {
+            --color-cream: #F1ECE2;
+            --color-purple: #4D4052;
+            --color-dark-purple: #301934;
+            --color-gold: #DAA520;
+            --color-light-gold: #CDAF56;
+            --color-teal: #1B8B7A;
+            --color-coral: #E57373;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --border-light: #E5E7EB;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F8FAFC;
+            color: var(--text-primary);
+        }
+
+        /* Enhanced Welcome Header */
+        .enhanced-welcome {
             background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
-            border-radius: 20px;
-            padding: 40px;
+            border-radius: 24px;
+            padding: 48px;
             margin-bottom: 40px;
             border: 1px solid var(--border-light);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
-        }
-
-        .welcome-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--color-purple);
-            margin: 0 0 8px 0;
-            letter-spacing: -0.5px;
-        }
-
-        .welcome-subtitle {
-            font-size: 18px;
-            color: var(--text-secondary);
-            margin: 0;
-            font-weight: 400;
-        }
-
-        .welcome-stats {
-            display: flex;
-            gap: 40px;
-        }
-
-        .quick-metric {
-            text-align: center;
-        }
-
-        .metric-value {
-            display: block;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--color-teal);
-            line-height: 1;
-        }
-
-        .metric-label {
-            display: block;
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        /* Statistics Dashboard */
-        .stats-dashboard {
-            margin-bottom: 50px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid var(--border-light);
-            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
-            transition: all 0.3s ease;
-            height: 100%;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(48, 25, 67, 0.12);
-        }
-
-        .stat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .stat-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .members-card .stat-icon { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
-        .payments-card .stat-icon { background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); }
-        .payouts-card .stat-icon { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
-        .activity-card .stat-icon { background: linear-gradient(135deg, var(--color-coral) 0%, #D63447 100%); }
-
-        .stat-trend {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-
-        .stat-trend.positive {
-            background: rgba(34, 197, 94, 0.1);
-            color: #059669;
-        }
-
-        .stat-trend.neutral {
-            background: rgba(107, 114, 128, 0.1);
-            color: #6B7280;
-        }
-
-        .stat-number {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--color-purple);
-            margin: 0 0 8px 0;
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-size: 16px;
-            color: var(--text-secondary);
-            margin: 0 0 16px 0;
-            font-weight: 500;
-        }
-
-        .stat-details {
-            display: flex;
-            gap: 16px;
-        }
-
-        .detail-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .detail-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .detail-dot.active { background: #059669; }
-        .detail-dot.pending { background: #D97706; }
-        .detail-dot.success { background: #059669; }
-        .detail-dot.warning { background: #DC2626; }
-
-        /* Management Section */
-        .management-section {
-            margin-bottom: 40px;
-        }
-
-        .section-title {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        .section-title h2 {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--color-purple);
-            margin: 0 0 12px 0;
-            letter-spacing: -0.5px;
-        }
-
-        .section-title p {
-            font-size: 18px;
-            color: var(--text-secondary);
-            margin: 0;
-        }
-
-        /* Module Cards */
-        .module-card {
-            background: white;
-            border-radius: 20px;
-            padding: 32px;
-            border: 1px solid var(--border-light);
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            transition: all 0.4s ease;
-            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
-            height: 100%;
+            box-shadow: 0 10px 40px rgba(48, 25, 67, 0.08);
             position: relative;
             overflow: hidden;
         }
 
-        .module-card:hover {
-            text-decoration: none;
-            color: inherit;
+        .enhanced-welcome::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(27, 139, 122, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(50px, -50px);
         }
 
-        .active-module:hover {
+        .welcome-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .welcome-title {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--color-purple);
+            margin: 0 0 12px 0;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .welcome-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin: 0 0 32px 0;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .quick-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .quick-stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .quick-stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(48, 25, 67, 0.15);
+        }
+
+        .quick-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-teal);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .quick-stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Enhanced Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 50px;
+        }
+
+        .enhanced-stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 6px 30px rgba(48, 25, 67, 0.08);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enhanced-stat-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 20px 60px rgba(48, 25, 67, 0.15);
-            border-color: var(--color-teal);
         }
 
-        .coming-soon-module {
-            opacity: 0.7;
-            cursor: default;
+        .enhanced-stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
         }
 
-        .coming-soon-module:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(48, 25, 67, 0.08);
+        .enhanced-stat-card:hover::before {
+            transform: scaleY(1);
         }
 
-        .module-header {
+        .enhanced-stat-card.members-card { --accent-color: var(--color-teal); }
+        .enhanced-stat-card.payments-card { --accent-color: var(--color-gold); }
+        .enhanced-stat-card.payouts-card { --accent-color: var(--color-light-gold); }
+        .enhanced-stat-card.activity-card { --accent-color: var(--color-coral); }
+
+        .stat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 24px;
         }
 
-        .module-icon {
+        .stat-icon-wrapper {
             width: 64px;
             height: 64px;
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            position: relative;
+            overflow: hidden;
         }
 
-        .module-icon.primary { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
-        .module-icon.secondary { background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); }
-        .module-icon.accent { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
-        .module-icon.warning { background: linear-gradient(135deg, var(--color-coral) 0%, #D63447 100%); }
-        .module-icon.info { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
-        .module-icon.neutral { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
+        .stat-icon-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent-color);
+            opacity: 0.1;
+            border-radius: inherit;
+        }
 
-        .module-status {
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--accent-color);
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             padding: 6px 12px;
-            border-radius: 20px;
+            border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .module-status.ready {
-            background: rgba(34, 197, 94, 0.1);
-            color: #059669;
+        .stat-trend.positive {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
         }
 
-        .module-status.coming-soon {
-            background: rgba(107, 114, 128, 0.1);
-            color: #6B7280;
+        .stat-trend.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
         }
 
-        .module-content h3 {
-            font-size: 24px;
+        .stat-number {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--color-purple);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .stat-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .detail-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .detail-indicator.success { background: var(--success); }
+        .detail-indicator.warning { background: var(--warning); }
+        .detail-indicator.danger { background: var(--danger); }
+
+        /* Enhanced Management Modules */
+        .management-section {
+            margin-bottom: 60px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--color-purple);
+            margin: 0 0 16px 0;
+            letter-spacing: -1px;
+        }
+
+        .section-description {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+        }
+
+        .enhanced-module-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid var(--border-light);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 40px rgba(48, 25, 67, 0.06);
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .enhanced-module-card:hover {
+            text-decoration: none;
+            color: inherit;
+            transform: translateY(-12px);
+            box-shadow: 0 25px 80px rgba(48, 25, 67, 0.15);
+        }
+
+        .enhanced-module-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--module-color), var(--module-color-light));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .enhanced-module-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .enhanced-module-card.members { --module-color: var(--color-teal); --module-color-light: #34D399; }
+        .enhanced-module-card.payments { --module-color: var(--color-gold); --module-color-light: var(--color-light-gold); }
+        .enhanced-module-card.payouts { --module-color: var(--color-light-gold); --module-color-light: #FDE047; }
+        .enhanced-module-card.reports { --module-color: var(--color-coral); --module-color-light: #FBBF24; }
+        .enhanced-module-card.rules { --module-color: var(--color-purple); --module-color-light: #A78BFA; }
+        .enhanced-module-card.settings { --module-color: var(--text-secondary); --module-color-light: #94A3B8; }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .module-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--module-color), var(--module-color-light));
+            color: white;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .module-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .module-status {
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .module-content {
+            margin-bottom: 32px;
+        }
+
+        .module-title {
+            font-size: 28px;
             font-weight: 700;
             color: var(--color-purple);
-            margin: 0 0 12px 0;
+            margin: 0 0 16px 0;
+            line-height: 1.2;
         }
 
-        .module-content p {
+        .module-description {
             font-size: 16px;
             color: var(--text-secondary);
             line-height: 1.6;
-            margin: 0 0 20px 0;
+            margin: 0 0 24px 0;
         }
 
         .module-stats {
             display: flex;
-            gap: 20px;
-            margin-bottom: 24px;
+            gap: 24px;
+            flex-wrap: wrap;
         }
 
         .module-stat {
@@ -348,89 +509,181 @@ try {
         }
 
         .module-stat strong {
-            color: var(--color-teal);
-            font-weight: 600;
+            color: var(--module-color);
+            font-weight: 700;
         }
 
         .module-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-top: 20px;
+            padding-top: 24px;
             border-top: 1px solid var(--border-light);
         }
 
         .module-action {
             font-size: 16px;
             font-weight: 600;
-            color: var(--color-teal);
+            color: var(--module-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .coming-soon-module .module-action {
+        /* Activity Feed */
+        .activity-section {
+            margin-top: 60px;
+        }
+
+        .activity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .activity-card {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 6px 30px rgba(48, 25, 67, 0.06);
+        }
+
+        .activity-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--color-cream);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-purple);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .activity-time {
+            font-size: 12px;
             color: var(--text-secondary);
         }
 
         /* Responsive Design */
         @media (max-width: 1200px) {
-            .welcome-header {
-                flex-direction: column;
-                text-align: center;
-                gap: 30px;
+            .enhanced-welcome {
+                padding: 40px;
             }
-
-            .welcome-stats {
-                gap: 30px;
+            
+            .welcome-title {
+                font-size: 36px;
+            }
+            
+            .modules-grid {
+                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                gap: 24px;
             }
         }
 
         @media (max-width: 768px) {
-            .welcome-header {
-                padding: 30px 20px;
+            .enhanced-welcome {
+                padding: 32px 24px;
             }
-
+            
             .welcome-title {
-                font-size: 28px;
+                font-size: 32px;
             }
-
-            .section-title h2 {
-                font-size: 28px;
+            
+            .section-title {
+                font-size: 32px;
             }
-
-            .stat-number {
-                font-size: 28px;
+            
+            .quick-stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 16px;
             }
-
-            .module-card {
-                padding: 24px;
-            }
-
-            .module-content h3 {
-                font-size: 20px;
-            }
-
-            .welcome-stats {
-                flex-direction: column;
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
                 gap: 20px;
             }
-
-            .stat-details {
-                flex-direction: column;
-                gap: 8px;
+            
+            .modules-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .enhanced-module-card {
+                padding: 32px 24px;
+            }
+            
+            .activity-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
             }
         }
 
         @media (max-width: 480px) {
-            .welcome-header {
-                padding: 20px;
-                margin-bottom: 30px;
+            .enhanced-welcome {
+                padding: 24px 20px;
             }
-
-            .module-card {
-                padding: 20px;
+            
+            .welcome-title {
+                font-size: 28px;
             }
-
-            .metric-value {
+            
+            .enhanced-module-card {
+                padding: 24px 20px;
+            }
+            
+            .module-title {
                 font-size: 24px;
+            }
+        }
+
+        /* Ripple effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
             }
         }
     </style>
@@ -438,378 +691,474 @@ try {
 
 <body>
     <div class="app-layout">
-        <!-- Include Navigation -->
+        <!-- Include Enhanced Navigation -->
         <?php include 'includes/navigation.php'; ?>
-
-        <!-- Dashboard Content -->
-        <!-- Welcome Header -->
-        <div class="welcome-header">
-            <div class="welcome-content">
-                <h1 class="welcome-title"><?php echo t('dashboard.welcome_back', ['username' => htmlspecialchars($admin_username)]); ?></h1>
-                <p class="welcome-subtitle"><?php echo t('dashboard.welcome_subtitle'); ?></p>
-            </div>
-            <div class="welcome-stats">
-                <div class="quick-metric">
-                    <span class="metric-value"><?php echo count($members); ?></span>
-                    <span class="metric-label"><?php echo t('dashboard.active_members'); ?></span>
+        
+        <!-- ENHANCED DASHBOARD CONTENT -->
+        <main class="main-content">
+            
+            <!-- Enhanced Welcome Section -->
+            <section class="enhanced-welcome">
+                <div class="welcome-content">
+                    <h1 class="welcome-title">
+                        <?php echo str_replace('{username}', htmlspecialchars($admin_username), t('dashboard.welcome_back')); ?>
+                    </h1>
+                    <p class="welcome-subtitle">
+                        <?php echo t('dashboard.welcome_subtitle'); ?>
+                    </p>
                 </div>
-                <div class="quick-metric">
-                    <span class="metric-value">£<?php echo number_format(array_sum(array_column($members, 'monthly_payment')) * count($members), 0); ?></span>
-                    <span class="metric-label"><?php echo t('dashboard.monthly_pool'); ?></span>
+                
+                <!-- Quick Stats Grid -->
+                <div class="quick-stats-grid">
+                    <div class="quick-stat-card">
+                        <div class="quick-stat-value"><?php echo $members_stats['total_members']; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.total_members'); ?></div>
+                    </div>
+                    <div class="quick-stat-card">
+                        <div class="quick-stat-value">£<?php echo number_format($financial_stats['total_collected'], 0); ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.total_collected'); ?></div>
+                    </div>
+                    <div class="quick-stat-card">
+                        <div class="quick-stat-value"><?php echo $payout_stats['completed_payouts']; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.completed_payouts'); ?></div>
+                    </div>
+                    <div class="quick-stat-card">
+                        <div class="quick-stat-value"><?php echo $members_stats['pending_members']; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.pending_approvals'); ?></div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Key Statistics Dashboard -->
-        <div class="stats-dashboard">
-            <div class="row">
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stat-card members-card">
-                        <div class="stat-header">
-                            <div class="stat-icon">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="9" cy="7" r="4"/>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                </svg>
-                            </div>
-                            <div class="stat-trend positive">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                                    <polyline points="17 6 23 6 23 12"/>
-                                </svg>
-                                <span>+12%</span>
-                            </div>
+            <!-- Enhanced Statistics Grid -->
+            <section class="stats-grid">
+                
+                <!-- Members Statistics Card -->
+                <div class="enhanced-stat-card members-card">
+                    <div class="stat-header">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-users stat-icon"></i>
                         </div>
-                        <div class="stat-body">
-                            <h3 class="stat-number"><?php echo count($members); ?></h3>
-                            <p class="stat-label"><?php echo t('dashboard.total_members'); ?></p>
-                            <div class="stat-details">
-                                <span class="detail-item">
-                                    <span class="detail-dot active"></span>
-                                    <?php echo count(array_filter($members, fn($m) => $m['is_active'])); ?> <?php echo t('dashboard.active'); ?>
+                        <div class="stat-trend positive">
+                            <i class="fas fa-trending-up"></i>
+                            <span>+12%</span>
+                        </div>
+                    </div>
+                    <div class="stat-number"><?php echo $members_stats['total_members']; ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.total_members'); ?></div>
+                    <div class="stat-details">
+                        <div class="stat-detail">
+                            <div class="detail-indicator success"></div>
+                            <span><?php echo $members_stats['active_members']; ?> <?php echo t('dashboard.active'); ?></span>
+                        </div>
+                        <div class="stat-detail">
+                            <div class="detail-indicator warning"></div>
+                            <span><?php echo $members_stats['pending_members']; ?> <?php echo t('dashboard.pending'); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Statistics Card -->
+                <div class="enhanced-stat-card payments-card">
+                    <div class="stat-header">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-pound-sign stat-icon"></i>
+                        </div>
+                        <div class="stat-trend positive">
+                            <i class="fas fa-trending-up"></i>
+                            <span>+18%</span>
+                        </div>
+                    </div>
+                    <div class="stat-number">£<?php echo number_format($financial_stats['total_collected'], 0); ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.total_collected'); ?></div>
+                    <div class="stat-details">
+                        <div class="stat-detail">
+                            <div class="detail-indicator success"></div>
+                            <span><?php echo $financial_stats['completed_payments']; ?> <?php echo t('dashboard.payments_made'); ?></span>
+                        </div>
+                        <div class="stat-detail">
+                            <div class="detail-indicator warning"></div>
+                            <span>£<?php echo number_format($financial_stats['pending_payments'], 0); ?> <?php echo t('dashboard.pending'); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payouts Statistics Card -->
+                <div class="enhanced-stat-card payouts-card">
+                    <div class="stat-header">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-arrow-up stat-icon"></i>
+                        </div>
+                        <div class="stat-trend warning">
+                            <i class="fas fa-minus"></i>
+                            <span>Stable</span>
+                        </div>
+                    </div>
+                    <div class="stat-number">£<?php echo number_format($payout_stats['total_payouts'], 0); ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.total_payouts'); ?></div>
+                    <div class="stat-details">
+                        <div class="stat-detail">
+                            <div class="detail-indicator success"></div>
+                            <span><?php echo $payout_stats['completed_payouts']; ?> <?php echo t('dashboard.completed'); ?></span>
+                        </div>
+                        <div class="stat-detail">
+                            <div class="detail-indicator warning"></div>
+                            <span><?php echo $payout_stats['scheduled_payouts']; ?> <?php echo t('dashboard.scheduled'); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Statistics Card -->
+                <div class="enhanced-stat-card activity-card">
+                    <div class="stat-header">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-chart-line stat-icon"></i>
+                        </div>
+                        <div class="stat-trend positive">
+                            <i class="fas fa-trending-up"></i>
+                            <span>+24%</span>
+                        </div>
+                    </div>
+                    <div class="stat-number">98%</div>
+                    <div class="stat-label"><?php echo t('dashboard.collection_rate'); ?></div>
+                    <div class="stat-details">
+                        <div class="stat-detail">
+                            <div class="detail-indicator success"></div>
+                            <span><?php echo t('dashboard.this_month'); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Enhanced Management Modules -->
+            <section class="management-section">
+                <div class="section-header">
+                    <h2 class="section-title"><?php echo t('dashboard.management_center'); ?></h2>
+                    <p class="section-description"><?php echo t('dashboard.management_center_desc'); ?></p>
+                </div>
+
+                <div class="modules-grid">
+                    
+                    <!-- Members Management Module -->
+                    <a href="members.php" class="enhanced-module-card members">
+                        <div class="module-header">
+                            <div class="module-icon-wrapper">
+                                <i class="fas fa-users module-icon"></i>
+                            </div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
+                        </div>
+                        <div class="module-content">
+                            <h3 class="module-title"><?php echo t('dashboard.members_management'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.members_management_desc'); ?></p>
+                            <div class="module-stats">
+                                <span class="module-stat">
+                                    <strong><?php echo $members_stats['total_members']; ?></strong> <?php echo t('dashboard.members'); ?>
                                 </span>
-                                <span class="detail-item">
-                                    <span class="detail-dot pending"></span>
-                                    <?php echo count($members) - count(array_filter($members, fn($m) => $m['is_active'])); ?> <?php echo t('dashboard.inactive'); ?>
+                                <span class="module-stat">
+                                    <strong><?php echo $members_stats['pending_members']; ?></strong> <?php echo t('dashboard.pending'); ?>
                                 </span>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stat-card payments-card">
-                        <div class="stat-header">
-                            <div class="stat-icon">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                </svg>
-                            </div>
-                            <div class="stat-trend positive">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                                    <polyline points="17 6 23 6 23 12"/>
-                                </svg>
-                                <span>+8%</span>
-                            </div>
+                        <div class="module-footer">
+                            <span class="module-action">
+                                <?php echo t('dashboard.manage_members'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
                         </div>
-                        <div class="stat-body">
-                            <h3 class="stat-number">£<?php echo number_format(array_sum(array_column($members, 'monthly_payment')) * count($members), 0); ?></h3>
-                            <p class="stat-label"><?php echo t('dashboard.monthly_collection'); ?></p>
-                            <div class="stat-details">
-                                <span class="detail-item">
-                                    <span class="detail-dot success"></span>
-                                    £<?php echo number_format(array_sum(array_column($members, 'total_contributed')), 0); ?> <?php echo t('dashboard.collected'); ?>
+                    </a>
+
+                    <!-- Payments Management Module -->
+                    <a href="payments.php" class="enhanced-module-card payments">
+                        <div class="module-header">
+                            <div class="module-icon-wrapper">
+                                <i class="fas fa-credit-card module-icon"></i>
+                            </div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
+                        </div>
+                        <div class="module-content">
+                            <h3 class="module-title"><?php echo t('dashboard.payment_tracking'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.payment_tracking_desc'); ?></p>
+                            <div class="module-stats">
+                                <span class="module-stat">
+                                    <strong>£<?php echo number_format($financial_stats['total_collected'], 0); ?></strong> <?php echo t('dashboard.collected'); ?>
+                                </span>
+                                <span class="module-stat">
+                                    <strong><?php echo $financial_stats['completed_payments']; ?></strong> <?php echo t('dashboard.payments'); ?>
                                 </span>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stat-card payouts-card">
-                        <div class="stat-header">
-                            <div class="stat-icon">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M16 12l-4-4-4 4"/>
-                                    <path d="M12 16V8"/>
-                                </svg>
-                            </div>
-                            <div class="stat-trend neutral">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"/>
-                                    <line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                                <span>0%</span>
-                            </div>
+                        <div class="module-footer">
+                            <span class="module-action">
+                                <?php echo t('dashboard.track_payments'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
                         </div>
-                        <div class="stat-body">
-                            <h3 class="stat-number"><?php echo count(array_filter($members, fn($m) => $m['has_received_payout'])); ?></h3>
-                            <p class="stat-label"><?php echo t('dashboard.completed_payouts'); ?></p>
-                            <div class="stat-details">
-                                <span class="detail-item">
-                                    <span class="detail-dot warning"></span>
-                                    <?php echo count(array_filter($members, fn($m) => !$m['has_received_payout'])); ?> <?php echo t('dashboard.pending'); ?>
+                    </a>
+
+                    <!-- Payouts Management Module -->
+                    <a href="payouts.php" class="enhanced-module-card payouts">
+                        <div class="module-header">
+                            <div class="module-icon-wrapper">
+                                <i class="fas fa-arrow-up module-icon"></i>
+                            </div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
+                        </div>
+                        <div class="module-content">
+                            <h3 class="module-title"><?php echo t('dashboard.payout_management'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.payout_management_desc'); ?></p>
+                            <div class="module-stats">
+                                <span class="module-stat">
+                                    <strong><?php echo $payout_stats['completed_payouts']; ?></strong> <?php echo t('dashboard.completed'); ?>
+                                </span>
+                                <span class="module-stat">
+                                    <strong><?php echo $payout_stats['scheduled_payouts']; ?></strong> <?php echo t('dashboard.scheduled'); ?>
                                 </span>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stat-card activity-card">
-                        <div class="stat-header">
-                            <div class="stat-icon">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
-                                </svg>
-                            </div>
-                            <div class="stat-trend positive">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                                    <polyline points="17 6 23 6 23 12"/>
-                                </svg>
-                                <span>+24%</span>
-                            </div>
+                        <div class="module-footer">
+                            <span class="module-action">
+                                <?php echo t('dashboard.manage_payouts'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
                         </div>
-                        <div class="stat-body">
-                            <h3 class="stat-number">98%</h3>
-                            <p class="stat-label"><?php echo t('dashboard.collection_rate'); ?></p>
-                            <div class="stat-details">
-                                <span class="detail-item">
-                                    <span class="detail-dot success"></span>
-                                    <?php echo t('dashboard.this_month'); ?>
+                    </a>
+
+                    <!-- Reports Module -->
+                    <a href="reports.php" class="enhanced-module-card reports">
+                        <div class="module-header">
+                            <div class="module-icon-wrapper">
+                                <i class="fas fa-chart-bar module-icon"></i>
+                            </div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
+                        </div>
+                        <div class="module-content">
+                            <h3 class="module-title"><?php echo t('dashboard.reports_analytics'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.reports_analytics_desc'); ?></p>
+                            <div class="module-stats">
+                                <span class="module-stat">
+                                    <strong><?php echo t('dashboard.financial'); ?></strong> <?php echo t('dashboard.reports'); ?>
+                                </span>
+                                <span class="module-stat">
+                                    <strong><?php echo t('dashboard.member'); ?></strong> <?php echo t('dashboard.analytics'); ?>
                                 </span>
                             </div>
                         </div>
-                    </div>
+                        <div class="module-footer">
+                            <span class="module-action">
+                                <?php echo t('dashboard.view_reports'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </a>
+
+                    <!-- Rules Management Module -->
+                    <a href="rules.php" class="enhanced-module-card rules">
+                        <div class="module-header">
+                            <div class="module-icon-wrapper">
+                                <i class="fas fa-gavel module-icon"></i>
+                            </div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
+                        </div>
+                        <div class="module-content">
+                            <h3 class="module-title"><?php echo t('dashboard.rules_management'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.rules_management_desc'); ?></p>
+                            <div class="module-stats">
+                                <span class="module-stat">
+                                    <strong>6</strong> <?php echo t('dashboard.active_rules'); ?>
+                                </span>
+                                <span class="module-stat">
+                                    <strong><?php echo t('dashboard.bilingual'); ?></strong>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="module-footer">
+                            <span class="module-action">
+                                <?php echo t('dashboard.manage_rules'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </a>
+
+                    <!-- Settings Module -->
+                    <a href="system-configuration.php" class="enhanced-module-card settings">
+                        <div class="module-header">
+                            <div class="module-icon-wrapper">
+                                <i class="fas fa-cog module-icon"></i>
+                            </div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
+                        </div>
+                        <div class="module-content">
+                            <h3 class="module-title"><?php echo t('dashboard.system_settings'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.system_settings_desc'); ?></p>
+                            <div class="module-stats">
+                                <span class="module-stat">
+                                    <strong><?php echo t('dashboard.multilingual'); ?></strong>
+                                </span>
+                                <span class="module-stat">
+                                    <strong><?php echo t('dashboard.secure'); ?></strong>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="module-footer">
+                            <span class="module-action">
+                                <?php echo t('dashboard.configure_system'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </div>
+                    </a>
+
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Management Modules -->
-        <div class="management-section">
-            <div class="section-title">
-                <h2><?php echo t('dashboard.management_center'); ?></h2>
-                <p><?php echo t('dashboard.management_center_desc'); ?></p>
-            </div>
+            <!-- Recent Activity Section -->
+            <section class="activity-section">
+                <div class="section-header">
+                    <h2 class="section-title"><?php echo t('dashboard.recent_activity'); ?></h2>
+                    <p class="section-description"><?php echo t('dashboard.recent_activity_desc'); ?></p>
+                </div>
 
-            <div class="modules-container">
-                <div class="row">
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <a href="members.php" class="module-card active-module">
-                            <div class="module-header">
-                                <div class="module-icon primary">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="9" cy="7" r="4"/>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                    </svg>
+                <div class="activity-grid">
+                    <!-- Recent Member Applications -->
+                    <div class="activity-card">
+                        <h3 class="activity-title">
+                            <i class="fas fa-user-plus"></i>
+                            <?php echo t('dashboard.recent_applications'); ?>
+                        </h3>
+                        
+                        <?php if (empty($recent_members)): ?>
+                            <div class="activity-item">
+                                <div class="activity-avatar">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-text"><?php echo t('dashboard.no_pending_applications'); ?></div>
+                                    <div class="activity-time"><?php echo t('dashboard.all_caught_up'); ?></div>
                                 </div>
                             </div>
-                            <div class="module-content">
-                                <h3><?php echo t('dashboard.members_management'); ?></h3>
-                                <p><?php echo t('dashboard.members_management_desc'); ?></p>
-                                <div class="module-stats">
-                                    <span class="module-stat">
-                                        <strong><?php echo count($members); ?></strong> <?php echo t('dashboard.members'); ?>
-                                    </span>
-                                    <span class="module-stat">
-                                        <strong><?php echo count(array_filter($members, fn($m) => $m['is_active'])); ?></strong> <?php echo t('dashboard.active'); ?>
-                                    </span>
+                        <?php else: ?>
+                            <?php foreach ($recent_members as $member): ?>
+                            <div class="activity-item">
+                                <div class="activity-avatar">
+                                    <?php echo strtoupper(substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1)); ?>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-text">
+                                        <strong><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></strong>
+                                        <?php echo t('dashboard.applied_to_join'); ?>
+                                    </div>
+                                    <div class="activity-time">
+                                        <?php echo date('M j, Y', strtotime($member['created_at'])); ?>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="module-footer">
-                                <span class="module-action"><?php echo t('dashboard.manage_members'); ?></span>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="9,18 15,12 9,6"/>
-                                </svg>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <a href="payments.php" class="module-card active-module">
-                            <div class="module-header">
-                                <div class="module-icon secondary">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                        <line x1="1" y1="10" x2="23" y2="10"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="module-content">
-                                <h3><?php echo t('dashboard.payment_tracking'); ?></h3>
-                                <p><?php echo t('dashboard.payment_tracking_desc'); ?></p>
-                                <div class="module-stats">
-                                    <span class="module-stat">
-                                        <strong>£<?php echo number_format(array_sum(array_column($members, 'monthly_payment')) * count($members), 0); ?></strong> <?php echo t('dashboard.monthly'); ?>
-                                    </span>
-                                    <span class="module-stat">
-                                        <strong>98%</strong> <?php echo t('dashboard.rate'); ?>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="module-footer">
-                                <span class="module-action"><?php echo t('dashboard.track_payments'); ?></span>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="9,18 15,12 9,6"/>
-                                </svg>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <a href="payouts.php" class="module-card active-module">
-                            <div class="module-header">
-                                <div class="module-icon accent">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <path d="M16 12l-4-4-4 4"/>
-                                        <path d="M12 16V8"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="module-content">
-                                <h3><?php echo t('dashboard.payout_management'); ?></h3>
-                                <p><?php echo t('dashboard.payout_management_desc'); ?></p>
-                                <div class="module-stats">
-                                    <span class="module-stat">
-                                        <strong><?php echo count(array_filter($members, fn($m) => !$m['has_received_payout'])); ?></strong> <?php echo t('dashboard.pending'); ?>
-                                    </span>
-                                    <span class="module-stat">
-                                        <strong>1</strong> <?php echo t('dashboard.completed'); ?>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="module-footer">
-                                <span class="module-action"><?php echo t('dashboard.manage_payouts'); ?></span>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="9,18 15,12 9,6"/>
-                                </svg>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <div class="module-card coming-soon-module" onclick="showComingSoon('Notifications')">
-                            <div class="module-header">
-                                <div class="module-icon warning">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="module-content">
-                                <h3><?php echo t('dashboard.notifications'); ?></h3>
-                                <p><?php echo t('dashboard.notifications_desc'); ?></p>
-                                <div class="module-stats">
-                                    <span class="module-stat">
-                                        <strong>0</strong> <?php echo t('dashboard.sent'); ?>
-                                    </span>
-                                    <span class="module-stat">
-                                        <strong><?php echo t('dashboard.email_sms'); ?></strong>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="module-footer">
-                                <span class="module-action"><?php echo t('dashboard.coming_soon'); ?></span>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="1"/>
-                                    <circle cx="12" cy="5" r="1"/>
-                                    <circle cx="12" cy="19" r="1"/>
-                                </svg>
-                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="margin-top: 20px;">
+                            <a href="user-approvals.php" class="module-action">
+                                <?php echo t('dashboard.view_all_applications'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
                         </div>
                     </div>
 
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <a href="reports.php" class="module-card active-module">
-                            <div class="module-header">
-                                <div class="module-icon info">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14,2 14,8 20,8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                        <polyline points="10,9 9,9 8,9"/>
-                                    </svg>
+                    <!-- Recent Payments -->
+                    <div class="activity-card">
+                        <h3 class="activity-title">
+                            <i class="fas fa-credit-card"></i>
+                            <?php echo t('dashboard.recent_payments'); ?>
+                        </h3>
+                        
+                        <?php if (empty($recent_payments)): ?>
+                            <div class="activity-item">
+                                <div class="activity-avatar">
+                                    <i class="fas fa-info"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-text"><?php echo t('dashboard.no_recent_payments'); ?></div>
+                                    <div class="activity-time"><?php echo t('dashboard.check_back_later'); ?></div>
                                 </div>
                             </div>
-                            <div class="module-content">
-                                <h3><?php echo t('dashboard.reports_analytics'); ?></h3>
-                                <p><?php echo t('dashboard.reports_analytics_desc'); ?></p>
-                                <div class="module-stats">
-                                    <span class="module-stat">
-                                        <strong><?php echo t('dashboard.financial'); ?></strong>
-                                    </span>
-                                    <span class="module-stat">
-                                        <strong><?php echo t('dashboard.member'); ?></strong>
-                                    </span>
+                        <?php else: ?>
+                            <?php foreach ($recent_payments as $payment): ?>
+                            <div class="activity-item">
+                                <div class="activity-avatar">
+                                    £
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-text">
+                                        <strong><?php echo htmlspecialchars($payment['first_name'] . ' ' . $payment['last_name']); ?></strong>
+                                        <?php echo t('dashboard.paid'); ?> £<?php echo number_format($payment['amount'], 0); ?>
+                                    </div>
+                                    <div class="activity-time">
+                                        <?php echo date('M j, Y', strtotime($payment['payment_date'])); ?>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="module-footer">
-                                <span class="module-action"><?php echo t('dashboard.view_reports'); ?></span>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="9,18 15,12 9,6"/>
-                                </svg>
-                            </div>
-                        </a>
-                    </div>
-
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <div class="module-card coming-soon-module" onclick="showComingSoon('Settings')">
-                            <div class="module-header">
-                                <div class="module-icon neutral">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="3"/>
-                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="module-content">
-                                <h3><?php echo t('dashboard.system_settings'); ?></h3>
-                                <p><?php echo t('dashboard.system_settings_desc'); ?></p>
-                                <div class="module-stats">
-                                    <span class="module-stat">
-                                        <strong><?php echo t('dashboard.global'); ?></strong>
-                                    </span>
-                                    <span class="module-stat">
-                                        <strong><?php echo t('dashboard.security'); ?></strong>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="module-footer">
-                                <span class="module-action"><?php echo t('dashboard.coming_soon'); ?></span>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="1"/>
-                                    <circle cx="12" cy="5" r="1"/>
-                                    <circle cx="12" cy="19" r="1"/>
-                                </svg>
-                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="margin-top: 20px;">
+                            <a href="payments.php" class="module-action">
+                                <?php echo t('dashboard.view_all_payments'); ?>
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-    </div> <!-- End app-content -->
-</main> <!-- End app-main -->
-</div> <!-- End app-layout -->
+        </main>
+    </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Enhanced JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/auth.js"></script>
-    
     <script>
-        function showComingSoon(feature) {
-            alert(`${feature} module coming soon!\n\nWe're building this feature next as part of the HabeshaEqub development process.`);
-        }
+        // Enhanced Dashboard JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Animate statistics on scroll
+            const observeStats = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.transform = 'translateY(0)';
+                        entry.target.style.opacity = '1';
+                    }
+                });
+            });
+
+            document.querySelectorAll('.enhanced-stat-card, .enhanced-module-card').forEach(card => {
+                card.style.transform = 'translateY(20px)';
+                card.style.opacity = '0.8';
+                card.style.transition = 'all 0.6s ease';
+                observeStats.observe(card);
+            });
+
+            // Add ripple effect to module cards
+            document.querySelectorAll('.enhanced-module-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.classList.add('ripple');
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+
+            console.log('🚀 Enhanced HabeshaEqub Admin Dashboard loaded successfully! Multilingual support active.');
+        });
     </script>
+
 </body>
-</html> 
+</html>
