@@ -118,21 +118,37 @@ try {
     $payments = [];
 }
 
-// Calculate payment statistics
+// Calculate payment statistics with CORRECT logic
 $total_payments = count($payments);
 $on_time_payments = 0;
 $late_payments = 0;
-$consecutive_payments = 0;
+$verified_payments = 0;
 
 foreach ($payments as $payment) {
-    if ($payment['status'] === 'paid' && $payment['late_fee'] == 0) {
+    // Count as on-time if payment was made without late fee
+    if (($payment['status'] === 'paid' || $payment['status'] === 'completed') && floatval($payment['late_fee']) == 0) {
         $on_time_payments++;
-    } elseif ($payment['status'] === 'late') {
+    }
+    
+    // Count late payments (those with late fees)
+    if (floatval($payment['late_fee']) > 0) {
         $late_payments++;
+    }
+    
+    // Count verified payments
+    if ($payment['verified_by_admin'] == 1) {
+        $verified_payments++;
     }
 }
 
-$on_time_rate = $total_payments > 0 ? ($on_time_payments / $total_payments) * 100 : 0;
+// Calculate on-time rate based on completed payments only
+$completed_payments = $on_time_payments + $late_payments;
+$on_time_rate = $completed_payments > 0 ? ($on_time_payments / $completed_payments) * 100 : 100;
+
+// If no payments made yet, show 100% (neutral)
+if ($total_payments == 0) {
+    $on_time_rate = 100;
+}
 
 // Cache buster
 $cache_buster = time() . '_' . rand(1000, 9999);
@@ -1033,7 +1049,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              echo '<i class="fas fa-exclamation-triangle text-warning me-1"></i>';
                          }
                          ?>
-                         <?php echo $on_time_payments; ?> <?php echo t('common.of'); ?> <?php echo $total_payments; ?> <?php echo t('contributions.payments_made'); ?> <?php echo t('contributions.on_time_rate'); ?>
+                         <?php echo $on_time_payments; ?> <?php echo t('common.of'); ?> <?php echo $completed_payments; ?> <?php echo t('contributions.payments_made'); ?> <?php echo t('contributions.on_time_rate'); ?>
+                         <?php if ($late_payments > 0): ?>
+                         <br><small class="text-warning"><?php echo $late_payments; ?> late payment(s)</small>
+                         <?php endif; ?>
                      </div>
                  </div>
              </div>

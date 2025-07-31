@@ -717,7 +717,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <i class="fas fa-cogs text-warning"></i>
                         <?php echo t('settings.page_title'); ?>
                     </h1>
-                    <p class="page-subtitle"><?php echo t('settings.page_subtitle'); ?></p>
                 </div>
             </div>
         </div>

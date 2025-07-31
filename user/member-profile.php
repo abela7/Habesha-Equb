@@ -780,6 +780,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                             <div class="stat-value"><?php echo $member['payments_made']; ?></div>
                             <div class="stat-label"><?php echo t('members_directory.successful_payments'); ?></div>
+                            <div class="stat-detail">
+                                <?php if ($member['duration_months']): ?>
+                                    <small><?php echo $member['payments_made']; ?> of <?php echo $member['duration_months']; ?> expected</small>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         
                         <div class="stat-card">
@@ -788,24 +793,45 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                             <div class="stat-value"><?php echo $member['total_payouts_received']; ?></div>
                             <div class="stat-label"><?php echo t('members_directory.payouts_received'); ?></div>
+                            <div class="stat-detail">
+                                <?php if ($member['last_payout_amount'] > 0): ?>
+                                    <small>Last: £<?php echo number_format($member['last_payout_amount'], 0); ?></small>
+                                <?php else: ?>
+                                    <small>No payouts yet</small>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         
                         <div class="stat-card">
                             <div class="stat-icon info">
                                 <i class="fas fa-list-ol"></i>
                             </div>
-                            <div class="stat-value"><?php echo $member['payout_position']; ?> / <?php echo (int)($member['expected_payout'] / $member['monthly_payment']); ?></div>
+                            <div class="stat-value"><?php echo $member['payout_position']; ?> / <?php echo $member['total_equb_members']; ?></div>
                             <div class="stat-label"><?php echo t('members_directory.queue_position'); ?></div>
+                            <div class="stat-detail">
+                                <?php if (!empty($member['equb_name'])): ?>
+                                    <small><?php echo htmlspecialchars($member['equb_name']); ?></small>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon primary">
-                                <i class="fas fa-user-check"></i>
+                            <div class="stat-icon success">
+                                <i class="fas fa-calendar-alt"></i>
                             </div>
                             <div class="stat-value">
-                                <?php echo $member['is_approved'] ? t('members_directory.approved') : t('members_directory.pending'); ?>
+                                <?php echo $member_since; ?>
                             </div>
-                            <div class="stat-label"><?php echo t('members_directory.account_status'); ?></div>
+                            <div class="stat-label">Member Since</div>
+                            <div class="stat-detail">
+                                <small>
+                                    <?php 
+                                    $status = $member['is_approved'] ? 'Approved' : 'Pending';
+                                    $status_color = $member['is_approved'] ? 'text-success' : 'text-warning';
+                                    ?>
+                                    <span class="<?php echo $status_color; ?>"><?php echo $status; ?></span>
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>

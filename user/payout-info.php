@@ -1275,9 +1275,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 $member['payout_day']
                             );
                         ?>
-                        <div class="journey-step <?php echo $is_current ? 'current' : ($is_next ? 'next' : ''); ?>">
+                        <div class="journey-step <?php echo $queue_member['payout_status'] === 'completed' ? 'completed' : ($is_current ? 'current' : ($is_next ? 'next' : '')); ?>">
                             <div class="step-badge">
-                                <?php if ($is_current): ?>
+                                <?php if ($queue_member['payout_status'] === 'completed'): ?>
+                                    <i class="fas fa-check-circle text-success"></i>
+                                <?php elseif ($is_current): ?>
                                     <i class="fas fa-user-crown"></i>
                                 <?php elseif ($is_next): ?>
                                     <i class="fas fa-hourglass-half"></i>
@@ -1301,7 +1303,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="step-date">
                                     <?php echo $member_payout_date->format('M j, Y'); ?>
                                 </div>
-                                                                 <?php if ($is_current): ?>
+                                 <?php if ($queue_member['payout_status'] === 'completed'): ?>
+                                     <div class="step-status completed-badge">
+                                         <i class="fas fa-check-circle me-1"></i>Completed
+                                         <?php if ($queue_member['received_date']): ?>
+                                         <br><small><?php echo date('M j, Y', strtotime($queue_member['received_date'])); ?></small>
+                                         <?php endif; ?>
+                                     </div>
+                                 <?php elseif ($is_current): ?>
                                      <div class="step-status current-badge">
                                          <i class="fas fa-star me-1"></i><?php echo t('payout.your_turn'); ?>
                                      </div>

@@ -16,19 +16,21 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/payout_sync_service.php';
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $current_user_id = get_current_user_id();
 
-// Get ONLY PUBLIC, APPROVED, ACTIVE members - proper privacy and security
+// Get ONLY PUBLIC, APPROVED, ACTIVE members with REAL equb data
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
+               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END), 0) as payments_made,
                COALESCE(
-                   (SELECT po.total_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
                    0
                ) as last_payout_amount,
                COALESCE(
@@ -36,11 +38,9 @@ try {
                    NULL
                ) as last_payout_date,
                (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed') as total_payouts_received,
-               -- Calculate expected payout amount (total public members * monthly payment)
-               (SELECT COUNT(*) FROM members WHERE is_active = 1 AND is_approved = 1 AND go_public = 1) * m.monthly_payment as expected_payout,
-               -- Calculate next payout date based on position
-               DATE_ADD('2024-06-01', INTERVAL (m.payout_position - 1) MONTH) as expected_payout_date
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.is_active = 1 AND m.is_approved = 1 AND m.go_public = 1
         GROUP BY m.id
@@ -49,7 +49,23 @@ try {
             m.created_at DESC
     ");
     $stmt->execute();
-    $public_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $public_members_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Process each member to get real payout information
+    $payout_service = getPayoutSyncService();
+    $public_members = [];
+    
+    foreach ($public_members_raw as $member) {
+        // Get real payout information
+        $payout_info = $payout_service->getMemberPayoutStatus($member['id']);
+        
+        // Calculate correct expected payout
+        $member['expected_payout'] = $member['total_equb_members'] * $member['monthly_payment'];
+        $member['expected_payout_date'] = $payout_info['calculated_payout_date'] ?? null;
+        $member['days_until_payout'] = $payout_info['days_until_payout'] ?? null;
+        
+        $public_members[] = $member;
+    }
     
     // Get total member count for statistics - only approved members
     $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1 AND is_approved = 1");
