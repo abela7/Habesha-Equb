@@ -578,7 +578,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php echo t('user_profile.personal_info'); ?>
                     </h2>
                     
-                    <form id="profileForm" method="POST" action="update-profile.php">
+                    <form id="profileForm" method="POST" action="api/update-profile.php">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -641,7 +641,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php echo t('user_profile.change_password'); ?>
                     </h2>
                     
-                    <form id="passwordForm" method="POST" action="change-password.php">
+                    <form id="passwordForm" method="POST" action="api/change-password.php">
                         <div class="form-group">
                             <label for="current_password" class="form-label">
                                 <i class="fas fa-key text-secondary"></i>
@@ -702,7 +702,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         <div class="account-info-value">
                             <code style="background: var(--color-cream); padding: 4px 8px; border-radius: 6px; color: var(--color-deep-purple);">
-                                <?php echo str_pad($member['id'], 6, '0', STR_PAD_LEFT); ?>
+                                <?php echo htmlspecialchars($member['member_id'] ?? 'N/A'); ?>
                             </code>
                         </div>
                     </div>
@@ -785,20 +785,46 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 }
             });
 
-            passwordForm.addEventListener('submit', function(e) {
+            passwordForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
                 if (newPassword.value !== confirmPassword.value) {
-                    e.preventDefault();
                     showAlert('<?php echo t('user_profile.passwords_no_match'); ?>', 'danger');
                     return false;
                 }
                 
                 if (newPassword.value.length < 6) {
-                    e.preventDefault();
                     showAlert('<?php echo t('user_profile.password_min_length'); ?>', 'warning');
                     return false;
                 }
                 
-                showAlert('Password updated successfully!', 'success');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Changing...';
+                
+                try {
+                    const formData = new FormData(this);
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert(result.message, 'success');
+                        // Clear the form on success
+                        this.reset();
+                    } else {
+                        showAlert(result.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Network error. Please try again.', 'danger');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
             });
         }
         
@@ -818,17 +844,42 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 }
             });
 
-            profileForm.addEventListener('submit', function(e) {
+            profileForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
                 const email = document.getElementById('email');
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 
                 if (!emailRegex.test(email.value)) {
-                    e.preventDefault();
                     showAlert('<?php echo t('user_profile.email_invalid'); ?>', 'warning');
                     return false;
                 }
                 
-                showAlert('Profile updated successfully!', 'success');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+                
+                try {
+                    const formData = new FormData(this);
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert(result.message, 'success');
+                    } else {
+                        showAlert(result.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Network error. Please try again.', 'danger');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
             });
         }
 
