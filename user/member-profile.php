@@ -659,23 +659,42 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon success">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <div class="stat-value"><?php echo $expected_payout_formatted; ?></div>
-                            <div class="stat-label"><?php echo t('members_directory.payout_date'); ?></div>
-                            <?php if (isset($payout_info['days_until_payout'])): ?>
-                            <div class="stat-detail">
-                                <?php 
-                                if ($payout_info['days_until_payout'] > 0) {
-                                    echo $payout_info['days_until_payout'] . ' days remaining';
-                                } elseif ($payout_info['days_until_payout'] < 0) {
-                                    echo 'Overdue by ' . abs($payout_info['days_until_payout']) . ' days';
-                                } else {
-                                    echo 'Payout available today!';
-                                }
-                                ?>
-                            </div>
+                            <?php if ($member['total_payouts_received'] > 0 && !empty($member['last_payout_date'])): ?>
+                                <div class="stat-icon warning">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-value">
+                                    <?php echo date('M j, Y', strtotime($member['last_payout_date'])); ?>
+                                </div>
+                                <div class="stat-label">Paid Out</div>
+                                <div class="stat-detail">
+                                    <i class="fas fa-money-bill-wave text-success me-1"></i>
+                                    Received £<?php echo number_format($member['last_payout_amount'], 0); ?>
+                                </div>
+                                <?php if ($member['total_payouts_received'] > 1): ?>
+                                <div class="stat-detail mt-1">
+                                    <small class="text-muted"><?php echo $member['total_payouts_received']; ?> total payouts received</small>
+                                </div>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <div class="stat-icon success">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="stat-value"><?php echo $expected_payout_formatted; ?></div>
+                                <div class="stat-label"><?php echo t('members_directory.payout_date'); ?></div>
+                                <?php if (isset($payout_info['days_until_payout'])): ?>
+                                <div class="stat-detail">
+                                    <?php 
+                                    if ($payout_info['days_until_payout'] > 0) {
+                                        echo $payout_info['days_until_payout'] . ' days remaining';
+                                    } elseif ($payout_info['days_until_payout'] < 0) {
+                                        echo 'Overdue by ' . abs($payout_info['days_until_payout']) . ' days';
+                                    } else {
+                                        echo 'Payout available today!';
+                                    }
+                                    ?>
+                                </div>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>

@@ -101,7 +101,9 @@ try {
                CASE 
                    WHEN p.payment_month IS NOT NULL AND p.payment_month != '0000-00-00' 
                    THEN DATE_FORMAT(p.payment_month, '%M %Y') 
-                   ELSE 'UNKNOWN_MONTH' 
+                   WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00'
+                   THEN DATE_FORMAT(p.payment_date, '%M %Y')
+                   ELSE DATE_FORMAT(p.created_at, '%M %Y')
                END as payment_month_name,
                CASE 
                    WHEN p.verified_by_admin = 1 THEN 'verified'
@@ -1119,7 +1121,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <td class="fw-semibold">
                                 <?php 
                                 $month_name = $payment['payment_month_name'] ?? '';
-                                echo htmlspecialchars($month_name === 'UNKNOWN_MONTH' ? t('common.unknown_month') : $month_name); 
+                                                                        echo htmlspecialchars($month_name); 
                                 ?>
                             </td>
                             <td class="fw-semibold text-success">

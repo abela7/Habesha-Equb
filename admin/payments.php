@@ -1127,7 +1127,16 @@ $csrf_token = generate_csrf_token();
                         document.getElementById('memberId').value = payment.member_db_id;
                         document.getElementById('amount').value = payment.amount;
                         document.getElementById('paymentDate').value = payment.payment_date;
-                        document.getElementById('paymentMonth').value = payment.payment_month;
+                        // Set payment month, fallback to payment date's month if invalid
+                        let paymentMonth = payment.payment_month;
+                        if (!paymentMonth || paymentMonth === '0000-00-00' || paymentMonth === '0000-00') {
+                            if (payment.payment_date && payment.payment_date !== '0000-00-00') {
+                                paymentMonth = payment.payment_date.slice(0, 7); // YYYY-MM format
+                            } else {
+                                paymentMonth = new Date().toISOString().slice(0, 7); // Current month
+                            }
+                        }
+                        document.getElementById('paymentMonth').value = paymentMonth;
                         document.getElementById('paymentMethod').value = payment.payment_method || 'bank_transfer';
                         document.getElementById('status').value = payment.status || 'pending';
                         document.getElementById('receiptNumber').value = payment.receipt_number || '';

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 31, 2025 at 02:33 PM
+-- Generation Time: Jul 31, 2025 at 06:33 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -45,6 +45,31 @@ CREATE TABLE `admins` (
 
 INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`) VALUES
 (8, 'abel', NULL, NULL, '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-07-29 20:43:41');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `device_tracking`
+--
+
+CREATE TABLE `device_tracking` (
+  `id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `device_fingerprint` varchar(32) NOT NULL,
+  `user_agent` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `last_seen` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_approved` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `device_tracking`
+--
+
+INSERT INTO `device_tracking` (`id`, `email`, `device_fingerprint`, `user_agent`, `ip_address`, `created_at`, `last_seen`, `is_approved`) VALUES
+(1, 'abelgoytom77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 14:13:26', '2025-07-31 14:13:26', 0),
+(2, 'abeldemessie77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 16:03:51', '2025-07-31 16:03:51', 0);
 
 -- --------------------------------------------------------
 
@@ -122,7 +147,7 @@ CREATE TABLE `equb_settings` (
 --
 
 INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 'EQB-2024-001', 'First Term Equb 2024', 'Our inaugural equb for 2024 - open to all payment tiers', 'active', 8, 5, 8, '2025-06-01', '2026-02-01', '[{\"amount\":1000,\"tag\":\"full\",\"description\":\"Full Member - \\u00a31000\\/month\"},{\"amount\":500,\"tag\":\"half\",\"description\":\"Half Member - \\u00a3500\\/month\"},{\"amount\":250,\"tag\":\"quarter\",\"description\":\"Quarter Member - \\u00a3250\\/month\"}]', '£', 5, 15.00, 20.00, 2, 1, 'registration_order', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 1, 64000.00, 10000.00, 34650.00, '', '2025-07-29 16:22:18', '2025-07-29 20:22:57');
+(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 8, 1, 8, '2025-07-01', '2026-03-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"}]', '£', 5, 10.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 64000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-07-31 15:58:01');
 
 -- --------------------------------------------------------
 
@@ -174,15 +199,8 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
-(1, 1, 'HEM-MW1', 'MW123A', 'Michael', 'Werkneh', 'Michael Werkne', 'michael.werkneh@email.com', '+447123456789', '$2y$12$kdwSiI7P37OpM7OVFH4rMOHH2W7Yywf08O3DItvLGCVH6ZKqI/qBi', 'active', 1000.00, 1, '2025-07-05', 6000.00, 1, 'Sarah', 'Werkneh', '+447123456790', 'sarah.werkneh@email.com', 'Wife', 1, 1, 1, '2024-05-15', '2025-07-25 00:54:39', 'email,sms', 1, 1, 1, 'First member - received June payout', '2025-07-22 07:24:42', '2025-07-30 22:57:27', 1, 1, 0),
-(2, 1, 'HEM-MN2', NULL, 'Maeruf', 'Nasir', 'Maeruf Nasir', 'maeruf.nasir@email.com', '+447234567890', 'MN456B', 'active', 1000.00, 2, '2025-08-05', 1000.00, 0, 'Ahmed', 'Nasir', '+447234567891', 'ahmed.nasir@email.com', 'Brother', 1, 1, 1, '2024-05-15', '2024-06-18 13:15:00', 'email', 1, 1, 0, 'Active member - good payment record', '2025-07-22 07:24:42', '2025-07-29 19:50:39', 1, 1, 0),
-(3, 1, 'HEM-TE3', NULL, 'Teddy', 'Elias', NULL, 'teddy.elias@email.com', '+447345678901', 'TE789C', 'active', 500.00, 3, '2025-09-05', 1500.00, 0, 'Helen', 'Elias', '+447345678902', 'helen.elias@email.com', 'Mother', 1, 1, 1, '2024-05-15', '2024-06-19 15:45:00', 'email,sms', 1, 1, 0, 'Reliable member', '2025-07-22 07:24:42', '2025-07-29 18:22:46', 1, 1, 0),
-(4, 1, 'HEM-KG4', NULL, 'Kokit', 'Gormesa', NULL, 'kokit.gormesa@email.com', '+447456789012', 'KG012D', 'active', 1000.00, 4, '2025-10-05', 1000.00, 0, 'Dawit', 'Gormesa', '+447456789013', 'dawit.gormesa@email.com', 'Husband', 1, 1, 1, '2024-05-15', '2024-06-17 11:20:00', 'sms', 1, 1, 0, 'New member - very enthusiastic', '2025-07-22 07:24:42', '2025-07-29 18:37:07', 1, 1, 0),
-(5, 1, 'HEM-MA5', NULL, 'Mahlet', 'Ayalew', NULL, 'mahlet.ayalew@email.com', '+447567890123', 'MA345E', 'active', 1000.00, 5, '2025-11-05', 1000.00, 0, 'Bereket', 'Ayalew', '+447567890124', 'bereket.ayalew@email.com', 'Father', 1, 1, 1, '2024-05-15', '2024-06-21 08:10:00', 'email,sms', 1, 1, 0, 'Last position - patient member', '2025-07-22 07:24:42', '2025-07-29 18:37:14', 1, 1, 0),
-(10, NULL, 'HEM-MW2', 'meski5700', 'Meskerem', 'Dem', 'Michael werkeneh', 'meski5700@gmail.com', '+447415329332', '$2y$12$hoKDSltuJjTkcumH4ts9lOlMojIddSe4Phxcdk4z6v0o28ztHCdH6', 'active', 1000.00, 6, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-07-29', NULL, 'both', 1, 0, 0, '', '2025-07-29 19:21:33', '2025-07-29 20:10:08', 1, 1, 0),
-(11, 1, 'HEM-SG1', 'sabela.goitom', 'Sabela', 'Goitom', 'Sabela Goitom', 'sabela.goitom@gmail.com', '+447360436169', '$2y$12$lasuAjjRMgJwwcwnBvoxeeKWsaXSFJbCpmoqdvvVTPPF0Fbx2HNK.', 'active', 0.00, 7, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 1, 0, '2025-07-29', NULL, 'both', 1, 0, 0, NULL, '2025-07-29 22:18:53', '2025-07-29 23:02:47', 1, 1, 0),
-(12, NULL, 'HEM-EH1', 'eldanahadera', 'El-dana', 'Hadera', 'El-dana Hadera', 'eldanahadera@gmail.com', '+447415329321', '$2y$12$ckuewagSKv7Qhe7uTN1mW.eSpGP4O/jZC89JWu8tEP85q/CeS7ogy', 'active', 500.00, 8, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-30', NULL, 'both', 1, 0, 1, '', '2025-07-29 23:06:05', '2025-07-31 12:44:16', 1, 1, 0),
-(13, NULL, 'HEM-AG1', 'abeldemessie707', 'Abel', 'Goytom', 'Abel Goytom', 'abeldemessie707@gmail.com', '+447543152615', '$2y$12$vl63p43SRdIqqLQEGPS53OALVF8zLikwcf7KvFql3Aywmx.aai7KS', 'active', 0.00, 9, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 0, 0, 0, '2025-07-30', NULL, 'both', 1, 0, 0, 'DECLINED: not known', '2025-07-30 22:58:33', '2025-07-30 23:13:42', 1, 1, 0);
+(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$RKQ13.MlF/rkiwSzi4BeDur7E2i4yYjKh3XGo7sqrNu/Ck3qwJB2G', 'active', 1000.00, 1, '2025-07-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 1, 1, '', '2025-07-31 14:13:25', '2025-07-31 17:25:20', 1, 1, 0),
+(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', '$2y$12$3M/vVlU4AjXQuAcp.mDVrel70F2k/OEiOHM6HQe9qISnT0zuv1Wki', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 17:26:31', 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -248,25 +266,8 @@ CREATE TABLE `payments` (
 --
 
 INSERT INTO `payments` (`id`, `payment_id`, `member_id`, `amount`, `payment_month`, `payment_date`, `status`, `payment_method`, `verified_by_admin`, `verified_by_admin_id`, `verification_date`, `receipt_number`, `notes`, `late_fee`, `created_at`, `updated_at`) VALUES
-(1, 'PAY-MW1-062024', 1, 1000.00, '0000-00-00', '2024-06-01', 'paid', 'cash', 1, NULL, '2025-07-22 17:31:06', 'RCP-MW1-001', 'June payment - on time', 0.00, '2025-07-22 07:24:42', '2025-07-22 16:31:06'),
-(3, 'PAY-MW1-122024', 1, 500.00, '2024-12-01', '2024-12-01', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(4, 'PAY-MW2-122024', 2, 500.00, '2024-12-01', '2024-12-01', 'paid', 'cash', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(5, 'PAY-MW3-122024', 3, 500.00, '0000-00-00', '2025-07-22', 'paid', 'bank_transfer', 1, NULL, '2025-07-22 19:33:09', '', '', 0.00, '2025-07-22 17:36:50', '2025-07-22 18:33:09'),
-(6, 'PAY-MW1-112024', 1, 500.00, '2024-11-01', '2024-11-01', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(7, 'PAY-MW2-112024', 2, 500.00, '2024-11-01', '2024-11-01', 'paid', 'mobile_money', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(8, 'PAY-MW3-112024', 3, 500.00, '2024-11-01', '2024-11-03', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(9, 'PAY-MW1-102024', 1, 500.00, '2024-10-01', '2024-10-01', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(10, 'PAY-MW2-102024', 2, 500.00, '2024-10-01', '2024-10-01', 'paid', 'cash', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(11, 'PAY-MW3-102024', 3, 500.00, '2024-10-01', '2024-10-02', 'paid', 'bank_transfer', 1, NULL, '2025-07-22 19:43:11', NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 19:43:11'),
-(12, 'PAY-MW1-092024', 1, 500.00, '2024-09-01', '2024-09-01', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(13, 'PAY-MW2-092024', 2, 500.00, '2024-09-01', '2024-09-01', 'paid', 'cash', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(14, 'PAY-MW3-092024', 3, 500.00, '2024-09-01', '2024-09-03', 'paid', 'mobile_money', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(15, 'PAY-MW1-082024', 1, 500.00, '2024-08-01', '2024-08-01', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(16, 'PAY-MW2-082024', 2, 500.00, '2024-08-01', '2024-08-01', 'paid', 'cash', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(17, 'PAY-MW3-082024', 3, 500.00, '2024-08-01', '2024-08-02', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(18, 'PAY-MW1-072024', 1, 500.00, '2024-07-01', '2024-07-01', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(19, 'PAY-MW2-072024', 2, 500.00, '2024-07-01', '2024-07-01', 'paid', 'mobile_money', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50'),
-(20, 'PAY-MW3-072024', 3, 500.00, '2024-07-01', '2024-07-03', 'paid', 'bank_transfer', 0, NULL, NULL, NULL, NULL, 0.00, '2025-07-22 17:36:50', '2025-07-22 17:36:50');
+(1, 'HEP-20250731-437', 1, 1000.00, '0000-00-00', '2025-06-01', 'paid', 'cash', 1, 8, '2025-07-31 16:25:20', 'HER-20250731-182450', '', 0.00, '2025-07-31 17:25:20', '2025-07-31 17:25:20'),
+(2, 'HEP-20250731-908', 2, 1000.00, '0000-00-00', '2025-06-01', 'paid', 'cash', 1, 8, '2025-07-31 16:26:59', 'HER-20250731-182534', '', 0.00, '2025-07-31 17:25:55', '2025-07-31 17:26:59');
 
 -- --------------------------------------------------------
 
@@ -299,7 +300,7 @@ CREATE TABLE `payouts` (
 --
 
 INSERT INTO `payouts` (`id`, `payout_id`, `member_id`, `total_amount`, `scheduled_date`, `actual_payout_date`, `status`, `payout_method`, `processed_by_admin_id`, `admin_fee`, `net_amount`, `transaction_reference`, `receipt_issued`, `member_signature`, `payout_notes`, `created_at`, `updated_at`) VALUES
-(1, 'PAYOUT-MW1-062024', 1, 5000.00, '2024-06-15', '2024-06-15', 'completed', 'bank_transfer', NULL, 50.00, 4950.00, 'TXN-MW1-20240615', 1, 0, 'First equib payout - Michael Werkneh - June 2024. Total collected: £5000, Admin fee: £50, Net payout: £4950', '2025-07-22 07:24:42', '2025-07-22 16:06:52');
+(1, 'PAYOUT-AD-072025', 1, 2000.00, '2025-07-31', NULL, 'completed', 'cash', NULL, 0.00, 2000.00, NULL, 0, 0, '', '2025-07-31 17:31:58', '2025-07-31 17:31:58');
 
 -- --------------------------------------------------------
 
@@ -356,6 +357,15 @@ ALTER TABLE `admins`
   ADD UNIQUE KEY `username` (`username`),
   ADD KEY `idx_username` (`username`),
   ADD KEY `idx_active` (`is_active`);
+
+--
+-- Indexes for table `device_tracking`
+--
+ALTER TABLE `device_tracking`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_email` (`email`),
+  ADD KEY `idx_fingerprint` (`device_fingerprint`),
+  ADD KEY `idx_approval` (`is_approved`);
 
 --
 -- Indexes for table `equb_rules`
@@ -457,6 +467,12 @@ ALTER TABLE `admins`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
+-- AUTO_INCREMENT for table `device_tracking`
+--
+ALTER TABLE `device_tracking`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `equb_rules`
 --
 ALTER TABLE `equb_rules`
@@ -466,13 +482,13 @@ ALTER TABLE `equb_rules`
 -- AUTO_INCREMENT for table `equb_settings`
 --
 ALTER TABLE `equb_settings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -484,13 +500,13 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `payouts`
 --
 ALTER TABLE `payouts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `system_settings`

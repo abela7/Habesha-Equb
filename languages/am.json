@@ -801,7 +801,7 @@
     }
   },
   "settings": {
-    "page_title": "የመለያ ሴቲንግስ",
+    "page_title": "ማስተካከያዎች",
     "page_subtitle": "የመለያ ምርጫዎች፣ የግላዊነት ቅንብሮች እና ማሳወቂያዎችን ያስተዳድሩ",
     "account_overview": "የመለያ አጠቃላይ እይታ",
     "full_name": "ሙሉ ስም",
@@ -817,7 +817,7 @@
     "payment_reminders_desc": "ወርሃዊ ክፍያዎ ከመድረሱ በፊት ማስታወሻዎችን ይቀበሉ",
     "save_preferences": "ምርጫዎችን አስቀምጥ",
     "privacy_security": "ግላዊነት እና ደህንነት",
-    "public_profile": "ሕዝባዊ መገለጫ",
+    "public_profile": "የመረጃ ግልጽነት",
     "public_profile_desc": "ሌሎች አባላት በአባላት ማውጫ ውስጥ መገለጫዎን እንዲመለከቱ ይፍቀዱ",
     "language_preference": "የቋንቋ ምርጫ",
     "interface_language": "የመገናኛ ቋንቋ",
