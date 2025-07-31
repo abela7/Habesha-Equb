@@ -4,21 +4,21 @@
  * Handles admin approval/decline actions for member registrations
  */
 
-// Enable error reporting for debugging
+// SECURITY FIX: Secure error handling for production
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
-// Set up error handler to return JSON
+// Set up secure error handler
 set_error_handler(function($severity, $message, $file, $line) {
+    // Log full error details securely
+    error_log("PHP Error in user-approvals API: $message in $file on line $line (Severity: $severity)");
+    
+    // Return generic error message (no system information exposed)
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'PHP Error: ' . $message,
-        'debug' => [
-            'file' => $file,
-            'line' => $line,
-            'severity' => $severity
-        ]
+        'message' => 'A system error occurred. Please try again or contact support.'
+        // SECURITY FIX: Debug information removed to prevent information disclosure
     ]);
     exit;
 });

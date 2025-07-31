@@ -10,70 +10,30 @@ if (!defined('SECURITY_LOADED')) {
 
 /**
  * Rate Limiting Class
- * Prevents brute force attacks
+ * SECURITY FIX: Now uses persistent database storage instead of memory
  */
 class RateLimiter {
-    private static $attempts = [];
-    private static $lockouts = [];
+    private static $persistentLimiter = null;
+    
+    private static function getPersistentLimiter() {
+        if (self::$persistentLimiter === null) {
+            global $pdo;
+            require_once __DIR__ . '/rate_limiter.php';
+            self::$persistentLimiter = new PersistentRateLimiter($pdo);
+        }
+        return self::$persistentLimiter;
+    }
     
     public static function checkRateLimit($identifier, $maxAttempts = 5, $timeWindow = 900) { // 15 minutes
-        $now = time();
-        $key = hash('sha256', $identifier);
-        
-        // Clean old lockouts
-        if (isset(self::$lockouts[$key]) && self::$lockouts[$key] < $now) {
-            unset(self::$lockouts[$key]);
-            unset(self::$attempts[$key]);
-        }
-        
-        // Check if locked out
-        if (isset(self::$lockouts[$key])) {
-            $remainingTime = self::$lockouts[$key] - $now;
-            return [
-                'allowed' => false, 
-                'message' => "Too many attempts. Try again in " . ceil($remainingTime / 60) . " minutes.",
-                'retry_after' => self::$lockouts[$key]
-            ];
-        }
-        
-        // Initialize attempts array
-        if (!isset(self::$attempts[$key])) {
-            self::$attempts[$key] = [];
-        }
-        
-        // Clean old attempts
-        self::$attempts[$key] = array_filter(self::$attempts[$key], function($time) use ($now, $timeWindow) {
-            return ($now - $time) < $timeWindow;
-        });
-        
-        // Check if exceeded attempts
-        if (count(self::$attempts[$key]) >= $maxAttempts) {
-            self::$lockouts[$key] = $now + $timeWindow;
-            return [
-                'allowed' => false, 
-                'message' => "Too many attempts. Account locked for 15 minutes.",
-                'retry_after' => self::$lockouts[$key]
-            ];
-        }
-        
-        return ['allowed' => true];
+        return self::getPersistentLimiter()->isAllowed($identifier, $maxAttempts, $timeWindow);
     }
     
     public static function recordAttempt($identifier) {
-        $key = hash('sha256', $identifier);
-        if (!isset(self::$attempts[$key])) {
-            self::$attempts[$key] = [];
-        }
-        self::$attempts[$key][] = time();
-        
-        // Log suspicious activity
-        error_log("Security Alert: Failed attempt from " . $identifier . " at " . date('Y-m-d H:i:s'));
+        self::getPersistentLimiter()->recordAttempt($identifier);
     }
     
     public static function resetAttempts($identifier) {
-        $key = hash('sha256', $identifier);
-        unset(self::$attempts[$key]);
-        unset(self::$lockouts[$key]);
+        self::getPersistentLimiter()->resetAttempts($identifier);
     }
 }
 

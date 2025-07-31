@@ -56,11 +56,23 @@ function validate_user_input($data, $type = 'text') {
             if (empty($data)) {
                 return ['valid' => false, 'message' => 'Password is required'];
             }
-            if (strlen($data) < 6) {
-                return ['valid' => false, 'message' => 'Password must be at least 6 characters'];
+            // SECURITY FIX: Strengthen password requirements
+            if (strlen($data) < 12) {
+                return ['valid' => false, 'message' => 'Password must be at least 12 characters'];
             }
-            if (!preg_match('/(?=.*[a-zA-Z])(?=.*\d)/', $data)) {
-                return ['valid' => false, 'message' => 'Password must contain both letters and numbers'];
+            if (!preg_match('/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/', $data)) {
+                return ['valid' => false, 'message' => 'Password must contain uppercase, lowercase, number, and special character (@$!%*?&)'];
+            }
+            // Check for common weak patterns
+            if (preg_match('/(.)\1{2,}/', $data)) {
+                return ['valid' => false, 'message' => 'Password cannot have repeating characters'];
+            }
+            // Check for common words (basic check)
+            $commonWords = ['password', '123456', 'qwerty', 'admin', 'user', 'habesha', 'equb'];
+            foreach ($commonWords as $word) {
+                if (stripos($data, $word) !== false) {
+                    return ['valid' => false, 'message' => 'Password cannot contain common words'];
+                }
             }
             return ['valid' => true, 'value' => $data];
             

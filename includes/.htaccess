@@ -1,0 +1,50 @@
+# HabeshaEqub Security Protection
+# Protect sensitive configuration files from web access
+
+# Deny access to configuration files
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "db_backup.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "rate_limiter.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Deny access to any .php files except db.php and security.php (which are included, not accessed directly)
+<Files "*.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "db.php">
+    Order Allow,Deny
+    Allow from 127.0.0.1
+    Allow from localhost
+</Files>
+
+<Files "security.php">
+    Order Allow,Deny
+    Allow from 127.0.0.1
+    Allow from localhost
+</Files>
+
+# Prevent access to log files
+<Files "*.log">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Additional security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

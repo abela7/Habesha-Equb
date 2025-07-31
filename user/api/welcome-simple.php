@@ -102,12 +102,8 @@ try {
     
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage(),
-        'debug' => [
-            'file' => basename(__FILE__),
-            'line' => __LINE__,
-            'error' => $e->getMessage()
-        ]
+        'message' => 'An error occurred while processing your request. Please try again.'
+        // SECURITY FIX: Debug information removed to prevent information disclosure
     ]);
 }
 ?> 

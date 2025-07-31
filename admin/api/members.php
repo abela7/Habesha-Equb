@@ -10,16 +10,27 @@ require_once '../../includes/payout_sync_service.php';
 // Set JSON header
 header('Content-Type: application/json');
 
-// Check if admin is logged in
-if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
+// SECURITY FIX: Use standardized admin authentication
+require_once '../includes/admin_auth_guard.php';
+$admin_id = get_current_admin_id();
+if (!$admin_id) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
 }
 
-$admin_id = $_SESSION['admin_id'] ?? 1;
-
 // Get the action from POST data
 $action = $_POST['action'] ?? '';
+
+// SECURITY FIX: Add CSRF protection for state-changing operations
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($action, ['list', 'get_member', 'get_occupied_positions', 'get_equb_start_date'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Invalid security token. Please refresh the page and try again.'
+        ]);
+        exit;
+    }
+}
 
 switch ($action) {
     case 'add':

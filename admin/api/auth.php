@@ -79,15 +79,30 @@ switch ($action) {
         break;
         
     case 'register':
+        // SECURITY FIX: Admin registration disabled for security
+        // Public admin registration is a critical security vulnerability
+        json_response(false, 'Admin registration is disabled. Contact system administrator.');
+        
+        /* DISABLED FOR SECURITY - Enable only with proper authorization
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
+        
+        // SECURITY: Only allow if current admin is authenticated and authorized
+        if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
+            json_response(false, 'Only existing admins can create new admin accounts');
+        }
         
         if (empty($username) || empty($password)) {
             json_response(false, 'Username and password are required');
         }
         
-        if (strlen($password) < 6) {
-            json_response(false, 'Password must be at least 6 characters long');
+        // SECURITY FIX: Strengthen password requirements
+        if (strlen($password) < 12) {
+            json_response(false, 'Password must be at least 12 characters long');
+        }
+        
+        if (!preg_match('/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/', $password)) {
+            json_response(false, 'Password must contain uppercase, lowercase, number, and special character');
         }
         
         try {
@@ -104,12 +119,13 @@ switch ($action) {
             $stmt = $pdo->prepare("INSERT INTO admins (username, password, is_active, created_at) VALUES (?, ?, 1, NOW())");
             $stmt->execute([$username, $password_hash]);
             
-            json_response(true, 'Registration successful! You can now login.');
+            json_response(true, 'Admin account created successfully!');
             
         } catch (Exception $e) {
             error_log("Admin registration error: " . $e->getMessage());
             json_response(false, 'Registration failed. Please try again.');
         }
+        */
         break;
         
     default:

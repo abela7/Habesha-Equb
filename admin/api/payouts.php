@@ -103,16 +103,29 @@ function addPayout() {
     global $pdo, $admin_id;
     
     $member_id = intval($_POST['member_id'] ?? 0);
-    $total_amount = floatval($_POST['total_amount'] ?? 0);
+    $total_amount_input = $_POST['total_amount'] ?? '';
     $scheduled_date = $_POST['scheduled_date'] ?? '';
     
-    if (!$member_id || !$total_amount || !$scheduled_date) {
+    if (!$member_id || !$total_amount_input || !$scheduled_date) {
         echo json_encode(['success' => false, 'message' => 'All required fields must be provided']);
         return;
     }
     
+    // SECURITY FIX: Strict financial validation
+    if (!is_numeric($total_amount_input)) {
+        echo json_encode(['success' => false, 'message' => 'Total amount must be a valid number']);
+        return;
+    }
+    
+    $total_amount = round(floatval($total_amount_input), 2); // Round to 2 decimal places
+    
     if ($total_amount <= 0) {
         echo json_encode(['success' => false, 'message' => 'Total amount must be greater than 0']);
+        return;
+    }
+    
+    if ($total_amount > 9999999.99) {
+        echo json_encode(['success' => false, 'message' => 'Total amount exceeds maximum allowed limit']);
         return;
     }
     
@@ -133,15 +146,38 @@ function addPayout() {
         return;
     }
     
-    // Optional fields
+    // Optional fields with validation
     $payout_method = sanitize_input($_POST['payout_method'] ?? 'bank_transfer');
-    $admin_fee = floatval($_POST['admin_fee'] ?? 0);
+    $admin_fee_input = $_POST['admin_fee'] ?? 0;
     $status = sanitize_input($_POST['status'] ?? 'scheduled');
     $payout_notes = sanitize_input($_POST['payout_notes'] ?? '');
     $manual_actual_date = $_POST['actual_payout_date'] ?? '';
     
-    // Calculate net amount
-    $net_amount = $total_amount - $admin_fee;
+    // SECURITY FIX: Validate admin fee
+    if (!is_numeric($admin_fee_input)) {
+        echo json_encode(['success' => false, 'message' => 'Admin fee must be a valid number']);
+        return;
+    }
+    
+    $admin_fee = round(floatval($admin_fee_input), 2);
+    
+    if ($admin_fee < 0) {
+        echo json_encode(['success' => false, 'message' => 'Admin fee cannot be negative']);
+        return;
+    }
+    
+    if ($admin_fee >= $total_amount) {
+        echo json_encode(['success' => false, 'message' => 'Admin fee cannot exceed total amount']);
+        return;
+    }
+    
+    // Calculate net amount with validation
+    $net_amount = round($total_amount - $admin_fee, 2);
+    
+    if ($net_amount <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Net amount must be greater than 0']);
+        return;
+    }
     
     // Handle actual payout date for completed status
     $actual_payout_date = null;

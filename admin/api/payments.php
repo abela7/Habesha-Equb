@@ -9,13 +9,13 @@ require_once '../../includes/db.php';
 // Set JSON header
 header('Content-Type: application/json');
 
-// Check if admin is logged in
-if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
+// SECURITY FIX: Use standardized admin authentication
+require_once '../includes/admin_auth_guard.php';
+$admin_id = get_current_admin_id();
+if (!$admin_id) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
 }
-
-$admin_id = $_SESSION['admin_id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // CSRF token verification for POST requests
@@ -69,19 +69,32 @@ try {
 function addPayment() {
     global $pdo, $admin_id;
     
-    // Validate required fields
+    // SECURITY FIX: Validate required fields with strict financial validation
     $member_id = intval($_POST['member_id'] ?? 0);
-    $amount = floatval($_POST['amount'] ?? 0);
+    $amount_input = $_POST['amount'] ?? '';
     $payment_date = $_POST['payment_date'] ?? '';
     $payment_month = $_POST['payment_month'] ?? '';
     
-    if (!$member_id || !$amount || !$payment_date || !$payment_month) {
+    if (!$member_id || !$amount_input || !$payment_date || !$payment_month) {
         echo json_encode(['success' => false, 'message' => 'Member, amount, payment date, and payment month are required']);
         return;
     }
     
+    // SECURITY FIX: Strict financial validation
+    if (!is_numeric($amount_input)) {
+        echo json_encode(['success' => false, 'message' => 'Amount must be a valid number']);
+        return;
+    }
+    
+    $amount = round(floatval($amount_input), 2); // Round to 2 decimal places
+    
     if ($amount <= 0) {
         echo json_encode(['success' => false, 'message' => 'Amount must be greater than 0']);
+        return;
+    }
+    
+    if ($amount > 999999.99) {
+        echo json_encode(['success' => false, 'message' => 'Amount exceeds maximum allowed limit']);
         return;
     }
     

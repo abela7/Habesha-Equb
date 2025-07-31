@@ -1,23 +1,27 @@
 <?php
 /**
- * HabeshaEqub Database Connection
- * Secure configuration with credential protection
+ * HabeshaEqub Database Connection - BACKUP COPY
+ * Created before security fixes - DO NOT DELETE
  */
 
-// Load secure configuration
-define('CONFIG_LOADED', true);
-$config = require_once __DIR__ . '/config.php';
-
 try {
-    // Database configuration from secure config
-    $db_config = $config['database'];
+    // Database configuration
+    $host = 'localhost';
+    $dbname = 'habeshjv_habeshaequb';
+    $username = 'habeshjv_abel';
+    $password = '2121@Habesha';
     
-    // Create PDO connection with secure configuration
+    // Create PDO connection
     $pdo = new PDO(
-        "mysql:host={$db_config['host']};dbname={$db_config['dbname']};charset={$db_config['charset']}",
-        $db_config['username'],
-        $db_config['password'],
-        $db_config['options']
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $username,
+        $password,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+        ]
     );
     
     // Create alias for backward compatibility
@@ -112,4 +116,4 @@ if (session_status() === PHP_SESSION_NONE) {
         'cookie_samesite' => 'Strict'
     ]);
 }
-?> 
+?>

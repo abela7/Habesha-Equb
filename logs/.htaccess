@@ -1,0 +1,11 @@
+# HabeshaEqub Log Protection
+# Prevent web access to log files
+
+Order Allow,Deny
+Deny from all
+
+# Additional protection
+<Files "*">
+    Order Allow,Deny
+    Deny from all
+</Files>

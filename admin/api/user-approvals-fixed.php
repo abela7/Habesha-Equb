@@ -150,14 +150,9 @@ try {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage(),
-        'debug' => [
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'admin_id' => isset($admin_id) ? $admin_id : 'not_set',
-            'post_data' => $_POST,
-            'input_data' => isset($input) ? $input : 'no_input'
-        ]
+        'message' => 'An error occurred while processing your request. Please try again.'
+        // SECURITY FIX: Debug information removed to prevent information disclosure
+        // Original debug data logged securely to error log
     ]);
 }
 ?> 

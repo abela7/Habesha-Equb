@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 31, 2025 at 06:33 PM
+-- Generation Time: Jul 31, 2025 at 11:06 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -147,7 +147,7 @@ CREATE TABLE `equb_settings` (
 --
 
 INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`) VALUES
-(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 8, 1, 8, '2025-07-01', '2026-03-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"}]', '£', 5, 10.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 64000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-07-31 15:58:01');
+(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 8, 2, 8, '2025-07-01', '2026-03-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"}]', '£', 5, 10.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 64000.00, 2000.00, 2000.00, '', '2025-07-31 14:18:24', '2025-07-31 18:08:20');
 
 -- --------------------------------------------------------
 
@@ -199,8 +199,8 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
-(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$RKQ13.MlF/rkiwSzi4BeDur7E2i4yYjKh3XGo7sqrNu/Ck3qwJB2G', 'active', 1000.00, 1, '2025-07-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 1, 1, '', '2025-07-31 14:13:25', '2025-07-31 17:25:20', 1, 1, 0),
-(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', '$2y$12$3M/vVlU4AjXQuAcp.mDVrel70F2k/OEiOHM6HQe9qISnT0zuv1Wki', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 17:26:31', 1, 1, 0);
+(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$RKQ13.MlF/rkiwSzi4BeDur7E2i4yYjKh3XGo7sqrNu/Ck3qwJB2G', 'active', 1000.00, 1, '2025-07-05', 1000.00, 1, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 1, 1, '', '2025-07-31 14:13:25', '2025-07-31 20:37:42', 1, 1, 0),
+(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', '$2y$12$3M/vVlU4AjXQuAcp.mDVrel70F2k/OEiOHM6HQe9qISnT0zuv1Wki', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 21:36:27', 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -300,7 +300,7 @@ CREATE TABLE `payouts` (
 --
 
 INSERT INTO `payouts` (`id`, `payout_id`, `member_id`, `total_amount`, `scheduled_date`, `actual_payout_date`, `status`, `payout_method`, `processed_by_admin_id`, `admin_fee`, `net_amount`, `transaction_reference`, `receipt_issued`, `member_signature`, `payout_notes`, `created_at`, `updated_at`) VALUES
-(1, 'PAYOUT-AD-072025', 1, 2000.00, '2025-07-31', NULL, 'completed', 'cash', NULL, 0.00, 2000.00, NULL, 0, 0, '', '2025-07-31 17:31:58', '2025-07-31 17:31:58');
+(2, 'PAYOUT-AD-062025', 1, 2000.00, '2025-06-01', '2025-07-31', 'completed', 'cash', 8, 20.00, 1980.00, NULL, 0, 0, '', '2025-07-31 18:52:35', '2025-07-31 18:52:56');
 
 -- --------------------------------------------------------
 
@@ -506,7 +506,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `payouts`
 --
 ALTER TABLE `payouts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
