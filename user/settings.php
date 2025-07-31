@@ -252,7 +252,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     transform: translateY(-2px);
 }
 
-/* Simple Checkbox Design with Tick Marks */
+/* Professional Toggle Switch Design */
 .form-check {
     margin-bottom: 20px;
     padding-left: 0;
@@ -262,12 +262,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 }
 
 .form-check-input {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    background-color: #ffffff;
+    width: 50px;
+    height: 26px;
+    border-radius: 26px;
+    background-color: #e5e7eb;
     border: 2px solid #d1d5db;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     position: relative;
     margin: 0;
@@ -279,7 +279,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 .form-check-input:focus {
     box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
     outline: none;
-    border-color: var(--color-gold);
 }
 
 .form-check-input:checked {
@@ -288,16 +287,21 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
 }
 
-.form-check-input:checked::after {
-    content: '✓';
+.form-check-input::before {
+    content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 14px;
-    font-weight: bold;
-    line-height: 1;
+    top: 1px;
+    left: 1px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-check-input:checked::before {
+    transform: translateX(24px);
 }
 
 .form-check-label {
@@ -547,8 +551,17 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .form-check-input {
+        width: 45px;
+        height: 24px;
+    }
+    
+    .form-check-input::before {
         width: 18px;
         height: 18px;
+    }
+    
+    .form-check-input:checked::before {
+        transform: translateX(21px);
     }
     
     .account-info-grid {
@@ -780,21 +793,59 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 </div>
             </div>
             
+            <!-- Language Preference -->
+            <div class="col-lg-6">
+                <div class="settings-card">
+                    <h2 class="section-title">
+                        <i class="fas fa-globe text-success"></i>
+                        <?php echo t('settings.language_preference'); ?>
+                    </h2>
+                    
+                    <form id="languageForm" action="api/update-settings.php" method="POST">
+                        <input type="hidden" name="action" value="privacy">
+                        <input type="hidden" name="go_public" value="<?php echo ($member['go_public'] ?? 0); ?>">
+                        
+                        <div class="form-group">
+                            <label for="language_preference" class="form-label">
+                                <i class="fas fa-language text-warning"></i>
+                                <?php echo t('settings.interface_language'); ?>
+                            </label>
+                            <select class="form-select" id="language_preference" name="language_preference" style="border-radius: 12px; border: 2px solid #daa520; padding: 12px 16px; background: white; font-size: 16px;">
+                                <option value="0" <?php echo ($member['language_preference'] == 0) ? 'selected' : ''; ?>>
+                                    🇺🇸 English
+                                </option>
+                                <option value="1" <?php echo ($member['language_preference'] == 1) ? 'selected' : ''; ?>>
+                                    🇪🇹 አማርኛ (Amharic)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-3 mt-4">
+                            <button type="submit" class="btn btn-warning flex-fill">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                <?php echo t('settings.apply_language'); ?>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
             <!-- Privacy & Security -->
             <div class="col-lg-6">
                 <div class="settings-card">
                     <h2 class="section-title">
-                        <i class="fas fa-shield-alt text-success"></i>
+                        <i class="fas fa-shield-alt text-primary"></i>
                         <?php echo t('settings.privacy_security'); ?>
                     </h2>
                     
                     <form id="privacyForm" action="api/update-settings.php" method="POST">
                         <input type="hidden" name="action" value="privacy">
+                        <input type="hidden" name="language_preference" value="<?php echo ($member['language_preference'] ?? 0); ?>">
                         
                         <div class="feature-item">
                             <div class="feature-content">
                                 <div class="feature-title">
-                                    <i class="fas fa-eye text-primary"></i>
+                                    <i class="fas fa-eye text-info"></i>
                                     <?php echo t('settings.public_profile'); ?>
                                 </div>
                                 <p class="feature-description">
@@ -808,26 +859,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="language_preference" class="form-label">
-                                <i class="fas fa-globe text-warning"></i>
-                                <?php echo t('settings.language_preference'); ?>
-                            </label>
-                            <select class="form-select" id="language_preference" name="language_preference">
-                                <option value="0" <?php echo ($member['language_preference'] == 0) ? 'selected' : ''; ?>>
-                                    English
-                                </option>
-                                <option value="1" <?php echo ($member['language_preference'] == 1) ? 'selected' : ''; ?>>
-                                    አማረኛ (Amharic)
-                                </option>
-                            </select>
-                        </div>
 
                         <div class="d-flex gap-3 mt-4">
                             <button type="submit" class="btn btn-warning flex-fill">
                                 <i class="fas fa-shield-alt me-2"></i>
-                                <?php echo t('settings.update_privacy'); ?>
+                                <?php echo t('settings.save_changes'); ?>
                             </button>
                         </div>
                     </form>
@@ -875,6 +911,45 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     
                     if (result.success) {
                         showAlert(result.message, 'success');
+                    } else {
+                        showAlert(result.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('Network error. Please try again.', 'danger');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            });
+        }
+
+        // Language form handling
+        const languageForm = document.getElementById('languageForm');
+        if (languageForm) {
+            languageForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Applying...';
+                
+                try {
+                    const formData = new FormData(this);
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert(result.message, 'success');
+                        if (result.language_changed) {
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        }
                     } else {
                         showAlert(result.message, 'danger');
                     }
