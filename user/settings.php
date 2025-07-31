@@ -86,16 +86,23 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     --color-danger: #E76F51;
 }
 
-/* Enhanced Page Header - Premium Design */
+/* STUNNING Page Header - Premium Design */
 .page-header {
-    background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
-    border-radius: 24px;
-    padding: 50px 40px;
-    margin-bottom: 45px;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 12px 40px rgba(48, 25, 52, 0.1);
+    background: linear-gradient(135deg, 
+        var(--color-white) 0%, 
+        var(--color-cream) 30%, 
+        #FAF8F5 100%);
+    border-radius: 30px;
+    padding: 60px 50px;
+    margin-bottom: 50px;
+    border: 2px solid var(--color-gold);
+    box-shadow: 
+        0 20px 60px rgba(48, 25, 52, 0.15),
+        0 0 0 1px rgba(218, 165, 32, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(20px);
 }
 
 .page-header::before {
@@ -142,18 +149,25 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     z-index: 2;
 }
 
-/* Settings Card - Premium Design */
+/* STUNNING Settings Card - Top-Tier Design */
 .settings-card {
-    background: var(--color-white);
-    border-radius: 24px;
-    padding: 40px 35px;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 8px 32px rgba(48, 25, 52, 0.08);
+    background: linear-gradient(145deg, 
+        var(--color-white) 0%, 
+        rgba(241, 236, 226, 0.4) 100%);
+    border-radius: 30px;
+    padding: 45px 40px;
+    border: 2px solid var(--color-gold);
+    box-shadow: 
+        0 20px 60px rgba(48, 25, 52, 0.15),
+        0 8px 25px rgba(218, 165, 32, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(218, 165, 32, 0.1);
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     height: 100%;
     position: relative;
     overflow: hidden;
-    margin-bottom: 30px;
+    margin-bottom: 35px;
+    backdrop-filter: blur(10px);
 }
 
 .settings-card::before {
@@ -162,11 +176,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--color-gold) 0%, var(--color-light-gold) 100%);
+    height: 6px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--color-gold) 50%, 
+        transparent 100%);
     transform: scaleX(0);
-    transition: transform 0.5s ease;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+
 
 .settings-card::after {
     content: '';
@@ -181,13 +200,21 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 }
 
 .settings-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 60px rgba(48, 25, 52, 0.15);
-    border-color: rgba(218, 165, 32, 0.3);
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 
+        0 30px 80px rgba(48, 25, 52, 0.2),
+        0 15px 35px rgba(218, 165, 32, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        0 0 0 1px rgba(218, 165, 32, 0.4);
+    border-color: var(--color-gold);
 }
 
 .settings-card:hover::before {
     transform: scaleX(1);
+    background: linear-gradient(90deg, 
+        var(--color-gold) 0%, 
+        var(--color-light-gold) 50%, 
+        var(--color-gold) 100%);
 }
 
 .settings-card:hover::after {
@@ -197,15 +224,21 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
 /* Section Styling - Enhanced */
 .section-title {
-    font-size: 26px;
-    font-weight: 600;
-    color: var(--color-deep-purple);
-    margin-bottom: 25px;
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, 
+        var(--color-dark-purple) 0%, 
+        var(--color-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 35px;
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
     position: relative;
-    padding-left: 20px;
+    padding-left: 25px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .section-title::before {
@@ -214,10 +247,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 4px;
-    height: 30px;
-    background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-light-gold) 100%);
-    border-radius: 2px;
+    width: 6px;
+    height: 40px;
+    background: linear-gradient(180deg, 
+        var(--color-gold) 0%, 
+        var(--color-light-gold) 50%,
+        var(--color-gold) 100%);
+    border-radius: 6px;
+    box-shadow: 
+        0 4px 12px rgba(218, 165, 32, 0.4),
+        0 2px 6px rgba(218, 165, 32, 0.2);
 }
 
 /* Form Controls - Premium */
@@ -252,73 +291,90 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     transform: translateY(-2px);
 }
 
-/* Professional Toggle Switch Design */
+/* STUNNING Toggle Switch Design */
 .form-check {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     padding-left: 0;
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
 }
 
 .form-check-input {
-    width: 50px;
-    height: 26px;
-    border-radius: 26px;
-    background-color: #e5e7eb;
+    width: 60px;
+    height: 30px;
+    border-radius: 30px;
+    background: linear-gradient(145deg, #f0f0f0, #e5e7eb);
     border: 2px solid #d1d5db;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     position: relative;
     margin: 0;
     flex-shrink: 0;
     appearance: none;
     -webkit-appearance: none;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .form-check-input:focus {
-    box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
+    box-shadow: 
+        0 0 0 4px rgba(218, 165, 32, 0.2),
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.05);
     outline: none;
+    border-color: var(--color-gold);
 }
 
 .form-check-input:checked {
-    background-color: var(--color-gold);
+    background: linear-gradient(145deg, var(--color-gold), var(--color-light-gold));
     border-color: var(--color-gold);
-    box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
+    box-shadow: 
+        0 0 0 4px rgba(218, 165, 32, 0.15),
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(218, 165, 32, 0.3);
 }
 
 .form-check-input::before {
     content: '';
     position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 20px;
-    height: 20px;
-    background: white;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
     border-radius: 50%;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .form-check-input:checked::before {
-    transform: translateX(24px);
+    transform: translateX(30px);
+    background: linear-gradient(145deg, #ffffff, #fff8e1);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        0 2px 6px rgba(218, 165, 32, 0.3);
 }
 
 .form-check-label {
-    font-weight: 500;
+    font-weight: 600;
     color: var(--color-dark-purple);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
     margin: 0;
     flex: 1;
+    font-size: 1.1rem;
 }
 
 /* Enhanced Button Styling */
 .btn {
-    border-radius: 16px;
-    padding: 15px 30px;
+    border-radius: 20px;
+    padding: 18px 35px;
     font-weight: 600;
     font-size: 15px;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -551,17 +607,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .form-check-input {
-        width: 45px;
-        height: 24px;
+        width: 55px;
+        height: 28px;
     }
     
     .form-check-input::before {
-        width: 18px;
-        height: 18px;
+        width: 22px;
+        height: 22px;
+        top: 1px;
+        left: 1px;
     }
     
     .form-check-input:checked::before {
-        transform: translateX(21px);
+        transform: translateX(27px);
     }
     
     .account-info-grid {
@@ -902,7 +960,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 
                 try {
                     const formData = new FormData(this);
-                    const response = await fetch(this.action, {
+                    const response = await fetch('api/update-settings.php', {
                         method: 'POST',
                         body: formData
                     });
@@ -936,7 +994,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 
                 try {
                     const formData = new FormData(this);
-                    const response = await fetch(this.action, {
+                    const response = await fetch('api/update-settings.php', {
                         method: 'POST',
                         body: formData
                     });
@@ -975,7 +1033,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 
                 try {
                     const formData = new FormData(this);
-                    const response = await fetch(this.action, {
+                    const response = await fetch('api/update-settings.php', {
                         method: 'POST',
                         body: formData
                     });
