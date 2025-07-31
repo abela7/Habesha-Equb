@@ -1,66 +1,67 @@
 <?php
 /**
- * Language Switching API
- * Handle AJAX requests for changing language
+ * HabeshaEqub - Admin Language Switching API
+ * Handles admin language preference updates
  */
 
-// Include required files
 require_once '../../includes/db.php';
-require_once '../../languages/translator.php';
+require_once '../../languages/user_language_handler.php';
 
-// Set JSON response header
+// Set JSON header
 header('Content-Type: application/json');
 
-// Check if user is authenticated admin
-if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+// Secure admin authentication check
+require_once '../includes/admin_auth_guard.php';
+$admin_id = get_current_admin_id();
+if (!$admin_id) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
 }
 
-// Handle POST request for language switching
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Verify CSRF token
-    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
-        exit;
-    }
-    
-    $language = sanitize_input($_POST['language'] ?? '');
-    
-    if (empty($language)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Language is required']);
-        exit;
-    }
-    
-    // Set the language
-    if (setLanguage($language)) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Language changed successfully',
-            'current_language' => getCurrentLanguage(),
-            'available_languages' => getAvailableLanguages()
-        ]);
-    } else {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid language']);
-    }
+// Check request method
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
 
-// Handle GET request for current language info
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    echo json_encode([
-        'success' => true,
-        'current_language' => getCurrentLanguage(),
-        'available_languages' => getAvailableLanguages()
-    ]);
+// Verify CSRF token
+if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+    echo json_encode(['success' => false, 'message' => 'Invalid security token']);
     exit;
 }
 
-// Method not allowed
-http_response_code(405);
-echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-?> 
+$action = $_POST['action'] ?? '';
+
+try {
+    switch ($action) {
+        case 'switch_language':
+            $language = $_POST['language'] ?? '';
+            
+            // Validate language
+            if (!in_array($language, ['en', 'am'])) {
+                echo json_encode(['success' => false, 'message' => 'Invalid language selection']);
+                exit;
+            }
+            
+            // Update admin language preference in database
+            $result = updateAdminLanguagePreference($admin_id, $language);
+            
+            if ($result) {
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Language updated successfully',
+                    'language' => $language
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update language preference']);
+            }
+            break;
+            
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+    }
+} catch (Exception $e) {
+    error_log("Language API error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'An error occurred while processing your request']);
+}
+?>
