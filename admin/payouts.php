@@ -803,6 +803,19 @@ $csrf_token = generate_csrf_token();
                     </div>
                     
                     <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="actualPayoutDate" class="form-label">Actual Payout Date</label>
+                                <input type="date" class="form-control" id="actualPayoutDate" name="actual_payout_date" placeholder="Leave empty for automatic">
+                                <small class="form-text text-muted">Leave empty to automatically set when status is marked as completed</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Empty column for alignment -->
+                        </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-12">
                             <div class="mb-3">
                                 <label for="payoutNotes" class="form-label">Notes</label>
@@ -960,6 +973,7 @@ $csrf_token = generate_csrf_token();
                     document.getElementById('payoutMethod').value = payout.payout_method || 'bank_transfer';
                     document.getElementById('adminFee').value = payout.admin_fee || 0;
                     document.getElementById('status').value = payout.status || 'scheduled';
+                    document.getElementById('actualPayoutDate').value = payout.actual_payout_date || '';
                     document.getElementById('payoutNotes').value = payout.payout_notes || '';
                     
                     new bootstrap.Modal(document.getElementById('payoutModal')).show();

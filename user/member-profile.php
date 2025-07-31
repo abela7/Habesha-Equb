@@ -115,7 +115,7 @@ $payout_status = $member['total_payouts_received'] > 0 ? 'received' : ($member['
 if (isset($payout_info['calculated_payout_date'])) {
     $expected_payout_formatted = date('M j, Y', strtotime($payout_info['calculated_payout_date']));
 } else {
-    $expected_payout_formatted = 'Not Available';
+    $expected_payout_formatted = t('members_directory.not_available');
 }
 
 // Calculate payment progress based on expected payments for the member's equb duration
@@ -618,10 +618,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     <div class="mb-3">
                         <div class="alert alert-info">
                             <i class="fas fa-tag me-2"></i>
-                            <strong>Equb:</strong> <?php echo htmlspecialchars($member['equb_name']); ?>
+                            <strong><?php echo t('members_directory.equb_label'); ?>:</strong> <?php echo htmlspecialchars($member['equb_name']); ?>
                             <span class="ms-3">
                                 <i class="fas fa-users me-1"></i>
-                                Position <?php echo $member['payout_position']; ?> of <?php echo $member['total_equb_members']; ?>
+                                <?php echo t('members_directory.position_of'); ?> <?php echo $member['payout_position']; ?> <?php echo t('members_directory.of'); ?> <?php echo $member['total_equb_members']; ?>
                             </span>
                         </div>
                     </div>
@@ -643,7 +643,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-value">£<?php echo number_format($member['total_contributed'], 0); ?></div>
                             <div class="stat-label"><?php echo t('members_directory.total_contributed'); ?></div>
                             <div class="stat-detail">
-                                <?php echo $member['payments_made']; ?> payments made
+                                <?php echo $member['payments_made']; ?> <?php echo t('members_directory.payments_made'); ?>
                             </div>
                         </div>
                         
@@ -666,14 +666,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="stat-value">
                                     <?php echo date('M j, Y', strtotime($member['last_payout_date'])); ?>
                                 </div>
-                                <div class="stat-label">Paid Out</div>
+                                <div class="stat-label"><?php echo t('members_directory.paid_out'); ?></div>
                                 <div class="stat-detail">
                                     <i class="fas fa-money-bill-wave text-success me-1"></i>
-                                    Received £<?php echo number_format($member['last_payout_amount'], 0); ?>
+                                    <?php echo t('members_directory.received_amount'); ?> £<?php echo number_format($member['last_payout_amount'], 0); ?>
                                 </div>
                                 <?php if ($member['total_payouts_received'] > 1): ?>
                                 <div class="stat-detail mt-1">
-                                    <small class="text-muted"><?php echo $member['total_payouts_received']; ?> total payouts received</small>
+                                    <small class="text-muted"><?php echo $member['total_payouts_received']; ?> <?php echo t('members_directory.total_payouts_received'); ?></small>
                                 </div>
                                 <?php endif; ?>
                             <?php else: ?>
@@ -684,15 +684,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="stat-label"><?php echo t('members_directory.payout_date'); ?></div>
                                 <?php if (isset($payout_info['days_until_payout'])): ?>
                                 <div class="stat-detail">
-                                    <?php 
-                                    if ($payout_info['days_until_payout'] > 0) {
-                                        echo $payout_info['days_until_payout'] . ' days remaining';
-                                    } elseif ($payout_info['days_until_payout'] < 0) {
-                                        echo 'Overdue by ' . abs($payout_info['days_until_payout']) . ' days';
-                                    } else {
-                                        echo 'Payout available today!';
-                                    }
-                                    ?>
+                                                                    <?php 
+                                if ($payout_info['days_until_payout'] > 0) {
+                                    echo $payout_info['days_until_payout'] . ' ' . t('members_directory.days_remaining');
+                                } elseif ($payout_info['days_until_payout'] < 0) {
+                                    echo t('members_directory.overdue_by') . ' ' . abs($payout_info['days_until_payout']) . ' ' . t('members_directory.days');
+                                } else {
+                                    echo 'Payout available today!';
+                                }
+                                ?>
                                 </div>
                                 <?php endif; ?>
                             <?php endif; ?>
@@ -801,7 +801,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-label"><?php echo t('members_directory.successful_payments'); ?></div>
                             <div class="stat-detail">
                                 <?php if ($member['duration_months']): ?>
-                                    <small><?php echo $member['payments_made']; ?> of <?php echo $member['duration_months']; ?> expected</small>
+                                    <small><?php echo $member['payments_made']; ?> <?php echo t('members_directory.of'); ?> <?php echo $member['duration_months']; ?> <?php echo t('members_directory.expected'); ?></small>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -814,9 +814,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-label"><?php echo t('members_directory.payouts_received'); ?></div>
                             <div class="stat-detail">
                                 <?php if ($member['last_payout_amount'] > 0): ?>
-                                    <small>Last: £<?php echo number_format($member['last_payout_amount'], 0); ?></small>
+                                    <small><?php echo t('members_directory.last'); ?>: £<?php echo number_format($member['last_payout_amount'], 0); ?></small>
                                 <?php else: ?>
-                                    <small>No payouts yet</small>
+                                    <small><?php echo t('members_directory.no_payment_history'); ?></small>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -841,11 +841,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-value">
                                 <?php echo $member_since; ?>
                             </div>
-                            <div class="stat-label">Member Since</div>
+                            <div class="stat-label"><?php echo t('members_directory.member_since'); ?></div>
                             <div class="stat-detail">
                                 <small>
                                     <?php 
-                                    $status = $member['is_approved'] ? 'Approved' : 'Pending';
+                                    $status = $member['is_approved'] ? t('members_directory.approved') : t('members_directory.pending');
                                     $status_color = $member['is_approved'] ? 'text-success' : 'text-warning';
                                     ?>
                                     <span class="<?php echo $status_color; ?>"><?php echo $status; ?></span>

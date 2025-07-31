@@ -464,7 +464,19 @@
     "back_to_members": "Back to Members",
     "invalid_member_id": "Invalid Member ID",
     "member_not_found": "Member not found or not public",
-    "database_error": "Database Error"
+    "database_error": "Database Error",
+    "equb_label": "Equb",
+    "position_of": "Position",
+    "of": "of",
+    "received_amount": "Received",
+    "total_payouts_received": "total payouts received",
+    "days_remaining": "days remaining",
+    "overdue_by": "Overdue by",
+    "days": "days",
+    "not_available": "Not Available",
+    "last": "Last",
+    "paid_out": "Paid Out",
+    "expected": "expected"
   },
   "user_auth": {
     "page_title": "Welcome to HabeshaEqub",
@@ -642,6 +654,7 @@
     "view_receipt": "View Receipt",
     "download_receipt": "Download Receipt",
     "no_receipt": "No Receipt",
+    "receipt_number": "Receipt Number",
     "all_payments": "All Payments",
     "recent_payments": "Recent Payments",
     "this_year": "This Year",

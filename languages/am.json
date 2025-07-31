@@ -464,7 +464,19 @@
     "back_to_members": "ወደ አባላት ተመለስ",
     "invalid_member_id": "ልክ ያልሆነ የአባል መታወቂያ",
     "member_not_found": "አባል አልተገኘም!",
-    "database_error": "የመረጃ ቋት ስህተት"
+    "database_error": "የመረጃ ቋት ስህተት",
+    "equb_label": "እቁብ",
+    "position_of": "ቅደም ተከተል",
+    "of": "ከ",
+    "received_amount": "ተቀብሏል",
+    "total_payouts_received": "ጠቅላላ የተቀበሉ እቁቦች",
+    "days_remaining": "ቀሪ ቀናት",
+    "overdue_by": "ዘግይቷል በ",
+    "days": "ቀናት",
+    "not_available": "አልተገኘም",
+    "last": "የመጨረሻ",
+    "paid_out": "ተከፍሏል",
+    "expected": "የሚጠበቅ"
   },
   "user_auth": {
     "page_title": "እንኳን ወደ ሐበሻ እቁብ በደህና መጡ!",
@@ -667,6 +679,7 @@
     "view_receipt": "ደረሰኝ ይመልከቱ",
     "download_receipt": "ደረሰኝ ያውርዱ",
     "no_receipt": "ደረሰኝ የለም",
+    "receipt_number": "የደረሰኝ ቁጥር",
     "all_payments": "ሁሉም ክፍያዎች",
     "recent_payments": "የቅርብ ጊዜ ክፍያዎች",
     "this_year": "በዚህ አመት",

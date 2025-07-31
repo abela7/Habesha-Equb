@@ -74,12 +74,27 @@ $payout_position = (int)$member['payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
 $expected_payout = $total_equb_members * $monthly_contribution;
 
-// Get recent payments
+// Get recent payments with proper month handling
 try {
     $stmt = $pdo->prepare("
         SELECT p.*, 
-               DATE_FORMAT(p.payment_date, '%M %d, %Y') as formatted_date,
-               DATE_FORMAT(p.payment_month, '%M %Y') as payment_month_name
+               CASE 
+                   WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00' 
+                   THEN DATE_FORMAT(p.payment_date, '%M %d, %Y') 
+                   ELSE DATE_FORMAT(p.created_at, '%M %d, %Y')
+               END as formatted_date,
+               CASE 
+                   WHEN p.payment_month IS NOT NULL AND p.payment_month != '0000-00-00' 
+                   THEN DATE_FORMAT(p.payment_month, '%M %Y') 
+                   WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00'
+                   THEN DATE_FORMAT(p.payment_date, '%M %Y')
+                   ELSE DATE_FORMAT(p.created_at, '%M %Y')
+               END as payment_month_name,
+               CASE 
+                   WHEN p.verified_by_admin = 1 THEN 'verified'
+                   WHEN p.verified_by_admin = 0 AND p.status = 'paid' THEN 'pending_verification'
+                   ELSE 'not_verified'
+               END as verification_status
         FROM payments p 
         WHERE p.member_id = ?
         ORDER BY p.payment_date DESC, p.created_at DESC
@@ -91,15 +106,21 @@ try {
     $recent_payments = [];
 }
 
-// Check current month payment
+// Check current month payment with proper handling
 $current_month = date('Y-m');
 try {
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as has_paid_current_month 
         FROM payments 
-        WHERE member_id = ? AND payment_month = ? AND status IN ('paid', 'completed')
+        WHERE member_id = ? 
+        AND (
+            (payment_month = ? AND payment_month != '0000-00-00')
+            OR (payment_month = '0000-00-00' AND DATE_FORMAT(payment_date, '%Y-%m') = ?)
+            OR (payment_month IS NULL AND DATE_FORMAT(payment_date, '%Y-%m') = ?)
+        )
+        AND status IN ('paid', 'completed')
     ");
-    $stmt->execute([$user_id, $current_month]);
+    $stmt->execute([$user_id, $current_month, $current_month, $current_month]);
     $current_month_payment = $stmt->fetch(PDO::FETCH_ASSOC);
     $has_paid_this_month = $current_month_payment['has_paid_current_month'] > 0;
 } catch (PDOException $e) {
@@ -1724,6 +1745,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <span class="badge bg-<?php echo $payment['status'] === 'paid' ? 'success' : 'warning'; ?>">
                                     <?php echo $payment['status'] === 'paid' ? t('member_dashboard.paid') : t('member_dashboard.pending'); ?>
                                 </span>
+                                <?php if ($payment['verification_status'] === 'verified'): ?>
+                                    <br><small class="text-success"><i class="fas fa-check-circle me-1"></i>Verified</small>
+                                <?php elseif ($payment['verification_status'] === 'pending_verification'): ?>
+                                    <br><small class="text-warning"><i class="fas fa-clock me-1"></i>Pending</small>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

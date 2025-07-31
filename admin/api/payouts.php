@@ -105,9 +105,23 @@ function addPayout() {
     $admin_fee = floatval($_POST['admin_fee'] ?? 0);
     $status = sanitize_input($_POST['status'] ?? 'scheduled');
     $payout_notes = sanitize_input($_POST['payout_notes'] ?? '');
+    $manual_actual_date = $_POST['actual_payout_date'] ?? '';
     
     // Calculate net amount
     $net_amount = $total_amount - $admin_fee;
+    
+    // Handle actual payout date for completed status
+    $actual_payout_date = null;
+    $processed_by_admin_id = null;
+    
+    if ($status === 'completed') {
+        $actual_payout_date = !empty($manual_actual_date) ? $manual_actual_date : date('Y-m-d');
+        $processed_by_admin_id = $admin_id;
+        
+        // Update member's has_received_payout flag
+        $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 1 WHERE id = ?");
+        $stmt->execute([$member_id]);
+    }
     
     // Generate payout ID: PAYOUT-MEMBERINITIALS-MMYYYY (e.g., PAYOUT-MW-012024)
     $payout_id = generatePayoutId($member['member_id'], $scheduled_date);
@@ -129,14 +143,14 @@ function addPayout() {
     // Insert payout
     $stmt = $pdo->prepare("
         INSERT INTO payouts 
-        (payout_id, member_id, total_amount, scheduled_date, status, payout_method, 
-         admin_fee, net_amount, payout_notes, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        (payout_id, member_id, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
+         admin_fee, net_amount, processed_by_admin_id, payout_notes, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     ");
     
     $stmt->execute([
-        $payout_id, $member_id, $total_amount, $scheduled_date, $status, 
-        $payout_method, $admin_fee, $net_amount, $payout_notes
+        $payout_id, $member_id, $total_amount, $scheduled_date, $actual_payout_date, $status, 
+        $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
     ]);
     
     echo json_encode([
@@ -228,29 +242,39 @@ function updatePayout() {
     $admin_fee = floatval($_POST['admin_fee'] ?? 0);
     $status = sanitize_input($_POST['status'] ?? 'scheduled');
     $payout_notes = sanitize_input($_POST['payout_notes'] ?? '');
+    $manual_actual_date = $_POST['actual_payout_date'] ?? '';
     
     // Calculate net amount
     $net_amount = $total_amount - $admin_fee;
     
-    // Handle status changes
+    // Handle actual payout date logic
     $actual_payout_date = null;
     $processed_by_admin_id = null;
     
-    if ($status === 'completed' && $current_payout['status'] !== 'completed') {
-        $actual_payout_date = date('Y-m-d');
+    if ($status === 'completed') {
+        if (!empty($manual_actual_date)) {
+            // Use manually provided date
+            $actual_payout_date = $manual_actual_date;
+        } elseif ($current_payout['status'] !== 'completed') {
+            // Auto-set to today if changing to completed
+            $actual_payout_date = date('Y-m-d');
+        } else {
+            // Keep existing date if already completed
+            $actual_payout_date = $current_payout['actual_payout_date'];
+        }
         $processed_by_admin_id = $admin_id;
         
-        // Update member's has_received_payout flag
-        $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 1 WHERE id = ?");
-        $stmt->execute([$member_id]);
+        // Update member's has_received_payout flag if changing to completed
+        if ($current_payout['status'] !== 'completed') {
+            $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 1 WHERE id = ?");
+            $stmt->execute([$member_id]);
+        }
     } elseif ($current_payout['status'] === 'completed' && $status !== 'completed') {
-        // If changing from completed to other status, reset member flag
+        // If changing from completed to other status, reset member flag and clear date
         $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 0 WHERE id = ?");
         $stmt->execute([$member_id]);
-    } elseif ($status === 'completed') {
-        // Keep existing values if already completed
-        $actual_payout_date = $current_payout['actual_payout_date'];
-        $processed_by_admin_id = $current_payout['processed_by_admin_id'];
+        $actual_payout_date = null;
+        $processed_by_admin_id = null;
     }
     
     // Update payout
