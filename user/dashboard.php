@@ -1193,6 +1193,54 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     border-radius: 2px;
 }
 
+/* Enhanced Rules Container for Single Accordion */
+.rules-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.rule-item {
+    padding: 24px 0;
+    transition: all 0.3s ease;
+}
+
+.rule-item:last-child {
+    border-bottom: none !important;
+}
+
+.rule-item.border-bottom {
+    border-bottom: 1px solid rgba(218, 165, 32, 0.15);
+}
+
+.rule-item .rule-header {
+    margin-bottom: 16px;
+}
+
+.rule-item .rule-number-badge {
+    background: linear-gradient(135deg, var(--palette-gold) 0%, var(--palette-light-gold) 100%);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(218, 165, 32, 0.25);
+}
+
+.rule-item .rule-content {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #4a5568;
+    padding-left: 0;
+    position: relative;
+}
+
+.rule-item .rule-content::before {
+    display: none;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .rules-section {
@@ -1593,36 +1641,45 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             <p class="section-subtitle"><?php echo t('member_dashboard.equb_rules_desc'); ?></p>
             
             <div class="accordion" id="equbRulesAccordion">
-                <?php foreach ($equb_rules as $index => $rule): ?>
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading<?php echo $rule['rule_number']; ?>">
-                        <button class="accordion-button <?php echo $index === 0 ? '' : 'collapsed'; ?>" 
+                    <h2 class="accordion-header" id="headingEqubRules">
+                        <button class="accordion-button collapsed" 
                                 type="button" 
                                 data-bs-toggle="collapse" 
-                                data-bs-target="#collapse<?php echo $rule['rule_number']; ?>" 
-                                aria-expanded="<?php echo $index === 0 ? 'true' : 'false'; ?>" 
-                                aria-controls="collapse<?php echo $rule['rule_number']; ?>">
-                            <span class="rule-number-badge">
-                                <?php echo t('member_dashboard.rule_number'); ?> <?php echo $rule['rule_number']; ?>
-                            </span>
+                                data-bs-target="#collapseEqubRules" 
+                                aria-expanded="false" 
+                                aria-controls="collapseEqubRules">
+                            <i class="fas fa-gavel me-2"></i>
+                            <?php echo t('member_dashboard.equb_rules'); ?>
+                            <span class="badge bg-primary ms-2"><?php echo count($equb_rules); ?> <?php echo t('member_dashboard.rules'); ?></span>
                         </button>
                     </h2>
-                    <div id="collapse<?php echo $rule['rule_number']; ?>" 
-                         class="accordion-collapse collapse <?php echo $index === 0 ? 'show' : ''; ?>" 
-                         aria-labelledby="heading<?php echo $rule['rule_number']; ?>" 
+                    <div id="collapseEqubRules" 
+                         class="accordion-collapse collapse" 
+                         aria-labelledby="headingEqubRules" 
                          data-bs-parent="#equbRulesAccordion">
                         <div class="accordion-body">
-                            <div class="rule-content">
-                                <?php 
-                                // Display content based on current language
-                                $content = (getCurrentLanguage() === 'am') ? $rule['rule_am'] : $rule['rule_en'];
-                                echo nl2br(htmlspecialchars($content)); 
-                                ?>
+                            <div class="rules-container">
+                                <?php foreach ($equb_rules as $index => $rule): ?>
+                                <div class="rule-item <?php echo $index < count($equb_rules) - 1 ? 'border-bottom' : ''; ?>">
+                                    <div class="rule-header">
+                                        <span class="rule-number-badge">
+                                            <?php echo t('member_dashboard.rule_number'); ?> <?php echo $rule['rule_number']; ?>
+                                        </span>
+                                    </div>
+                                    <div class="rule-content">
+                                        <?php 
+                                        // Display content based on current language
+                                        $content = (getCurrentLanguage() === 'am') ? $rule['rule_am'] : $rule['rule_en'];
+                                        echo nl2br(htmlspecialchars($content)); 
+                                        ?>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
                 </div>
-                <?php endforeach; ?>
             </div>
         </div>
         <?php endif; ?>

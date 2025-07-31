@@ -92,7 +92,7 @@ function logout_and_redirect($message = '') {
 function require_user_auth() {
     // Check if user is authenticated
     if (!is_user_authenticated()) {
-        logout_and_redirect('Please log in to access this page.');
+        logout_and_redirect();
     }
     
     // Check session timeout
