@@ -13,11 +13,12 @@ class Translator {
     private function __construct() {
         // Start session if not already started
         if (session_status() == PHP_SESSION_NONE) {
-            session_start();
+            @session_start(); // Suppress warnings in case headers already sent
         }
         
         // Get language from session or set default to Amharic
         $this->currentLanguage = $_SESSION['app_language'] ?? 'am';
+        error_log("Translator: Initialized with language: {$this->currentLanguage} (from session: " . ($_SESSION['app_language'] ?? 'not set') . ")");
         $this->loadTranslations();
     }
     

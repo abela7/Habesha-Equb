@@ -18,8 +18,12 @@ require_once '../languages/user_language_handler.php';
 // Set admin's language preference from database
 setAdminLanguageFromDatabase($admin_id);
 
+// EMERGENCY FIX: Force English for now while we debug
+setLanguage('en');
+
 // Debug output
-error_log("Dashboard: Admin ID: $admin_id, Final Language: " . getCurrentLanguage());
+error_log("Dashboard: Admin ID: $admin_id, DB Language Set, Forced to EN, Final Language: " . getCurrentLanguage());
+error_log("Dashboard: Test translation: " . t('dashboard.welcome_back'));
 
 // Get members data for dashboard statistics
 try {
