@@ -16,6 +16,12 @@ $admin_username = get_current_admin_username();
 // Set admin's language preference from database
 setAdminLanguageFromDatabase($admin_id);
 
+// Debug: Force English for troubleshooting
+setLanguage('en');
+
+// Debug logging
+error_log("Admin Dashboard Debug - Admin ID: $admin_id, Current Language: " . getCurrentLanguage());
+
 // Get members data for dashboard statistics
 try {
     $stmt = $pdo->query("
