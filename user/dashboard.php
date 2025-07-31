@@ -1708,12 +1708,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <i class="fas fa-users me-1"></i>
                             <?php echo sprintf(t('member_dashboard.members_calculation'), $total_equb_members, number_format($monthly_contribution, 2)); ?>
                         </div>
-                        <?php if (!empty($member['equb_name'])): ?>
-                        <div class="stat-detail mt-1">
-                            <i class="fas fa-tag text-warning me-1"></i>
-                            <small><?php echo htmlspecialchars($member['equb_name']); ?></small>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
