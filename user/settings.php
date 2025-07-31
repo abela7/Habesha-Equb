@@ -868,6 +868,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <i class="fas fa-language text-warning"></i>
                                 <?php echo t('settings.interface_language'); ?>
                             </label>
+                            
+                            <!-- Debug Info -->
+                            <div class="alert alert-info mb-3" style="font-size: 12px; padding: 8px;">
+                                <strong>Debug:</strong> 
+                                DB Value: <?php echo $member['language_preference'] ?? 'NULL'; ?> | 
+                                Session: <?php echo $_SESSION['app_language'] ?? 'NOT SET'; ?>
+                            </div>
+                            
                             <select class="form-select" id="language_preference" name="language_preference" style="border-radius: 12px; border: 2px solid #daa520; padding: 12px 16px; background: white; font-size: 16px;">
                                 <option value="0" <?php echo ($member['language_preference'] == 0) ? 'selected' : ''; ?>>
                                     🇺🇸 English
@@ -1002,13 +1010,17 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     const result = await response.json();
                     
                     if (result.success) {
+                        console.log('Language update response:', result);
                         showAlert(result.message, 'success');
                         if (result.language_changed) {
+                            console.log('Language changed to:', result.new_language);
                             setTimeout(() => {
+                                console.log('Reloading page...');
                                 window.location.reload();
                             }, 1000);
                         }
                     } else {
+                        console.error('Language update failed:', result);
                         showAlert(result.message, 'danger');
                     }
                 } catch (error) {

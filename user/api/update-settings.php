@@ -92,21 +92,17 @@ try {
                 $current_lang = $language_preference == 1 ? 'am' : 'en';
                 setLanguage($current_lang);
                 
-                // Also update the user language preference in the database sync function
-                try {
-                    require_once '../../languages/user_language_handler.php';
-                    updateUserLanguagePreference($user_id, $language_preference);
-                } catch (Exception $e) {
-                    // Continue even if this fails - the main update already worked
-                    error_log("Language preference sync error: " . $e->getMessage());
-                }
+                // Debug logging
+                error_log("Language preference updated in database: user_id=$user_id, preference=$language_preference, lang=$current_lang");
+                error_log("Session language set to: " . $_SESSION['app_language']);
                 
                 ob_clean();
                 echo json_encode([
                     'success' => true,
                     'message' => 'Settings updated successfully!',
                     'language_changed' => true,
-                    'new_language' => $current_lang
+                    'new_language' => $current_lang,
+                    'debug_preference' => $language_preference
                 ]);
             } else {
                 ob_clean();

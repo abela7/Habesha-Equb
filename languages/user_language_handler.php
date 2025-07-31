@@ -27,6 +27,7 @@ function setUserLanguageFromDatabase($user_id) {
         if ($result) {
             // language_preference: 0 = English, 1 = Amharic
             $language = ($result['language_preference'] == 1) ? 'am' : 'en';
+            error_log("setUserLanguageFromDatabase: user_id=$user_id, db_preference={$result['language_preference']}, setting_lang=$language");
             return setLanguage($language);
         }
     } catch (PDOException $e) {
@@ -34,6 +35,7 @@ function setUserLanguageFromDatabase($user_id) {
     }
     
     // Default to Amharic if there's an error
+    error_log("setUserLanguageFromDatabase: defaulting to 'am' for user_id=$user_id");
     return setLanguage('am');
 }
 

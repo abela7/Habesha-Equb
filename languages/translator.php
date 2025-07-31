@@ -97,8 +97,10 @@ class Translator {
             $this->currentLanguage = $language;
             $_SESSION['app_language'] = $language;
             $this->loadTranslations();
+            error_log("Translator::setLanguage: Set language to '$language', session now: " . $_SESSION['app_language']);
             return true;
         }
+        error_log("Translator::setLanguage: Invalid language '$language'");
         return false;
     }
     
