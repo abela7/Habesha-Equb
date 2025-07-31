@@ -460,7 +460,7 @@
     "payout_received": "እቁብን ወስዷል",
     "current_turn": "የዚህ ወር ተረኛ",
     "member_since": "አባል የሆነበት ጊዜ",
-    "position_number": "ወረፋ ኛ",
+    "position_number": "የወረፋ ቁጥር - ",
     "back_to_members": "ወደ አባላት ተመለስ",
     "invalid_member_id": "ልክ ያልሆነ የአባል መታወቂያ",
     "member_not_found": "አባል አልተገኘም ወይም የህዝብ አይደለም",
