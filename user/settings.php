@@ -38,22 +38,11 @@ try {
     die("❌ DATABASE ERROR: " . $e->getMessage());
 }
 
-// Parse notification preferences (JSON or comma-separated values)
-$notification_prefs = [];
-if ($member['notification_preferences']) {
-    if (is_string($member['notification_preferences'])) {
-        // Handle both JSON and comma-separated formats
-        if (strpos($member['notification_preferences'], '{') === 0) {
-            $notification_prefs = json_decode($member['notification_preferences'], true) ?? [];
-        } else {
-            // Handle comma-separated or MySQL SET format
-            $prefs = explode(',', $member['notification_preferences']);
-            foreach ($prefs as $pref) {
-                $notification_prefs[trim($pref)] = true;
-            }
-        }
-    }
-}
+// Get notification preferences from new database columns
+$email_notifications = (bool)($member['email_notifications'] ?? 1); // Default to 1 (enabled)
+$sms_notifications = (bool)($member['email_notifications'] ?? 1); // For now, use same as email (SMS column doesn't exist yet)
+$payment_reminders = (bool)($member['payment_reminders'] ?? 1); // Default to 1 (enabled)
+$swap_terms_allowed = (bool)($member['swap_terms_allowed'] ?? 0); // Default to 0 (disabled)
 
 // Strong cache buster for assets
 $cache_buster = time() . '_' . rand(1000, 9999);
@@ -263,7 +252,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     transform: translateY(-2px);
 }
 
-/* Enhanced Simple Checkbox Design */
+/* Simple Checkbox Design with Tick Marks */
 .form-check {
     margin-bottom: 20px;
     padding-left: 0;
@@ -273,21 +262,24 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 }
 
 .form-check-input {
-    width: 50px;
-    height: 26px;
-    border-radius: 26px;
-    background-color: #e5e7eb;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: #ffffff;
     border: 2px solid #d1d5db;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
     margin: 0;
     flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
 .form-check-input:focus {
     box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
     outline: none;
+    border-color: var(--color-gold);
 }
 
 .form-check-input:checked {
@@ -296,21 +288,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
 }
 
-.form-check-input::before {
-    content: '';
+.form-check-input:checked::after {
+    content: '✓';
     position: absolute;
-    top: 1px;
-    left: 1px;
-    width: 20px;
-    height: 20px;
-    background: white;
-    border-radius: 50%;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.form-check-input:checked::before {
-    transform: translateX(24px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
 }
 
 .form-check-label {
@@ -560,17 +547,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .form-check-input {
-        width: 45px;
-        height: 24px;
-    }
-    
-    .form-check-input::before {
         width: 18px;
         height: 18px;
-    }
-    
-    .form-check-input:checked::before {
-        transform: translateX(21px);
     }
     
     .account-info-grid {
@@ -733,13 +711,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     <h2 class="section-title">
                         <i class="fas fa-bell text-warning"></i>
                         <?php echo t('settings.notification_preferences'); ?>
-                        <span class="badge bg-warning text-dark ms-2" style="font-size: 11px;">Coming Soon</span>
                     </h2>
-                    
-                    <div class="alert alert-info mb-4" style="border-radius: 12px; border: 1px solid rgba(218, 165, 32, 0.3); background: rgba(218, 165, 32, 0.1);">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Coming Soon:</strong> Email and SMS notification features are currently under development.
-                    </div>
                     
                     <form id="notificationForm" action="api/update-settings.php" method="POST">
                         <input type="hidden" name="action" value="notifications">
@@ -757,7 +729,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="feature-toggle">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
-                                           <?php echo (isset($notification_prefs['email']) || strpos($member['notification_preferences'], 'email') !== false) ? 'checked' : ''; ?>>
+                                           <?php echo $email_notifications ? 'checked' : ''; ?>>
                                 </div>
                             </div>
                         </div>
@@ -775,7 +747,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="feature-toggle">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="sms_notifications" name="sms_notifications"
-                                           <?php echo (isset($notification_prefs['sms']) || strpos($member['notification_preferences'], 'sms') !== false) ? 'checked' : ''; ?>>
+                                           <?php echo $sms_notifications ? 'checked' : ''; ?>>
                                 </div>
                             </div>
                         </div>
@@ -793,7 +765,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="feature-toggle">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="payment_reminders" name="payment_reminders"
-                                           <?php echo (isset($notification_prefs['reminders']) || strpos($member['notification_preferences'], 'both') !== false) ? 'checked' : ''; ?>>
+                                           <?php echo $payment_reminders ? 'checked' : ''; ?>>
                                 </div>
                             </div>
                         </div>

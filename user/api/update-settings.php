@@ -38,17 +38,31 @@ try {
 
     switch ($action) {
         case 'notifications':
-            // Handle notification preferences (currently non-functional - just show success)
+            // Handle notification preferences - now fully functional
             $email_notifications = isset($_POST['email_notifications']) ? 1 : 0;
             $sms_notifications = isset($_POST['sms_notifications']) ? 1 : 0;
             $payment_reminders = isset($_POST['payment_reminders']) ? 1 : 0;
             
-            // For now, just return success without updating database
-            ob_clean();
-            echo json_encode([
-                'success' => true,
-                'message' => 'Notification preferences saved! (Feature coming soon)'
-            ]);
+            $stmt = $db->prepare("
+                UPDATE members 
+                SET email_notifications = ?,
+                    payment_reminders = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ");
+            
+            $result = $stmt->execute([$email_notifications, $payment_reminders, $user_id]);
+            
+            if ($result) {
+                ob_clean();
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Notification preferences updated successfully!'
+                ]);
+            } else {
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => 'Failed to update notification preferences']);
+            }
             break;
             
         case 'privacy':
