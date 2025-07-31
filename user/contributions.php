@@ -16,21 +16,24 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/payout_sync_service.php';
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get member information
+// Get member information with equb details
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
+               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
                COUNT(p.id) as total_payments,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(SUM(p.late_fee), 0) as total_late_fees,
                MAX(p.payment_date) as last_payment_date,
-               (SELECT COUNT(*) FROM members WHERE is_active = 1) as total_active_members
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
@@ -41,16 +44,30 @@ try {
     if (!$member) {
         die("❌ ERROR: No member found with ID $user_id");
     }
+    
+    if (!$member['equb_settings_id']) {
+        die("❌ ERROR: Member is not assigned to any equb term. Please contact admin.");
+    }
 } catch (PDOException $e) {
     die("❌ DATABASE ERROR: " . $e->getMessage());
 }
 
-// Calculate financial statistics
+// Calculate financial statistics based on equb term
 $monthly_contribution = (float)$member['monthly_payment'];
 $total_contributed = (float)$member['total_contributed']; 
-$total_members = (int)$member['total_active_members'];
-$expected_total = $total_members * $monthly_contribution;
-$progress_percentage = $expected_total > 0 ? ($total_contributed / $expected_total) * 100 : 0;
+$total_equb_members = (int)$member['total_equb_members'];
+$duration_months = (int)$member['duration_months'];
+
+// Expected total contribution for this member over the entire equb duration
+$expected_total_member = $monthly_contribution * $duration_months;
+$progress_percentage = $expected_total_member > 0 ? ($total_contributed / $expected_total_member) * 100 : 0;
+
+// Expected payout amount (what they'll receive when it's their turn)
+$expected_payout = $total_equb_members * $monthly_contribution;
+
+// Get payout information
+$payout_service = getPayoutSyncService();
+$payout_info = $payout_service->getMemberPayoutStatus($user_id);
 
 // Calculate current month payment status
 $current_month = date('Y-m');
@@ -937,7 +954,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                          </div>
                      </div>
                      <div class="financial-detail">
-                         £<?php echo number_format($total_contributed, 2); ?> of £<?php echo number_format($expected_total, 2); ?>
+                         £<?php echo number_format($total_contributed, 2); ?> of £<?php echo number_format($expected_total_member, 2); ?>
                      </div>
                      <div class="progress-container">
                          <div class="progress">

@@ -22,13 +22,15 @@ require_once '../includes/payout_sync_service.php';
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get REAL member data and payout information
+// Get REAL member data and payout information with equb details
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
-               (SELECT COUNT(*) FROM members WHERE is_active = 1) as total_active_members,
+               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
@@ -39,6 +41,10 @@ try {
     if (!$member) {
         die("❌ ERROR: No member found with ID $user_id. Please check database.");
     }
+    
+    if (!$member['equb_settings_id']) {
+        die("❌ ERROR: Member is not assigned to any equb term. Please contact admin.");
+    }
 } catch (PDOException $e) {
     die("❌ DATABASE ERROR: " . $e->getMessage());
 }
@@ -47,8 +53,8 @@ try {
 $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
 $monthly_contribution = (float)$member['monthly_payment'];
 $payout_position = (int)$member['payout_position'];
-$total_members = (int)$member['total_active_members'];
-$expected_payout = $total_members * $monthly_contribution;
+$total_equb_members = (int)$member['total_equb_members'];
+$expected_payout = $total_equb_members * $monthly_contribution;
 
 // GET REAL PAYOUT INFORMATION using our top-tier sync service
 $payout_service = getPayoutSyncService();
@@ -65,7 +71,7 @@ if (isset($payout_info['error'])) {
     $days_until_payout = $payout_info['days_until_payout'];
 }
 
-// Get all members for payout queue display
+// Get all members for payout queue display (filtered by equb term)
 try {
     $stmt = $pdo->prepare("
         SELECT m.first_name, m.last_name, m.payout_position, m.monthly_payment,
@@ -75,14 +81,15 @@ try {
                    WHEN m.payout_position < ? THEN 'upcoming'
                    ELSE 'pending'
                END as payout_status,
-               po.payout_date as received_date,
-               po.amount as received_amount
+               po.actual_payout_date as received_date,
+               po.net_amount as received_amount,
+               po.status as payout_record_status
         FROM members m
         LEFT JOIN payouts po ON m.id = po.member_id
-        WHERE m.is_active = 1
+        WHERE m.equb_settings_id = ? AND m.is_active = 1
         ORDER BY m.payout_position ASC
     ");
-    $stmt->execute([$payout_position, $payout_position]);
+    $stmt->execute([$payout_position, $payout_position, $member['equb_settings_id']]);
     $payout_queue = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $payout_queue = [];
@@ -1175,13 +1182,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.queue_progress'); ?></h3>
                          </div>
                      </div>
-                     <div class="payout-value"><?php echo round(($payout_position / $total_members) * 100, 1); ?>%</div>
+                     <div class="payout-value"><?php echo round(($payout_position / $total_equb_members) * 100, 1); ?>%</div>
                      <div class="payout-detail">
                          <i class="fas fa-list-ol text-warning me-1"></i>
-                         <?php echo t('payout.position_in_queue'); ?>
+                         Position <?php echo $payout_position; ?> of <?php echo $total_equb_members; ?>
                      </div>
+                     <?php if (!empty($member['equb_name'])): ?>
+                     <div class="payout-detail mt-1">
+                         <i class="fas fa-tag text-info me-1"></i>
+                         <small><?php echo htmlspecialchars($member['equb_name']); ?></small>
+                     </div>
+                     <?php endif; ?>
                     <div class="progress">
-                        <div class="progress-bar" style="width: <?php echo ($payout_position / $total_members) * 100; ?>%"></div>
+                        <div class="progress-bar" style="width: <?php echo ($payout_position / $total_equb_members) * 100; ?>%"></div>
                     </div>
                 </div>
             </div>
@@ -1251,7 +1264,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             $step_count++;
                             $is_current = ($queue_member['payout_position'] == $payout_position);
                             $is_next = ($step_count == 1 && !$is_current);
-                            $payout_date_calc = date('M d, Y', strtotime($equib_start_month . ' +' . ($queue_member['payout_position'] - 1) . ' months . -15'));
+                            
+                            // Calculate correct payout date using equb settings
+                            $start_date = new DateTime($member['start_date']);
+                            $member_payout_date = clone $start_date;
+                            $member_payout_date->add(new DateInterval('P' . ($queue_member['payout_position'] - 1) . 'M'));
+                            $member_payout_date->setDate(
+                                $member_payout_date->format('Y'), 
+                                $member_payout_date->format('n'), 
+                                $member['payout_day']
+                            );
                         ?>
                         <div class="journey-step <?php echo $is_current ? 'current' : ($is_next ? 'next' : ''); ?>">
                             <div class="step-badge">
@@ -1274,10 +1296,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     ?>
                                 </div>
                                 <div class="step-amount">
-                                    £<?php echo number_format($total_members * $queue_member['monthly_payment'], 2); ?>
+                                    £<?php echo number_format($total_equb_members * $queue_member['monthly_payment'], 2); ?>
                                 </div>
                                 <div class="step-date">
-                                    <?php echo date('M Y', strtotime($equib_start_month . ' +' . ($queue_member['payout_position'] - 1) . ' months')); ?>
+                                    <?php echo $member_payout_date->format('M j, Y'); ?>
                                 </div>
                                                                  <?php if ($is_current): ?>
                                      <div class="step-status current-badge">
