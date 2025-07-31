@@ -724,58 +724,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
         <!-- Main Content -->
         <div class="row">
-            <!-- Account Overview -->
-            <div class="col-12 mb-4">
-                <div class="settings-card">
-                    <h2 class="section-title">
-                        <i class="fas fa-user-circle text-primary"></i>
-                        <?php echo t('settings.account_overview'); ?>
-                    </h2>
-                    
-                    <div class="account-info-grid">
-                        <div class="info-item">
-                            <div class="info-label">
-                                <i class="fas fa-user me-1"></i>
-                                <?php echo t('settings.full_name'); ?>
-                            </div>
-                            <div class="info-value">
-                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
-                            </div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">
-                                <i class="fas fa-envelope me-1"></i>
-                                <?php echo t('settings.email_address'); ?>
-                            </div>
-                            <div class="info-value">
-                                <?php echo htmlspecialchars($member['email']); ?>
-                            </div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">
-                                <i class="fas fa-id-card me-1"></i>
-                                <?php echo t('settings.member_id'); ?>
-                            </div>
-                            <div class="info-value">
-                                <code><?php echo htmlspecialchars($member['member_id'] ?? 'N/A'); ?></code>
-                            </div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">
-                                <i class="fas fa-calendar-alt me-1"></i>
-                                <?php echo t('settings.member_since'); ?>
-                            </div>
-                            <div class="info-value">
-                                <?php echo date('M Y', strtotime($member['created_at'])); ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Notification Preferences -->
             <div class="col-lg-6">
                 <div class="settings-card">

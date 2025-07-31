@@ -513,7 +513,42 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     .stats-bar {
         flex-direction: column;
         text-align: center;
-        gap: 12px;
+        gap: 20px;
+        padding: 24px 16px;
+    }
+    
+    .stat-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+        padding: 16px;
+        background: var(--color-light-cream);
+        border-radius: 12px;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        margin: 0 auto;
+    }
+    
+    .stat-content h3 {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 4px 0;
+        color: var(--color-deep-purple);
+    }
+    
+    .stat-content p {
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0;
+        color: var(--color-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
     .view-controls {

@@ -16,6 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/payout_sync_service.php';
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
@@ -37,10 +38,11 @@ $viewing_own_profile = ($member_id === $current_user_id);
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
+               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END), 0) as payments_made,
                COALESCE(
-                   (SELECT po.total_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
                    0
                ) as last_payout_amount,
                COALESCE(
@@ -48,13 +50,11 @@ try {
                    NULL
                ) as last_payout_date,
                (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed') as total_payouts_received,
-               -- Calculate expected payout amount (total members * monthly payment)
-               (SELECT COUNT(*) FROM members WHERE is_active = 1) * m.monthly_payment as expected_payout,
-               -- Calculate next payout date based on position
-               DATE_ADD('2024-06-01', INTERVAL (m.payout_position - 1) MONTH) as expected_payout_date,
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
                -- Get payment history count
                (SELECT COUNT(*) FROM payments p WHERE p.member_id = m.id) as total_payment_records
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
@@ -67,6 +67,13 @@ try {
         header('Location: members.php');
         exit;
     }
+    
+    // Get real payout information using the sync service
+    $payout_service = getPayoutSyncService();
+    $payout_info = $payout_service->getMemberPayoutStatus($member_id);
+    
+    // Calculate correct expected payout based on equb members
+    $expected_payout = $member['total_equb_members'] * $member['monthly_payment'];
 
     // Get member's recent payment history (last 6 months)
     $stmt = $pdo->prepare("
@@ -98,13 +105,22 @@ try {
     exit;
 }
 
-// Calculate member data
+// Calculate member data with real payout information
 $profile_member_name = trim($member['first_name'] . ' ' . $member['last_name']);
 $initials = substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1);
 $member_since = date('M Y', strtotime($member['created_at']));
 $payout_status = $member['total_payouts_received'] > 0 ? 'received' : ($member['payout_position'] == 1 ? 'current' : 'upcoming');
-$expected_payout_formatted = date('M Y', strtotime($member['expected_payout_date']));
-$payment_progress = $member['total_payment_records'] > 0 ? ($member['payments_made'] / $member['total_payment_records']) * 100 : 0;
+
+// Use real payout date from sync service
+if (isset($payout_info['calculated_payout_date'])) {
+    $expected_payout_formatted = date('M j, Y', strtotime($payout_info['calculated_payout_date']));
+} else {
+    $expected_payout_formatted = 'Not Available';
+}
+
+// Calculate payment progress based on expected payments for the member's equb duration
+$expected_payments_total = $member['duration_months'] ?: 8; // Default to 8 months if not set
+$payment_progress = $expected_payments_total > 0 ? ($member['payments_made'] / $expected_payments_total) * 100 : 0;
 
 // Strong cache buster for assets
 $cache_buster = time() . '_' . rand(1000, 9999);
@@ -598,6 +614,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php echo t('members_directory.financial_overview'); ?>
                     </h3>
                     
+                    <?php if (!empty($member['equb_name'])): ?>
+                    <div class="mb-3">
+                        <div class="alert alert-info">
+                            <i class="fas fa-tag me-2"></i>
+                            <strong>Equb:</strong> <?php echo htmlspecialchars($member['equb_name']); ?>
+                            <span class="ms-3">
+                                <i class="fas fa-users me-1"></i>
+                                Position <?php echo $member['payout_position']; ?> of <?php echo $member['total_equb_members']; ?>
+                            </span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-icon warning">
@@ -613,22 +642,41 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                             <div class="stat-value">£<?php echo number_format($member['total_contributed'], 0); ?></div>
                             <div class="stat-label"><?php echo t('members_directory.total_contributed'); ?></div>
+                            <div class="stat-detail">
+                                <?php echo $member['payments_made']; ?> payments made
+                            </div>
                         </div>
                         
                         <div class="stat-card">
                             <div class="stat-icon info">
                                 <i class="fas fa-hand-holding-usd"></i>
                             </div>
-                            <div class="stat-value">£<?php echo number_format($member['expected_payout'], 0); ?></div>
+                            <div class="stat-value">£<?php echo number_format($expected_payout, 0); ?></div>
                             <div class="stat-label"><?php echo t('members_directory.expected_payout'); ?></div>
+                            <div class="stat-detail">
+                                <?php echo $member['total_equb_members']; ?> members × £<?php echo number_format($member['monthly_payment'], 0); ?>
+                            </div>
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon warning">
-                                <i class="fas fa-calendar-alt"></i>
+                            <div class="stat-icon success">
+                                <i class="fas fa-calendar-check"></i>
                             </div>
                             <div class="stat-value"><?php echo $expected_payout_formatted; ?></div>
                             <div class="stat-label"><?php echo t('members_directory.payout_date'); ?></div>
+                            <?php if (isset($payout_info['days_until_payout'])): ?>
+                            <div class="stat-detail">
+                                <?php 
+                                if ($payout_info['days_until_payout'] > 0) {
+                                    echo $payout_info['days_until_payout'] . ' days remaining';
+                                } elseif ($payout_info['days_until_payout'] < 0) {
+                                    echo 'Overdue by ' . abs($payout_info['days_until_payout']) . ' days';
+                                } else {
+                                    echo 'Payout available today!';
+                                }
+                                ?>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
