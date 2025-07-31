@@ -42,6 +42,12 @@ switch ($action) {
     case 'list':
         listMembers();
         break;
+    case 'get_occupied_positions':
+        getOccupiedPositions();
+        break;
+    case 'get_equb_start_date':
+        getEqubStartDate();
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;
@@ -54,8 +60,11 @@ function addMember() {
     global $pdo;
     
     try {
-        // Validate required fields
-        $required_fields = ['first_name', 'last_name', 'email', 'phone', 'monthly_payment', 'payout_position'];
+        // Start transaction for atomic operations
+        $pdo->beginTransaction();
+        
+        // Validate required fields (including new equb fields)
+        $required_fields = ['first_name', 'last_name', 'email', 'phone', 'equb_settings_id', 'monthly_payment', 'payout_position'];
         foreach ($required_fields as $field) {
             if (empty($_POST[$field])) {
                 echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
@@ -68,20 +77,23 @@ function addMember() {
         $last_name = sanitize_input($_POST['last_name']);
         $email = sanitize_input($_POST['email']);
         $phone = sanitize_input($_POST['phone']);
+        $equb_settings_id = intval($_POST['equb_settings_id']);
         $monthly_payment = floatval($_POST['monthly_payment']);
         $payout_position = intval($_POST['payout_position']);
         
         // Optional fields
-        $guarantor_first_name = sanitize_input($_POST['guarantor_first_name'] ?? '');
-        $guarantor_last_name = sanitize_input($_POST['guarantor_last_name'] ?? '');
-        $guarantor_phone = sanitize_input($_POST['guarantor_phone'] ?? '');
+        $guarantor_first_name = sanitize_input($_POST['guarantor_first_name'] ?? 'Pending');
+        $guarantor_last_name = sanitize_input($_POST['guarantor_last_name'] ?? 'Pending');
+        $guarantor_phone = sanitize_input($_POST['guarantor_phone'] ?? 'Pending');
         $guarantor_email = sanitize_input($_POST['guarantor_email'] ?? '');
         $guarantor_relationship = sanitize_input($_POST['guarantor_relationship'] ?? '');
         $notes = sanitize_input($_POST['notes'] ?? '');
+        $payout_month = $_POST['payout_month'] ?? null;
         
         // Validate email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['success' => false, 'message' => 'Invalid email format']);
+            $pdo->rollback();
             return;
         }
         
@@ -90,14 +102,33 @@ function addMember() {
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
             echo json_encode(['success' => false, 'message' => 'Email already exists']);
+            $pdo->rollback();
             return;
         }
         
-        // Check if payout position is already taken
-        $stmt = $pdo->prepare("SELECT id FROM members WHERE payout_position = ?");
-        $stmt->execute([$payout_position]);
+        // Check if payout position is already taken in this equb term
+        $stmt = $pdo->prepare("SELECT id FROM members WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1");
+        $stmt->execute([$equb_settings_id, $payout_position]);
         if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Payout position already taken']);
+            echo json_encode(['success' => false, 'message' => 'Payout position already taken in this equb term']);
+            $pdo->rollback();
+            return;
+        }
+        
+        // Verify equb term has available spots
+        $stmt = $pdo->prepare("SELECT max_members, current_members FROM equb_settings WHERE id = ?");
+        $stmt->execute([$equb_settings_id]);
+        $equb_data = $stmt->fetch();
+        
+        if (!$equb_data) {
+            echo json_encode(['success' => false, 'message' => 'Equb term not found']);
+            $pdo->rollback();
+            return;
+        }
+        
+        if ($equb_data['current_members'] >= $equb_data['max_members']) {
+            echo json_encode(['success' => false, 'message' => 'Equb term is full']);
+            $pdo->rollback();
             return;
         }
         
@@ -120,44 +151,60 @@ function addMember() {
         
         // Generate random 6-character password
         $password = generateRandomPassword();
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
-        // Calculate payout month (assuming monthly cycle starting from current month)
-        $start_date = new DateTime();
-        $payout_date = clone $start_date;
-        $payout_date->add(new DateInterval("P" . ($payout_position - 1) . "M"));
-        $payout_month = $payout_date->format('Y-m');
+        // Convert payout_month to proper date format
+        if ($payout_month) {
+            $payout_month_date = $payout_month . '-05'; // Set to 5th of the month (payout day)
+        } else {
+            $payout_month_date = null;
+        }
         
         // Insert member
         $stmt = $pdo->prepare("
             INSERT INTO members (
-                member_id, first_name, last_name, email, phone, password, 
+                equb_settings_id, member_id, first_name, last_name, email, phone, password, 
                 monthly_payment, payout_position, payout_month, total_contributed, 
                 has_received_payout, guarantor_first_name, guarantor_last_name, 
                 guarantor_phone, guarantor_email, guarantor_relationship, 
                 is_active, is_approved, email_verified, join_date, 
                 notification_preferences, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, NOW(), 'email,sms', ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'email,sms', ?, NOW(), NOW())
         ");
         
         $result = $stmt->execute([
-            $member_id, $first_name, $last_name, $email, $phone, $password,
-            $monthly_payment, $payout_position, $payout_month,
+            $equb_settings_id, $member_id, $first_name, $last_name, $email, $phone, $hashed_password,
+            $monthly_payment, $payout_position, $payout_month_date,
             $guarantor_first_name, $guarantor_last_name, $guarantor_phone, 
             $guarantor_email, $guarantor_relationship, $notes
         ]);
         
         if ($result) {
+            // Update current_members count in equb_settings
+            $stmt = $pdo->prepare("
+                UPDATE equb_settings 
+                SET current_members = current_members + 1,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$equb_settings_id]);
+            
+            // Commit transaction
+            $pdo->commit();
+            
             echo json_encode([
                 'success' => true, 
-                'message' => 'Member added successfully',
+                'message' => 'Member added successfully and assigned to equb term',
                 'member_id' => $member_id,
                 'password' => $password
             ]);
         } else {
+            $pdo->rollback();
             echo json_encode(['success' => false, 'message' => 'Failed to add member']);
         }
         
     } catch (PDOException $e) {
+        $pdo->rollback();
         error_log("Add member error: " . $e->getMessage());
         echo json_encode(['success' => false, 'message' => 'Database error occurred']);
     }
@@ -177,7 +224,14 @@ function getMember() {
     }
     
     try {
-        $stmt = $pdo->prepare("SELECT * FROM members WHERE id = ?");
+        $stmt = $pdo->prepare("
+            SELECT m.*, 
+                   es.equb_name, es.equb_id, es.start_date, es.duration_months,
+                   DATE_FORMAT(m.payout_month, '%Y-%m') as formatted_payout_month
+            FROM members m 
+            LEFT JOIN equb_settings es ON m.equb_settings_id = es.id 
+            WHERE m.id = ?
+        ");
         $stmt->execute([$member_id]);
         $member = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -206,11 +260,26 @@ function updateMember() {
     }
     
     try {
+        // Start transaction for atomic operations
+        $pdo->beginTransaction();
+        
+        // Get current member data to compare changes
+        $stmt = $pdo->prepare("SELECT equb_settings_id, payout_position FROM members WHERE id = ?");
+        $stmt->execute([$member_id]);
+        $current_member = $stmt->fetch();
+        
+        if (!$current_member) {
+            echo json_encode(['success' => false, 'message' => 'Member not found']);
+            $pdo->rollback();
+            return;
+        }
+        
         // Validate required fields
-        $required_fields = ['first_name', 'last_name', 'email', 'phone', 'monthly_payment', 'payout_position'];
+        $required_fields = ['first_name', 'last_name', 'email', 'phone', 'equb_settings_id', 'monthly_payment', 'payout_position'];
         foreach ($required_fields as $field) {
             if (empty($_POST[$field])) {
                 echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
+                $pdo->rollback();
                 return;
             }
         }
@@ -220,6 +289,7 @@ function updateMember() {
         $last_name = sanitize_input($_POST['last_name']);
         $email = sanitize_input($_POST['email']);
         $phone = sanitize_input($_POST['phone']);
+        $new_equb_settings_id = intval($_POST['equb_settings_id']);
         $monthly_payment = floatval($_POST['monthly_payment']);
         $payout_position = intval($_POST['payout_position']);
         
@@ -230,10 +300,12 @@ function updateMember() {
         $guarantor_email = sanitize_input($_POST['guarantor_email'] ?? '');
         $guarantor_relationship = sanitize_input($_POST['guarantor_relationship'] ?? '');
         $notes = sanitize_input($_POST['notes'] ?? '');
+        $payout_month = $_POST['payout_month'] ?? null;
         
         // Validate email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['success' => false, 'message' => 'Invalid email format']);
+            $pdo->rollback();
             return;
         }
         
@@ -242,22 +314,54 @@ function updateMember() {
         $stmt->execute([$email, $member_id]);
         if ($stmt->fetch()) {
             echo json_encode(['success' => false, 'message' => 'Email already exists']);
+            $pdo->rollback();
             return;
         }
         
-        // Check if payout position is already taken (excluding current member)
-        $stmt = $pdo->prepare("SELECT id FROM members WHERE payout_position = ? AND id != ?");
-        $stmt->execute([$payout_position, $member_id]);
+        // Check if payout position is already taken in the target equb term (excluding current member)
+        $stmt = $pdo->prepare("SELECT id FROM members WHERE equb_settings_id = ? AND payout_position = ? AND id != ? AND is_active = 1");
+        $stmt->execute([$new_equb_settings_id, $payout_position, $member_id]);
         if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Payout position already taken']);
+            echo json_encode(['success' => false, 'message' => 'Payout position already taken in the target equb term']);
+            $pdo->rollback();
             return;
+        }
+        
+        // If equb term is changing, handle member count updates
+        $old_equb_settings_id = $current_member['equb_settings_id'];
+        $equb_changed = ($old_equb_settings_id != $new_equb_settings_id);
+        
+        if ($equb_changed) {
+            // Check if new equb has available spots
+            $stmt = $pdo->prepare("SELECT max_members, current_members FROM equb_settings WHERE id = ?");
+            $stmt->execute([$new_equb_settings_id]);
+            $new_equb_data = $stmt->fetch();
+            
+            if (!$new_equb_data) {
+                echo json_encode(['success' => false, 'message' => 'Target equb term not found']);
+                $pdo->rollback();
+                return;
+            }
+            
+            if ($new_equb_data['current_members'] >= $new_equb_data['max_members']) {
+                echo json_encode(['success' => false, 'message' => 'Target equb term is full']);
+                $pdo->rollback();
+                return;
+            }
+        }
+        
+        // Convert payout_month to proper date format
+        if ($payout_month) {
+            $payout_month_date = $payout_month . '-05'; // Set to 5th of the month (payout day)
+        } else {
+            $payout_month_date = null;
         }
         
         // Update member
         $stmt = $pdo->prepare("
             UPDATE members SET 
-                first_name = ?, last_name = ?, email = ?, phone = ?, 
-                monthly_payment = ?, payout_position = ?,
+                equb_settings_id = ?, first_name = ?, last_name = ?, email = ?, phone = ?, 
+                monthly_payment = ?, payout_position = ?, payout_month = ?,
                 guarantor_first_name = ?, guarantor_last_name = ?, 
                 guarantor_phone = ?, guarantor_email = ?, guarantor_relationship = ?, 
                 notes = ?, updated_at = NOW()
@@ -265,18 +369,49 @@ function updateMember() {
         ");
         
         $result = $stmt->execute([
-            $first_name, $last_name, $email, $phone, $monthly_payment, $payout_position,
+            $new_equb_settings_id, $first_name, $last_name, $email, $phone, 
+            $monthly_payment, $payout_position, $payout_month_date,
             $guarantor_first_name, $guarantor_last_name, $guarantor_phone, 
             $guarantor_email, $guarantor_relationship, $notes, $member_id
         ]);
         
         if ($result) {
-            echo json_encode(['success' => true, 'message' => 'Member updated successfully']);
+            // Update equb member counts if equb term changed
+            if ($equb_changed && $old_equb_settings_id) {
+                // Decrease count in old equb
+                $stmt = $pdo->prepare("
+                    UPDATE equb_settings 
+                    SET current_members = current_members - 1,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$old_equb_settings_id]);
+                
+                // Increase count in new equb
+                $stmt = $pdo->prepare("
+                    UPDATE equb_settings 
+                    SET current_members = current_members + 1,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$new_equb_settings_id]);
+            }
+            
+            // Commit transaction
+            $pdo->commit();
+            
+            $message = $equb_changed ? 
+                'Member updated successfully and reassigned to new equb term' : 
+                'Member updated successfully';
+                
+            echo json_encode(['success' => true, 'message' => $message]);
         } else {
+            $pdo->rollback();
             echo json_encode(['success' => false, 'message' => 'Failed to update member']);
         }
         
     } catch (PDOException $e) {
+        $pdo->rollback();
         error_log("Update member error: " . $e->getMessage());
         echo json_encode(['success' => false, 'message' => 'Database error occurred']);
     }
@@ -296,6 +431,20 @@ function deleteMember() {
     }
     
     try {
+        // Start transaction
+        $pdo->beginTransaction();
+        
+        // Get member's equb assignment before deletion
+        $stmt = $pdo->prepare("SELECT equb_settings_id FROM members WHERE id = ?");
+        $stmt->execute([$member_id]);
+        $member_data = $stmt->fetch();
+        
+        if (!$member_data) {
+            echo json_encode(['success' => false, 'message' => 'Member not found']);
+            $pdo->rollback();
+            return;
+        }
+        
         // Check if member has payments or payouts
         $stmt = $pdo->prepare("SELECT COUNT(*) as payment_count FROM payments WHERE member_id = ?");
         $stmt->execute([$member_id]);
@@ -307,6 +456,7 @@ function deleteMember() {
         
         if ($payment_count > 0 || $payout_count > 0) {
             echo json_encode(['success' => false, 'message' => 'Cannot delete member with existing payments or payouts']);
+            $pdo->rollback();
             return;
         }
         
@@ -315,12 +465,27 @@ function deleteMember() {
         $result = $stmt->execute([$member_id]);
         
         if ($result) {
+            // Update equb member count if member was assigned to an equb
+            if ($member_data['equb_settings_id']) {
+                $stmt = $pdo->prepare("
+                    UPDATE equb_settings 
+                    SET current_members = current_members - 1,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$member_data['equb_settings_id']]);
+            }
+            
+            // Commit transaction
+            $pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Member deleted successfully']);
         } else {
+            $pdo->rollback();
             echo json_encode(['success' => false, 'message' => 'Failed to delete member']);
         }
         
     } catch (PDOException $e) {
+        $pdo->rollback();
         error_log("Delete member error: " . $e->getMessage());
         echo json_encode(['success' => false, 'message' => 'Database error occurred']);
     }
@@ -424,5 +589,77 @@ function generateRandomPassword($length = 6) {
         $password .= $characters[rand(0, strlen($characters) - 1)];
     }
     return $password;
+}
+
+/**
+ * Get occupied payout positions for a specific equb term
+ */
+function getOccupiedPositions() {
+    global $pdo;
+    
+    try {
+        $equb_term_id = $_POST['equb_term_id'] ?? '';
+        
+        if (empty($equb_term_id)) {
+            echo json_encode(['success' => false, 'message' => 'Equb term ID required']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT payout_position 
+            FROM members 
+            WHERE equb_settings_id = ? AND is_active = 1 AND payout_position IS NOT NULL
+            ORDER BY payout_position ASC
+        ");
+        $stmt->execute([$equb_term_id]);
+        $occupied_positions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        echo json_encode([
+            'success' => true,
+            'occupied_positions' => array_map('intval', $occupied_positions)
+        ]);
+        
+    } catch (PDOException $e) {
+        error_log("Error getting occupied positions: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
+}
+
+/**
+ * Get equb start date for payout month calculation
+ */
+function getEqubStartDate() {
+    global $pdo;
+    
+    try {
+        $equb_term_id = $_POST['equb_term_id'] ?? '';
+        
+        if (empty($equb_term_id)) {
+            echo json_encode(['success' => false, 'message' => 'Equb term ID required']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT start_date, duration_months 
+            FROM equb_settings 
+            WHERE id = ?
+        ");
+        $stmt->execute([$equb_term_id]);
+        $equb_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($equb_data) {
+            echo json_encode([
+                'success' => true,
+                'start_date' => $equb_data['start_date'],
+                'duration_months' => $equb_data['duration_months']
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Equb term not found']);
+        }
+        
+    } catch (PDOException $e) {
+        error_log("Error getting equb start date: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
 }
 ?> 

@@ -820,22 +820,99 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                             </div>
                         </div>
                         
-                        <!-- Equib Information -->
-                        <h6 class="text-primary mb-3 mt-4"><?php echo t('members.equib_information'); ?></h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="monthlyPayment" class="form-label"><?php echo t('members.monthly_payment'); ?> *</label>
-                                    <input type="number" class="form-control" id="monthlyPayment" name="monthly_payment" min="1" step="0.01" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="payoutPosition" class="form-label"><?php echo t('members.payout_position'); ?> *</label>
-                                    <input type="number" class="form-control" id="payoutPosition" name="payout_position" min="1" required>
-                                </div>
-                            </div>
-                        </div>
+                                <!-- Equib Information -->
+        <h6 class="text-primary mb-3 mt-4"><?php echo t('members.equib_information'); ?></h6>
+        
+        <!-- Equib Term Assignment -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="mb-3">
+                    <label for="equbTerm" class="form-label">
+                        <i class="fas fa-calendar-alt text-warning"></i>
+                        Assign to Equb Term *
+                    </label>
+                    <select class="form-select" id="equbTerm" name="equb_settings_id" required>
+                        <option value="">Select Equb Term...</option>
+                        <?php
+                        // Get active equb terms
+                        try {
+                            $equb_stmt = $pdo->query("
+                                SELECT id, equb_id, equb_name, status, max_members, current_members, 
+                                       start_date, end_date, duration_months,
+                                       JSON_EXTRACT(payment_tiers, '$[0].amount') as tier1_amount,
+                                       JSON_EXTRACT(payment_tiers, '$[1].amount') as tier2_amount,
+                                       JSON_EXTRACT(payment_tiers, '$[2].amount') as tier3_amount
+                                FROM equb_settings 
+                                WHERE status IN ('planning', 'active') 
+                                ORDER BY created_at DESC
+                            ");
+                            $equb_terms = $equb_stmt->fetchAll(PDO::FETCH_ASSOC);
+                            
+                            foreach ($equb_terms as $term) {
+                                $available_spots = $term['max_members'] - $term['current_members'];
+                                $status_badge = $term['status'] === 'active' ? '🟢' : '🟡';
+                                echo "<option value='{$term['id']}' data-max-members='{$term['max_members']}' data-current-members='{$term['current_members']}' data-duration='{$term['duration_months']}' data-tier1='{$term['tier1_amount']}' data-tier2='{$term['tier2_amount']}' data-tier3='{$term['tier3_amount']}'>";
+                                echo "{$status_badge} {$term['equb_name']} ({$term['equb_id']}) - {$available_spots}/{$term['max_members']} spots available";
+                                echo "</option>";
+                            }
+                        } catch (PDOException $e) {
+                            echo "<option value=''>Error loading equb terms</option>";
+                        }
+                        ?>
+                    </select>
+                    <div class="form-text">Choose which equb term this member will join</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Tier Selection -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="paymentTier" class="form-label">
+                        <i class="fas fa-money-bill-wave text-success"></i>
+                        Payment Tier *
+                    </label>
+                    <select class="form-select" id="paymentTier" name="payment_tier" required>
+                        <option value="">Select payment tier...</option>
+                    </select>
+                    <div class="form-text">Available tiers will show after selecting equb term</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="monthlyPayment" class="form-label"><?php echo t('members.monthly_payment'); ?> *</label>
+                    <input type="number" class="form-control" id="monthlyPayment" name="monthly_payment" min="1" step="0.01" required readonly>
+                    <div class="form-text">Auto-filled based on selected payment tier</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payout Assignment -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="payoutPosition" class="form-label">
+                        <i class="fas fa-sort-numeric-up text-info"></i>
+                        Payout Position *
+                    </label>
+                    <select class="form-select" id="payoutPosition" name="payout_position" required>
+                        <option value="">Select position...</option>
+                    </select>
+                    <div class="form-text">Available positions will show after selecting equb term</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="payoutMonth" class="form-label">
+                        <i class="fas fa-calendar-check text-primary"></i>
+                        Payout Month
+                    </label>
+                    <input type="month" class="form-control" id="payoutMonth" name="payout_month" readonly>
+                    <div class="form-text">Auto-calculated based on position and equb start date</div>
+                </div>
+            </div>
+        </div>
                         
                         <!-- Guarantor Information -->
                         <h6 class="text-primary mb-3 mt-4"><?php echo t('members.guarantor_information'); ?></h6>
@@ -987,13 +1064,49 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
             .then(data => {
                 if (data.success) {
                     const member = data.member;
+                    
+                    // Basic member info
                     document.getElementById('memberId').value = member.id;
                     document.getElementById('firstName').value = member.first_name;
                     document.getElementById('lastName').value = member.last_name;
                     document.getElementById('email').value = member.email;
                     document.getElementById('phone').value = member.phone;
+                    
+                    // Equb assignment
+                    const equbTermSelect = document.getElementById('equbTerm');
+                    equbTermSelect.value = member.equb_settings_id || '';
+                    
+                    // Trigger equb term change to populate dependent fields
+                    if (member.equb_settings_id) {
+                        // Simulate equb term selection to populate tiers and positions
+                        const changeEvent = new Event('change');
+                        equbTermSelect.dispatchEvent(changeEvent);
+                        
+                        // Set values after a delay to allow async loading
+                        setTimeout(() => {
+                            // Set payment tier (this will auto-fill monthly payment)
+                            const paymentTierSelect = document.getElementById('paymentTier');
+                            paymentTierSelect.value = member.monthly_payment;
+                            paymentTierSelect.dispatchEvent(new Event('change'));
+                            
+                            // Set payout position
+                            const payoutPositionSelect = document.getElementById('payoutPosition');
+                            // Add current position to available options if not already there
+                            const currentPositionExists = Array.from(payoutPositionSelect.options).some(option => option.value == member.payout_position);
+                            if (!currentPositionExists && member.payout_position) {
+                                payoutPositionSelect.innerHTML += `<option value="${member.payout_position}">Position ${member.payout_position} (Current)</option>`;
+                            }
+                            payoutPositionSelect.value = member.payout_position;
+                            
+                            // Set payout month
+                            document.getElementById('payoutMonth').value = member.formatted_payout_month || '';
+                        }, 500);
+                    }
+                    
+                    // Set monthly payment (might be overridden by payment tier selection)
                     document.getElementById('monthlyPayment').value = member.monthly_payment;
-                    document.getElementById('payoutPosition').value = member.payout_position;
+                    
+                    // Guarantor information
                     document.getElementById('guarantorFirstName').value = member.guarantor_first_name || '';
                     document.getElementById('guarantorLastName').value = member.guarantor_last_name || '';
                     document.getElementById('guarantorPhone').value = member.guarantor_phone || '';
@@ -1243,6 +1356,147 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
             if (e.key === 'Escape') {
                 // This function is no longer needed as mobile menu is handled by navigation.php
                 // Keeping it for now in case it's used elsewhere or for future updates.
+            }
+        });
+
+        // =================
+        // EQUB MANAGEMENT FUNCTIONALITY
+        // =================
+
+        // Dynamic Equb Term Selection
+        document.getElementById('equbTerm').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const paymentTierSelect = document.getElementById('paymentTier');
+            const payoutPositionSelect = document.getElementById('payoutPosition');
+            const monthlyPaymentInput = document.getElementById('monthlyPayment');
+            
+            // Clear dependent fields
+            paymentTierSelect.innerHTML = '<option value="">Select payment tier...</option>';
+            payoutPositionSelect.innerHTML = '<option value="">Select position...</option>';
+            monthlyPaymentInput.value = '';
+            document.getElementById('payoutMonth').value = '';
+
+            if (this.value) {
+                // Get equb term data
+                const tier1 = selectedOption.dataset.tier1;
+                const tier2 = selectedOption.dataset.tier2;
+                const tier3 = selectedOption.dataset.tier3;
+                const maxMembers = parseInt(selectedOption.dataset.maxMembers);
+                const currentMembers = parseInt(selectedOption.dataset.currentMembers);
+                const duration = parseInt(selectedOption.dataset.duration);
+
+                // Populate payment tiers
+                if (tier1) paymentTierSelect.innerHTML += `<option value="${tier1}">Full Member - £${tier1}/month</option>`;
+                if (tier2) paymentTierSelect.innerHTML += `<option value="${tier2}">Half Member - £${tier2}/month</option>`;
+                if (tier3) paymentTierSelect.innerHTML += `<option value="${tier3}">Quarter Member - £${tier3}/month</option>`;
+
+                // Load available payout positions
+                loadAvailablePositions(this.value, maxMembers);
+            }
+        });
+
+        // Payment Tier Selection
+        document.getElementById('paymentTier').addEventListener('change', function() {
+            const monthlyPaymentInput = document.getElementById('monthlyPayment');
+            monthlyPaymentInput.value = this.value || '';
+        });
+
+        // Payout Position Selection
+        document.getElementById('payoutPosition').addEventListener('change', function() {
+            if (this.value) {
+                calculatePayoutMonth();
+            }
+        });
+
+        // Load Available Payout Positions
+        function loadAvailablePositions(equbTermId, maxMembers) {
+            const payoutPositionSelect = document.getElementById('payoutPosition');
+            
+            // Get occupied positions via AJAX
+            fetch('api/members.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=get_occupied_positions&equb_term_id=${equbTermId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const occupiedPositions = data.occupied_positions || [];
+                    
+                    // Generate available positions
+                    for (let pos = 1; pos <= maxMembers; pos++) {
+                        if (!occupiedPositions.includes(pos)) {
+                            payoutPositionSelect.innerHTML += `<option value="${pos}">Position ${pos}</option>`;
+                        }
+                    }
+                } else {
+                    console.error('Error loading positions:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Calculate Payout Month
+        function calculatePayoutMonth() {
+            const equbTermSelect = document.getElementById('equbTerm');
+            const selectedOption = equbTermSelect.options[equbTermSelect.selectedIndex];
+            const position = parseInt(document.getElementById('payoutPosition').value);
+            
+            if (position && selectedOption.value) {
+                // Get equb start date via AJAX
+                fetch('api/members.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=get_equb_start_date&equb_term_id=${selectedOption.value}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.start_date) {
+                        const startDate = new Date(data.start_date);
+                        const payoutDate = new Date(startDate);
+                        payoutDate.setMonth(payoutDate.getMonth() + (position - 1));
+                        
+                        // Format as YYYY-MM for month input
+                        const year = payoutDate.getFullYear();
+                        const month = String(payoutDate.getMonth() + 1).padStart(2, '0');
+                        document.getElementById('payoutMonth').value = `${year}-${month}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error calculating payout month:', error);
+                });
+            }
+        }
+
+        // Enhanced Form Validation
+        function validateEqubAssignment() {
+            const equbTerm = document.getElementById('equbTerm').value;
+            const paymentTier = document.getElementById('paymentTier').value;
+            const payoutPosition = document.getElementById('payoutPosition').value;
+
+            if (!equbTerm) {
+                alert('Please select an equb term');
+                return false;
+            }
+            if (!paymentTier) {
+                alert('Please select a payment tier');
+                return false;
+            }
+            if (!payoutPosition) {
+                alert('Please select a payout position');
+                return false;
+            }
+            return true;
+        }
+
+        // Update form submission to include validation
+        const originalFormSubmit = document.getElementById('memberForm').onsubmit;
+        document.getElementById('memberForm').addEventListener('submit', function(e) {
+            if (!validateEqubAssignment()) {
+                e.preventDefault();
+                return false;
             }
         });
     </script>
