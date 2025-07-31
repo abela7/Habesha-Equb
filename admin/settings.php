@@ -265,7 +265,6 @@ $t = Translator::getInstance();
                         <li><strong>All Payments</strong> - Payment history and transactions</li>
                         <li><strong>All Payouts</strong> - Payout records and distributions</li>
                         <li><strong>All Notifications</strong> - System notifications and messages</li>
-                        <li><strong>All Device Tracking</strong> - Registration device data</li>
                     </ul>
                     <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
                         <p style="margin: 0; color: #856404;">
@@ -308,7 +307,6 @@ $t = Translator::getInstance();
                         <li>Complete payment history</li>
                         <li>All payout records</li>
                         <li>System notifications</li>
-                        <li>Device tracking data</li>
                     </ul>
                 </div>
 

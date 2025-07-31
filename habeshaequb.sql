@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 29, 2025 at 10:29 PM
+-- Generation Time: Jul 31, 2025 at 02:33 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -160,22 +160,29 @@ CREATE TABLE `members` (
   `notification_preferences` set('email','sms','both') DEFAULT 'both',
   `go_public` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Public visibility: 1=Yes (public), 0=No (private)',
   `language_preference` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Web language: 0=English, 1=Amharic',
+  `rules_agreed` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=Agreed to rules, 0=Not agreed',
   `notes` text DEFAULT NULL COMMENT 'Admin notes about member',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `email_notifications` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Enable/disable email notifications (0=No, 1=Yes)',
+  `payment_reminders` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Enable/disable payment reminder notifications (0=No, 1=Yes)',
+  `swap_terms_allowed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow swapping payout terms with other members (0=No, 1=Yes)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 1, 'HEM-MW1', 'MW123A', 'Michael', 'Werkneh', 'Michael Werkne', 'michael.werkneh@email.com', '+447123456789', '$2y$12$kdwSiI7P37OpM7OVFH4rMOHH2W7Yywf08O3DItvLGCVH6ZKqI/qBi', 'active', 1000.00, 1, '2025-07-05', 6000.00, 1, 'Sarah', 'Werkneh', '+447123456790', 'sarah.werkneh@email.com', 'Wife', 1, 1, 1, '2024-05-15', '2025-07-25 00:54:39', 'email,sms', 1, 1, 'First member - received June payout', '2025-07-22 07:24:42', '2025-07-29 19:54:28'),
-(2, 1, 'HEM-MN2', NULL, 'Maeruf', 'Nasir', 'Maeruf Nasir', 'maeruf.nasir@email.com', '+447234567890', 'MN456B', 'active', 1000.00, 2, '2025-08-05', 1000.00, 0, 'Ahmed', 'Nasir', '+447234567891', 'ahmed.nasir@email.com', 'Brother', 1, 1, 1, '2024-05-15', '2024-06-18 13:15:00', 'email', 1, 1, 'Active member - good payment record', '2025-07-22 07:24:42', '2025-07-29 19:50:39'),
-(3, 1, 'HEM-TE3', NULL, 'Teddy', 'Elias', NULL, 'teddy.elias@email.com', '+447345678901', 'TE789C', 'active', 500.00, 3, '2025-09-05', 1500.00, 0, 'Helen', 'Elias', '+447345678902', 'helen.elias@email.com', 'Mother', 1, 1, 1, '2024-05-15', '2024-06-19 15:45:00', 'email,sms', 1, 1, 'Reliable member', '2025-07-22 07:24:42', '2025-07-29 18:22:46'),
-(4, 1, 'HEM-KG4', NULL, 'Kokit', 'Gormesa', NULL, 'kokit.gormesa@email.com', '+447456789012', 'KG012D', 'active', 1000.00, 4, '2025-10-05', 1000.00, 0, 'Dawit', 'Gormesa', '+447456789013', 'dawit.gormesa@email.com', 'Husband', 1, 1, 1, '2024-05-15', '2024-06-17 11:20:00', 'sms', 1, 1, 'New member - very enthusiastic', '2025-07-22 07:24:42', '2025-07-29 18:37:07'),
-(5, 1, 'HEM-MA5', NULL, 'Mahlet', 'Ayalew', NULL, 'mahlet.ayalew@email.com', '+447567890123', 'MA345E', 'active', 1000.00, 5, '2025-11-05', 1000.00, 0, 'Bereket', 'Ayalew', '+447567890124', 'bereket.ayalew@email.com', 'Father', 1, 1, 1, '2024-05-15', '2024-06-21 08:10:00', 'email,sms', 1, 1, 'Last position - patient member', '2025-07-22 07:24:42', '2025-07-29 18:37:14'),
-(10, NULL, 'HEM-MW2', 'meski5700', 'Meskerem', 'Dem', 'Michael werkeneh', 'meski5700@gmail.com', '+447415329332', '$2y$12$hoKDSltuJjTkcumH4ts9lOlMojIddSe4Phxcdk4z6v0o28ztHCdH6', 'active', 1000.00, 6, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-07-29', NULL, 'both', 1, 0, '', '2025-07-29 19:21:33', '2025-07-29 20:10:08');
+INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
+(1, 1, 'HEM-MW1', 'MW123A', 'Michael', 'Werkneh', 'Michael Werkne', 'michael.werkneh@email.com', '+447123456789', '$2y$12$kdwSiI7P37OpM7OVFH4rMOHH2W7Yywf08O3DItvLGCVH6ZKqI/qBi', 'active', 1000.00, 1, '2025-07-05', 6000.00, 1, 'Sarah', 'Werkneh', '+447123456790', 'sarah.werkneh@email.com', 'Wife', 1, 1, 1, '2024-05-15', '2025-07-25 00:54:39', 'email,sms', 1, 1, 1, 'First member - received June payout', '2025-07-22 07:24:42', '2025-07-30 22:57:27', 1, 1, 0),
+(2, 1, 'HEM-MN2', NULL, 'Maeruf', 'Nasir', 'Maeruf Nasir', 'maeruf.nasir@email.com', '+447234567890', 'MN456B', 'active', 1000.00, 2, '2025-08-05', 1000.00, 0, 'Ahmed', 'Nasir', '+447234567891', 'ahmed.nasir@email.com', 'Brother', 1, 1, 1, '2024-05-15', '2024-06-18 13:15:00', 'email', 1, 1, 0, 'Active member - good payment record', '2025-07-22 07:24:42', '2025-07-29 19:50:39', 1, 1, 0),
+(3, 1, 'HEM-TE3', NULL, 'Teddy', 'Elias', NULL, 'teddy.elias@email.com', '+447345678901', 'TE789C', 'active', 500.00, 3, '2025-09-05', 1500.00, 0, 'Helen', 'Elias', '+447345678902', 'helen.elias@email.com', 'Mother', 1, 1, 1, '2024-05-15', '2024-06-19 15:45:00', 'email,sms', 1, 1, 0, 'Reliable member', '2025-07-22 07:24:42', '2025-07-29 18:22:46', 1, 1, 0),
+(4, 1, 'HEM-KG4', NULL, 'Kokit', 'Gormesa', NULL, 'kokit.gormesa@email.com', '+447456789012', 'KG012D', 'active', 1000.00, 4, '2025-10-05', 1000.00, 0, 'Dawit', 'Gormesa', '+447456789013', 'dawit.gormesa@email.com', 'Husband', 1, 1, 1, '2024-05-15', '2024-06-17 11:20:00', 'sms', 1, 1, 0, 'New member - very enthusiastic', '2025-07-22 07:24:42', '2025-07-29 18:37:07', 1, 1, 0),
+(5, 1, 'HEM-MA5', NULL, 'Mahlet', 'Ayalew', NULL, 'mahlet.ayalew@email.com', '+447567890123', 'MA345E', 'active', 1000.00, 5, '2025-11-05', 1000.00, 0, 'Bereket', 'Ayalew', '+447567890124', 'bereket.ayalew@email.com', 'Father', 1, 1, 1, '2024-05-15', '2024-06-21 08:10:00', 'email,sms', 1, 1, 0, 'Last position - patient member', '2025-07-22 07:24:42', '2025-07-29 18:37:14', 1, 1, 0),
+(10, NULL, 'HEM-MW2', 'meski5700', 'Meskerem', 'Dem', 'Michael werkeneh', 'meski5700@gmail.com', '+447415329332', '$2y$12$hoKDSltuJjTkcumH4ts9lOlMojIddSe4Phxcdk4z6v0o28ztHCdH6', 'active', 1000.00, 6, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-07-29', NULL, 'both', 1, 0, 0, '', '2025-07-29 19:21:33', '2025-07-29 20:10:08', 1, 1, 0),
+(11, 1, 'HEM-SG1', 'sabela.goitom', 'Sabela', 'Goitom', 'Sabela Goitom', 'sabela.goitom@gmail.com', '+447360436169', '$2y$12$lasuAjjRMgJwwcwnBvoxeeKWsaXSFJbCpmoqdvvVTPPF0Fbx2HNK.', 'active', 0.00, 7, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 1, 0, '2025-07-29', NULL, 'both', 1, 0, 0, NULL, '2025-07-29 22:18:53', '2025-07-29 23:02:47', 1, 1, 0),
+(12, NULL, 'HEM-EH1', 'eldanahadera', 'El-dana', 'Hadera', 'El-dana Hadera', 'eldanahadera@gmail.com', '+447415329321', '$2y$12$ckuewagSKv7Qhe7uTN1mW.eSpGP4O/jZC89JWu8tEP85q/CeS7ogy', 'active', 500.00, 8, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-30', NULL, 'both', 1, 0, 1, '', '2025-07-29 23:06:05', '2025-07-31 12:44:16', 1, 1, 0),
+(13, NULL, 'HEM-AG1', 'abeldemessie707', 'Abel', 'Goytom', 'Abel Goytom', 'abeldemessie707@gmail.com', '+447543152615', '$2y$12$vl63p43SRdIqqLQEGPS53OALVF8zLikwcf7KvFql3Aywmx.aai7KS', 'active', 0.00, 9, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 0, 0, 0, '2025-07-30', NULL, 'both', 1, 0, 0, 'DECLINED: not known', '2025-07-30 22:58:33', '2025-07-30 23:13:42', 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -465,7 +472,7 @@ ALTER TABLE `equb_settings`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `notifications`

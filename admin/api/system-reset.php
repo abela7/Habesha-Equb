@@ -67,24 +67,20 @@ try {
     $counts['payments'] = $db->query("SELECT COUNT(*) FROM payments")->fetchColumn();
     $counts['payouts'] = $db->query("SELECT COUNT(*) FROM payouts")->fetchColumn();
     $counts['notifications'] = $db->query("SELECT COUNT(*) FROM notifications")->fetchColumn();
-    $counts['device_tracking'] = $db->query("SELECT COUNT(*) FROM device_tracking")->fetchColumn();
 
     // DANGER ZONE: Delete all member-related data
     // Order is important due to foreign key constraints
 
-    // 1. Delete device tracking (references members)
-    $db->exec("DELETE FROM device_tracking");
-    
-    // 2. Delete notifications (may reference members)
+    // 1. Delete notifications (may reference members)
     $db->exec("DELETE FROM notifications");
     
-    // 3. Delete payments (references members)
+    // 2. Delete payments (references members)
     $db->exec("DELETE FROM payments");
     
-    // 4. Delete payouts (references members)
+    // 3. Delete payouts (references members)
     $db->exec("DELETE FROM payouts");
     
-    // 5. Finally delete all members
+    // 4. Finally delete all members
     $db->exec("DELETE FROM members");
 
     // Reset auto-increment counters to start fresh
@@ -92,7 +88,6 @@ try {
     $db->exec("ALTER TABLE payments AUTO_INCREMENT = 1");
     $db->exec("ALTER TABLE payouts AUTO_INCREMENT = 1");
     $db->exec("ALTER TABLE notifications AUTO_INCREMENT = 1");
-    $db->exec("ALTER TABLE device_tracking AUTO_INCREMENT = 1");
 
     // Commit the transaction
     $db->commit();
@@ -103,8 +98,7 @@ try {
     $log_message .= "Members: {$counts['members']}, ";
     $log_message .= "Payments: {$counts['payments']}, ";
     $log_message .= "Payouts: {$counts['payouts']}, ";
-    $log_message .= "Notifications: {$counts['notifications']}, ";
-    $log_message .= "Device Tracking: {$counts['device_tracking']}";
+    $log_message .= "Notifications: {$counts['notifications']}";
     
     error_log($log_message);
 
