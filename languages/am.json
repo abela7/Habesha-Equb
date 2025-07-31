@@ -468,15 +468,15 @@
     "equb_label": "እቁብ",
     "position_of": "ቅደም ተከተል",
     "of": "ከ",
-    "received_amount": "ተቀብሏል",
+    "received_amount": "የወሰደው የእቁብ መጠን - ",
     "total_payouts_received": "ጠቅላላ የተቀበሉ እቁቦች",
     "days_remaining": "ቀሪ ቀናት",
     "overdue_by": "ዘግይቷል በ",
     "days": "ቀናት",
     "not_available": "አልተገኘም",
     "last": "የመጨረሻ",
-    "paid_out": "ተከፍሏል",
-    "expected": "የሚጠበቅ"
+    "paid_out": "እቁብ ወስዷል",
+    "expected": "እቁብን በመጠበቅ ላይ ያሉ"
   },
   "user_auth": {
     "page_title": "እንኳን ወደ ሐበሻ እቁብ በደህና መጡ!",
