@@ -5,16 +5,21 @@
  */
 
 require_once '../includes/db.php';
-require_once '../languages/translator.php';
-require_once '../languages/user_language_handler.php';
 
-// Secure admin authentication check
+// Secure admin authentication check FIRST
 require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username();
 
+// THEN load translation system
+require_once '../languages/translator.php';
+require_once '../languages/user_language_handler.php';
+
 // Set admin's language preference from database
 setAdminLanguageFromDatabase($admin_id);
+
+// Debug output
+error_log("Dashboard: Admin ID: $admin_id, Final Language: " . getCurrentLanguage());
 
 // Get members data for dashboard statistics
 try {
