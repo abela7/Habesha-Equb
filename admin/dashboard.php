@@ -5,25 +5,22 @@
  */
 
 require_once '../includes/db.php';
+require_once '../languages/translator.php';
+require_once '../languages/user_language_handler.php';
 
-// Secure admin authentication check FIRST
+// Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username();
 
-// THEN load translation system
-require_once '../languages/translator.php';
-require_once '../languages/user_language_handler.php';
-
 // Set admin's language preference from database
 setAdminLanguageFromDatabase($admin_id);
 
-// EMERGENCY FIX: Force English for now while we debug
+// Debug: Force English for troubleshooting
 setLanguage('en');
 
-// Debug output
-error_log("Dashboard: Admin ID: $admin_id, DB Language Set, Forced to EN, Final Language: " . getCurrentLanguage());
-error_log("Dashboard: Test translation: " . t('dashboard.welcome_back'));
+// Debug logging
+error_log("Admin Dashboard Debug - Admin ID: $admin_id, Current Language: " . getCurrentLanguage());
 
 // Get members data for dashboard statistics
 try {
@@ -422,45 +419,6 @@ try {
             }
         }
 
-        /* Language Switcher */
-        .language-switcher {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .btn-language {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .btn-language:hover {
-            background: white;
-            border-color: var(--color-gold);
-            color: var(--color-purple);
-            transform: translateY(-1px);
-        }
-
-        .btn-language.active {
-            background: var(--color-gold);
-            border-color: var(--color-gold);
-            color: white;
-        }
-
-        .btn-language i {
-            font-size: 10px;
-        }
-
         @media (max-width: 480px) {
             .welcome-header {
                 padding: 20px;
@@ -473,16 +431,6 @@ try {
 
             .metric-value {
                 font-size: 24px;
-            }
-
-            .language-switcher {
-                flex-direction: column;
-                gap: 4px;
-            }
-
-            .btn-language {
-                font-size: 10px;
-                padding: 6px 8px;
             }
         }
     </style>
@@ -508,15 +456,6 @@ try {
                 <div class="quick-metric">
                     <span class="metric-value">£<?php echo number_format(array_sum(array_column($members, 'monthly_payment')) * count($members), 0); ?></span>
                     <span class="metric-label"><?php echo t('dashboard.monthly_pool'); ?></span>
-                </div>
-                <!-- Language Switcher -->
-                <div class="language-switcher">
-                    <button class="btn-language <?php echo getCurrentLanguage() === 'en' ? 'active' : ''; ?>" onclick="switchLanguage('en')">
-                        <i class="fas fa-globe"></i> English
-                    </button>
-                    <button class="btn-language <?php echo getCurrentLanguage() === 'am' ? 'active' : ''; ?>" onclick="switchLanguage('am')">
-                        <i class="fas fa-globe"></i> አማርኛ
-                    </button>
                 </div>
             </div>
         </div>
@@ -870,37 +809,6 @@ try {
     <script>
         function showComingSoon(feature) {
             alert(`${feature} module coming soon!\n\nWe're building this feature next as part of the HabeshaEqub development process.`);
-        }
-
-        // Language switching function
-        function switchLanguage(language) {
-            // Show loading indication
-            const buttons = document.querySelectorAll('.btn-language');
-            buttons.forEach(btn => btn.style.opacity = '0.5');
-
-            // Send request to update language preference
-            fetch('api/language.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=switch_language&language=${language}&csrf_token=<?php echo generate_csrf_token(); ?>`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Reload page to apply new language
-                    location.reload();
-                } else {
-                    alert('Error switching language: ' + data.message);
-                    buttons.forEach(btn => btn.style.opacity = '1');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error switching language. Please try again.');
-                buttons.forEach(btn => btn.style.opacity = '1');
-            });
         }
     </script>
 </body>

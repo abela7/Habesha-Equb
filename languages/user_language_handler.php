@@ -56,19 +56,13 @@ function setAdminLanguageFromDatabase($admin_id) {
         if ($result) {
             // language_preference: 0 = English, 1 = Amharic
             $language = ($result['language_preference'] == 1) ? 'am' : 'en';
-            error_log("setAdminLanguageFromDatabase: admin_id=$admin_id, db_preference={$result['language_preference']}, setting_lang=$language");
-            $success = setLanguage($language);
-            error_log("setAdminLanguageFromDatabase: setLanguage result=" . ($success ? 'SUCCESS' : 'FAILED'));
-            return $success;
-        } else {
-            error_log("setAdminLanguageFromDatabase: No active admin found with id=$admin_id");
+            return setLanguage($language);
         }
     } catch (PDOException $e) {
         error_log("Error getting admin language preference: " . $e->getMessage());
     }
     
     // Default to Amharic if there's an error
-    error_log("setAdminLanguageFromDatabase: defaulting to 'am' for admin_id=$admin_id");
     return setLanguage('am');
 }
 
