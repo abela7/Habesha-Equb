@@ -1,6 +1,6 @@
 <?php
 /**
- * Habesha-leEqub Admin System Reset API
+ * Habesha!-leEqub Admin System Reset API
  * DANGEROUS: Resets entire system by deleting all member data
  */
 
