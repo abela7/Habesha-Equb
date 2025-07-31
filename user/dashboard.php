@@ -1244,8 +1244,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .rules-section {
-        padding: 24px;
-        margin-bottom: 32px;
+        padding: 20px;
+        margin-bottom: 30px;
         border-radius: 20px;
     }
     
@@ -1346,7 +1346,74 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         width: 3px;
         top: 6px;
     }
-}
+    
+    /* Enhanced Mobile Rules Accordion */
+    .accordion-button {
+        padding: 14px 16px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 12px !important;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        border-radius: 12px 12px 0 0 !important;
+    }
+    
+    .accordion-button .badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 8px;
+        margin-left: 8px;
+    }
+    
+    .accordion-collapse {
+        border-radius: 0 0 12px 12px;
+    }
+    
+    .accordion-body {
+        padding: 16px 12px;
+        background: #fafafa;
+    }
+    
+    .rules-container {
+        gap: 0;
+    }
+    
+    .rule-item {
+        padding: 16px 0;
+        border-radius: 0;
+    }
+    
+    .rule-item:first-child {
+        padding-top: 8px;
+    }
+    
+    .rule-item:last-child {
+        padding-bottom: 8px;
+    }
+    
+    .rule-item .rule-header {
+        margin-bottom: 10px;
+    }
+    
+    .rule-item .rule-number-badge {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    
+    .rule-item .rule-content {
+        font-size: 13px;
+        line-height: 1.6;
+        color: #4a5568;
+        padding-left: 0;
+    }
+    
+    .rule-item.border-bottom {
+        border-bottom: 1px solid rgba(218, 165, 32, 0.15);
+        margin-bottom: 0;
+    }
 }
 </style>
 

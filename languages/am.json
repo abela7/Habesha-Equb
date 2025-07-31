@@ -585,7 +585,8 @@
     "recent_payments_desc": "የእርስዎ የቅርብ ጊዜ ክፍያዎች",
     "equb_rules": "የእቁብ ህጎችና ደንቦች",
     "equb_rules_desc": "ለሁሉም አባላት አስፈላጊ ህጎችና መመሪያዎች",
-    "rule_number": "ህግ"
+    "rule_number": "ህግ",
+    "rules": "ህጎች"
   },
   "member_nav": {
     "overview": "አጠቃላይ እይታ",

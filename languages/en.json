@@ -585,7 +585,8 @@
     "recent_payments_desc": "Your latest payment transactions and history",
     "equb_rules": "Equb Rules & Regulations",
     "equb_rules_desc": "Important rules and guidelines for all members",
-    "rule_number": "Rule"
+    "rule_number": "Rule",
+    "rules": "Rules"
   },
   "contributions": {
     "page_title": "My Payments",
