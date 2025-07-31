@@ -749,7 +749,7 @@
     "thank_you_payment": "ክፍያዎን ስለ ከፈሉ እናመሰግናለን!",
     "automated_receipt": "ይህ በሲስተሙ የተዘጋጀ ደረሰኝ ነው",
     "current_month_payment_verified": "የአሁኑ ወር ክፍያ ተረጋግጧል",
-    "payment_due_month": "ክፍያ የሚከፈልበት ወር {month}",
+    "payment_due_month": "ክፍያ የሚከፈልበት ወር %s",
     "due_by": "የሚከፈልበት ቀን",
     "next_payment_amount": "ቀጣይ ክፍያ:",
     "due_date_with_days": "የሚከፈልበት ቀን {date} ({days} ቀናት)",

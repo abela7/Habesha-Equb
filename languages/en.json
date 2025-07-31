@@ -724,7 +724,7 @@
     "thank_you_payment": "Thank you for your payment!",
     "automated_receipt": "This is an automated receipt generated on",
     "current_month_payment_verified": "Current month payment verified",
-    "payment_due_month": "Payment Due {month}",
+    "payment_due_month": "Payment Due %s",
     "due_by": "Due by",
     "next_payment_amount": "Next Payment:",
     "due_date_with_days": "Due {date} ({days} days)",
