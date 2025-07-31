@@ -1020,7 +1020,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      <?php if (isset($payout_info['calculated_payout_date'])): ?>
                      <div class="financial-detail mt-1">
                          <i class="fas fa-calendar-check text-warning me-1"></i>
-                         <small>Payout: <?php echo date('M j, Y', strtotime($payout_info['calculated_payout_date'])); ?></small>
+                         <small><?php echo t('contributions.payout_date'); ?>: <?php echo date('M j, Y', strtotime($payout_info['calculated_payout_date'])); ?></small>
                      </div>
                      <?php endif; ?>
                      <div class="progress-container">
@@ -1041,10 +1041,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                          <div class="financial-title">
                              <?php if ($current_payment && $current_payment['status'] === 'paid'): ?>
                                  <h3><?php echo t('contributions.payment_complete'); ?> <?php echo date('F Y'); ?></h3>
-                                 <div class="description">Current month payment verified</div>
+                                 <div class="description"><?php echo t('contributions.current_month_payment_verified'); ?></div>
                              <?php else: ?>
                                  <h3>£<?php echo number_format($monthly_contribution, 2); ?> <?php echo sprintf(t('contributions.due_in_days'), $days_until_due); ?></h3>
-                                 <div class="description">Payment Due <?php echo date('F Y'); ?></div>
+                                 <div class="description"><?php echo sprintf(t('contributions.payment_due_month'), date('F Y')); ?></div>
                              <?php endif; ?>
                          </div>
                      </div>
@@ -1054,7 +1054,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <?php echo t('contributions.paid'); ?> £<?php echo number_format($current_payment['amount'], 2); ?> <?php echo t('common.on'); ?> <?php echo date('M d', strtotime($current_payment['payment_date'])); ?>
                          <?php else: ?>
                              <i class="fas fa-clock text-warning me-1"></i>
-                             Due by <?php echo date('M j, Y', strtotime($next_due_date)); ?>
+                             <?php echo t('contributions.due_by'); ?> <?php echo date('M j, Y', strtotime($next_due_date)); ?>
                          <?php endif; ?>
                      </div>
                      
@@ -1062,30 +1062,28 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      <?php if ($current_payment && $current_payment['status'] === 'paid'): ?>
                      <div class="financial-detail mt-2" style="border-top: 1px solid var(--color-border); padding-top: 8px;">
                          <i class="fas fa-calendar-plus text-primary me-1"></i>
-                         <strong>Next Payment:</strong> £<?php echo number_format($monthly_contribution, 2); ?>
+                         <strong><?php echo t('contributions.next_payment_amount'); ?></strong> £<?php echo number_format($monthly_contribution, 2); ?>
                      </div>
                      <div class="financial-detail">
                          <i class="fas fa-clock text-info me-1"></i>
-                         Due <?php echo date('M j, Y', strtotime($next_due_date)); ?> (<?php echo max(0, floor((strtotime($next_due_date) - time()) / (60 * 60 * 24))); ?> days)
+                         <?php echo sprintf(t('contributions.due_date_with_days'), date('M j, Y', strtotime($next_due_date)), max(0, floor((strtotime($next_due_date) - time()) / (60 * 60 * 24)))); ?>
                      </div>
                      <?php endif; ?>
                      
                      <!-- Payment Schedule Info -->
                      <div class="financial-detail mt-2" style="border-top: 1px solid var(--color-border); padding-top: 8px;">
                          <i class="fas fa-calendar-alt text-secondary me-1"></i>
-                         <small><strong>Payment Schedule:</strong> Monthly on <?php echo !empty($member['payout_day']) ? ordinal($member['payout_day']) : '1st'; ?></small>
+                         <small><strong><?php echo t('contributions.payment_schedule'); ?></strong> <?php echo sprintf(t('contributions.monthly_on'), !empty($member['payout_day']) ? ordinal($member['payout_day']) : '1st'); ?></small>
                      </div>
                      
                      <!-- Remaining Payments -->
                      <?php
-                     $equb_start = new DateTime($member['start_date']);
-                     $current_date = new DateTime();
-                     $months_elapsed = $equb_start->diff($current_date)->m + ($equb_start->diff($current_date)->y * 12);
-                     $remaining_payments = max(0, $duration_months - $months_elapsed);
+                     $remaining_payments = (int)$member['remaining_months_in_equb'];
+                     $duration_months = (int)$member['duration_months'];
                      ?>
                      <div class="financial-detail">
                          <i class="fas fa-list-ol text-info me-1"></i>
-                         <small><?php echo $remaining_payments; ?> payments remaining (<?php echo $duration_months; ?> months total)</small>
+                         <small><?php echo $remaining_payments; ?> <?php echo t('contributions.payments_remaining'); ?> (<?php echo $duration_months; ?> <?php echo t('contributions.months_total'); ?>)</small>
                      </div>
                  </div>
              </div>
@@ -1122,7 +1120,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                          ?>
                          <?php echo $on_time_payments; ?> <?php echo t('common.of'); ?> <?php echo $completed_payments; ?> <?php echo t('contributions.payments_made'); ?> <?php echo t('contributions.on_time_rate'); ?>
                          <?php if ($late_payments > 0): ?>
-                         <br><small class="text-warning"><?php echo $late_payments; ?> late payment(s)</small>
+                         <br><small class="text-warning"><?php echo $late_payments; ?> <?php echo t('contributions.late'); ?> <?php echo t('contributions.payment'); ?>(s)</small>
                          <?php endif; ?>
                      </div>
                  </div>
@@ -1307,7 +1305,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     <!-- Hidden Print Receipt Template -->
     <div class="receipt-print" id="receiptTemplate" style="display: none;">
         <div class="receipt-header">
-            <div class="receipt-title">HABESHA EQUB</div>
+            <div class="receipt-title"><?php echo t('contributions.app_name'); ?></div>
             <div class="receipt-subtitle"><?php echo t('contributions.payment_details'); ?></div>
             <div class="receipt-date" id="receipt-print-date"></div>
         </div>
