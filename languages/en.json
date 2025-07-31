@@ -620,7 +620,14 @@
     "days_remaining": "days remaining",
     "payment_status": "Payment Status",
     "current_month": "Current Month",
-    "pay_now_with_late_fee": "Pay Now + Late Fee"
+    "pay_now_with_late_fee": "Pay Now + Late Fee",
+    "payout_received": "Payout Received",
+    "congratulations": "Congratulations!",
+    "amount_received": "Amount Received",
+    "payout_id": "Payout ID",
+    "total_payouts_received": "total payouts received",
+    "expected_payout": "Expected Payout",
+    "expected_amount": "Expected Amount"
   },
   "contributions": {
     "page_title": "My Payments",

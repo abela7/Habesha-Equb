@@ -620,7 +620,14 @@
     "days_remaining": "ቀሪ ቀናት",
     "payment_status": "የክፍያ ሁኔታ",
     "current_month": "የዚህ ወር",
-    "pay_now_with_late_fee": "አሁን ክፈል + ቅጣት"
+    "pay_now_with_late_fee": "አሁን ክፈል + ቅጣት",
+    "payout_received": "እቁብ ተቀብለዋል",
+    "congratulations": "እንኳን ደስ አለዎት!",
+    "amount_received": "የተቀበሉት መጠን",
+    "payout_id": "የእቁብ መታወቂያ",
+    "total_payouts_received": "ጠቅላላ የተቀበሉ እቁቦች",
+    "expected_payout": "የሚጠበቅ እቁብ",
+    "expected_amount": "የሚጠበቅ መጠን"
   },
   "member_nav": {
     "overview": "አጠቃላይ እይታ",
@@ -717,7 +724,7 @@
     "admin_notes": "የአስተዳዳሪ ማስታወሻዎች",
     "no_payments_found": "ምንም ክፍያዎች አልተገኙም",
     "no_payments_message": "እስካሁን ምንም ክፍያዎች አላደረጉም። የመጀመሪያ ክፍያዎትን በማድረግ ይጀምሩ።",
-    "contribution_success": "መዋጮ በተሳካ ሁኔታ ተመዝግቧል!",
+    "contribution_success": "ክፍያው በተሳካ ሁኔታ ተመዝግቧል!",
     "payment_submitted": "ክፍያ ለማረጋገጥ ተልኳል",
     "outstanding_balance": "ያልተከፈለ ቀሪ",
     "balance_due": "ቀሪ ክፍያ",
@@ -726,7 +733,7 @@
     "average_payment": "አማካይ ክፍያ",
     "payment_frequency": "የክፍያ ድግግሞሽ",
     "monthly": "ወርሃዊ",
-    "on_time_rate": "በጊዜው የመክፈል መጠን",
+    "on_time_rate": "በጊዜው የመክፈል ሁኔታ",
     "payment_performance": "የክፍያ አፈጻጸም",
     "excellent": "በጣም ሃሪፍ",
     "good": "ጥሩ",
@@ -740,7 +747,7 @@
     "export_history": "ታሪክ ላክ",
     "print_statement": "ደረሰኙን ሴቭ አድርግ",
     "thank_you_payment": "ክፍያዎን ስለ ከፈሉ እናመሰግናለን!",
-    "automated_receipt": "ይህ በራስ ሰር የተዘጋጀ ደረሰኝ ነው"
+    "automated_receipt": "ይህ በሲስተሙ የተዘጋጀ ደረሰኝ ነው"
   },
   "payout": {
     "page_title": "እርስዎ ስለሚደርስዎት እቁብ መረጃ",

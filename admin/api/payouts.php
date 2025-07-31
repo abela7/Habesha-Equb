@@ -9,6 +9,39 @@ require_once '../../includes/db.php';
 // Set JSON header
 header('Content-Type: application/json');
 
+/**
+ * MASTER-LEVEL HELPER FUNCTION
+ * Synchronize has_received_payout flag with actual payouts table
+ * This ensures data integrity across the entire system
+ */
+function syncMemberPayoutFlag($member_id) {
+    global $pdo;
+    
+    try {
+        // Check if member has any completed payouts
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as completed_payouts 
+            FROM payouts 
+            WHERE member_id = ? AND status = 'completed'
+        ");
+        $stmt->execute([$member_id]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $has_received_payout = $result['completed_payouts'] > 0 ? 1 : 0;
+        
+        // Update member's flag to match reality
+        $stmt = $pdo->prepare("UPDATE members SET has_received_payout = ? WHERE id = ?");
+        $stmt->execute([$has_received_payout, $member_id]);
+        
+        error_log("PAYOUT SYNC: Member $member_id has_received_payout updated to $has_received_payout (based on {$result['completed_payouts']} completed payouts)");
+        
+        return true;
+    } catch (PDOException $e) {
+        error_log("PAYOUT SYNC ERROR: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Check if admin is logged in
 if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
@@ -117,10 +150,6 @@ function addPayout() {
     if ($status === 'completed') {
         $actual_payout_date = !empty($manual_actual_date) ? $manual_actual_date : date('Y-m-d');
         $processed_by_admin_id = $admin_id;
-        
-        // Update member's has_received_payout flag
-        $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 1 WHERE id = ?");
-        $stmt->execute([$member_id]);
     }
     
     // Generate payout ID: PAYOUT-MEMBERINITIALS-MMYYYY (e.g., PAYOUT-MW-012024)
@@ -153,10 +182,14 @@ function addPayout() {
         $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
     ]);
     
+    // MASTER-LEVEL: Auto-sync the member's payout flag
+    syncMemberPayoutFlag($member_id);
+    
     echo json_encode([
         'success' => true, 
         'message' => 'Payout scheduled successfully',
-        'payout_id' => $payout_id
+        'payout_id' => $payout_id,
+        'member_payout_flag_synced' => true
     ]);
 }
 
@@ -263,16 +296,8 @@ function updatePayout() {
             $actual_payout_date = $current_payout['actual_payout_date'];
         }
         $processed_by_admin_id = $admin_id;
-        
-        // Update member's has_received_payout flag if changing to completed
-        if ($current_payout['status'] !== 'completed') {
-            $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 1 WHERE id = ?");
-            $stmt->execute([$member_id]);
-        }
     } elseif ($current_payout['status'] === 'completed' && $status !== 'completed') {
-        // If changing from completed to other status, reset member flag and clear date
-        $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 0 WHERE id = ?");
-        $stmt->execute([$member_id]);
+        // If changing from completed to other status, clear date
         $actual_payout_date = null;
         $processed_by_admin_id = null;
     }
@@ -292,7 +317,14 @@ function updatePayout() {
         $actual_payout_date, $processed_by_admin_id, $payout_id
     ]);
     
-    echo json_encode(['success' => true, 'message' => 'Payout updated successfully']);
+    // MASTER-LEVEL: Auto-sync the member's payout flag
+    syncMemberPayoutFlag($member_id);
+    
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Payout updated successfully',
+        'member_payout_flag_synced' => true
+    ]);
 }
 
 /**
@@ -318,17 +350,20 @@ function deletePayout() {
         return;
     }
     
-    // If payout was completed, reset member's payout flag
-    if ($payout['status'] === 'completed') {
-        $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 0 WHERE id = ?");
-        $stmt->execute([$payout['member_id']]);
-    }
+    $member_id = $payout['member_id'];
     
     // Delete payout
     $stmt = $pdo->prepare("DELETE FROM payouts WHERE id = ?");
     $stmt->execute([$payout_id]);
     
-    echo json_encode(['success' => true, 'message' => 'Payout deleted successfully']);
+    // MASTER-LEVEL: Auto-sync the member's payout flag after deletion
+    syncMemberPayoutFlag($member_id);
+    
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Payout deleted successfully',
+        'member_payout_flag_synced' => true
+    ]);
 }
 
 /**
@@ -370,11 +405,14 @@ function processPayout() {
     ");
     $stmt->execute([$admin_id, $payout_id]);
     
-    // Update member's has_received_payout flag
-    $stmt = $pdo->prepare("UPDATE members SET has_received_payout = 1 WHERE id = ?");
-    $stmt->execute([$payout['member_id']]);
+    // MASTER-LEVEL: Auto-sync the member's payout flag
+    syncMemberPayoutFlag($payout['member_id']);
     
-    echo json_encode(['success' => true, 'message' => 'Payout processed successfully']);
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Payout processed successfully',
+        'member_payout_flag_synced' => true
+    ]);
 }
 
 /**

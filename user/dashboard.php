@@ -47,6 +47,11 @@ try {
                    0
                ) as payout_count,
                
+               -- Latest Completed Payout Details
+               (SELECT po.actual_payout_date FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_payout_date,
+               (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_payout_amount,
+               (SELECT po.payout_id FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_payout_id,
+               
                -- Equb Statistics
                (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
                
@@ -1770,49 +1775,72 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     </div>
                 </div>
 
-                <!-- Next Payout Date -->
+                <!-- MASTER-LEVEL Payout Date Card -->
                 <div class="col-xl-3 col-md-6">
                     <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon info">
-                                <i class="fas fa-calendar-alt"></i>
+                        <?php if (!empty($member['latest_payout_date'])): ?>
+                            <!-- User has received payout - show received status -->
+                            <div class="stat-header">
+                                <div class="stat-icon success">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-title-group">
+                                    <h3><?php echo t('dashboard.payout_received'); ?></h3>
+                                    <p class="stat-subtitle"><?php echo t('dashboard.congratulations'); ?></p>
+                                </div>
                             </div>
-                            <div class="stat-title-group">
-                                <h3><?php echo t('member_dashboard.payout_date'); ?></h3>
+                            <div class="stat-value text-success">
+                                <?php echo date('M d, Y', strtotime($member['latest_payout_date'])); ?>
                             </div>
-                        </div>
-                        <div class="stat-value"><?php echo date('M d, Y', strtotime($next_payout_date)); ?></div>
-                        <div class="stat-detail">
-                            <?php echo sprintf(t('member_dashboard.position_of_members'), $payout_position, $total_equb_members); ?>
-                        </div>
-                        <div class="stat-detail mt-2">
-                            <i class="fas fa-clock me-1"></i>
-                            <?php 
-                            if ($days_until_payout > 0) {
-                                echo $days_until_payout . ' ' . t('dashboard.days_remaining');
-                            } elseif ($days_until_payout < 0) {
-                                echo '<span class="text-danger">' . t('dashboard.overdue_by') . ' ' . abs($days_until_payout) . ' ' . t('dashboard.days') . '</span>';
-                            } else {
-                                echo '<span class="text-success">' . t('member_dashboard.payout_available') . '</span>';
-                            }
-                            ?>
-                        </div>
-                        <?php if (isset($payout_info['payout_status'])): ?>
-                        <div class="stat-detail mt-1">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <small><?php echo t('member_dashboard.status'); ?>: 
+                            <div class="stat-detail text-success">
+                                <i class="fas fa-money-bill-wave me-1"></i>
+                                <strong><?php echo t('dashboard.amount_received'); ?>: £<?php echo number_format($member['latest_payout_amount'], 0); ?></strong>
+                            </div>
+                            <div class="stat-detail">
+                                <i class="fas fa-receipt me-1"></i>
+                                <small><?php echo t('dashboard.payout_id'); ?>: <?php echo htmlspecialchars($member['latest_payout_id']); ?></small>
+                            </div>
+                            
+                            <?php if ($payout_count > 1): ?>
+                            <div class="stat-detail mt-2">
+                                <i class="fas fa-trophy me-1"></i>
+                                <small class="text-muted"><?php echo $payout_count; ?> <?php echo t('dashboard.total_payouts_received'); ?></small>
+                            </div>
+                            <?php endif; ?>
+                            
+                        <?php else: ?>
+                            <!-- User hasn't received payout yet - show scheduled/expected -->
+                            <div class="stat-header">
+                                <div class="stat-icon info">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="stat-title-group">
+                                    <h3><?php echo t('member_dashboard.payout_date'); ?></h3>
+                                    <p class="stat-subtitle"><?php echo t('dashboard.expected_payout'); ?></p>
+                                </div>
+                            </div>
+                            <div class="stat-value">
+                                <?php echo date('M d, Y', strtotime($next_payout_date)); ?>
+                            </div>
+                            <div class="stat-detail">
+                                <?php echo sprintf(t('member_dashboard.position_of_members'), $payout_position, $total_equb_members); ?>
+                            </div>
+                            <div class="stat-detail mt-2">
+                                <i class="fas fa-clock me-1"></i>
                                 <?php 
-                                $status_class = '';
-                                switch($payout_info['payout_status']) {
-                                    case 'completed': $status_class = 'text-success'; break;
-                                    case 'processing': $status_class = 'text-warning'; break;
-                                    case 'scheduled': $status_class = 'text-info'; break;
-                                    default: $status_class = 'text-muted';
+                                if ($days_until_payout > 0) {
+                                    echo $days_until_payout . ' ' . t('dashboard.days_remaining');
+                                } elseif ($days_until_payout < 0) {
+                                    echo '<span class="text-danger">' . t('dashboard.overdue_by') . ' ' . abs($days_until_payout) . ' ' . t('dashboard.days') . '</span>';
+                                } else {
+                                    echo '<span class="text-success">' . t('member_dashboard.payout_available') . '</span>';
                                 }
-                                echo '<span class="' . $status_class . '">' . ucfirst($payout_info['payout_status']) . '</span>';
                                 ?>
-                            </small>
-                        </div>
+                            </div>
+                            <div class="stat-detail mt-2">
+                                <i class="fas fa-hand-holding-usd me-1"></i>
+                                <small class="text-muted"><?php echo t('dashboard.expected_amount'); ?>: £<?php echo number_format($expected_payout, 0); ?></small>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
