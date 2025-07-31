@@ -244,6 +244,97 @@ $t = Translator::getInstance();
                 </div>
             </div>
         </div>
+
+        <!-- DANGEROUS ZONE - System Reset -->
+        <div class="danger-zone-section">
+            <h2 style="color: #dc3545; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-exclamation-triangle"></i>
+                Danger Zone
+            </h2>
+            <div class="danger-card">
+                <div class="danger-content">
+                    <h3 style="color: #dc3545; margin-bottom: 15px;">
+                        <i class="fas fa-database"></i>
+                        Reset Entire System
+                    </h3>
+                    <p style="color: #6c757d; margin-bottom: 20px; line-height: 1.6;">
+                        <strong>⚠️ WARNING:</strong> This action will permanently delete ALL data from the system including:
+                    </p>
+                    <ul style="color: #6c757d; margin-bottom: 25px; line-height: 1.8;">
+                        <li><strong>All Members</strong> - Complete user accounts and profiles</li>
+                        <li><strong>All Payments</strong> - Payment history and transactions</li>
+                        <li><strong>All Payouts</strong> - Payout records and distributions</li>
+                        <li><strong>All Notifications</strong> - System notifications and messages</li>
+                        <li><strong>All Device Tracking</strong> - Registration device data</li>
+                    </ul>
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+                        <p style="margin: 0; color: #856404;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note:</strong> Admin accounts will be preserved. Only member data will be removed.
+                        </p>
+                    </div>
+                    <button id="systemResetBtn" class="btn btn-danger" style="background: linear-gradient(135deg, #dc3545, #c82333); border: none; padding: 15px 30px; font-weight: 600;">
+                        <i class="fas fa-trash-alt me-2"></i>
+                        Reset Entire System
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Reset Confirmation Modal -->
+    <div id="resetConfirmModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px; background: white; border-radius: 16px; border: 2px solid #dc3545;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 25px; border-radius: 14px 14px 0 0;">
+                <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Confirm System Reset
+                </h2>
+            </div>
+            <div class="modal-body" style="padding: 30px;">
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <i class="fas fa-bomb" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
+                    <h3 style="color: #dc3545; margin-bottom: 15px;">This action cannot be undone!</h3>
+                    <p style="color: #6c757d; margin-bottom: 25px;">
+                        You are about to permanently delete ALL member data from the system. 
+                        This will make the system completely fresh for new equb setup.
+                    </p>
+                </div>
+                
+                <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                    <h4 style="color: #721c24; margin-bottom: 10px;">What will be deleted:</h4>
+                    <ul style="color: #721c24; margin: 0; padding-left: 20px;">
+                        <li>All member accounts and profiles</li>
+                        <li>Complete payment history</li>
+                        <li>All payout records</li>
+                        <li>System notifications</li>
+                        <li>Device tracking data</li>
+                    </ul>
+                </div>
+
+                <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+                    <p style="margin: 0; color: #0c5460;">
+                        <i class="fas fa-shield-alt"></i>
+                        <strong>Protected:</strong> Admin accounts will NOT be deleted.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 10px; color: #dc3545; font-weight: 600;">
+                        Type "DELETE ALL DATA" to confirm:
+                    </label>
+                    <input type="text" id="confirmationText" class="form-control" placeholder="Type exactly: DELETE ALL DATA" style="border: 2px solid #dc3545; padding: 12px; border-radius: 8px; width: 100%;">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 20px; border-top: 1px solid #dee2e6; display: flex; gap: 15px; justify-content: end;">
+                <button onclick="closeResetModal()" class="btn btn-secondary" style="padding: 12px 25px;">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button id="confirmResetBtn" onclick="executeSystemReset()" class="btn btn-danger" disabled style="padding: 12px 25px; background: linear-gradient(135deg, #dc3545, #c82333); border: none;">
+                    <i class="fas fa-bomb me-2"></i>DELETE ALL DATA
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Coming Soon Modal -->
@@ -592,6 +683,71 @@ $t = Translator::getInstance();
             border-radius: 0 0 12px 12px;
         }
 
+        /* Danger Zone Styling */
+        .danger-zone-section {
+            margin-top: 40px;
+            padding: 30px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border: 2px solid #fc8181;
+            box-shadow: 0 8px 32px rgba(220, 53, 69, 0.15);
+        }
+
+        .danger-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #f56565;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.1);
+        }
+
+        .danger-content h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Reset Modal Styling */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            margin: auto;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            animation: modalSlideIn 0.3s ease-out;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .form-control:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+            outline: none;
+        }
+
         @media (max-width: 768px) {
             .settings-grid {
                 grid-template-columns: 1fr;
@@ -611,7 +767,115 @@ $t = Translator::getInstance();
                 margin: 10% auto;
                 width: 95%;
             }
+
+            .danger-zone-section {
+                margin-top: 30px;
+                padding: 20px;
+            }
+
+            .danger-card {
+                padding: 20px;
+            }
         }
     </style>
+
+    <script>
+        // System Reset Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // System reset button event
+            document.getElementById('systemResetBtn').addEventListener('click', function() {
+                document.getElementById('resetConfirmModal').style.display = 'flex';
+                document.getElementById('confirmationText').value = '';
+                document.getElementById('confirmResetBtn').disabled = true;
+            });
+
+            // Confirmation text validation
+            document.getElementById('confirmationText').addEventListener('input', function() {
+                const confirmBtn = document.getElementById('confirmResetBtn');
+                if (this.value === 'DELETE ALL DATA') {
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                } else {
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = '0.5';
+                }
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('resetConfirmModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeResetModal();
+                }
+            });
+        });
+
+        function closeResetModal() {
+            document.getElementById('resetConfirmModal').style.display = 'none';
+            document.getElementById('confirmationText').value = '';
+            document.getElementById('confirmResetBtn').disabled = true;
+        }
+
+        async function executeSystemReset() {
+            const confirmBtn = document.getElementById('confirmResetBtn');
+            const originalText = confirmBtn.innerHTML;
+            
+            // Show loading state
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Resetting System...';
+
+            try {
+                const response = await fetch('api/system-reset.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'reset_system',
+                        confirmation: 'DELETE ALL DATA'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success message
+                    alert('✅ System has been successfully reset!\n\nAll member data has been deleted. The system is now fresh and ready for new equb setup.');
+                    
+                    // Close modal and refresh page
+                    closeResetModal();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert('❌ Reset failed: ' + result.message);
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Reset error:', error);
+                alert('❌ Network error occurred during reset. Please try again.');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalText;
+            }
+        }
+
+        // Existing coming soon functionality
+        function showComingSoon(featureName) {
+            document.getElementById('comingSoonModal').style.display = 'block';
+            document.querySelector('#comingSoonModal h3').textContent = '🚧 ' + featureName + ' - Coming Soon';
+        }
+
+        function closeComingSoon() {
+            document.getElementById('comingSoonModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('comingSoonModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>
