@@ -1,6 +1,6 @@
 <?php
 /**
- * Habesha-Equb Admin System Reset API
+ * Habesha-leEqub Admin System Reset API
  * DANGEROUS: Resets entire system by deleting all member data
  */
 
@@ -58,9 +58,6 @@ try {
     // Log the reset attempt
     error_log("SYSTEM RESET INITIATED by admin_id=$admin_id ($admin_username) at " . date('Y-m-d H:i:s'));
 
-    // Start database transaction
-    $db->beginTransaction();
-
     // Count records before deletion (for logging)
     $counts = [];
     $counts['members'] = $db->query("SELECT COUNT(*) FROM members")->fetchColumn();
@@ -68,19 +65,19 @@ try {
     $counts['payouts'] = $db->query("SELECT COUNT(*) FROM payouts")->fetchColumn();
     $counts['notifications'] = $db->query("SELECT COUNT(*) FROM notifications")->fetchColumn();
 
-    // DANGER ZONE: Delete all member-related data
-    // Order is important due to foreign key constraints
+    // Start database transaction
+    $db->beginTransaction();
+    
+    // Temporarily disable foreign key checks to avoid constraint issues
+    $db->exec("SET FOREIGN_KEY_CHECKS = 0");
 
-    // 1. Delete notifications (may reference members)
+    // DANGER ZONE: Delete all member-related data
+    // Order doesn't matter now since foreign keys are disabled
+
+    // Delete all data
     $db->exec("DELETE FROM notifications");
-    
-    // 2. Delete payments (references members)
     $db->exec("DELETE FROM payments");
-    
-    // 3. Delete payouts (references members)
     $db->exec("DELETE FROM payouts");
-    
-    // 4. Finally delete all members
     $db->exec("DELETE FROM members");
 
     // Reset auto-increment counters to start fresh
@@ -88,6 +85,9 @@ try {
     $db->exec("ALTER TABLE payments AUTO_INCREMENT = 1");
     $db->exec("ALTER TABLE payouts AUTO_INCREMENT = 1");
     $db->exec("ALTER TABLE notifications AUTO_INCREMENT = 1");
+    
+    // Re-enable foreign key checks
+    $db->exec("SET FOREIGN_KEY_CHECKS = 1");
 
     // Commit the transaction
     $db->commit();
@@ -114,8 +114,12 @@ try {
 
 } catch (PDOException $e) {
     // Rollback transaction on database error
-    if ($db->inTransaction()) {
-        $db->rollback();
+    try {
+        if ($db->inTransaction()) {
+            $db->rollback();
+        }
+    } catch (Exception $rollbackError) {
+        error_log("Rollback failed: " . $rollbackError->getMessage());
     }
     
     error_log("SYSTEM RESET FAILED - Database error: " . $e->getMessage());
@@ -124,13 +128,17 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Database error occurred during reset: ' . $e->getMessage()
+        'message' => 'Database error: ' . $e->getMessage()
     ]);
 
 } catch (Exception $e) {
     // Rollback transaction on any other error
-    if ($db->inTransaction()) {
-        $db->rollback();
+    try {
+        if (isset($db) && $db->inTransaction()) {
+            $db->rollback();
+        }
+    } catch (Exception $rollbackError) {
+        error_log("Rollback failed: " . $rollbackError->getMessage());
     }
     
     error_log("SYSTEM RESET FAILED - General error: " . $e->getMessage());

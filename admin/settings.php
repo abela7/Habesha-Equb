@@ -290,7 +290,7 @@ $t = Translator::getInstance();
                     Confirm System Reset
                 </h2>
             </div>
-            <div class="modal-body" style="padding: 30px;">
+            <div class="modal-body" style="padding: 30px; max-height: 60vh; overflow-y: auto;">
                 <div style="text-align: center; margin-bottom: 25px;">
                     <i class="fas fa-bomb" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
                     <h3 style="color: #dc3545; margin-bottom: 15px;">This action cannot be undone!</h3>
@@ -717,6 +717,8 @@ $t = Translator::getInstance();
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
+            padding: 20px;
         }
 
         .modal-content {
@@ -725,6 +727,8 @@ $t = Translator::getInstance();
             border-radius: 16px;
             width: 90%;
             max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
             animation: modalSlideIn 0.3s ease-out;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
