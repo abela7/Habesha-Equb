@@ -598,7 +598,29 @@
     "equb_rules": "Equb Rules & Regulations",
     "equb_rules_desc": "Important rules and guidelines for all members",
     "rule_number": "Rule",
-    "rules": "Rules"
+    "rules": "Rules",
+    "paid_late": "Paid Late",
+    "days_late": "days late",
+    "paid_on_time": "Paid On Time",
+    "payment_due": "Payment Due",
+    "overdue_by": "Overdue by",
+    "days": "days",
+    "late_fee_applies": "late fee applies",
+    "error_loading_status": "Error loading payment status"
+  },
+  "dashboard": {
+    "paid_late": "Paid Late",
+    "days_late": "days late",
+    "paid_on_time": "Paid On Time",
+    "payment_due": "Payment Due",
+    "overdue_by": "Overdue by",
+    "days": "days",
+    "late_fee_applies": "late fee applies",
+    "error_loading_status": "Error loading payment status",
+    "days_remaining": "days remaining",
+    "payment_status": "Payment Status",
+    "current_month": "Current Month",
+    "pay_now_with_late_fee": "Pay Now + Late Fee"
   },
   "contributions": {
     "page_title": "My Payments",

@@ -598,7 +598,29 @@
     "equb_rules": "የእቁብ ህጎችና ደንቦች",
     "equb_rules_desc": "ለሁሉም አባላት አስፈላጊ ህጎችና መመሪያዎች",
     "rule_number": "ህግ",
-    "rules": "ህጎች"
+    "rules": "ህጎች",
+    "paid_late": "በዘግይቶ ተከፍሏል",
+    "days_late": "ቀናት ዘግይቷል",
+    "paid_on_time": "በሰዓቱ ተከፍሏል",
+    "payment_due": "እቁብ መክፈል ይኖርቦታል",
+    "overdue_by": "ዘግይቷል በ",
+    "days": "ቀናት",
+    "late_fee_applies": "ቅጣት ይተገበራል",
+    "error_loading_status": "የክፍያ ሁኔታ ሲጫን ስህተት"
+  },
+  "dashboard": {
+    "paid_late": "በዘግይቶ ተከፍሏል",
+    "days_late": "ቀናት ዘግይቷል",
+    "paid_on_time": "በሰዓቱ ተከፍሏል",
+    "payment_due": "እቁብ መክፈል ይኖርቦታል",
+    "overdue_by": "ዘግይቷል በ",
+    "days": "ቀናት",
+    "late_fee_applies": "ቅጣት ይተገበራል",
+    "error_loading_status": "የክፍያ ሁኔታ ሲጫን ስህተት",
+    "days_remaining": "ቀሪ ቀናት",
+    "payment_status": "የክፍያ ሁኔታ",
+    "current_month": "የዚህ ወር",
+    "pay_now_with_late_fee": "አሁን ክፈል + ቅጣት"
   },
   "member_nav": {
     "overview": "አጠቃላይ እይታ",

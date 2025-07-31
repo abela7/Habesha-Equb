@@ -22,18 +22,50 @@ require_once '../includes/payout_sync_service.php';
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get REAL member data from database with equb information
+// MASTER-LEVEL DATABASE QUERY - Get complete member and financial data
 try {
     $stmt = $db->prepare("
         SELECT m.*, 
                es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
-               COUNT(p.id) as total_payments,
+               es.admin_fee, es.late_fee,
+               
+               -- Payment Statistics
+               COUNT(DISTINCT p.id) as total_payment_records,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
-               MAX(p.payment_date) as last_payment_date,
-               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members
+               COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN 1 ELSE 0 END), 0) as successful_payments,
+               COALESCE(SUM(CASE WHEN p.status = 'pending' THEN 1 ELSE 0 END), 0) as pending_payments,
+               COALESCE(SUM(CASE WHEN p.late_fee > 0 THEN p.late_fee ELSE 0 END), 0) as total_late_fees,
+               MAX(CASE WHEN p.status IN ('paid', 'completed') THEN p.payment_date END) as last_payment_date,
+               
+               -- Payout Information  
+               COALESCE(
+                   (SELECT SUM(po.net_amount) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed'),
+                   0
+               ) as total_payouts_received,
+               COALESCE(
+                   (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed'),
+                   0
+               ) as payout_count,
+               
+               -- Equb Statistics
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
+               
+               -- Expected vs Actual Calculations
+               CASE 
+                   WHEN es.duration_months IS NOT NULL THEN es.duration_months
+                   ELSE 12
+               END as expected_payment_months,
+               
+               -- Current Equb Progress
+               CASE 
+                   WHEN es.start_date IS NOT NULL THEN 
+                       DATEDIFF(CURDATE(), es.start_date) + 1
+                   ELSE 1
+               END as equb_days_active
+               
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
-        LEFT JOIN payments p ON m.id = p.member_id
+        LEFT JOIN payments p ON m.id = p.member_id AND p.status IN ('paid', 'completed', 'pending')
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
     ");
@@ -66,13 +98,33 @@ if (isset($payout_info['error'])) {
     $days_until_payout = $payout_info['days_until_payout'];
 }
 
-// Calculate REAL statistics
+// MASTER-LEVEL STATISTICS CALCULATIONS
 $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
 $monthly_contribution = (float)$member['monthly_payment'];
 $total_contributed = (float)$member['total_contributed']; 
 $payout_position = (int)$member['payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
+
+// Enhanced Financial Calculations
 $expected_payout = $total_equb_members * $monthly_contribution;
+$expected_total_contribution = $monthly_contribution * (int)$member['expected_payment_months'];
+$contribution_progress = $expected_total_contribution > 0 ? min(100, ($total_contributed / $expected_total_contribution) * 100) : 0;
+
+// Payment Performance Analysis
+$successful_payments = (int)$member['successful_payments'];
+$pending_payments = (int)$member['pending_payments'];
+$total_late_fees_paid = (float)$member['total_late_fees'];
+$payment_efficiency = $expected_total_contribution > 0 ? ($total_contributed / $expected_total_contribution) * 100 : 0;
+
+// Payout Analysis
+$total_payouts_received_amount = (float)$member['total_payouts_received'];
+$payout_count = (int)$member['payout_count'];
+$net_financial_position = $total_payouts_received_amount - $total_contributed;
+
+// Time-based calculations
+$equb_days_active = (int)$member['equb_days_active'];
+$expected_months_elapsed = max(1, floor($equb_days_active / 30));
+$expected_payments_so_far = min($expected_months_elapsed, (int)$member['expected_payment_months']);
 
 // Get recent payments with proper month handling
 try {
@@ -106,25 +158,117 @@ try {
     $recent_payments = [];
 }
 
-// Check current month payment with proper handling
+// MASTER-LEVEL PAYMENT STATUS LOGIC
 $current_month = date('Y-m');
+$current_day = (int)date('d');
+$current_month_formatted = date('F Y'); // For display
+
+// Payment Rules: 1st to 3rd day of month, overdue after 3rd, £20 late fee
+$payment_due_day = 3;
+$late_fee_amount = 20;
+
 try {
+    // Get current month payment status with complete details
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) as has_paid_current_month 
-        FROM payments 
-        WHERE member_id = ? 
+        SELECT 
+            p.id,
+            p.amount,
+            p.status,
+            p.payment_date,
+            p.late_fee,
+            p.created_at,
+            CASE 
+                WHEN p.payment_month IS NOT NULL AND p.payment_month != '0000-00-00' 
+                THEN p.payment_month
+                WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00'
+                THEN DATE_FORMAT(p.payment_date, '%Y-%m-01')
+                ELSE DATE_FORMAT(p.created_at, '%Y-%m-01')
+            END as effective_payment_month,
+            CASE
+                WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00'
+                THEN DAY(p.payment_date)
+                ELSE DAY(p.created_at)
+            END as payment_day_of_month
+        FROM payments p 
+        WHERE p.member_id = ? 
         AND (
-            (payment_month = ? AND payment_month != '0000-00-00')
-            OR (payment_month = '0000-00-00' AND DATE_FORMAT(payment_date, '%Y-%m') = ?)
-            OR (payment_month IS NULL AND DATE_FORMAT(payment_date, '%Y-%m') = ?)
+            (p.payment_month = ? AND p.payment_month != '0000-00-00')
+            OR (p.payment_month = '0000-00-00' AND DATE_FORMAT(p.payment_date, '%Y-%m') = ?)
+            OR (p.payment_month IS NULL AND DATE_FORMAT(p.payment_date, '%Y-%m') = ?)
+            OR (p.payment_month IS NULL AND DATE_FORMAT(p.created_at, '%Y-%m') = ?)
         )
-        AND status IN ('paid', 'completed')
+        ORDER BY p.created_at DESC
+        LIMIT 1
     ");
-    $stmt->execute([$user_id, $current_month, $current_month, $current_month]);
+    $stmt->execute([$user_id, $current_month . '-01', $current_month, $current_month, $current_month]);
     $current_month_payment = $stmt->fetch(PDO::FETCH_ASSOC);
-    $has_paid_this_month = $current_month_payment['has_paid_current_month'] > 0;
+    
+    // Calculate payment status logic
+    $payment_status = [
+        'has_paid' => false,
+        'status' => 'not_paid',
+        'status_text' => '',
+        'status_class' => 'danger',
+        'amount_paid' => 0,
+        'late_fee' => 0,
+        'days_overdue' => 0,
+        'month_name' => $current_month_formatted
+    ];
+    
+    if ($current_month_payment && in_array($current_month_payment['status'], ['paid', 'completed'])) {
+        // Member has paid for current month
+        $payment_status['has_paid'] = true;
+        $payment_status['status'] = 'paid';
+        $payment_status['status_class'] = 'success';
+        $payment_status['amount_paid'] = $current_month_payment['amount'];
+        $payment_status['late_fee'] = $current_month_payment['late_fee'];
+        
+        // Check if payment was late
+        $payment_day = $current_month_payment['payment_day_of_month'];
+        if ($payment_day > $payment_due_day) {
+            $days_late = $payment_day - $payment_due_day;
+            $payment_status['status_text'] = t('dashboard.paid_late') . ' (' . $days_late . ' ' . t('dashboard.days_late') . ')';
+        } else {
+            $payment_status['status_text'] = t('dashboard.paid_on_time');
+        }
+    } else {
+        // Member has not paid for current month
+        $payment_status['has_paid'] = false;
+        $payment_status['amount_paid'] = 0;
+        
+        if ($current_day <= $payment_due_day) {
+            // Still within payment period
+            $payment_status['status'] = 'pending';
+            $payment_status['status_class'] = 'warning';
+            $days_left = $payment_due_day - $current_day + 1;
+            $payment_status['status_text'] = t('dashboard.payment_due') . ' (' . $days_left . ' ' . t('dashboard.days_remaining') . ')';
+        } else {
+            // Payment is overdue
+            $payment_status['status'] = 'overdue';
+            $payment_status['status_class'] = 'danger';
+            $payment_status['days_overdue'] = $current_day - $payment_due_day;
+            $payment_status['late_fee'] = $late_fee_amount;
+            $payment_status['status_text'] = t('dashboard.overdue_by') . ' ' . $payment_status['days_overdue'] . ' ' . t('dashboard.days') . 
+                                            ' - £' . $late_fee_amount . ' ' . t('dashboard.late_fee_applies');
+        }
+    }
+    
+    // For backward compatibility
+    $has_paid_this_month = $payment_status['has_paid'];
+    
 } catch (PDOException $e) {
     $has_paid_this_month = false;
+    $payment_status = [
+        'has_paid' => false,
+        'status' => 'error',
+        'status_text' => t('dashboard.error_loading_status'),
+        'status_class' => 'secondary',
+        'amount_paid' => 0,
+        'late_fee' => 0,
+        'days_overdue' => 0,
+        'month_name' => $current_month_formatted
+    ];
+    error_log("Payment status calculation error: " . $e->getMessage());
 }
 
 // Get active equb rules for accordion
@@ -1568,31 +1712,57 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     </div>
                 </div>
 
-                <!-- Monthly Payment Status -->
+                <!-- MASTER-LEVEL Payment Status Card -->
                 <div class="col-xl-3 col-md-6">
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-icon <?php echo $has_paid_this_month ? 'success' : 'warning'; ?>">
-                                <i class="fas fa-<?php echo $has_paid_this_month ? 'check-circle' : 'clock'; ?>"></i>
+                            <div class="stat-icon <?php echo $payment_status['status_class']; ?>">
+                                <?php if ($payment_status['status'] === 'paid'): ?>
+                                    <i class="fas fa-check-circle"></i>
+                                <?php elseif ($payment_status['status'] === 'pending'): ?>
+                                    <i class="fas fa-clock"></i>
+                                <?php elseif ($payment_status['status'] === 'overdue'): ?>
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-question-circle"></i>
+                                <?php endif; ?>
                             </div>
                             <div class="stat-title-group">
-                                <h3><?php echo t('member_dashboard.monthly_payment_status'); ?></h3>
+                                <h3><?php echo t('dashboard.payment_status'); ?></h3>
+                                <p class="stat-subtitle"><?php echo $payment_status['month_name']; ?></p>
                             </div>
                         </div>
+                        
                         <div class="stat-value">
-                                                            <span class="text-<?php echo $has_paid_this_month ? 'success' : 'warning'; ?>">
-                                <?php echo $has_paid_this_month ? t('member_dashboard.paid') : t('member_dashboard.pending'); ?>
+                            <span class="text-<?php echo $payment_status['status_class']; ?>">
+                                <?php if ($payment_status['has_paid']): ?>
+                                    £<?php echo number_format($payment_status['amount_paid'], 0); ?>
+                                <?php else: ?>
+                                    £<?php echo number_format($monthly_contribution, 0); ?>
+                                <?php endif; ?>
                             </span>
                         </div>
-                                                 <?php if (!$has_paid_this_month): ?>
-                             <div class="mt-3 text-center">
-                                 <a href="contributions.php" class="btn btn-warning btn-sm">
-                                     <i class="fas fa-plus me-1"></i>
-                                     <?php echo t('member_dashboard.pay_now'); ?>
-                                 </a>
-                             </div>
+                        
+                        <div class="stat-detail text-<?php echo $payment_status['status_class']; ?> mb-2">
+                            <strong><?php echo $payment_status['status_text']; ?></strong>
+                        </div>
+                        
+                        <?php if ($payment_status['late_fee'] > 0): ?>
+                            <div class="stat-detail text-danger mb-2">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                <strong>£<?php echo $payment_status['late_fee']; ?> <?php echo t('dashboard.late_fee_applies'); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!$payment_status['has_paid']): ?>
+                            <div class="mt-3 text-center">
+                                <a href="contributions.php" class="btn btn-<?php echo $payment_status['status'] === 'overdue' ? 'danger' : 'warning'; ?> btn-sm">
+                                    <i class="fas fa-credit-card me-1"></i>
+                                    <?php echo $payment_status['status'] === 'overdue' ? t('dashboard.pay_now_with_late_fee') : t('member_dashboard.pay_now'); ?>
+                                </a>
+                            </div>
                         <?php else: ?>
-                                                                                <div class="stat-detail" style="color: #2A9D8F !important;">
+                            <div class="stat-detail text-success">
                                 <i class="fas fa-check me-1"></i>
                                 <?php echo t('member_dashboard.payment_confirmed'); ?>
                             </div>
@@ -1619,9 +1789,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <i class="fas fa-clock me-1"></i>
                             <?php 
                             if ($days_until_payout > 0) {
-                                echo sprintf(t('member_dashboard.days_remaining'), $days_until_payout);
+                                echo $days_until_payout . ' ' . t('dashboard.days_remaining');
                             } elseif ($days_until_payout < 0) {
-                                echo '<span class="text-danger">Overdue by ' . abs($days_until_payout) . ' days</span>';
+                                echo '<span class="text-danger">' . t('dashboard.overdue_by') . ' ' . abs($days_until_payout) . ' ' . t('dashboard.days') . '</span>';
                             } else {
                                 echo '<span class="text-success">' . t('member_dashboard.payout_available') . '</span>';
                             }
@@ -1630,7 +1800,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php if (isset($payout_info['payout_status'])): ?>
                         <div class="stat-detail mt-1">
                             <i class="fas fa-info-circle me-1"></i>
-                            <small>Status: 
+                            <small><?php echo t('member_dashboard.status'); ?>: 
                                 <?php 
                                 $status_class = '';
                                 switch($payout_info['payout_status']) {
@@ -1746,9 +1916,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <?php echo $payment['status'] === 'paid' ? t('member_dashboard.paid') : t('member_dashboard.pending'); ?>
                                 </span>
                                 <?php if ($payment['verification_status'] === 'verified'): ?>
-                                    <br><small class="text-success"><i class="fas fa-check-circle me-1"></i>Verified</small>
+                                    <br><small class="text-success"><i class="fas fa-check-circle me-1"></i><?php echo t('member_dashboard.verified'); ?></small>
                                 <?php elseif ($payment['verification_status'] === 'pending_verification'): ?>
-                                    <br><small class="text-warning"><i class="fas fa-clock me-1"></i>Pending</small>
+                                    <br><small class="text-warning"><i class="fas fa-clock me-1"></i><?php echo t('member_dashboard.pending'); ?></small>
                                 <?php endif; ?>
                             </td>
                         </tr>
