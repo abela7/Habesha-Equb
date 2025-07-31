@@ -21,11 +21,10 @@ require_once '../languages/translator.php';
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get member data with notification preferences
+// Get member data
 try {
     $stmt = $db->prepare("
-        SELECT m.*,
-               (SELECT COUNT(*) FROM notifications WHERE member_id = m.id AND read_status = 0) as unread_notifications
+        SELECT m.*
         FROM members m 
         WHERE m.id = ? AND m.is_active = 1
     ");
@@ -705,7 +704,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     <h2 class="section-title">
                         <i class="fas fa-bell text-warning"></i>
                         <?php echo t('settings.notification_preferences'); ?>
+                        <span class="badge bg-warning text-dark ms-2" style="font-size: 11px;">Coming Soon</span>
                     </h2>
+                    
+                    <div class="alert alert-info mb-4" style="border-radius: 12px; border: 1px solid rgba(218, 165, 32, 0.3); background: rgba(218, 165, 32, 0.1);">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Coming Soon:</strong> Email and SMS notification features are currently under development.
+                    </div>
                     
                     <form id="notificationForm" action="api/update-settings.php" method="POST">
                         <input type="hidden" name="action" value="notifications">
