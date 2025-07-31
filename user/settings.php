@@ -263,55 +263,65 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     transform: translateY(-2px);
 }
 
-/* Custom Switches */
+/* Enhanced Simple Checkbox Design */
 .form-check {
     margin-bottom: 20px;
     padding-left: 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .form-check-input {
-    width: 60px;
-    height: 30px;
-    border-radius: 30px;
-    background-color: rgba(77, 64, 82, 0.2);
-    border: 2px solid rgba(77, 64, 82, 0.15);
-    transition: all 0.3s ease;
+    width: 50px;
+    height: 26px;
+    border-radius: 26px;
+    background-color: #e5e7eb;
+    border: 2px solid #d1d5db;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     position: relative;
-    margin-right: 15px;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
+    outline: none;
 }
 
 .form-check-input:checked {
     background-color: var(--color-gold);
     border-color: var(--color-gold);
-    box-shadow: 0 4px 16px rgba(218, 165, 32, 0.3);
+    box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
 }
 
 .form-check-input::before {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 22px;
-    height: 22px;
+    top: 1px;
+    left: 1px;
+    width: 20px;
+    height: 20px;
     background: white;
     border-radius: 50%;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-check-input:checked::before {
-    transform: translateX(30px);
+    transform: translateX(24px);
 }
 
 .form-check-label {
     font-weight: 500;
     color: var(--color-dark-purple);
-    margin-left: 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
+    margin: 0;
+    flex: 1;
 }
 
 /* Enhanced Button Styling */
@@ -542,6 +552,25 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     
     .feature-toggle {
         margin-left: 0;
+    }
+    
+    .form-check {
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .form-check-input {
+        width: 45px;
+        height: 24px;
+    }
+    
+    .form-check-input::before {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .form-check-input:checked::before {
+        transform: translateX(21px);
     }
     
     .account-info-grid {
@@ -833,42 +862,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 </div>
             </div>
             
-            <!-- Quick Actions -->
-            <div class="col-12">
-                <div class="settings-card">
-                    <h2 class="section-title">
-                        <i class="fas fa-bolt text-danger"></i>
-                        <?php echo t('settings.quick_actions'); ?>
-                    </h2>
-                    
-                    <div class="row g-3">
-                        <div class="col-md-3 col-sm-6">
-                            <a href="profile.php" class="btn btn-primary w-100">
-                                <i class="fas fa-user-edit me-2"></i>
-                                <?php echo t('settings.edit_profile'); ?>
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <a href="contributions.php" class="btn btn-success w-100">
-                                <i class="fas fa-credit-card me-2"></i>
-                                <?php echo t('settings.view_payments'); ?>
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <a href="members.php" class="btn btn-warning w-100">
-                                <i class="fas fa-users me-2"></i>
-                                <?php echo t('settings.equb_members'); ?>
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <a href="dashboard.php" class="btn btn-outline-secondary w-100">
-                                <i class="fas fa-tachometer-alt me-2"></i>
-                                <?php echo t('settings.dashboard'); ?>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
         </div>
     </div>
 
@@ -944,12 +938,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     if (result.success) {
                         showAlert(result.message, 'success');
                         
-                        // If language was changed, reload page to apply
-                        const langChanged = formData.get('language_preference');
-                        if (langChanged !== null) {
+                        // If language was changed, reload page immediately to apply
+                        if (result.language_changed) {
                             setTimeout(() => {
                                 window.location.reload();
-                            }, 1500);
+                            }, 1000);
                         }
                     } else {
                         showAlert(result.message, 'danger');
