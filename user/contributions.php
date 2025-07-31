@@ -956,6 +956,18 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      <div class="financial-detail">
                          £<?php echo number_format($total_contributed, 2); ?> of £<?php echo number_format($expected_total_member, 2); ?>
                      </div>
+                     <?php if (!empty($member['equb_name'])): ?>
+                     <div class="financial-detail mt-1">
+                         <i class="fas fa-tag text-info me-1"></i>
+                         <small><?php echo htmlspecialchars($member['equb_name']); ?></small>
+                     </div>
+                     <?php endif; ?>
+                     <?php if (isset($payout_info['calculated_payout_date'])): ?>
+                     <div class="financial-detail mt-1">
+                         <i class="fas fa-calendar-check text-warning me-1"></i>
+                         <small>Payout: <?php echo date('M j, Y', strtotime($payout_info['calculated_payout_date'])); ?></small>
+                     </div>
+                     <?php endif; ?>
                      <div class="progress-container">
                          <div class="progress">
                              <div class="progress-bar" style="width: <?php echo min($progress_percentage, 100); ?>%"></div>
