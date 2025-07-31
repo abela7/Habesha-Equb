@@ -16,20 +16,23 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/payout_sync_service.php';
 
 // Secure authentication check (now includes language loading)
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get REAL member data from database
+// Get REAL member data from database with equb information
 try {
     $stmt = $db->prepare("
         SELECT m.*, 
+               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
                COUNT(p.id) as total_payments,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                MAX(p.payment_date) as last_payment_date,
-               (SELECT COUNT(*) FROM members WHERE is_active = 1) as total_active_members
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
@@ -40,8 +43,27 @@ try {
     if (!$member) {
         die("❌ ERROR: No member found with ID $user_id. Please check database.");
     }
+    
+    if (!$member['equb_settings_id']) {
+        die("❌ ERROR: Member is not assigned to any equb term. Please contact admin.");
+    }
 } catch (PDOException $e) {
     die("❌ DATABASE ERROR: " . $e->getMessage());
+}
+
+// GET REAL PAYOUT INFORMATION using our top-tier sync service
+$payout_service = getPayoutSyncService();
+$payout_info = $payout_service->getMemberPayoutStatus($user_id);
+
+if (isset($payout_info['error'])) {
+    error_log("Payout calculation error for user $user_id: " . $payout_info['message']);
+    // Fallback to basic calculation
+    $next_payout_date = $member['payout_month'] ?? date('Y-m-d');
+    $days_until_payout = floor((strtotime($next_payout_date) - time()) / (60 * 60 * 24));
+} else {
+    // Use calculated payout information
+    $next_payout_date = $payout_info['calculated_payout_date'];
+    $days_until_payout = $payout_info['days_until_payout'];
 }
 
 // Calculate REAL statistics
@@ -49,13 +71,8 @@ $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
 $monthly_contribution = (float)$member['monthly_payment'];
 $total_contributed = (float)$member['total_contributed']; 
 $payout_position = (int)$member['payout_position'];
-$total_members = (int)$member['total_active_members'];
-$expected_payout = $total_members * $monthly_contribution;
-
-// Calculate dates
-$equib_start_month = '2024-06';
-$next_payout_month = date('Y-m', strtotime($equib_start_month . ' +' . ($payout_position - 1) . ' months'));
-$next_payout_date = $next_payout_month . '-15';
+$total_equb_members = (int)$member['total_equb_members'];
+$expected_payout = $total_equb_members * $monthly_contribution;
 
 // Get recent payments
 try {
@@ -1519,8 +1536,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         <div class="stat-detail mt-2">
                             <i class="fas fa-users me-1"></i>
-                            <?php echo sprintf(t('member_dashboard.members_calculation'), $total_members, number_format($monthly_contribution, 2)); ?>
+                            <?php echo sprintf(t('member_dashboard.members_calculation'), $total_equb_members, number_format($monthly_contribution, 2)); ?>
                         </div>
+                        <?php if (!empty($member['equb_name'])): ?>
+                        <div class="stat-detail mt-1">
+                            <i class="fas fa-tag text-warning me-1"></i>
+                            <small><?php echo htmlspecialchars($member['equb_name']); ?></small>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -1569,19 +1592,37 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         <div class="stat-value"><?php echo date('M d, Y', strtotime($next_payout_date)); ?></div>
                         <div class="stat-detail">
-                            <?php echo sprintf(t('member_dashboard.position_of_members'), $payout_position, $total_members); ?>
+                            <?php echo sprintf(t('member_dashboard.position_of_members'), $payout_position, $total_equb_members); ?>
                         </div>
                         <div class="stat-detail mt-2">
                             <i class="fas fa-clock me-1"></i>
                             <?php 
-                            $days_until = floor((strtotime($next_payout_date) - time()) / (60 * 60 * 24));
-                            if ($days_until > 0) {
-                                echo sprintf(t('member_dashboard.days_remaining'), $days_until);
+                            if ($days_until_payout > 0) {
+                                echo sprintf(t('member_dashboard.days_remaining'), $days_until_payout);
+                            } elseif ($days_until_payout < 0) {
+                                echo '<span class="text-danger">Overdue by ' . abs($days_until_payout) . ' days</span>';
                             } else {
-                                echo t('member_dashboard.payout_available');
+                                echo '<span class="text-success">' . t('member_dashboard.payout_available') . '</span>';
                             }
                             ?>
                         </div>
+                        <?php if (isset($payout_info['payout_status'])): ?>
+                        <div class="stat-detail mt-1">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <small>Status: 
+                                <?php 
+                                $status_class = '';
+                                switch($payout_info['payout_status']) {
+                                    case 'completed': $status_class = 'text-success'; break;
+                                    case 'processing': $status_class = 'text-warning'; break;
+                                    case 'scheduled': $status_class = 'text-info'; break;
+                                    default: $status_class = 'text-muted';
+                                }
+                                echo '<span class="' . $status_class . '">' . ucfirst($payout_info['payout_status']) . '</span>';
+                                ?>
+                            </small>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -1754,5 +1795,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
+</body>
+</html> 
 </body>
 </html> 

@@ -5,6 +5,7 @@
  */
 
 require_once '../../includes/db.php';
+require_once '../../includes/payout_sync_service.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -192,12 +193,34 @@ function addMember() {
             // Commit transaction
             $pdo->commit();
             
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Member added successfully and assigned to equb term',
-                'member_id' => $member_id,
-                'password' => $password
-            ]);
+            // Auto-sync payout date for the new member
+            try {
+                $payout_service = getPayoutSyncService();
+                $new_member_result = $pdo->lastInsertId();
+                $payout_sync_result = $payout_service->calculateMemberPayoutDate($new_member_result, true);
+                
+                $message = 'Member added successfully and assigned to equb term';
+                if (isset($payout_sync_result['calculated_payout_date'])) {
+                    $message .= '. Payout date: ' . date('M j, Y', strtotime($payout_sync_result['calculated_payout_date']));
+                }
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => $message,
+                    'member_id' => $member_id,
+                    'password' => $password,
+                    'payout_info' => $payout_sync_result
+                ]);
+                
+            } catch (Exception $e) {
+                error_log("Payout sync after member add failed: " . $e->getMessage());
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Member added successfully but payout sync failed',
+                    'member_id' => $member_id,
+                    'password' => $password
+                ]);
+            }
         } else {
             $pdo->rollback();
             echo json_encode(['success' => false, 'message' => 'Failed to add member']);
@@ -400,11 +423,32 @@ function updateMember() {
             // Commit transaction
             $pdo->commit();
             
-            $message = $equb_changed ? 
-                'Member updated successfully and reassigned to new equb term' : 
-                'Member updated successfully';
+            // Auto-sync payout date after update
+            try {
+                $payout_service = getPayoutSyncService();
+                $payout_sync_result = $payout_service->calculateMemberPayoutDate($member_id, true);
                 
-            echo json_encode(['success' => true, 'message' => $message]);
+                $message = $equb_changed ? 
+                    'Member updated successfully and reassigned to new equb term' : 
+                    'Member updated successfully';
+                
+                if (isset($payout_sync_result['calculated_payout_date'])) {
+                    $message .= '. Payout date: ' . date('M j, Y', strtotime($payout_sync_result['calculated_payout_date']));
+                }
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => $message,
+                    'payout_info' => $payout_sync_result
+                ]);
+                
+            } catch (Exception $e) {
+                error_log("Payout sync after member update failed: " . $e->getMessage());
+                $message = $equb_changed ? 
+                    'Member updated successfully but payout sync failed' : 
+                    'Member updated successfully but payout sync failed';
+                echo json_encode(['success' => true, 'message' => $message]);
+            }
         } else {
             $pdo->rollback();
             echo json_encode(['success' => false, 'message' => 'Failed to update member']);
