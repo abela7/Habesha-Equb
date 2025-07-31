@@ -475,7 +475,7 @@
     "days": "ቀናት",
     "not_available": "አልተገኘም",
     "last": "የመጨረሻ",
-    "paid_out": "-",
+    "paid_out": "በዚህ ቀን",
     "expected": "እቁብን በመጠበቅ ላይ ያሉ"
   },
   "user_auth": {
