@@ -599,6 +599,10 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                         </svg>
                         <?php echo t('members.add_new_member'); ?>
                     </button>
+                    <button class="btn btn-success" onclick="syncAllPayoutDates()" id="syncPayoutsBtn">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        Sync Payout Dates
+                    </button>
                 </div>
             </div>
 
@@ -1499,6 +1503,68 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                 return false;
             }
         });
+
+        // =================
+        // PAYOUT SYNCHRONIZATION FUNCTIONALITY
+        // =================
+
+        // Sync all payout dates
+        function syncAllPayoutDates() {
+            const btn = document.getElementById('syncPayoutsBtn');
+            const originalText = btn.innerHTML;
+            
+            if (confirm('This will recalculate and update all member payout dates based on their current equb assignments and positions. Continue?')) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Syncing...';
+                
+                fetch('api/payout-sync.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'action=bulk_sync_all'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        loadMembers(); // Refresh the member list
+                        updateStats(); // Refresh statistics
+                    } else {
+                        showToast('Error: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    console.error('Error:', error);
+                    showToast('Network error occurred', 'error');
+                });
+            }
+        }
+
+        // Sync individual member payout date
+        function syncMemberPayout(memberId) {
+            fetch('api/payout-sync.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=sync_member&member_id=${memberId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payout date synchronized for member', 'success');
+                    loadMembers(); // Refresh the member list
+                } else {
+                    showToast('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Network error occurred', 'error');
+            });
+        }
     </script>
 </body>
 </html> 

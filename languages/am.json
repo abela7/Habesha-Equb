@@ -574,7 +574,7 @@
     "monthly_payment_desc": "ለአሁኑ ወር ያለዎት የክፍያ ሁኔታ",
     "payment_confirmed": "የዚህ ወር ክፍያ ተከፍሏል",
     "payout_date_desc": "ክፍያዎን የሚቀበሉበት ጊዜ",
-    "position_of_members": "ቦታ %d ከ %d አባላት",
+    "position_of_members": "ወረፋ %d ተኛ ከ %d አባላት",
     "days_remaining": "%d ቀሪ ቀናት",
     "payout_available": "ክፍያውትን በቅርቡ ያገኛሉ",
     "of_expected_payout": "ከሚጠበቀው ክፍያ",
@@ -738,7 +738,7 @@
     "next_up": "ቀጣዩ",
     "view_payments": "ክፍያዎችዎን ይመልከቱ",
     "back_dashboard": "ወደ ዳሽቦርድ ተመለስ",
-    "your_position_stat": "የእርስዎ ቦታ",
+    "your_position_stat": "የእርስዎ ወረፋ",
     "remaining_stat": "ቀሪ"
   },
   "equb_management": {

@@ -16,6 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/payout_sync_service.php';
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
@@ -49,11 +50,20 @@ $payout_position = (int)$member['payout_position'];
 $total_members = (int)$member['total_active_members'];
 $expected_payout = $total_members * $monthly_contribution;
 
-// Calculate payout timeline
-$equib_start_month = '2024-06';
-$payout_month = date('Y-m', strtotime($equib_start_month . ' +' . ($payout_position - 1) . ' months'));
-$payout_date = $payout_month . '-15';
-$days_until_payout = floor((strtotime($payout_date) - time()) / (60 * 60 * 24));
+// GET REAL PAYOUT INFORMATION using our top-tier sync service
+$payout_service = getPayoutSyncService();
+$payout_info = $payout_service->getMemberPayoutStatus($user_id);
+
+if (isset($payout_info['error'])) {
+    error_log("Payout calculation error for user $user_id: " . $payout_info['message']);
+    // Fallback to database payout_month
+    $payout_date = $member['payout_month'] ?? date('Y-m-d');
+    $days_until_payout = floor((strtotime($payout_date) - time()) / (60 * 60 * 24));
+} else {
+    // Use calculated payout information
+    $payout_date = $payout_info['calculated_payout_date'];
+    $days_until_payout = $payout_info['days_until_payout'];
+}
 
 // Get all members for payout queue display
 try {
