@@ -561,7 +561,7 @@
   },
   "member_dashboard": {
     "page_title": "የአባል ዳሽቦርድ",
-    "welcome": "%s እንኳን ደህና መጡ!",
+    "welcome_member": "%s እንኳን ደህና መጡ!",
     "welcome_message": "እቁብዎን በተመለከተ ሁሉንም ነገር እዚህ ላይ ይከታተሉ",
     "active_member": "የሐበሻ እቁብ አባል",
     "queue_position": "ወረፋ ",
