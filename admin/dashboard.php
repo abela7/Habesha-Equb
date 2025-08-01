@@ -16,60 +16,107 @@ $admin_username = get_current_admin_username() ?? 'Admin';
 // Deferred translator initialization
 $translator = Translator::getInstance();
 
-// DEBUG: Check session state
-echo "<!-- DEBUG: Session app_language: " . ($_SESSION['app_language'] ?? 'NOT SET') . " -->\n";
-echo "<!-- DEBUG: Session ID: " . session_id() . " -->\n";
+
+
+// 🔍 PROFESSIONAL DEBUGGING SYSTEM - LANGUAGE PREFERENCE ANALYSIS
+echo "\n<!-- =================== HABESHA EQUB DEBUG SYSTEM =================== -->\n";
+echo "<!-- 🔍 PROFESSIONAL DEBUGGING SYSTEM ACTIVE -->\n";
+echo "<!-- Time: " . date('Y-m-d H:i:s') . " -->\n";
+echo "<!-- Admin ID: $admin_id -->\n";
 
 // ENHANCED: Load admin's language preference and then initialize the translator
 try {
-    $stmt = $pdo->prepare("SELECT language_preference FROM admins WHERE id = ?");
+    // 📊 STEP 1: Database Language Preference Analysis
+    $stmt = $pdo->prepare("SELECT id, username, language_preference, created_at, updated_at FROM admins WHERE id = ?");
     $stmt->execute([$admin_id]);
     $admin_data = $stmt->fetch();
     
-    $lang = 'am'; // Default to Amharic
+    echo "<!-- 📊 DATABASE ANALYSIS -->\n";
+    echo "<!-- Admin Found: " . ($admin_data ? 'YES' : 'NO') . " -->\n";
     if ($admin_data) {
-        // Assuming 'en' is 0 and 'am' is 1, adjust if necessary
-        $lang = ($admin_data['language_preference'] == 0) ? 'en' : 'am';
+        echo "<!-- Admin Username: " . $admin_data['username'] . " -->\n";
+        echo "<!-- Language Preference (DB): " . $admin_data['language_preference'] . " -->\n";
+        echo "<!-- Language Preference Meaning: " . ($admin_data['language_preference'] == 0 ? 'ENGLISH (0)' : 'AMHARIC (1)') . " -->\n";
+        echo "<!-- Admin Created: " . $admin_data['created_at'] . " -->\n";
+        echo "<!-- Admin Updated: " . $admin_data['updated_at'] . " -->\n";
     }
     
-    // DEBUG: Show what language we're setting
-    echo "<!-- DEBUG: Setting language to: $lang -->\n";
-    echo "<!-- DEBUG: Admin data: " . print_r($admin_data, true) . " -->\n";
+    // 🔄 STEP 2: Session Language Analysis  
+    echo "<!-- 🔄 SESSION ANALYSIS -->\n";
+    echo "<!-- Session app_language: " . ($_SESSION['app_language'] ?? 'NOT SET') . " -->\n";
+    echo "<!-- Session ID: " . session_id() . " -->\n";
+    echo "<!-- Session admin_logged_in: " . ($_SESSION['admin_logged_in'] ?? 'NOT SET') . " -->\n";
+    echo "<!-- Session admin_id: " . ($_SESSION['admin_id'] ?? 'NOT SET') . " -->\n";
     
-    // Set language and initialize the translator with it
-    $result = $translator->setLanguage($lang);
-    echo "<!-- DEBUG: SetLanguage result: " . ($result ? 'SUCCESS' : 'FAILED') . " -->\n";
+    // 🎯 STEP 3: Language Logic Decision
+    $db_lang = 'am'; // Default to Amharic
+    if ($admin_data) {
+        $db_lang = ($admin_data['language_preference'] == 0) ? 'en' : 'am';
+    }
     
-    // DEBUG: Test translation
-    $test_translation = t('dashboard.welcome_back');
-    echo "<!-- DEBUG: Test translation 'dashboard.welcome_back': $test_translation -->\n";
+    $session_lang = $_SESSION['app_language'] ?? null;
     
-    // DEBUG: Check current language
-    $current_lang = $translator->getCurrentLanguage();
-    echo "<!-- DEBUG: Current language: $current_lang -->\n";
+    echo "<!-- 🎯 LANGUAGE DECISION LOGIC -->\n";
+    echo "<!-- Database wants: $db_lang -->\n";
+    echo "<!-- Session wants: " . ($session_lang ?: 'NONE') . " -->\n";
     
-    // DEBUG: Check if translation files exist and are readable
+    // CONFLICT DETECTION!
+    if ($session_lang && $session_lang !== $db_lang) {
+        echo "<!-- ⚠️  CONFLICT DETECTED! Database ($db_lang) != Session ($session_lang) -->\n";
+        echo "<!-- 🔧 RESOLUTION: Using database preference as authoritative source -->\n";
+    }
+    
+    $final_lang = $db_lang; // Database is authoritative
+    echo "<!-- ✅ FINAL LANGUAGE DECISION: $final_lang -->\n";
+    
+    // 🔧 STEP 4: Translator Initialization
+    echo "<!-- 🔧 TRANSLATOR INITIALIZATION -->\n";
+    $result = $translator->setLanguage($final_lang);
+    echo "<!-- SetLanguage($final_lang) result: " . ($result ? 'SUCCESS' : 'FAILED') . " -->\n";
+    
+    // Update session to match database 
+    $_SESSION['app_language'] = $final_lang;
+    echo "<!-- Session updated to match database: $final_lang -->\n";
+    
+    // 🧪 STEP 5: Translation Testing
+    echo "<!-- 🧪 TRANSLATION TESTING -->\n";
+    $test_keys = ['dashboard.welcome_back', 'dashboard.welcome_subtitle', 'dashboard.total_members'];
+    foreach ($test_keys as $key) {
+        $translation = t($key);
+        $is_working = ($translation !== $key);
+        echo "<!-- Test '$key': " . ($is_working ? "✅ WORKING" : "❌ FAILED") . " → '$translation' -->\n";
+    }
+    
+    // 📁 STEP 6: File System Verification
+    echo "<!-- 📁 FILE SYSTEM VERIFICATION -->\n";
     $lang_file_am = __DIR__ . '/../languages/am.json';
     $lang_file_en = __DIR__ . '/../languages/en.json';
-    echo "<!-- DEBUG: AM file exists: " . (file_exists($lang_file_am) ? 'YES' : 'NO') . " -->\n";
-    echo "<!-- DEBUG: EN file exists: " . (file_exists($lang_file_en) ? 'YES' : 'NO') . " -->\n";
+    echo "<!-- AM file exists: " . (file_exists($lang_file_am) ? '✅ YES' : '❌ NO') . " -->\n";
+    echo "<!-- EN file exists: " . (file_exists($lang_file_en) ? '✅ YES' : '❌ NO') . " -->\n";
     
-    // DEBUG: Try to load and parse the JSON files
-    if (file_exists($lang_file_am)) {
-        $am_content = file_get_contents($lang_file_am);
-        $am_json = json_decode($am_content, true);
-        echo "<!-- DEBUG: AM JSON parse: " . (json_last_error() === JSON_ERROR_NONE ? 'SUCCESS' : 'FAILED - ' . json_last_error_msg()) . " -->\n";
-        if ($am_json && isset($am_json['dashboard']['welcome_back'])) {
-            echo "<!-- DEBUG: AM dashboard.welcome_back found: " . $am_json['dashboard']['welcome_back'] . " -->\n";
+    // Test JSON parsing
+    $current_file = ($final_lang === 'am') ? $lang_file_am : $lang_file_en;
+    if (file_exists($current_file)) {
+        $content = file_get_contents($current_file);
+        $json = json_decode($content, true);
+        $parse_success = (json_last_error() === JSON_ERROR_NONE);
+        echo "<!-- Current language file ($final_lang): " . ($parse_success ? '✅ VALID JSON' : '❌ INVALID JSON - ' . json_last_error_msg()) . " -->\n";
+        
+        if ($parse_success && isset($json['dashboard'])) {
+            echo "<!-- Dashboard section found: ✅ YES (" . count($json['dashboard']) . " keys) -->\n";
         } else {
-            echo "<!-- DEBUG: AM dashboard.welcome_back NOT FOUND -->\n";
+            echo "<!-- Dashboard section found: ❌ NO -->\n";
         }
     }
     
+    echo "<!-- =================== DEBUG SYSTEM COMPLETE =================== -->\n\n";
+    
 } catch (Exception $e) {
-    echo "<!-- DEBUG: Exception caught: " . $e->getMessage() . " -->\n";
+    echo "<!-- ❌ CRITICAL ERROR: " . $e->getMessage() . " -->\n";
+    echo "<!-- Stack trace: " . $e->getTraceAsString() . " -->\n";
     // Fallback to Amharic and initialize
     $translator->setLanguage('am');
+    echo "<!-- 🔄 Fallback activated: Amharic -->\n";
 }
 
 // ENHANCED: Get comprehensive dashboard statistics
@@ -744,18 +791,10 @@ try {
             <section class="enhanced-welcome">
                 <div class="welcome-content">
                     <h1 class="welcome-title">
-                        <?php 
-                        $welcome_raw = t('dashboard.welcome_back');
-                        echo "<!-- DEBUG IN HTML: Raw translation result: '$welcome_raw' -->";
-                        echo str_replace('{username}', htmlspecialchars($admin_username), $welcome_raw); 
-                        ?>
+                        <?php echo str_replace('{username}', htmlspecialchars($admin_username), t('dashboard.welcome_back')); ?>
                     </h1>
                     <p class="welcome-subtitle">
-                        <?php 
-                        $subtitle_raw = t('dashboard.welcome_subtitle');
-                        echo "<!-- DEBUG IN HTML: Subtitle translation result: '$subtitle_raw' -->";
-                        echo $subtitle_raw; 
-                        ?>
+                        <?php echo t('dashboard.welcome_subtitle'); ?>
                     </p>
                 </div>
                 

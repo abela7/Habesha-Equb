@@ -1275,12 +1275,26 @@ function switchLanguage(language) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('🔧 LANGUAGE API RESPONSE:', data);
+        
         if (data.success) {
             // Language switched successfully, reload page
-            console.log('Language switched to:', data.current_language);
+            console.log('✅ Language switched to:', data.current_language);
+            console.log('📊 Session updated:', data.session_updated);
+            console.log('🗄️ Database updated:', data.database_updated);
+            console.log('👤 Admin ID:', data.admin_id);
+            
+            if (data.warning) {
+                console.warn('⚠️ Language switch warning:', data.warning);
+            }
+            
+            // Show success message briefly before reload
+            const successMsg = `Language changed to ${data.current_language.toUpperCase()}!`;
+            console.log(successMsg);
+            
             window.location.reload();
         } else {
-            console.error('Language switch failed:', data.message);
+            console.error('❌ Language switch failed:', data.message);
             alert(data.message || 'Failed to switch language');
             
             // Reset dropdown
