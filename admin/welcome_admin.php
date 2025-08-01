@@ -1,7 +1,7 @@
 <?php
 /**
- * HabeshaEqub - ADMIN WELCOME DASHBOARD
- * Fresh, clean admin dashboard with working translations
+ * HabeshaEqub - Admin Dashboard
+ * Main dashboard page for administrators with EXACT ORIGINAL DESIGN
  */
 
 require_once '../includes/db.php';
@@ -68,513 +68,471 @@ try {
     $recent_members = [];
     $recent_payments = [];
 }
+
+$total_members = $members_stats['total_members'];
+$active_members = $members_stats['active_members'];
+$completed_payouts = $payout_stats['completed_payouts'];
 ?>
 
 <!DOCTYPE html>
-<html lang="<?php echo getCurrentLanguage(); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo t('navigation.dashboard'); ?> - HabeshaEqub Admin</title>
     
-    <meta name="description" content="<?php echo t('admin_dashboard.page_description'); ?>">
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../Pictures/Icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../Pictures/Icon/favicon-16x16.png">
     
-    <!-- External Dependencies -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
-    /* === ENHANCED ADMIN DASHBOARD DESIGN === */
-    
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    
-    body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        color: #333;
-        overflow-x: hidden;
-    }
-    
-    .admin-container {
-        display: flex;
-        min-height: 100vh;
-    }
-    
-    .main-content {
-        flex: 1;
-        margin-left: 280px;
-        padding: 20px;
-        transition: all 0.3s ease;
-    }
-    
-    @media (max-width: 768px) {
-        .main-content {
-            margin-left: 0;
-            padding: 15px;
+        /* === DASHBOARD PAGE DESIGN - EXACT COPY FROM MEMBERS === */
+        
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-    }
-    
-    /* === WELCOME SECTION === */
-    .welcome-section {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 20px;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    
-    .welcome-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 10px;
-    }
-    
-    .welcome-subtitle {
-        font-size: 1.1rem;
-        color: #6b7280;
-        font-weight: 400;
-    }
-    
-    /* === STATS GRID === */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-    
-    .stat-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-    }
-    
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 15px;
-        font-size: 1.5rem;
-        color: white;
-    }
-    
-    .stat-icon.members { background: linear-gradient(135deg, #667eea, #764ba2); }
-    .stat-icon.finance { background: linear-gradient(135deg, #f093fb, #f5576c); }
-    .stat-icon.payouts { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-    
-    .stat-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #1f2937;
-        margin-bottom: 5px;
-    }
-    
-    .stat-label {
-        font-size: 0.9rem;
-        color: #6b7280;
-        font-weight: 500;
-    }
-    
-    /* === ACTIVITY SECTION === */
-    .activity-section {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        margin-bottom: 30px;
-    }
-    
-    @media (max-width: 968px) {
+        
+        .page-title-section h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .page-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* Statistics Dashboard */
+        .stats-dashboard {
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(48, 25, 67, 0.12);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .total-members .stat-icon { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
+        .active-members .stat-icon { background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); }
+        .completed-payouts .stat-icon { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
+        .total-collected .stat-icon { background: linear-gradient(135deg, var(--color-coral) 0%, #C85A48 100%); }
+
+        .stat-trend {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 4px 0;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* Activity Cards */
         .activity-section {
-            grid-template-columns: 1fr;
+            margin-bottom: 40px;
         }
-    }
-    
-    .activity-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    
-    .activity-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-    }
-    
-    .activity-title i {
-        margin-right: 10px;
-        color: #667eea;
-    }
-    
-    .activity-item {
-        padding: 12px 0;
-        border-bottom: 1px solid #f3f4f6;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .activity-item:last-child {
-        border-bottom: none;
-    }
-    
-    .activity-text {
-        flex: 1;
-        font-weight: 500;
-        color: #374151;
-    }
-    
-    .activity-time {
-        font-size: 0.85rem;
-        color: #9ca3af;
-    }
-    
-    .status-badge {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    
-    .status-pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
-    
-    .status-approved {
-        background: #d1fae5;
-        color: #065f46;
-    }
-    
-    /* === MODULES GRID === */
-    .modules-section {
-        margin-top: 30px;
-    }
-    
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 10px;
-    }
-    
-    .section-description {
-        color: #6b7280;
-        margin-bottom: 25px;
-    }
-    
-    .modules-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-    }
-    
-    .module-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .module-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .module-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 20px;
-        font-size: 1.8rem;
-        color: white;
-    }
-    
-    .module-icon.members { background: linear-gradient(135deg, #667eea, #764ba2); }
-    .module-icon.payments { background: linear-gradient(135deg, #f093fb, #f5576c); }
-    .module-icon.payouts { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-    .module-icon.reports { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #667eea; }
-    
-    .module-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 8px;
-    }
-    
-    .module-description {
-        color: #6b7280;
-        font-size: 0.9rem;
-        line-height: 1.5;
-    }
-    
-    /* === ANIMATIONS === */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
+
+        .activity-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            height: 100%;
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
+
+        .activity-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-purple);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-    }
-    
-    .animate-fade-in {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    .animate-delay-1 { animation-delay: 0.1s; }
-    .animate-delay-2 { animation-delay: 0.2s; }
-    .animate-delay-3 { animation-delay: 0.3s; }
-    .animate-delay-4 { animation-delay: 0.4s; }
-    
-    /* === RESPONSIVE === */
-    @media (max-width: 768px) {
-        .welcome-title {
-            font-size: 2rem;
+
+        .activity-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        
-        .stats-grid {
-            grid-template-columns: 1fr;
+
+        .activity-item:last-child {
+            border-bottom: none;
         }
-        
-        .modules-grid {
-            grid-template-columns: 1fr;
+
+        .activity-text {
+            flex: 1;
+            font-weight: 500;
+            color: var(--text-primary);
         }
-    }
+
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 8px;
+        }
+
+        .status-pending {
+            background: rgba(234, 179, 8, 0.1);
+            color: #B45309;
+        }
+
+        .status-approved {
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            margin-bottom: 40px;
+        }
+
+        .quick-actions h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-purple);
+            margin-bottom: 20px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .action-item {
+            background: var(--color-cream);
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .action-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(48, 25, 67, 0.12);
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .action-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-purple);
+            margin-bottom: 4px;
+        }
+
+        .action-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
     </style>
 </head>
 
 <body>
     <div class="admin-container">
-        <!-- Include Navigation -->
+        <!-- Navigation -->
         <?php include 'includes/navigation.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">
-            
-            <!-- Welcome Section -->
-            <section class="welcome-section animate-fade-in">
-                <h1 class="welcome-title">
-                    <?php echo str_replace('{username}', htmlspecialchars($admin_username), t('admin_dashboard.welcome_back')); ?>
-                </h1>
-                <p class="welcome-subtitle">
-                    <?php echo t('admin_dashboard.welcome_subtitle'); ?>
-                </p>
-            </section>
-            
-            <!-- Statistics Grid -->
-            <section class="stats-grid">
-                <div class="stat-card animate-fade-in animate-delay-1">
-                    <div class="stat-icon members">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-value"><?php echo $members_stats['total_members']; ?></div>
-                    <div class="stat-label"><?php echo t('admin_dashboard.total_members'); ?></div>
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title-section">
+                    <h1>
+                        <div class="page-title-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <?php echo str_replace('{username}', htmlspecialchars($admin_username), t('admin_dashboard.welcome_back')); ?>
+                    </h1>
+                    <p class="page-subtitle"><?php echo t('admin_dashboard.welcome_subtitle'); ?></p>
                 </div>
-                
-                <div class="stat-card animate-fade-in animate-delay-2">
-                    <div class="stat-icon finance">
-                        <i class="fas fa-coins"></i>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row stats-dashboard">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon total-members">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            <span class="stat-trend"><?php echo t('admin_dashboard.total_members'); ?></span>
+                        </div>
+                        <h3 class="stat-number"><?php echo $total_members; ?></h3>
+                        <p class="stat-label"><?php echo t('admin_dashboard.total_members'); ?></p>
                     </div>
-                    <div class="stat-value">£<?php echo number_format($financial_stats['total_collected'], 0); ?></div>
-                    <div class="stat-label"><?php echo t('admin_dashboard.total_collected'); ?></div>
                 </div>
-                
-                <div class="stat-card animate-fade-in animate-delay-3">
-                    <div class="stat-icon payouts">
-                        <i class="fas fa-hand-holding-usd"></i>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon total-collected">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"/>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </div>
+                            <span class="stat-trend"><?php echo t('admin_dashboard.total_collected'); ?></span>
+                        </div>
+                        <h3 class="stat-number">£<?php echo number_format($financial_stats['total_collected'], 0); ?></h3>
+                        <p class="stat-label"><?php echo t('admin_dashboard.total_collected'); ?></p>
                     </div>
-                    <div class="stat-value"><?php echo $payout_stats['completed_payouts']; ?></div>
-                    <div class="stat-label"><?php echo t('admin_dashboard.completed_payouts'); ?></div>
                 </div>
-                
-                <div class="stat-card animate-fade-in animate-delay-4">
-                    <div class="stat-icon members">
-                        <i class="fas fa-clock"></i>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon completed-payouts">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M16 12l-4-4-4 4"/>
+                                    <path d="M12 16V8"/>
+                                </svg>
+                            </div>
+                            <span class="stat-trend"><?php echo t('admin_dashboard.completed_payouts'); ?></span>
+                        </div>
+                        <h3 class="stat-number"><?php echo $completed_payouts; ?></h3>
+                        <p class="stat-label"><?php echo t('admin_dashboard.completed_payouts'); ?></p>
                     </div>
-                    <div class="stat-value"><?php echo $members_stats['pending_members']; ?></div>
-                    <div class="stat-label"><?php echo t('admin_dashboard.pending_approvals'); ?></div>
                 </div>
-            </section>
-            
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon active-members">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"/>
+                                    <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+                                </svg>
+                            </div>
+                            <span class="stat-trend"><?php echo t('admin_dashboard.pending_approvals'); ?></span>
+                        </div>
+                        <h3 class="stat-number"><?php echo $members_stats['pending_members']; ?></h3>
+                        <p class="stat-label"><?php echo t('admin_dashboard.pending_approvals'); ?></p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Activity Section -->
-            <section class="activity-section">
-                <div class="activity-card animate-fade-in animate-delay-1">
-                    <h3 class="activity-title">
-                        <i class="fas fa-user-plus"></i>
-                        <?php echo t('admin_dashboard.recent_applications'); ?>
-                    </h3>
-                    
-                    <?php if (empty($recent_members)): ?>
-                        <div class="activity-item">
-                            <div class="activity-text"><?php echo t('admin_dashboard.no_recent_applications'); ?></div>
-                            <div class="activity-time"><?php echo t('admin_dashboard.all_caught_up'); ?></div>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($recent_members as $member): ?>
+            <div class="row activity-section">
+                <div class="col-lg-6 mb-4">
+                    <div class="activity-card">
+                        <h3>
+                            <i class="fas fa-user-plus text-primary"></i>
+                            <?php echo t('admin_dashboard.recent_applications'); ?>
+                        </h3>
+                        
+                        <?php if (empty($recent_members)): ?>
                             <div class="activity-item">
-                                <div class="activity-text">
-                                    <strong><?php echo htmlspecialchars($member['full_name']); ?></strong>
-                                    <?php echo t('admin_dashboard.applied_to_join'); ?>
-                                </div>
-                                <div>
-                                    <span class="status-badge <?php echo $member['is_approved'] ? 'status-approved' : 'status-pending'; ?>">
-                                        <?php echo $member['is_approved'] ? t('admin_dashboard.approved') : t('admin_dashboard.pending'); ?>
-                                    </span>
-                                    <div class="activity-time"><?php echo date('M j', strtotime($member['created_at'])); ?></div>
-                                </div>
+                                <div class="activity-text"><?php echo t('admin_dashboard.no_recent_applications'); ?></div>
+                                <div class="activity-time"><?php echo t('admin_dashboard.all_caught_up'); ?></div>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php else: ?>
+                            <?php foreach ($recent_members as $member): ?>
+                                <div class="activity-item">
+                                    <div class="activity-text">
+                                        <strong><?php echo htmlspecialchars($member['full_name']); ?></strong>
+                                        <?php echo t('admin_dashboard.applied_to_join'); ?>
+                                    </div>
+                                    <div>
+                                        <span class="status-badge <?php echo $member['is_approved'] ? 'status-approved' : 'status-pending'; ?>">
+                                            <?php echo $member['is_approved'] ? t('admin_dashboard.approved') : t('admin_dashboard.pending'); ?>
+                                        </span>
+                                        <div class="activity-time"><?php echo date('M j', strtotime($member['created_at'])); ?></div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 
-                <div class="activity-card animate-fade-in animate-delay-2">
-                    <h3 class="activity-title">
-                        <i class="fas fa-credit-card"></i>
-                        <?php echo t('admin_dashboard.recent_payments'); ?>
-                    </h3>
-                    
-                    <?php if (empty($recent_payments)): ?>
-                        <div class="activity-item">
-                            <div class="activity-text"><?php echo t('admin_dashboard.no_recent_payments'); ?></div>
-                            <div class="activity-time"><?php echo t('admin_dashboard.check_back_later'); ?></div>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($recent_payments as $payment): ?>
+                <div class="col-lg-6 mb-4">
+                    <div class="activity-card">
+                        <h3>
+                            <i class="fas fa-credit-card text-success"></i>
+                            <?php echo t('admin_dashboard.recent_payments'); ?>
+                        </h3>
+                        
+                        <?php if (empty($recent_payments)): ?>
                             <div class="activity-item">
-                                <div class="activity-text">
-                                    <strong><?php echo htmlspecialchars($payment['full_name']); ?></strong>
-                                    <?php echo t('admin_dashboard.paid'); ?> £<?php echo number_format($payment['amount'], 0); ?>
-                                </div>
-                                <div class="activity-time"><?php echo date('M j', strtotime($payment['created_at'])); ?></div>
+                                <div class="activity-text"><?php echo t('admin_dashboard.no_recent_payments'); ?></div>
+                                <div class="activity-time"><?php echo t('admin_dashboard.check_back_later'); ?></div>
                             </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php else: ?>
+                            <?php foreach ($recent_payments as $payment): ?>
+                                <div class="activity-item">
+                                    <div class="activity-text">
+                                        <strong><?php echo htmlspecialchars($payment['full_name']); ?></strong>
+                                        <?php echo t('admin_dashboard.paid'); ?> £<?php echo number_format($payment['amount'], 0); ?>
+                                    </div>
+                                    <div class="activity-time"><?php echo date('M j', strtotime($payment['created_at'])); ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </section>
-            
-            <!-- Modules Section -->
-            <section class="modules-section">
-                <h2 class="section-title"><?php echo t('admin_dashboard.management_modules'); ?></h2>
-                <p class="section-description"><?php echo t('admin_dashboard.modules_description'); ?></p>
-                
-                <div class="modules-grid">
-                    <a href="members.php" class="module-card animate-fade-in animate-delay-1">
-                        <div class="module-icon members">
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h3><?php echo t('admin_dashboard.management_modules'); ?></h3>
+                <div class="action-grid">
+                    <a href="members.php" class="action-item">
+                        <div class="action-icon">
                             <i class="fas fa-users"></i>
                         </div>
-                        <h3 class="module-title"><?php echo t('admin_dashboard.members_management'); ?></h3>
-                        <p class="module-description"><?php echo t('admin_dashboard.members_description'); ?></p>
+                        <div class="action-title"><?php echo t('admin_dashboard.members_management'); ?></div>
+                        <div class="action-description"><?php echo t('admin_dashboard.members_description'); ?></div>
                     </a>
                     
-                    <a href="payments.php" class="module-card animate-fade-in animate-delay-2">
-                        <div class="module-icon payments">
+                    <a href="payments.php" class="action-item">
+                        <div class="action-icon">
                             <i class="fas fa-credit-card"></i>
                         </div>
-                        <h3 class="module-title"><?php echo t('admin_dashboard.payments_management'); ?></h3>
-                        <p class="module-description"><?php echo t('admin_dashboard.payments_description'); ?></p>
+                        <div class="action-title"><?php echo t('admin_dashboard.payments_management'); ?></div>
+                        <div class="action-description"><?php echo t('admin_dashboard.payments_description'); ?></div>
                     </a>
                     
-                    <a href="payouts.php" class="module-card animate-fade-in animate-delay-3">
-                        <div class="module-icon payouts">
+                    <a href="payouts.php" class="action-item">
+                        <div class="action-icon">
                             <i class="fas fa-hand-holding-usd"></i>
                         </div>
-                        <h3 class="module-title"><?php echo t('admin_dashboard.payouts_management'); ?></h3>
-                        <p class="module-description"><?php echo t('admin_dashboard.payouts_description'); ?></p>
+                        <div class="action-title"><?php echo t('admin_dashboard.payouts_management'); ?></div>
+                        <div class="action-description"><?php echo t('admin_dashboard.payouts_description'); ?></div>
                     </a>
                     
-                    <a href="reports.php" class="module-card animate-fade-in animate-delay-4">
-                        <div class="module-icon reports">
+                    <a href="reports.php" class="action-item">
+                        <div class="action-icon">
                             <i class="fas fa-chart-line"></i>
                         </div>
-                        <h3 class="module-title"><?php echo t('admin_dashboard.reports_analytics'); ?></h3>
-                        <p class="module-description"><?php echo t('admin_dashboard.reports_description'); ?></p>
+                        <div class="action-title"><?php echo t('admin_dashboard.reports_analytics'); ?></div>
+                        <div class="action-description"><?php echo t('admin_dashboard.reports_description'); ?></div>
                     </a>
                 </div>
-            </section>
+            </div>
             
         </main>
     </div>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-    // Enhanced Dashboard JavaScript
     document.addEventListener('DOMContentLoaded', function() {
-        // Animate cards on scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-        
-        const observer = new IntersectionObserver(function(entries) {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-        
-        // Observe all animated elements
-        document.querySelectorAll('.animate-fade-in').forEach(el => {
-            observer.observe(el);
-        });
-        
-        console.log('🚀 Welcome Admin Dashboard loaded successfully! Multilingual support active.');
+        console.log('🚀 HabeshaEqub Admin Dashboard loaded successfully!');
     });
     </script>
 </body>
