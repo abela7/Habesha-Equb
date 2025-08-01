@@ -13,20 +13,27 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username() ?? 'Admin';
 
-// ENHANCED: Load admin's language preference properly
+// Deferred translator initialization
+$translator = Translator::getInstance();
+
+// ENHANCED: Load admin's language preference and then initialize the translator
 try {
     $stmt = $pdo->prepare("SELECT language_preference FROM admins WHERE id = ?");
     $stmt->execute([$admin_id]);
     $admin_data = $stmt->fetch();
     
+    $lang = 'am'; // Default to Amharic
     if ($admin_data) {
-        $lang = ($admin_data['language_preference'] == 1) ? 'am' : 'en';
-        setLanguage($lang);
-    } else {
-        setLanguage('am'); // Default to Amharic
+        // Assuming 'en' is 0 and 'am' is 1, adjust if necessary
+        $lang = ($admin_data['language_preference'] == 0) ? 'en' : 'am';
     }
+    
+    // Set language and initialize the translator with it
+    $translator->setLanguage($lang);
+    
 } catch (Exception $e) {
-    setLanguage('am'); // Fallback to Amharic
+    // Fallback to Amharic and initialize
+    $translator->setLanguage('am');
 }
 
 // ENHANCED: Get comprehensive dashboard statistics
