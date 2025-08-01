@@ -18,160 +18,22 @@ $translator = Translator::getInstance();
 
 
 
-// 🔍 PROFESSIONAL DEBUGGING SYSTEM - LANGUAGE PREFERENCE ANALYSIS
-echo "\n<!-- =================== HABESHA EQUB DEBUG SYSTEM =================== -->\n";
-echo "<!-- 🔍 PROFESSIONAL DEBUGGING SYSTEM ACTIVE -->\n";
-echo "<!-- Time: " . date('Y-m-d H:i:s') . " -->\n";
-echo "<!-- Admin ID: $admin_id -->\n";
-
-// ENHANCED: Load admin's language preference and then initialize the translator
+// SIMPLE LANGUAGE SETUP
 try {
-    // 📊 STEP 1: Database Language Preference Analysis
-    $stmt = $pdo->prepare("SELECT id, username, language_preference, created_at, updated_at FROM admins WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT language_preference FROM admins WHERE id = ?");
     $stmt->execute([$admin_id]);
     $admin_data = $stmt->fetch();
     
-    echo "<!-- 📊 DATABASE ANALYSIS -->\n";
-    echo "<!-- Admin Found: " . ($admin_data ? 'YES' : 'NO') . " -->\n";
+    $lang = 'am'; // Default to Amharic
     if ($admin_data) {
-        echo "<!-- Admin Username: " . $admin_data['username'] . " -->\n";
-        echo "<!-- Language Preference (DB): " . $admin_data['language_preference'] . " -->\n";
-        echo "<!-- Language Preference Meaning: " . ($admin_data['language_preference'] == 0 ? 'ENGLISH (0)' : 'AMHARIC (1)') . " -->\n";
-        echo "<!-- Admin Created: " . $admin_data['created_at'] . " -->\n";
-        echo "<!-- Admin Updated: " . $admin_data['updated_at'] . " -->\n";
+        $lang = ($admin_data['language_preference'] == 0) ? 'en' : 'am';
     }
     
-    // 🔄 STEP 2: Session Language Analysis  
-    echo "<!-- 🔄 SESSION ANALYSIS -->\n";
-    echo "<!-- Session app_language: " . ($_SESSION['app_language'] ?? 'NOT SET') . " -->\n";
-    echo "<!-- Session ID: " . session_id() . " -->\n";
-    echo "<!-- Session admin_logged_in: " . ($_SESSION['admin_logged_in'] ?? 'NOT SET') . " -->\n";
-    echo "<!-- Session admin_id: " . ($_SESSION['admin_id'] ?? 'NOT SET') . " -->\n";
-    
-    // 🎯 STEP 3: Language Logic Decision
-    $db_lang = 'am'; // Default to Amharic
-    if ($admin_data) {
-        $db_lang = ($admin_data['language_preference'] == 0) ? 'en' : 'am';
-    }
-    
-    $session_lang = $_SESSION['app_language'] ?? null;
-    
-    echo "<!-- 🎯 LANGUAGE DECISION LOGIC -->\n";
-    echo "<!-- Database wants: $db_lang -->\n";
-    echo "<!-- Session wants: " . ($session_lang ?: 'NONE') . " -->\n";
-    
-    // CONFLICT DETECTION!
-    if ($session_lang && $session_lang !== $db_lang) {
-        echo "<!-- ⚠️  CONFLICT DETECTED! Database ($db_lang) != Session ($session_lang) -->\n";
-        echo "<!-- 🔧 RESOLUTION: Using database preference as authoritative source -->\n";
-    }
-    
-    $final_lang = $db_lang; // Database is authoritative
-    echo "<!-- ✅ FINAL LANGUAGE DECISION: $final_lang -->\n";
-    
-    // 🔧 STEP 4: Translator Initialization
-    echo "<!-- 🔧 TRANSLATOR INITIALIZATION -->\n";
-    $result = $translator->setLanguage($final_lang);
-    echo "<!-- SetLanguage($final_lang) result: " . ($result ? 'SUCCESS' : 'FAILED') . " -->\n";
-    
-    // Update session to match database 
-    $_SESSION['app_language'] = $final_lang;
-    echo "<!-- Session updated to match database: $final_lang -->\n";
-    
-    // 🧪 STEP 5: Translation Testing + EMERGENCY FIX
-    echo "<!-- 🧪 TRANSLATION TESTING -->\n";
-    
-    // EMERGENCY DEBUG: Check translator internal state
-    $translator_lang = $translator->getCurrentLanguage();
-    echo "<!-- Translator reports language: $translator_lang -->\n";
-    
-    // EMERGENCY DEBUG: Direct JSON access test
-    $json_file = __DIR__ . '/../languages/' . $final_lang . '.json';
-    if (file_exists($json_file)) {
-        $json_content = file_get_contents($json_file);
-        $json_data = json_decode($json_content, true);
-        if ($json_data && isset($json_data['dashboard']['welcome_back'])) {
-            echo "<!-- DIRECT JSON ACCESS: dashboard.welcome_back = '" . $json_data['dashboard']['welcome_back'] . "' -->\n";
-        }
-    }
-    
-    $test_keys = ['dashboard.welcome_back', 'dashboard.welcome_subtitle', 'dashboard.total_members'];
-    foreach ($test_keys as $key) {
-        $translation = t($key);
-        $is_working = ($translation !== $key);
-        echo "<!-- Test '$key': " . ($is_working ? "✅ WORKING" : "❌ FAILED") . " → '$translation' -->\n";
-    }
-    
-    // 🔥 VETERAN DEVELOPER NUCLEAR DEBUGGING APPROACH
-    echo "<!-- 🔥 NUCLEAR DEBUG: Starting comprehensive analysis -->\n";
-    
-    $lang_json_file = __DIR__ . '/../languages/' . $final_lang . '.json';
-    echo "<!-- FILE PATH: $lang_json_file -->\n";
-    echo "<!-- FILE EXISTS: " . (file_exists($lang_json_file) ? 'YES' : 'NO') . " -->\n";
-    
-    if (file_exists($lang_json_file)) {
-        $json_content = file_get_contents($lang_json_file);
-        echo "<!-- JSON CONTENT LENGTH: " . strlen($json_content) . " -->\n";
-        echo "<!-- JSON FIRST 200 CHARS: " . substr($json_content, 0, 200) . " -->\n";
-        
-        $DIRECT_TRANSLATIONS = json_decode($json_content, true);
-        echo "<!-- JSON DECODE SUCCESS: " . (is_array($DIRECT_TRANSLATIONS) ? 'YES' : 'NO') . " -->\n";
-        echo "<!-- JSON ERROR: " . json_last_error_msg() . " -->\n";
-        
-        if (is_array($DIRECT_TRANSLATIONS)) {
-            echo "<!-- ROOT KEYS: " . implode(', ', array_keys($DIRECT_TRANSLATIONS)) . " -->\n";
-            
-            if (isset($DIRECT_TRANSLATIONS['dashboard'])) {
-                echo "<!-- DASHBOARD KEYS: " . implode(', ', array_keys($DIRECT_TRANSLATIONS['dashboard'])) . " -->\n";
-                
-                if (isset($DIRECT_TRANSLATIONS['dashboard']['welcome_back'])) {
-                    echo "<!-- WELCOME_BACK VALUE: '" . $DIRECT_TRANSLATIONS['dashboard']['welcome_back'] . "' -->\n";
-                } else {
-                    echo "<!-- WELCOME_BACK: NOT FOUND IN DASHBOARD -->\n";
-                }
-            } else {
-                echo "<!-- DASHBOARD SECTION: NOT FOUND -->\n";
-            }
-        }
-    }
-    
-    // 💥 DIRECT HARDCODED APPROACH - NO FUNCTIONS, NO VARIABLES
-    echo "<!-- 💥 TESTING DIRECT HARDCODED VALUES -->\n";
-    
-    // 📁 STEP 6: File System Verification
-    echo "<!-- 📁 FILE SYSTEM VERIFICATION -->\n";
-    $lang_file_am = __DIR__ . '/../languages/am.json';
-    $lang_file_en = __DIR__ . '/../languages/en.json';
-    echo "<!-- AM file exists: " . (file_exists($lang_file_am) ? '✅ YES' : '❌ NO') . " -->\n";
-    echo "<!-- EN file exists: " . (file_exists($lang_file_en) ? '✅ YES' : '❌ NO') . " -->\n";
-    
-    // Test JSON parsing
-    $current_file = ($final_lang === 'am') ? $lang_file_am : $lang_file_en;
-    if (file_exists($current_file)) {
-        $content = file_get_contents($current_file);
-        $json = json_decode($content, true);
-        $parse_success = (json_last_error() === JSON_ERROR_NONE);
-        echo "<!-- Current language file ($final_lang): " . ($parse_success ? '✅ VALID JSON' : '❌ INVALID JSON - ' . json_last_error_msg()) . " -->\n";
-        
-        if ($parse_success && isset($json['dashboard'])) {
-            echo "<!-- Dashboard section found: ✅ YES (" . count($json['dashboard']) . " keys) -->\n";
-        } else {
-            echo "<!-- Dashboard section found: ❌ NO -->\n";
-        }
-    }
-    
-    echo "<!-- =================== DEBUG SYSTEM COMPLETE =================== -->\n\n";
-    
-    // 🔥 ENSURE LANGUAGE VARIABLE IS GLOBAL FOR HTML SECTIONS
-    $GLOBAL_LANG = $final_lang;
-    echo "<!-- 💥 GLOBAL LANGUAGE SET: $GLOBAL_LANG -->\n";
+    $translator->setLanguage($lang);
+    $_SESSION['app_language'] = $lang;
     
 } catch (Exception $e) {
-    echo "<!-- ❌ CRITICAL ERROR: " . $e->getMessage() . " -->\n";
-    echo "<!-- Stack trace: " . $e->getTraceAsString() . " -->\n";
-    // Fallback to Amharic and initialize
     $translator->setLanguage('am');
-    echo "<!-- 🔄 Fallback activated: Amharic -->\n";
 }
 
 // ENHANCED: Get comprehensive dashboard statistics
@@ -239,10 +101,10 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo emergency_t('navigation.dashboard'); ?> - HabeshaEqub Admin</title>
+    <title><?php echo t('navigation.dashboard'); ?> - HabeshaEqub Admin</title>
     
     <!-- Enhanced Meta Tags -->
-    <meta name="description" content="<?php echo emergency_t('dashboard.page_description'); ?>">
+    <meta name="description" content="<?php echo t('dashboard.page_description'); ?>">
     <meta name="robots" content="noindex, nofollow">
     
     <!-- Favicons -->
@@ -847,19 +709,12 @@ try {
                 <div class="welcome-content">
                     <h1 class="welcome-title">
                         <?php 
-                        // 💥 NUCLEAR HARDCODED FIX - NO MORE FUNCTIONS
-                        $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : (isset($final_lang) ? $final_lang : 'am');
-                        echo "<!-- LANG CHECK: current_lang = $current_lang -->";
-                        $hardcoded_welcome = ($current_lang === 'am') ? '{username} እንኳን ደህና መጡ!' : 'Welcome back, {username}';
-                        echo str_replace('{username}', htmlspecialchars($admin_username), $hardcoded_welcome);
+                        echo str_replace('{username}', htmlspecialchars($admin_username), t('dashboard.welcome_back'));
                         ?>
                     </h1>
                     <p class="welcome-subtitle">
                         <?php 
-                        // 💥 NUCLEAR HARDCODED FIX - NO MORE FUNCTIONS
-                        $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : (isset($final_lang) ? $final_lang : 'am');
-                        $hardcoded_subtitle = ($current_lang === 'am') ? 'አሁን ላይ በእቁቡ ዙሪያ እየሆነ ያለው ነገር ይሄ ነው' : "Here's what's happening with your HabeshaEqub community today";
-                        echo $hardcoded_subtitle;
+                        echo t('dashboard.welcome_subtitle');
                         ?>
                     </p>
                 </div>
@@ -868,19 +723,19 @@ try {
                 <div class="quick-stats-grid">
                     <div class="quick-stat-card">
                         <div class="quick-stat-value"><?php echo $members_stats['total_members']; ?></div>
-                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'ጠቅላላ አባላት' : 'Total Members'; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.total_members'); ?></div>
                     </div>
                     <div class="quick-stat-card">
                         <div class="quick-stat-value">£<?php echo number_format($financial_stats['total_collected'], 0); ?></div>
-                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'ጠቅላላ የተሰበሰበ' : 'Total Collected'; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.total_collected'); ?></div>
                     </div>
                     <div class="quick-stat-card">
                         <div class="quick-stat-value"><?php echo $payout_stats['completed_payouts']; ?></div>
-                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'የተጠናቀቁ ክፍያዎች' : 'Completed Payouts'; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.completed_payouts'); ?></div>
                     </div>
                     <div class="quick-stat-card">
                         <div class="quick-stat-value"><?php echo $members_stats['pending_members']; ?></div>
-                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'በመጠባበቅ ላይ ያሉ ማጽደቂያዎች' : 'Pending Approvals'; ?></div>
+                        <div class="quick-stat-label"><?php echo t('dashboard.pending_approvals'); ?></div>
                     </div>
                 </div>
             </section>
@@ -900,15 +755,15 @@ try {
                         </div>
                     </div>
                     <div class="stat-number"><?php echo $members_stats['total_members']; ?></div>
-                    <div class="stat-label"><?php echo emergency_t('dashboard.total_members'); ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.total_members'); ?></div>
                     <div class="stat-details">
                         <div class="stat-detail">
                             <div class="detail-indicator success"></div>
-                            <span><?php echo $members_stats['active_members']; ?> <?php echo emergency_t('dashboard.active'); ?></span>
+                            <span><?php echo $members_stats['active_members']; ?> <?php echo t('dashboard.active'); ?></span>
                         </div>
                         <div class="stat-detail">
                             <div class="detail-indicator warning"></div>
-                            <span><?php echo $members_stats['pending_members']; ?> <?php echo emergency_t('dashboard.pending'); ?></span>
+                            <span><?php echo $members_stats['pending_members']; ?> <?php echo t('dashboard.pending'); ?></span>
                         </div>
                     </div>
                 </div>
@@ -925,15 +780,15 @@ try {
                         </div>
                     </div>
                     <div class="stat-number">£<?php echo number_format($financial_stats['total_collected'], 0); ?></div>
-                    <div class="stat-label"><?php echo emergency_t('dashboard.total_collected'); ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.total_collected'); ?></div>
                     <div class="stat-details">
                         <div class="stat-detail">
                             <div class="detail-indicator success"></div>
-                            <span><?php echo $financial_stats['completed_payments']; ?> <?php echo emergency_t('dashboard.payments_made'); ?></span>
+                            <span><?php echo $financial_stats['completed_payments']; ?> <?php echo t('dashboard.payments_made'); ?></span>
                         </div>
                         <div class="stat-detail">
                             <div class="detail-indicator warning"></div>
-                            <span>£<?php echo number_format($financial_stats['pending_payments'], 0); ?> <?php echo emergency_t('dashboard.pending'); ?></span>
+                            <span>£<?php echo number_format($financial_stats['pending_payments'], 0); ?> <?php echo t('dashboard.pending'); ?></span>
                         </div>
                     </div>
                 </div>
@@ -950,15 +805,15 @@ try {
                         </div>
                     </div>
                     <div class="stat-number">£<?php echo number_format($payout_stats['total_payouts'], 0); ?></div>
-                    <div class="stat-label"><?php echo emergency_t('dashboard.total_payouts'); ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.total_payouts'); ?></div>
                     <div class="stat-details">
                         <div class="stat-detail">
                             <div class="detail-indicator success"></div>
-                            <span><?php echo $payout_stats['completed_payouts']; ?> <?php echo emergency_t('dashboard.completed'); ?></span>
+                            <span><?php echo $payout_stats['completed_payouts']; ?> <?php echo t('dashboard.completed'); ?></span>
                         </div>
                         <div class="stat-detail">
                             <div class="detail-indicator warning"></div>
-                            <span><?php echo $payout_stats['scheduled_payouts']; ?> <?php echo emergency_t('dashboard.scheduled'); ?></span>
+                            <span><?php echo $payout_stats['scheduled_payouts']; ?> <?php echo t('dashboard.scheduled'); ?></span>
                         </div>
                     </div>
                 </div>
@@ -975,11 +830,11 @@ try {
                         </div>
                     </div>
                     <div class="stat-number">98%</div>
-                    <div class="stat-label"><?php echo emergency_t('dashboard.collection_rate'); ?></div>
+                    <div class="stat-label"><?php echo t('dashboard.collection_rate'); ?></div>
                     <div class="stat-details">
                         <div class="stat-detail">
                             <div class="detail-indicator success"></div>
-                            <span><?php echo emergency_t('dashboard.this_month'); ?></span>
+                            <span><?php echo t('dashboard.this_month'); ?></span>
                         </div>
                     </div>
                 </div>
@@ -989,8 +844,8 @@ try {
             <!-- Enhanced Management Modules -->
             <section class="management-section">
                 <div class="section-header">
-                    <h2 class="section-title"><?php echo emergency_t('dashboard.management_center'); ?></h2>
-                    <p class="section-description"><?php echo emergency_t('dashboard.management_center_desc'); ?></p>
+                    <h2 class="section-title"><?php echo t('dashboard.management_center'); ?></h2>
+                    <p class="section-description"><?php echo t('dashboard.management_center_desc'); ?></p>
                 </div>
 
                 <div class="modules-grid">
@@ -1001,23 +856,23 @@ try {
                             <div class="module-icon-wrapper">
                                 <i class="fas fa-users module-icon"></i>
                             </div>
-                            <div class="module-status"><?php echo emergency_t('common.active'); ?></div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
                         </div>
                         <div class="module-content">
-                            <h3 class="module-title"><?php echo emergency_t('dashboard.members_management'); ?></h3>
-                            <p class="module-description"><?php echo emergency_t('dashboard.members_management_desc'); ?></p>
+                            <h3 class="module-title"><?php echo t('dashboard.members_management'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.members_management_desc'); ?></p>
                             <div class="module-stats">
                                 <span class="module-stat">
-                                    <strong><?php echo $members_stats['total_members']; ?></strong> <?php echo emergency_t('dashboard.members'); ?>
+                                    <strong><?php echo $members_stats['total_members']; ?></strong> <?php echo t('dashboard.members'); ?>
                                 </span>
                                 <span class="module-stat">
-                                    <strong><?php echo $members_stats['pending_members']; ?></strong> <?php echo emergency_t('dashboard.pending'); ?>
+                                    <strong><?php echo $members_stats['pending_members']; ?></strong> <?php echo t('dashboard.pending'); ?>
                                 </span>
                             </div>
                         </div>
                         <div class="module-footer">
                             <span class="module-action">
-                                <?php echo emergency_t('dashboard.manage_members'); ?>
+                                <?php echo t('dashboard.manage_members'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </span>
                         </div>
@@ -1029,23 +884,23 @@ try {
                             <div class="module-icon-wrapper">
                                 <i class="fas fa-credit-card module-icon"></i>
                             </div>
-                            <div class="module-status"><?php echo emergency_t('common.active'); ?></div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
                         </div>
                         <div class="module-content">
-                            <h3 class="module-title"><?php echo emergency_t('dashboard.payment_tracking'); ?></h3>
-                            <p class="module-description"><?php echo emergency_t('dashboard.payment_tracking_desc'); ?></p>
+                            <h3 class="module-title"><?php echo t('dashboard.payment_tracking'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.payment_tracking_desc'); ?></p>
                             <div class="module-stats">
                                 <span class="module-stat">
-                                    <strong>£<?php echo number_format($financial_stats['total_collected'], 0); ?></strong> <?php echo emergency_t('dashboard.collected'); ?>
+                                    <strong>£<?php echo number_format($financial_stats['total_collected'], 0); ?></strong> <?php echo t('dashboard.collected'); ?>
                                 </span>
                                 <span class="module-stat">
-                                    <strong><?php echo $financial_stats['completed_payments']; ?></strong> <?php echo emergency_t('dashboard.payments'); ?>
+                                    <strong><?php echo $financial_stats['completed_payments']; ?></strong> <?php echo t('dashboard.payments'); ?>
                                 </span>
                             </div>
                         </div>
                         <div class="module-footer">
                             <span class="module-action">
-                                <?php echo emergency_t('dashboard.track_payments'); ?>
+                                <?php echo t('dashboard.track_payments'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </span>
                         </div>
@@ -1057,23 +912,23 @@ try {
                             <div class="module-icon-wrapper">
                                 <i class="fas fa-arrow-up module-icon"></i>
                             </div>
-                            <div class="module-status"><?php echo emergency_t('common.active'); ?></div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
                         </div>
                         <div class="module-content">
-                            <h3 class="module-title"><?php echo emergency_t('dashboard.payout_management'); ?></h3>
-                            <p class="module-description"><?php echo emergency_t('dashboard.payout_management_desc'); ?></p>
+                            <h3 class="module-title"><?php echo t('dashboard.payout_management'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.payout_management_desc'); ?></p>
                             <div class="module-stats">
                                 <span class="module-stat">
-                                    <strong><?php echo $payout_stats['completed_payouts']; ?></strong> <?php echo emergency_t('dashboard.completed'); ?>
+                                    <strong><?php echo $payout_stats['completed_payouts']; ?></strong> <?php echo t('dashboard.completed'); ?>
                                 </span>
                                 <span class="module-stat">
-                                    <strong><?php echo $payout_stats['scheduled_payouts']; ?></strong> <?php echo emergency_t('dashboard.scheduled'); ?>
+                                    <strong><?php echo $payout_stats['scheduled_payouts']; ?></strong> <?php echo t('dashboard.scheduled'); ?>
                                 </span>
                             </div>
                         </div>
                         <div class="module-footer">
                             <span class="module-action">
-                                <?php echo emergency_t('dashboard.manage_payouts'); ?>
+                                <?php echo t('dashboard.manage_payouts'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </span>
                         </div>
@@ -1085,23 +940,23 @@ try {
                             <div class="module-icon-wrapper">
                                 <i class="fas fa-chart-bar module-icon"></i>
                             </div>
-                            <div class="module-status"><?php echo emergency_t('common.active'); ?></div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
                         </div>
                         <div class="module-content">
-                            <h3 class="module-title"><?php echo emergency_t('dashboard.reports_analytics'); ?></h3>
-                            <p class="module-description"><?php echo emergency_t('dashboard.reports_analytics_desc'); ?></p>
+                            <h3 class="module-title"><?php echo t('dashboard.reports_analytics'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.reports_analytics_desc'); ?></p>
                             <div class="module-stats">
                                 <span class="module-stat">
-                                    <strong><?php echo emergency_t('dashboard.financial'); ?></strong> <?php echo emergency_t('dashboard.reports'); ?>
+                                    <strong><?php echo t('dashboard.financial'); ?></strong> <?php echo t('dashboard.reports'); ?>
                                 </span>
                                 <span class="module-stat">
-                                    <strong><?php echo emergency_t('dashboard.member'); ?></strong> <?php echo emergency_t('dashboard.analytics'); ?>
+                                    <strong><?php echo t('dashboard.member'); ?></strong> <?php echo t('dashboard.analytics'); ?>
                                 </span>
                             </div>
                         </div>
                         <div class="module-footer">
                             <span class="module-action">
-                                <?php echo emergency_t('dashboard.view_reports'); ?>
+                                <?php echo t('dashboard.view_reports'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </span>
                         </div>
@@ -1113,23 +968,23 @@ try {
                             <div class="module-icon-wrapper">
                                 <i class="fas fa-gavel module-icon"></i>
                             </div>
-                            <div class="module-status"><?php echo emergency_t('common.active'); ?></div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
                         </div>
                         <div class="module-content">
-                            <h3 class="module-title"><?php echo emergency_t('dashboard.rules_management'); ?></h3>
-                            <p class="module-description"><?php echo emergency_t('dashboard.rules_management_desc'); ?></p>
+                            <h3 class="module-title"><?php echo t('dashboard.rules_management'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.rules_management_desc'); ?></p>
                             <div class="module-stats">
                                 <span class="module-stat">
-                                    <strong>6</strong> <?php echo emergency_t('dashboard.active_rules'); ?>
+                                    <strong>6</strong> <?php echo t('dashboard.active_rules'); ?>
                                 </span>
                                 <span class="module-stat">
-                                    <strong><?php echo emergency_t('dashboard.bilingual'); ?></strong>
+                                    <strong><?php echo t('dashboard.bilingual'); ?></strong>
                                 </span>
                             </div>
                         </div>
                         <div class="module-footer">
                             <span class="module-action">
-                                <?php echo emergency_t('dashboard.manage_rules'); ?>
+                                <?php echo t('dashboard.manage_rules'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </span>
                         </div>
@@ -1141,23 +996,23 @@ try {
                             <div class="module-icon-wrapper">
                                 <i class="fas fa-cog module-icon"></i>
                             </div>
-                            <div class="module-status"><?php echo emergency_t('common.active'); ?></div>
+                            <div class="module-status"><?php echo t('common.active'); ?></div>
                         </div>
                         <div class="module-content">
-                            <h3 class="module-title"><?php echo emergency_t('dashboard.system_settings'); ?></h3>
-                            <p class="module-description"><?php echo emergency_t('dashboard.system_settings_desc'); ?></p>
+                            <h3 class="module-title"><?php echo t('dashboard.system_settings'); ?></h3>
+                            <p class="module-description"><?php echo t('dashboard.system_settings_desc'); ?></p>
                             <div class="module-stats">
                                 <span class="module-stat">
-                                    <strong><?php echo emergency_t('dashboard.multilingual'); ?></strong>
+                                    <strong><?php echo t('dashboard.multilingual'); ?></strong>
                                 </span>
                                 <span class="module-stat">
-                                    <strong><?php echo emergency_t('dashboard.secure'); ?></strong>
+                                    <strong><?php echo t('dashboard.secure'); ?></strong>
                                 </span>
                             </div>
                         </div>
                         <div class="module-footer">
                             <span class="module-action">
-                                <?php echo emergency_t('dashboard.configure_system'); ?>
+                                <?php echo t('dashboard.configure_system'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </span>
                         </div>
@@ -1169,8 +1024,8 @@ try {
             <!-- Recent Activity Section -->
             <section class="activity-section">
                 <div class="section-header">
-                    <h2 class="section-title"><?php echo emergency_t('dashboard.recent_activity'); ?></h2>
-                    <p class="section-description"><?php echo emergency_t('dashboard.recent_activity_desc'); ?></p>
+                    <h2 class="section-title"><?php echo t('dashboard.recent_activity'); ?></h2>
+                    <p class="section-description"><?php echo t('dashboard.recent_activity_desc'); ?></p>
                 </div>
 
                 <div class="activity-grid">
@@ -1178,7 +1033,7 @@ try {
                     <div class="activity-card">
                         <h3 class="activity-title">
                             <i class="fas fa-user-plus"></i>
-                            <?php echo emergency_t('dashboard.recent_applications'); ?>
+                            <?php echo t('dashboard.recent_applications'); ?>
                         </h3>
                         
                         <?php if (empty($recent_members)): ?>
@@ -1187,8 +1042,8 @@ try {
                                     <i class="fas fa-check"></i>
                                 </div>
                                 <div class="activity-content">
-                                    <div class="activity-text"><?php echo emergency_t('dashboard.no_pending_applications'); ?></div>
-                                    <div class="activity-time"><?php echo emergency_t('dashboard.all_caught_up'); ?></div>
+                                    <div class="activity-text"><?php echo t('dashboard.no_pending_applications'); ?></div>
+                                    <div class="activity-time"><?php echo t('dashboard.all_caught_up'); ?></div>
                                 </div>
                             </div>
                         <?php else: ?>
@@ -1200,7 +1055,7 @@ try {
                                 <div class="activity-content">
                                     <div class="activity-text">
                                         <strong><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></strong>
-                                        <?php echo emergency_t('dashboard.applied_to_join'); ?>
+                                        <?php echo t('dashboard.applied_to_join'); ?>
                                     </div>
                                     <div class="activity-time">
                                         <?php echo date('M j, Y', strtotime($member['created_at'])); ?>
@@ -1212,7 +1067,7 @@ try {
                         
                         <div style="margin-top: 20px;">
                             <a href="user-approvals.php" class="module-action">
-                                <?php echo emergency_t('dashboard.view_all_applications'); ?>
+                                <?php echo t('dashboard.view_all_applications'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </a>
                         </div>
@@ -1222,7 +1077,7 @@ try {
                     <div class="activity-card">
                         <h3 class="activity-title">
                             <i class="fas fa-credit-card"></i>
-                            <?php echo emergency_t('dashboard.recent_payments'); ?>
+                            <?php echo t('dashboard.recent_payments'); ?>
                         </h3>
                         
                         <?php if (empty($recent_payments)): ?>
@@ -1231,8 +1086,8 @@ try {
                                     <i class="fas fa-info"></i>
                                 </div>
                                 <div class="activity-content">
-                                    <div class="activity-text"><?php echo emergency_t('dashboard.no_recent_payments'); ?></div>
-                                    <div class="activity-time"><?php echo emergency_t('dashboard.check_back_later'); ?></div>
+                                    <div class="activity-text"><?php echo t('dashboard.no_recent_payments'); ?></div>
+                                    <div class="activity-time"><?php echo t('dashboard.check_back_later'); ?></div>
                                 </div>
                             </div>
                         <?php else: ?>
@@ -1244,7 +1099,7 @@ try {
                                 <div class="activity-content">
                                     <div class="activity-text">
                                         <strong><?php echo htmlspecialchars($payment['first_name'] . ' ' . $payment['last_name']); ?></strong>
-                                        <?php echo emergency_t('dashboard.paid'); ?> £<?php echo number_format($payment['amount'], 0); ?>
+                                        <?php echo t('dashboard.paid'); ?> £<?php echo number_format($payment['amount'], 0); ?>
                                     </div>
                                     <div class="activity-time">
                                         <?php echo date('M j, Y', strtotime($payment['payment_date'])); ?>
@@ -1256,7 +1111,7 @@ try {
                         
                         <div style="margin-top: 20px;">
                             <a href="payments.php" class="module-action">
-                                <?php echo emergency_t('dashboard.view_all_payments'); ?>
+                                <?php echo t('dashboard.view_all_payments'); ?>
                                 <i class="fas fa-arrow-right"></i>
                             </a>
                         </div>

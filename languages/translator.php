@@ -72,6 +72,11 @@ class Translator {
             $this->init(); // Auto-initialize if not done, for safety.
         }
 
+        // 🔧 EMERGENCY FIX: Force reload if translations are empty
+        if (empty($this->translations)) {
+            $this->loadTranslations();
+        }
+
         $keys = explode('.', $key);
         $value = $this->translations;
         
