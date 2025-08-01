@@ -5,15 +5,19 @@
  * Completely rebuilt for £10M project standards
  */
 
-require_once '../includes/db.php';
-require_once '../languages/translator.php';
+// Start session first to ensure proper session handling
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Secure admin authentication check
+require_once '../includes/db.php';
+
+// Secure admin authentication check BEFORE loading translator
 require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username() ?? 'Admin';
 
-// ENHANCED: Load admin's language preference properly
+// ENHANCED: Load admin's language preference and set session BEFORE loading translator
 try {
     $stmt = $pdo->prepare("SELECT language_preference FROM admins WHERE id = ?");
     $stmt->execute([$admin_id]);
@@ -21,13 +25,16 @@ try {
     
     if ($admin_data) {
         $lang = ($admin_data['language_preference'] == 1) ? 'am' : 'en';
-        setLanguage($lang);
+        $_SESSION['app_language'] = $lang; // Set session language
     } else {
-        setLanguage('am'); // Default to Amharic
+        $_SESSION['app_language'] = 'am'; // Default to Amharic
     }
 } catch (Exception $e) {
-    setLanguage('am'); // Fallback to Amharic
+    $_SESSION['app_language'] = 'am'; // Fallback to Amharic
 }
+
+// NOW load the translator after session language is properly set
+require_once '../languages/translator.php';
 
 // ENHANCED: Get comprehensive dashboard statistics
 try {
