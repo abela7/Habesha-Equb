@@ -16,6 +16,10 @@ $admin_username = get_current_admin_username() ?? 'Admin';
 // Deferred translator initialization
 $translator = Translator::getInstance();
 
+// DEBUG: Check session state
+echo "<!-- DEBUG: Session app_language: " . ($_SESSION['app_language'] ?? 'NOT SET') . " -->\n";
+echo "<!-- DEBUG: Session ID: " . session_id() . " -->\n";
+
 // ENHANCED: Load admin's language preference and then initialize the translator
 try {
     $stmt = $pdo->prepare("SELECT language_preference FROM admins WHERE id = ?");
@@ -28,10 +32,42 @@ try {
         $lang = ($admin_data['language_preference'] == 0) ? 'en' : 'am';
     }
     
+    // DEBUG: Show what language we're setting
+    echo "<!-- DEBUG: Setting language to: $lang -->\n";
+    echo "<!-- DEBUG: Admin data: " . print_r($admin_data, true) . " -->\n";
+    
     // Set language and initialize the translator with it
-    $translator->setLanguage($lang);
+    $result = $translator->setLanguage($lang);
+    echo "<!-- DEBUG: SetLanguage result: " . ($result ? 'SUCCESS' : 'FAILED') . " -->\n";
+    
+    // DEBUG: Test translation
+    $test_translation = t('dashboard.welcome_back');
+    echo "<!-- DEBUG: Test translation 'dashboard.welcome_back': $test_translation -->\n";
+    
+    // DEBUG: Check current language
+    $current_lang = $translator->getCurrentLanguage();
+    echo "<!-- DEBUG: Current language: $current_lang -->\n";
+    
+    // DEBUG: Check if translation files exist and are readable
+    $lang_file_am = __DIR__ . '/../languages/am.json';
+    $lang_file_en = __DIR__ . '/../languages/en.json';
+    echo "<!-- DEBUG: AM file exists: " . (file_exists($lang_file_am) ? 'YES' : 'NO') . " -->\n";
+    echo "<!-- DEBUG: EN file exists: " . (file_exists($lang_file_en) ? 'YES' : 'NO') . " -->\n";
+    
+    // DEBUG: Try to load and parse the JSON files
+    if (file_exists($lang_file_am)) {
+        $am_content = file_get_contents($lang_file_am);
+        $am_json = json_decode($am_content, true);
+        echo "<!-- DEBUG: AM JSON parse: " . (json_last_error() === JSON_ERROR_NONE ? 'SUCCESS' : 'FAILED - ' . json_last_error_msg()) . " -->\n";
+        if ($am_json && isset($am_json['dashboard']['welcome_back'])) {
+            echo "<!-- DEBUG: AM dashboard.welcome_back found: " . $am_json['dashboard']['welcome_back'] . " -->\n";
+        } else {
+            echo "<!-- DEBUG: AM dashboard.welcome_back NOT FOUND -->\n";
+        }
+    }
     
 } catch (Exception $e) {
+    echo "<!-- DEBUG: Exception caught: " . $e->getMessage() . " -->\n";
     // Fallback to Amharic and initialize
     $translator->setLanguage('am');
 }
@@ -708,10 +744,18 @@ try {
             <section class="enhanced-welcome">
                 <div class="welcome-content">
                     <h1 class="welcome-title">
-                        <?php echo str_replace('{username}', htmlspecialchars($admin_username), t('dashboard.welcome_back')); ?>
+                        <?php 
+                        $welcome_raw = t('dashboard.welcome_back');
+                        echo "<!-- DEBUG IN HTML: Raw translation result: '$welcome_raw' -->";
+                        echo str_replace('{username}', htmlspecialchars($admin_username), $welcome_raw); 
+                        ?>
                     </h1>
                     <p class="welcome-subtitle">
-                        <?php echo t('dashboard.welcome_subtitle'); ?>
+                        <?php 
+                        $subtitle_raw = t('dashboard.welcome_subtitle');
+                        echo "<!-- DEBUG IN HTML: Subtitle translation result: '$subtitle_raw' -->";
+                        echo $subtitle_raw; 
+                        ?>
                     </p>
                 </div>
                 
