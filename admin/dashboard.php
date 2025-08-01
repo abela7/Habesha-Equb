@@ -102,36 +102,41 @@ try {
         echo "<!-- Test '$key': " . ($is_working ? "✅ WORKING" : "❌ FAILED") . " → '$translation' -->\n";
     }
     
-    // 🚨 EMERGENCY FIX: Direct translation bypass since translator is broken
+    // 🔥 VETERAN DEVELOPER NUCLEAR DEBUGGING APPROACH
+    echo "<!-- 🔥 NUCLEAR DEBUG: Starting comprehensive analysis -->\n";
+    
     $lang_json_file = __DIR__ . '/../languages/' . $final_lang . '.json';
-    $DIRECT_TRANSLATIONS = [];
+    echo "<!-- FILE PATH: $lang_json_file -->\n";
+    echo "<!-- FILE EXISTS: " . (file_exists($lang_json_file) ? 'YES' : 'NO') . " -->\n";
     
     if (file_exists($lang_json_file)) {
         $json_content = file_get_contents($lang_json_file);
-        $DIRECT_TRANSLATIONS = json_decode($json_content, true);
-        echo "<!-- 🚨 EMERGENCY: Direct translations loaded from $final_lang.json -->\n";
-    }
-    
-    // Create emergency translation function
-    function emergency_t($key) {
-        global $DIRECT_TRANSLATIONS;
-        $keys = explode('.', $key);
-        $value = $DIRECT_TRANSLATIONS;
+        echo "<!-- JSON CONTENT LENGTH: " . strlen($json_content) . " -->\n";
+        echo "<!-- JSON FIRST 200 CHARS: " . substr($json_content, 0, 200) . " -->\n";
         
-        foreach ($keys as $k) {
-            if (isset($value[$k])) {
-                $value = $value[$k];
+        $DIRECT_TRANSLATIONS = json_decode($json_content, true);
+        echo "<!-- JSON DECODE SUCCESS: " . (is_array($DIRECT_TRANSLATIONS) ? 'YES' : 'NO') . " -->\n";
+        echo "<!-- JSON ERROR: " . json_last_error_msg() . " -->\n";
+        
+        if (is_array($DIRECT_TRANSLATIONS)) {
+            echo "<!-- ROOT KEYS: " . implode(', ', array_keys($DIRECT_TRANSLATIONS)) . " -->\n";
+            
+            if (isset($DIRECT_TRANSLATIONS['dashboard'])) {
+                echo "<!-- DASHBOARD KEYS: " . implode(', ', array_keys($DIRECT_TRANSLATIONS['dashboard'])) . " -->\n";
+                
+                if (isset($DIRECT_TRANSLATIONS['dashboard']['welcome_back'])) {
+                    echo "<!-- WELCOME_BACK VALUE: '" . $DIRECT_TRANSLATIONS['dashboard']['welcome_back'] . "' -->\n";
+                } else {
+                    echo "<!-- WELCOME_BACK: NOT FOUND IN DASHBOARD -->\n";
+                }
             } else {
-                return $key; // Return key if not found
+                echo "<!-- DASHBOARD SECTION: NOT FOUND -->\n";
             }
         }
-        
-        return $value;
     }
     
-    // Test emergency function
-    $emergency_test = emergency_t('dashboard.welcome_back');
-    echo "<!-- 🚨 EMERGENCY TEST: dashboard.welcome_back = '$emergency_test' -->\n";
+    // 💥 DIRECT HARDCODED APPROACH - NO FUNCTIONS, NO VARIABLES
+    echo "<!-- 💥 TESTING DIRECT HARDCODED VALUES -->\n";
     
     // 📁 STEP 6: File System Verification
     echo "<!-- 📁 FILE SYSTEM VERIFICATION -->\n";
@@ -156,6 +161,10 @@ try {
     }
     
     echo "<!-- =================== DEBUG SYSTEM COMPLETE =================== -->\n\n";
+    
+    // 🔥 ENSURE LANGUAGE VARIABLE IS GLOBAL FOR HTML SECTIONS
+    $GLOBAL_LANG = $final_lang;
+    echo "<!-- 💥 GLOBAL LANGUAGE SET: $GLOBAL_LANG -->\n";
     
 } catch (Exception $e) {
     echo "<!-- ❌ CRITICAL ERROR: " . $e->getMessage() . " -->\n";
@@ -837,10 +846,21 @@ try {
             <section class="enhanced-welcome">
                 <div class="welcome-content">
                     <h1 class="welcome-title">
-                        <?php echo str_replace('{username}', htmlspecialchars($admin_username), emergency_t('dashboard.welcome_back')); ?>
+                        <?php 
+                        // 💥 NUCLEAR HARDCODED FIX - NO MORE FUNCTIONS
+                        $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : (isset($final_lang) ? $final_lang : 'am');
+                        echo "<!-- LANG CHECK: current_lang = $current_lang -->";
+                        $hardcoded_welcome = ($current_lang === 'am') ? '{username} እንኳን ደህና መጡ!' : 'Welcome back, {username}';
+                        echo str_replace('{username}', htmlspecialchars($admin_username), $hardcoded_welcome);
+                        ?>
                     </h1>
                     <p class="welcome-subtitle">
-                        <?php echo emergency_t('dashboard.welcome_subtitle'); ?>
+                        <?php 
+                        // 💥 NUCLEAR HARDCODED FIX - NO MORE FUNCTIONS
+                        $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : (isset($final_lang) ? $final_lang : 'am');
+                        $hardcoded_subtitle = ($current_lang === 'am') ? 'አሁን ላይ በእቁቡ ዙሪያ እየሆነ ያለው ነገር ይሄ ነው' : "Here's what's happening with your HabeshaEqub community today";
+                        echo $hardcoded_subtitle;
+                        ?>
                     </p>
                 </div>
                 
@@ -848,19 +868,19 @@ try {
                 <div class="quick-stats-grid">
                     <div class="quick-stat-card">
                         <div class="quick-stat-value"><?php echo $members_stats['total_members']; ?></div>
-                        <div class="quick-stat-label"><?php echo emergency_t('dashboard.total_members'); ?></div>
+                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'ጠቅላላ አባላት' : 'Total Members'; ?></div>
                     </div>
                     <div class="quick-stat-card">
                         <div class="quick-stat-value">£<?php echo number_format($financial_stats['total_collected'], 0); ?></div>
-                        <div class="quick-stat-label"><?php echo emergency_t('dashboard.total_collected'); ?></div>
+                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'ጠቅላላ የተሰበሰበ' : 'Total Collected'; ?></div>
                     </div>
                     <div class="quick-stat-card">
                         <div class="quick-stat-value"><?php echo $payout_stats['completed_payouts']; ?></div>
-                        <div class="quick-stat-label"><?php echo emergency_t('dashboard.completed_payouts'); ?></div>
+                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'የተጠናቀቁ ክፍያዎች' : 'Completed Payouts'; ?></div>
                     </div>
                     <div class="quick-stat-card">
                         <div class="quick-stat-value"><?php echo $members_stats['pending_members']; ?></div>
-                        <div class="quick-stat-label"><?php echo emergency_t('dashboard.pending_approvals'); ?></div>
+                        <div class="quick-stat-label"><?php $current_lang = isset($GLOBAL_LANG) ? $GLOBAL_LANG : 'am'; echo ($current_lang === 'am') ? 'በመጠባበቅ ላይ ያሉ ማጽደቂያዎች' : 'Pending Approvals'; ?></div>
                     </div>
                 </div>
             </section>
