@@ -70,7 +70,7 @@ switch ($action) {
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['login_time'] = time(); // Auth guard expects 'login_time', not 'admin_login_time'
             
-            json_response(true, 'Login successful', ['redirect' => 'dashboard.php']);
+            json_response(true, 'Login successful', ['redirect' => 'welcome_admin.php']);
             
         } catch (Exception $e) {
             error_log("Admin login error: " . $e->getMessage());

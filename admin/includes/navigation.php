@@ -857,7 +857,7 @@ body.no-scroll {
         <!-- Main Navigation -->
         <div class="nav-section">
             <div class="nav-section-title">Main</div>
-            <a href="dashboard.php" class="nav-item <?php echo ($current_page === 'dashboard.php') ? 'active' : ''; ?>">
+            <a href="welcome_admin.php" class="nav-item <?php echo ($current_page === 'dashboard.php') ? 'active' : ''; ?>">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 </svg>
