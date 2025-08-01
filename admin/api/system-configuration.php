@@ -191,6 +191,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ['smtp_port', '587', 'email', 'number', 'SMTP server port (587 for TLS, 465 for SSL)'],
                     ['from_email', '', 'email', 'text', 'Email address used as sender for system emails'],
                     ['from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails'],
+                    ['smtp_auth', '1', 'email', 'boolean', 'Enable SMTP authentication'],
+                    ['smtp_username', '', 'email', 'text', 'SMTP authentication username'],
+                    ['smtp_password', '', 'email', 'password', 'SMTP authentication password'],
+                    ['smtp_encryption', 'tls', 'email', 'select', 'SMTP encryption method (tls, ssl, none)'],
                     
                     // Currency Settings
                     ['currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts'],

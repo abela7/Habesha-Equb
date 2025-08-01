@@ -899,6 +899,78 @@ $default_categories = [
                         <input type="text" class="form-control" name="from_name" value="<?php echo htmlspecialchars(getSetting('from_name', 'HabeshaEqub System')); ?>" data-category="email">
                     </div>
                 </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Authentication</div>
+                        <div class="setting-description">Enable SMTP authentication (recommended)</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="form-select" name="smtp_auth" data-category="email">
+                            <option value="1" <?php echo getSetting('smtp_auth', '1') === '1' ? 'selected' : ''; ?>>Enabled (Recommended)</option>
+                            <option value="0" <?php echo getSetting('smtp_auth', '1') === '0' ? 'selected' : ''; ?>>Disabled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Username</div>
+                        <div class="setting-description">SMTP authentication username (usually your email)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" class="form-control" name="smtp_username" value="<?php echo htmlspecialchars(getSetting('smtp_username')); ?>" placeholder="your-email@domain.com" data-category="email">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Password</div>
+                        <div class="setting-description">SMTP authentication password (use app-specific password for Gmail)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="password" class="form-control" name="smtp_password" value="<?php echo htmlspecialchars(getSetting('smtp_password')); ?>" placeholder="Enter password" data-category="email">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-shield-alt"></i>
+                            For Gmail: Use App Password, not your regular password
+                        </small>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Encryption</div>
+                        <div class="setting-description">SMTP encryption method (TLS recommended for port 587)</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="form-select" name="smtp_encryption" data-category="email">
+                            <option value="tls" <?php echo getSetting('smtp_encryption', 'tls') === 'tls' ? 'selected' : ''; ?>>TLS (Port 587 - Recommended)</option>
+                            <option value="ssl" <?php echo getSetting('smtp_encryption', 'tls') === 'ssl' ? 'selected' : ''; ?>>SSL (Port 465)</option>
+                            <option value="none" <?php echo getSetting('smtp_encryption', 'tls') === 'none' ? 'selected' : ''; ?>>None (Not recommended)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Email Test Section -->
+                <div class="setting-item border-top pt-3 mt-3">
+                    <div class="setting-info">
+                        <div class="setting-label">
+                            <i class="fas fa-paper-plane text-success"></i>
+                            Test Email Configuration
+                        </div>
+                        <div class="setting-description">Send a test email to verify your SMTP settings</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="input-group">
+                            <input type="email" class="form-control" id="test-email" placeholder="Enter test email address" value="<?php echo htmlspecialchars(getSetting('from_email')); ?>">
+                            <button class="btn btn-outline-success" type="button" id="send-test-email">
+                                <i class="fas fa-paper-plane"></i>
+                                Send Test Email
+                            </button>
+                        </div>
+                        <div id="test-email-result" class="mt-2"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1064,6 +1136,12 @@ $default_categories = [
                     updateChangeIndicators();
                 });
             });
+            
+            // Add test email button event listener
+            const testEmailBtn = document.getElementById('send-test-email');
+            if (testEmailBtn) {
+                testEmailBtn.addEventListener('click', sendTestEmail);
+            }
         });
 
         function showCategory(category) {
@@ -1245,6 +1323,77 @@ $default_categories = [
             .catch(error => {
                 console.error('Error:', error);
                 showNotification('Failed to add setting', 'error');
+            });
+        }
+
+        function sendTestEmail() {
+            const testEmailInput = document.getElementById('test-email');
+            const testButton = document.getElementById('send-test-email');
+            const resultDiv = document.getElementById('test-email-result');
+            
+            const testEmail = testEmailInput.value.trim();
+            if (!testEmail) {
+                showNotification('Please enter a test email address', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            testButton.disabled = true;
+            testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Testing email configuration...</div>';
+            
+            // Get current SMTP settings from form
+            const formData = new FormData();
+            formData.append('action', 'test_email');
+            formData.append('test_email', testEmail);
+            
+            // Add current form values
+            const inputs = document.querySelectorAll('[data-category="email"]');
+            inputs.forEach(input => {
+                formData.append(input.name, input.value);
+            });
+            
+            fetch('api/test-email.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Test email sent successfully!</strong><br>
+                            <small class="text-muted">Check ${testEmail} for the test message.</small>
+                        </div>
+                    `;
+                    showNotification('Test email sent successfully!', 'success');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Test email failed:</strong><br>
+                            <small>${data.message}</small>
+                        </div>
+                    `;
+                    showNotification('Test email failed: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Error sending test email</strong><br>
+                        <small>Please check your settings and try again.</small>
+                    </div>
+                `;
+                showNotification('Error sending test email', 'error');
+            })
+            .finally(() => {
+                // Re-enable button
+                testButton.disabled = false;
+                testButton.innerHTML = '<i class="fas fa-paper-plane"></i> Send Test Email';
             });
         }
 
