@@ -1,7 +1,7 @@
 <?php
 /**
- * HabeshaEqub Translation System
- * Simple JSON-based translation with caching
+ * HabeshaEqub Translation System - ENHANCED
+ * Supports deferred initialization to allow language selection before loading translations.
  */
 
 class Translator {
@@ -9,16 +9,13 @@ class Translator {
     private $currentLanguage = 'am';
     private $translations = [];
     private $fallbackLanguage = 'am';
+    private $initialized = false;
     
+    // The constructor is now private and does not automatically load translations.
     private function __construct() {
-        // Start session if not already started
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
-        
-        // Get language from session or set default to Amharic
-        $this->currentLanguage = $_SESSION['app_language'] ?? 'am';
-        $this->loadTranslations();
     }
     
     public static function getInstance() {
@@ -27,10 +24,22 @@ class Translator {
         }
         return self::$instance;
     }
-    
+
     /**
-     * Load translations for current language
+     * Initializes the translator by setting the language and loading the corresponding file.
+     * This method must be called before using any translation functions.
      */
+    public function init() {
+        if ($this->initialized) {
+            return;
+        }
+        
+        // Use language from session if available, otherwise default to Amharic.
+        $this->currentLanguage = $_SESSION['app_language'] ?? $this->fallbackLanguage;
+        $this->loadTranslations();
+        $this->initialized = true;
+    }
+    
     private function loadTranslations() {
         $langFile = __DIR__ . '/' . $this->currentLanguage . '.json';
         
@@ -48,9 +57,6 @@ class Translator {
         }
     }
     
-    /**
-     * Load fallback language (Amharic)
-     */
     private function loadFallback() {
         if ($this->currentLanguage !== $this->fallbackLanguage) {
             $fallbackFile = __DIR__ . '/' . $this->fallbackLanguage . '.json';
@@ -61,11 +67,11 @@ class Translator {
         }
     }
     
-    /**
-     * Get translation by key (dot notation supported)
-     * Example: t('rules.page_title') or t('common.save')
-     */
     public function translate($key, $params = []) {
+        if (!$this->initialized) {
+            $this->init(); // Auto-initialize if not done, for safety.
+        }
+
         $keys = explode('.', $key);
         $value = $this->translations;
         
@@ -73,13 +79,11 @@ class Translator {
             if (isset($value[$k])) {
                 $value = $value[$k];
             } else {
-                // Return key if translation not found
-                error_log("Translation key not found: {$key} for language: {$this->currentLanguage}");
+                error_log("Translation key not found: '{$key}' for language: {$this->currentLanguage}");
                 return $key;
             }
         }
         
-        // Replace parameters if provided
         if (!empty($params) && is_string($value)) {
             foreach ($params as $param => $replacement) {
                 $value = str_replace('{' . $param . '}', $replacement, $value);
@@ -89,31 +93,24 @@ class Translator {
         return $value;
     }
     
-    /**
-     * Set current language
-     */
     public function setLanguage($language) {
         if (in_array($language, ['en', 'am'])) {
             $this->currentLanguage = $language;
             $_SESSION['app_language'] = $language;
             $this->loadTranslations();
-            error_log("Translator::setLanguage: Set language to '$language', session now: " . $_SESSION['app_language']);
+            $this->initialized = true; // Mark as initialized after setting language
             return true;
         }
-        error_log("Translator::setLanguage: Invalid language '$language'");
         return false;
     }
     
-    /**
-     * Get current language
-     */
     public function getCurrentLanguage() {
+        if (!$this->initialized) {
+            $this->init();
+        }
         return $this->currentLanguage;
     }
     
-    /**
-     * Get available languages
-     */
     public function getAvailableLanguages() {
         return [
             'en' => 'English',
@@ -121,39 +118,30 @@ class Translator {
         ];
     }
     
-    /**
-     * Check if current language is RTL
-     */
     public function isRTL() {
-        return false; // Amharic is LTR, but you can modify this if needed
+        return false;
     }
 }
 
 /**
- * Global translation function - shorthand for Translator::translate()
+ * Global helper functions
  */
 function t($key, $params = []) {
     return Translator::getInstance()->translate($key, $params);
 }
 
-/**
- * Get current language
- */
 function getCurrentLanguage() {
     return Translator::getInstance()->getCurrentLanguage();
 }
 
-/**
- * Set language
- */
 function setLanguage($language) {
     return Translator::getInstance()->setLanguage($language);
 }
 
-/**
- * Get available languages
- */
 function getAvailableLanguages() {
     return Translator::getInstance()->getAvailableLanguages();
 }
-?> 
+
+// Global accessor to initialize the translator.
+// This ensures that the translator is ready before any output is generated.
+Translator::getInstance()->init();
