@@ -1170,6 +1170,12 @@ $csrf_token = generate_csrf_token();
         const action = isEditMode ? 'update' : 'add';
         formData.append('action', action);
         
+        // Debug: Log the actual_payout_date value being sent
+        const actualDateValue = formData.get('actual_payout_date');
+        console.log('DEBUG: Submitting actual_payout_date:', actualDateValue);
+        console.log('DEBUG: Status:', formData.get('status'));
+        console.log('DEBUG: Action:', action);
+        
         fetch('api/payouts.php', {
             method: 'POST',
             body: formData
@@ -1266,6 +1272,40 @@ $csrf_token = generate_csrf_token();
         const token = document.querySelector('input[name="csrf_token"]');
         return token ? token.value : '';
     }
+    
+    // Status change handler - manage actual date field based on status
+    document.getElementById('status').addEventListener('change', function() {
+        const actualDateField = document.getElementById('actualPayoutDate');
+        const statusValue = this.value;
+        
+        console.log('DEBUG: Status changed to:', statusValue);
+        
+        if (statusValue !== 'completed') {
+            // Clear and disable the actual date field when status is not completed
+            actualDateField.value = '';
+            actualDateField.disabled = true;
+            actualDateField.style.backgroundColor = '#f8f9fa';
+        } else {
+            // Enable the field when status is completed
+            actualDateField.disabled = false;
+            actualDateField.style.backgroundColor = '';
+            // Set to today's date if empty
+            if (!actualDateField.value) {
+                actualDateField.value = new Date().toISOString().split('T')[0];
+            }
+        }
+    });
+    
+    // Initialize the field state on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusField = document.getElementById('status');
+        const actualDateField = document.getElementById('actualPayoutDate');
+        
+        if (statusField.value !== 'completed') {
+            actualDateField.disabled = true;
+            actualDateField.style.backgroundColor = '#f8f9fa';
+        }
+    });
 </script>
 </body>
 </html> 

@@ -183,8 +183,25 @@ function addPayout() {
     $actual_payout_date = null;
     $processed_by_admin_id = null;
     
+    // Debug logging
+    error_log("Payout Add Debug - Status: $status, Manual Date: '$manual_actual_date'");
+    
     if ($status === 'completed') {
-        $actual_payout_date = !empty($manual_actual_date) ? $manual_actual_date : date('Y-m-d');
+        // Check if manual date is provided and valid
+        if (!empty($manual_actual_date) && $manual_actual_date !== '') {
+            // Validate date format
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $manual_actual_date)) {
+                $actual_payout_date = $manual_actual_date;
+                error_log("Using manual date: $manual_actual_date");
+            } else {
+                error_log("Invalid manual date format: $manual_actual_date");
+                $actual_payout_date = date('Y-m-d');
+            }
+        } else {
+            // Auto-set to today if no manual date provided
+            $actual_payout_date = date('Y-m-d');
+            error_log("Auto-setting to today: " . $actual_payout_date);
+        }
         $processed_by_admin_id = $admin_id;
     }
     
@@ -320,22 +337,39 @@ function updatePayout() {
     $actual_payout_date = null;
     $processed_by_admin_id = null;
     
+    // Debug logging
+    error_log("Payout Update Debug - Status: $status, Manual Date: '$manual_actual_date', Current Status: {$current_payout['status']}");
+    
     if ($status === 'completed') {
-        if (!empty($manual_actual_date)) {
-            // Use manually provided date
-            $actual_payout_date = $manual_actual_date;
+        // Check if manual date is provided and valid
+        if (!empty($manual_actual_date) && $manual_actual_date !== '') {
+            // Validate date format
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $manual_actual_date)) {
+                $actual_payout_date = $manual_actual_date;
+                error_log("Using manual date: $manual_actual_date");
+            } else {
+                error_log("Invalid manual date format: $manual_actual_date");
+                $actual_payout_date = date('Y-m-d');
+            }
         } elseif ($current_payout['status'] !== 'completed') {
-            // Auto-set to today if changing to completed
+            // Auto-set to today if changing to completed and no manual date
             $actual_payout_date = date('Y-m-d');
+            error_log("Auto-setting to today: " . $actual_payout_date);
         } else {
             // Keep existing date if already completed
             $actual_payout_date = $current_payout['actual_payout_date'];
+            error_log("Keeping existing date: " . $actual_payout_date);
         }
         $processed_by_admin_id = $admin_id;
     } elseif ($current_payout['status'] === 'completed' && $status !== 'completed') {
         // If changing from completed to other status, clear date
         $actual_payout_date = null;
         $processed_by_admin_id = null;
+        error_log("Clearing date due to status change from completed");
+    } else {
+        // For non-completed status, keep existing date if it exists
+        $actual_payout_date = $current_payout['actual_payout_date'];
+        error_log("Non-completed status, keeping existing date: " . $actual_payout_date);
     }
     
     // Update payout
