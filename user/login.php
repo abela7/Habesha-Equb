@@ -480,36 +480,7 @@ if (isset($_GET['msg'])) {
             font-weight: 500;
         }
         
-        /* Passwordless Info Section */
-        .passwordless-info {
-            background: linear-gradient(135deg, rgba(218, 165, 32, 0.1) 0%, rgba(205, 175, 86, 0.1) 100%);
-            border: 2px solid rgba(218, 165, 32, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin: 10px 0 20px;
-        }
-        
-        .passwordless-info .info-icon {
-            font-size: 32px;
-            flex-shrink: 0;
-        }
-        
-        .passwordless-info .info-content h4 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--darker-purple);
-        }
-        
-        .passwordless-info .info-content p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--dark-purple);
-            line-height: 1.4;
-        }
+
         
         /* Terms and Privacy Policy Links */
         .terms-link {
@@ -1007,15 +978,7 @@ if (isset($_GET['msg'])) {
                         <div class="error-message" id="registerPhoneError"></div>
                     </div>
 
-                    <div class="form-group">
-                        <div class="passwordless-info">
-                            <div class="info-icon">🔐</div>
-                            <div class="info-content">
-                                <h4>Passwordless Security</h4>
-                                <p>We use a secure, passwordless system. After registration, you'll receive an email verification code to complete your account setup.</p>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <div class="checkbox-group">
                         <input type="checkbox" id="agree_terms" name="agree_terms" required>

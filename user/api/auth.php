@@ -4,9 +4,19 @@
  * Secure OTP-based email verification system
  */
 
+// Error handling
+error_reporting(E_ALL);
+ini_set('display_errors', 1); // Set to 0 for production
+
+try {
 require_once __DIR__ . '/../../includes/db.php';
-require_once __DIR__ . '/../../includes/email/EmailService.php';
+    require_once __DIR__ . '/../../includes/email/EmailService.php';
 require_once __DIR__ . '/../../languages/translator.php';
+} catch (Exception $e) {
+    error_log("Auth API - Include error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'System configuration error']);
+    exit;
+}
 
 // Start session for CSRF and temporary data
 if (session_status() === PHP_SESSION_NONE) {
@@ -16,6 +26,30 @@ if (session_status() === PHP_SESSION_NONE) {
 // Set basic headers
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
+
+// Check if required variables exist
+if (!isset($pdo) && !isset($db)) {
+    error_log("Auth API - Database connection not available");
+    echo json_encode(['success' => false, 'message' => 'Database connection error']);
+    exit;
+}
+
+// Check if new tables exist (for passwordless system)
+try {
+    $database_connection = isset($pdo) ? $pdo : $db;
+    $stmt = $database_connection->query("SHOW TABLES LIKE 'user_otps'");
+    if (!$stmt->fetch()) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Database not updated for passwordless system. Please run the SQL updates first.'
+        ]);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Auth API - Database table check error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Database configuration error']);
+    exit;
+}
 
 /**
  * Simple input sanitization 
@@ -76,9 +110,12 @@ function validate_user_input($data, $type = 'text') {
  * Create member without password (passwordless system)
  */
 function create_member($first_name, $last_name, $email, $phone) {
-    global $pdo;
+    global $pdo, $db;
     
     try {
+        // Use available database connection
+        $database = isset($pdo) ? $pdo : $db;
+        
         // Generate full name
         $full_name = $first_name . ' ' . $last_name;
         
@@ -89,7 +126,7 @@ function create_member($first_name, $last_name, $email, $phone) {
         $username = explode('@', $email)[0];
         
         // Insert member without password
-        $stmt = $pdo->prepare("
+        $stmt = $database->prepare("
             INSERT INTO members (
                 member_id, username, first_name, last_name, full_name, 
                 email, phone, status, monthly_payment, payout_position, 
@@ -110,7 +147,7 @@ function create_member($first_name, $last_name, $email, $phone) {
             $email, $phone
         ]);
         
-        return $pdo->lastInsertId();
+        return $database->lastInsertId();
         
     } catch (Exception $e) {
         error_log("Error creating member: " . $e->getMessage());
@@ -131,10 +168,12 @@ function generate_member_id($first_name, $last_name) {
  * Check if email already exists
  */
 function user_email_exists($email) {
-    global $pdo;
+    global $pdo, $db;
     
     try {
-        $stmt = $pdo->prepare("SELECT id FROM members WHERE email = ?");
+        // Use available database connection
+        $database = isset($pdo) ? $pdo : $db;
+        $stmt = $database->prepare("SELECT id FROM members WHERE email = ?");
         $stmt->execute([$email]);
         return $stmt->fetch() !== false;
     } catch (Exception $e) {
@@ -147,13 +186,15 @@ function user_email_exists($email) {
  * Store device tracking information
  */
 function storeDeviceTracking($email, $device_fingerprint) {
-    global $pdo;
+    global $pdo, $db;
     
     try {
+        // Use available database connection
+        $database = isset($pdo) ? $pdo : $db;
         $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
         
-        $stmt = $pdo->prepare("
+        $stmt = $database->prepare("
             INSERT INTO device_tracking (email, device_fingerprint, user_agent, ip_address, created_at, last_seen, is_approved) 
             VALUES (?, ?, ?, ?, NOW(), NOW(), 0)
             ON DUPLICATE KEY UPDATE 
@@ -209,10 +250,20 @@ function send_json_response($success, $message, $data = []) {
 }
 
 // Initialize EmailService
-$emailService = new EmailService($pdo);
+try {
+    // Use the database connection that's available
+    $database_connection = isset($pdo) ? $pdo : $db;
+    $emailService = new EmailService($database_connection);
+} catch (Exception $e) {
+    error_log("Auth API - EmailService initialization error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Email service configuration error']);
+    exit;
+}
 
 // Main API handler
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+try {
 
 switch ($action) {
     case 'register':
@@ -286,7 +337,8 @@ switch ($action) {
                     ]);
                 } else {
                     // Delete the created member if email failed
-                    $stmt = $pdo->prepare("DELETE FROM members WHERE id = ?");
+                    $database_connection = isset($pdo) ? $pdo : $db;
+                    $stmt = $database_connection->prepare("DELETE FROM members WHERE id = ?");
                     $stmt->execute([$member_id]);
                     
                     send_json_response(false, 'Registration failed: Unable to send verification email. Please try again.');
@@ -329,18 +381,19 @@ switch ($action) {
         if ($user_id) {
             try {
                 // Mark email as verified
-                $stmt = $pdo->prepare("UPDATE members SET email_verified = 1 WHERE id = ?");
+                $database_connection = isset($pdo) ? $pdo : $db;
+                $stmt = $database_connection->prepare("UPDATE members SET email_verified = 1 WHERE id = ?");
                 $stmt->execute([$user_id]);
                 
                 // Get user details
-                $stmt = $pdo->prepare("SELECT first_name, last_name, email, phone, created_at FROM members WHERE id = ?");
+                $stmt = $database_connection->prepare("SELECT first_name, last_name, email, phone, created_at FROM members WHERE id = ?");
                 $stmt->execute([$user_id]);
                 $user = $stmt->fetch();
                 
                 if ($user) {
                     // Create email preferences record
                     $unsubscribe_token = bin2hex(random_bytes(32));
-                    $stmt = $pdo->prepare("
+                    $stmt = $database_connection->prepare("
                         INSERT INTO email_preferences (user_id, unsubscribe_token) 
                         VALUES (?, ?)
                         ON DUPLICATE KEY UPDATE unsubscribe_token = VALUES(unsubscribe_token)
@@ -404,7 +457,8 @@ switch ($action) {
         }
         
         // Check if user exists and email is not verified
-        $stmt = $pdo->prepare("SELECT id, first_name, email_verified FROM members WHERE email = ?");
+        $database_connection = isset($pdo) ? $pdo : $db;
+        $stmt = $database_connection->prepare("SELECT id, first_name, email_verified FROM members WHERE email = ?");
         $stmt->execute([$email_validation['value']]);
         $user = $stmt->fetch();
         
@@ -448,4 +502,9 @@ switch ($action) {
     default:
         send_json_response(false, 'Invalid action');
 }
-?>
+
+} catch (Exception $e) {
+    error_log("Auth API - Main handler error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Server error occurred. Please try again.']);
+}
+?> 
