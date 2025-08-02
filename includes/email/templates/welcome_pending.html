@@ -3,286 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to HabeshaEqub - Awaiting Approval</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #F1ECE2;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 32px rgba(77, 64, 82, 0.15);
-        }
-        .header {
-            background: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%);
-            padding: 40px 30px;
-            text-align: center;
-            color: white;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header p {
-            margin: 8px 0 0 0;
-            font-size: 16px;
-            opacity: 0.95;
-        }
-        .content {
-            padding: 40px 30px;
-            color: #4D4052;
-        }
-        .greeting {
-            font-size: 24px;
-            font-weight: 600;
-            color: #301934;
-            margin-bottom: 24px;
-            text-align: center;
-        }
-        .status-card {
-            background: linear-gradient(135deg, #F1ECE2 0%, #ffffff 100%);
-            border: 2px solid #DAA520;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            margin: 30px 0;
-        }
-        .status-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-        .status-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #DAA520;
-            margin-bottom: 12px;
-        }
-        .status-description {
-            font-size: 16px;
-            color: #4D4052;
-            line-height: 1.5;
-        }
-        .process-steps {
-            background: #F1ECE2;
-            padding: 25px;
-            border-radius: 8px;
-            margin: 30px 0;
-            border-left: 4px solid #DAA520;
-        }
-        .process-steps h3 {
-            margin: 0 0 20px 0;
-            color: #301934;
-            font-size: 18px;
-        }
-        .step {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 16px;
-            padding: 12px;
-            background: white;
-            border-radius: 6px;
-            border-left: 3px solid #CDAF56;
-        }
-        .step:last-child {
-            margin-bottom: 0;
-        }
-        .step-number {
-            background: #DAA520;
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        .step-content {
-            flex: 1;
-        }
-        .step-title {
-            font-weight: 600;
-            color: #301934;
-            margin-bottom: 4px;
-        }
-        .step-description {
-            font-size: 14px;
-            color: #4D4052;
-            opacity: 0.9;
-        }
-        .info-box {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
-        }
-        .info-box h4 {
-            margin: 0 0 12px 0;
-            color: #0056b3;
-            font-size: 16px;
-        }
-        .info-box p {
-            margin: 0;
-            font-size: 14px;
-            color: #004085;
-        }
-        .contact-section {
-            background: #4D4052;
-            color: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin: 30px 0;
-            text-align: center;
-        }
-        .contact-section h3 {
-            margin: 0 0 16px 0;
-            color: #CDAF56;
-        }
-        .contact-section p {
-            margin: 0;
-            opacity: 0.9;
-        }
-        .contact-section a {
-            color: #CDAF56;
-            text-decoration: none;
-        }
-        .footer {
-            background: #4D4052;
-            padding: 30px;
-            text-align: center;
-            color: white;
-        }
-        .footer p {
-            margin: 0;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        .footer .links {
-            margin-top: 16px;
-        }
-        .footer .links a {
-            color: #CDAF56;
-            text-decoration: none;
-            margin: 0 12px;
-            font-size: 12px;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 0;
-                border-radius: 0;
-            }
-            .header, .content, .footer {
-                padding: 30px 20px;
-            }
-            .status-card, .process-steps, .contact-section {
-                padding: 20px;
-            }
-            .greeting {
-                font-size: 20px;
-            }
-        }
-    </style>
+    <title>Welcome to HabeshaEqub - Registration Received</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-                            <h1>Welcome to HabeshaEqub!</h1>
-            <p>Your Traditional Savings Community</p>
-        </div>
-        
-        <div class="content">
-            <div class="greeting">Dear {{first_name}},</div>
-            
-            <p>Thank you for registering with <strong>HabeshaEqub</strong>! Your email has been successfully verified and we're excited to have you join our traditional savings community.</p>
-            
-            <div class="status-card">
-                <div class="status-icon">⏳</div>
-                <div class="status-title">Registration Under Review</div>
-                <div class="status-description">
-                    We have received your registration details and they are currently being reviewed by our equb administrator. This process ensures the security and integrity of our savings group.
-                </div>
-            </div>
-            
-            <div class="process-steps">
-                <h3>What happens next:</h3>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F1ECE2; line-height: 1.6;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; padding: 40px 20px;">
+        <tr>
+            <td align="center">
                 
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <div class="step-title">Email Verified (Complete)</div>
-                        <div class="step-description">Your email address has been successfully verified</div>
-                    </div>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <div class="step-title">⏳ Admin Review (In Progress)</div>
-                        <div class="step-description">Our administrator is reviewing your registration details and guarantor information</div>
-                    </div>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <div class="step-title">Approval Notification (Pending)</div>
-                        <div class="step-description">You'll receive an email notification once your registration is approved</div>
-                    </div>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <div class="step-title">Access Dashboard (Coming Soon)</div>
-                        <div class="step-description">Start managing your equb contributions and track your savings progress</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="info-box">
-                <h4>While you wait:</h4>
-                <p>The approval process typically takes 24-48 hours. Keep your eyes on your inbox for updates. Make sure to check your spam/junk folder as well!</p>
-            </div>
-            
-            <p><strong>Your Registration Details:</strong></p>
-            <ul style="color: #4D4052; line-height: 1.8;">
-                <li><strong>Name:</strong> {{first_name}} {{last_name}}</li>
-                <li><strong>Email:</strong> {{email}}</li>
-                <li><strong>Phone:</strong> {{phone}}</li>
-                <li><strong>Registration Date:</strong> {{registration_date}}</li>
-            </ul>
-        </div>
-        
-        <div class="contact-section">
-            <h3>Need Help?</h3>
-            <p>If you have any questions about your registration or the approval process, don't hesitate to contact us:</p>
-            <p>
-                Email: <a href="mailto:support@habeshaequb.com">support@habeshaequb.com</a><br>
-                Phone: <a href="tel:{{admin_phone}}">{{admin_phone}}</a>
-            </p>
-        </div>
-        
-        <div class="footer">
-            <p>© 2025 HabeshaEqub - Traditional Savings Group</p>
-            <div class="links">
-                <a href="{{unsubscribe_url}}">Unsubscribe</a>
-                <a href="mailto:support@habeshaequb.com">Support</a>
-                <a href="{{website_url}}/privacy-policy.php">Privacy</a>
-            </div>
-        </div>
-    </div>
+                <!-- Main Email Container -->
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; max-width: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(48, 25, 52, 0.15);">
+                    
+                    <!-- Header Section -->
+                    <tr>
+                        <td style="background-color: #301934; padding: 40px 30px; text-align: center;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 20px;">
+                                        <div style="width: 60px; height: 60px; background-color: #DAA520; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                                            <span style="color: #FFFFFF; font-size: 24px; font-weight: bold;">H</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 600; letter-spacing: 1px;">
+                                            HabeshaEqub
+                                        </h1>
+                                        <p style="margin: 8px 0 0 0; color: #CDAF56; font-size: 16px; font-weight: 400;">
+                                            Traditional Savings Community
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Welcome Banner -->
+                    <tr>
+                        <td style="background-color: #5D4225; padding: 25px 30px; text-align: center;">
+                            <h2 style="margin: 0; color: #FFFFFF; font-size: 24px; font-weight: 600;">
+                                Welcome to HabeshaEqub!
+                            </h2>
+                            <p style="margin: 8px 0 0 0; color: #CDAF56; font-size: 16px;">
+                                Registration under review
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            
+                            <!-- Personal Greeting -->
+                            <h3 style="margin: 0 0 20px 0; color: #301934; font-size: 20px; font-weight: 600;">
+                                Dear {{first_name}},
+                            </h3>
+                            
+                            <!-- Main Message -->
+                            <p style="margin: 0 0 25px 0; color: #4D4052; font-size: 16px; line-height: 1.7;">
+                                Thank you for joining <strong style="color: #DAA520;">HabeshaEqub</strong>! We have received your registration and it's currently being reviewed by our admin team to ensure community security.
+                            </p>
+                            
+                            <!-- Status Steps -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; border-radius: 8px; margin: 30px 0;">
+                                <tr>
+                                    <td style="padding: 25px;">
+                                        <h4 style="margin: 0 0 20px 0; color: #301934; font-size: 16px; font-weight: 600;">
+                                            Current Status:
+                                        </h4>
+                                        
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #4D4052; font-size: 14px;">
+                                                    ✓ <strong>Email Verified</strong> - Complete
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #DAA520; font-size: 14px;">
+                                                    ⏳ <strong>Admin Review</strong> - In Progress
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">
+                                                    ⚪ <strong>Account Access</strong> - Pending Approval
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Waiting Information -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border: 2px solid #F1ECE2; border-radius: 8px; margin: 30px 0;">
+                                <tr>
+                                    <td style="padding: 25px;">
+                                        <h4 style="margin: 0 0 16px 0; color: #301934; font-size: 16px; font-weight: 600;">
+                                            What to expect:
+                                        </h4>
+                                        <p style="margin: 0 0 15px 0; color: #4D4052; font-size: 14px; line-height: 1.6;">
+                                            <strong style="color: #DAA520;">Typical approval time:</strong> 8-12 hours
+                                        </p>
+                                        <p style="margin: 0; color: #4D4052; font-size: 14px; line-height: 1.6;">
+                                            You'll receive an email notification once your account is approved. Keep an eye on your inbox!
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Registration Summary -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; border-radius: 8px; margin: 30px 0;">
+                                <tr>
+                                    <td style="padding: 25px;">
+                                        <h4 style="margin: 0 0 16px 0; color: #301934; font-size: 16px; font-weight: 600;">
+                                            Registration Summary:
+                                        </h4>
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px; font-weight: 600; width: 120px;">
+                                                    Name:
+                                                </td>
+                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px;">
+                                                    {{first_name}} {{last_name}}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px; font-weight: 600;">
+                                                    Email:
+                                                </td>
+                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px;">
+                                                    {{email}}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #F1ECE2; padding: 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 15px;">
+                                        <p style="margin: 0; color: #4D4052; font-size: 16px; font-weight: 500;">
+                                            Thank you for choosing HabeshaEqub!
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 15px;">
+                                        <p style="margin: 0; color: #5D4225; font-size: 14px;">
+                                            Questions? Contact us at 
+                                            <a href="mailto:admin@habeshaequb.com" style="color: #DAA520; text-decoration: none; font-weight: 500;">admin@habeshaequb.com</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; padding-top: 15px; border-top: 1px solid #E5E7EB;">
+                                        <p style="margin: 0; color: #6B7280; font-size: 12px; line-height: 1.5;">
+                                            © 2025 HabeshaEqub - Traditional Savings Community<br>
+                                            This email was sent because you registered for an account.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
