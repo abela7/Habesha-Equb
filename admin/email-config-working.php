@@ -96,7 +96,18 @@ try {
 
 function getSetting($key, $default = '') {
     global $current_settings;
-    return $current_settings[$key] ?? $default;
+    
+    // Use user's known working Brevo settings as defaults
+    $brevo_defaults = [
+        'smtp_host' => 'smtp-relay.brevo.com',
+        'smtp_port' => '587',
+        'smtp_username' => '92bed1001@smtp-brevo.com',
+        'smtp_password' => '8VgfHCdmsZX0whkx',
+        'smtp_encryption' => 'tls',
+        'from_name' => 'HabeshaEqub System'
+    ];
+    
+    return $current_settings[$key] ?? $brevo_defaults[$key] ?? $default;
 }
 ?>
 <!DOCTYPE html>
@@ -153,13 +164,13 @@ function getSetting($key, $default = '') {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">SMTP Host</label>
                                 <input type="text" name="smtp_host" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('smtp_host', 'smtp-relay.brevo.com')) ?>" required>
+                                       value="<?= htmlspecialchars(getSetting('smtp_host')) ?>" required>
                             </div>
                             
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">SMTP Port</label>
                                 <input type="number" name="smtp_port" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('smtp_port', '587')) ?>" required>
+                                       value="<?= htmlspecialchars(getSetting('smtp_port')) ?>" required>
                             </div>
                             
                             <div class="col-md-6 mb-3">
@@ -178,7 +189,7 @@ function getSetting($key, $default = '') {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Encryption</label>
                                 <select name="smtp_encryption" class="form-select">
-                                    <option value="tls" <?= getSetting('smtp_encryption', 'tls') === 'tls' ? 'selected' : '' ?>>TLS (Recommended)</option>
+                                    <option value="tls" <?= getSetting('smtp_encryption') === 'tls' ? 'selected' : '' ?>>TLS (Recommended)</option>
                                     <option value="ssl" <?= getSetting('smtp_encryption') === 'ssl' ? 'selected' : '' ?>>SSL</option>
                                     <option value="none" <?= getSetting('smtp_encryption') === 'none' ? 'selected' : '' ?>>None</option>
                                 </select>
@@ -193,7 +204,7 @@ function getSetting($key, $default = '') {
                             <div class="col-12 mb-3">
                                 <label class="form-label">From Name</label>
                                 <input type="text" name="from_name" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('from_name', 'HabeshaEqub System')) ?>" required>
+                                       value="<?= htmlspecialchars(getSetting('from_name')) ?>" required>
                             </div>
                         </div>
                         
