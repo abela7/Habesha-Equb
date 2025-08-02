@@ -121,7 +121,7 @@ try {
             
             // Show the stored OTP details immediately
             $check_stmt = $database->prepare("
-                SELECT *, NOW() as current_time, 
+                SELECT *, NOW() as current_db_time, 
                        (expires_at > NOW()) as is_valid,
                        TIMESTAMPDIFF(MINUTE, NOW(), expires_at) as minutes_until_expire
                 FROM user_otps 
@@ -135,7 +135,7 @@ try {
                 echo "Code: {$stored['otp_code']}<br>";
                 echo "Created: {$stored['created_at']}<br>";
                 echo "Expires: {$stored['expires_at']}<br>";
-                echo "Current: {$stored['current_time']}<br>";
+                echo "Current: {$stored['current_db_time']}<br>";
                 echo "Valid: " . ($stored['is_valid'] ? 'YES' : 'NO') . "<br>";
                 echo "Minutes until expire: {$stored['minutes_until_expire']}<br>";
                 echo "</p>";

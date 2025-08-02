@@ -321,7 +321,7 @@ class EmailService {
             
             // Log the actual stored values for debugging
             $check_stmt = $this->pdo->prepare("
-                SELECT expires_at, created_at, NOW() as current_time 
+                SELECT expires_at, created_at, NOW() as current_db_time 
                 FROM user_otps 
                 WHERE email = ? AND otp_code = ? AND otp_type = ? 
                 ORDER BY id DESC LIMIT 1
@@ -329,7 +329,7 @@ class EmailService {
             $check_stmt->execute([$email, $otp_code, $type]);
             $stored_otp = $check_stmt->fetch();
             if ($stored_otp) {
-                error_log("OTP times - Created: {$stored_otp['created_at']}, Expires: {$stored_otp['expires_at']}, Current: {$stored_otp['current_time']}");
+                error_log("OTP times - Created: {$stored_otp['created_at']}, Expires: {$stored_otp['expires_at']}, Current: {$stored_otp['current_db_time']}");
             }
         } else {
             error_log("Failed to store OTP in database");
@@ -357,7 +357,7 @@ class EmailService {
         error_log("Found OTPs for $email ($type): " . json_encode($debug_otps));
         
         $stmt = $this->pdo->prepare("
-            SELECT id, user_id, attempt_count, expires_at, created_at, NOW() as current_time,
+            SELECT id, user_id, attempt_count, expires_at, created_at, NOW() as current_db_time,
                    (expires_at > NOW()) as is_not_expired,
                    (is_used = 0) as is_not_used
             FROM user_otps 
@@ -368,7 +368,7 @@ class EmailService {
         $otp_debug = $stmt->fetch();
         
         if ($otp_debug) {
-            error_log("OTP found - Created: {$otp_debug['created_at']}, Expires: {$otp_debug['expires_at']}, Current: {$otp_debug['current_time']}, Not Expired: {$otp_debug['is_not_expired']}, Not Used: {$otp_debug['is_not_used']}");
+            error_log("OTP found - Created: {$otp_debug['created_at']}, Expires: {$otp_debug['expires_at']}, Current: {$otp_debug['current_db_time']}, Not Expired: {$otp_debug['is_not_expired']}, Not Used: {$otp_debug['is_not_used']}");
         }
         
         $stmt = $this->pdo->prepare("
