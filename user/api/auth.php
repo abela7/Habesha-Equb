@@ -300,7 +300,7 @@ function handle_otp_request($database) {
         
         // Generate and store OTP
         $emailService = new EmailService($database);
-        $otp_code = $emailService->generateOTP($user['email']);
+        $otp_code = $emailService->generateOTP($user['id'], $user['email'], 'otp_login');
         
         // Send OTP email
         $result = $emailService->send('otp_login', $user['email'], $user['first_name'], [
@@ -361,7 +361,7 @@ function handle_otp_verification($database) {
         $emailService = new EmailService($database);
         
         // Verify OTP
-        if (!$emailService->verifyOTP($_SESSION['otp_email'], $otp_code)) {
+        if (!$emailService->verifyOTP($_SESSION['otp_email'], $otp_code, 'otp_login')) {
             echo json_encode(['success' => false, 'message' => 'Invalid or expired verification code']);
             exit;
         }
