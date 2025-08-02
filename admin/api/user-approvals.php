@@ -32,7 +32,12 @@ try {
     exit;
 }
 
-// Email service temporarily disabled for debugging
+try {
+    require_once '../../includes/email/EmailService.php';
+} catch (Exception $e) {
+    error_log("Email service not available: " . $e->getMessage());
+    // Continue without email service - don't block approval process
+}
 
 try {
     require_once '../includes/admin_auth_guard.php';
@@ -160,11 +165,46 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         // $device_stmt = $db->prepare("UPDATE device_tracking SET is_approved = 1, last_seen = CURRENT_TIMESTAMP WHERE email = ?");
         // $device_stmt->execute([$user['email']]);
         
-        // Email sending temporarily disabled for debugging
+        // Send welcome email to approved user (SAFE implementation)
         $email_sent = false;
-        $email_error = "Email disabled for debugging";
+        $email_error = null;
         
-        // Log the approval action (regardless of email status)
+        if (class_exists('EmailService')) {
+            try {
+                $emailService = new EmailService($db);
+                
+                // Prepare email variables
+                $email_variables = [
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name'],
+                    'member_id' => $user['member_id'],
+                    'email' => $user['email'],
+                    'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
+                ];
+                
+                // Send the welcome email
+                $result = $emailService->send(
+                    'account_approved',
+                    $user['email'],
+                    $user['first_name'] . ' ' . $user['last_name'],
+                    $email_variables
+                );
+                
+                if ($result && isset($result['success']) && $result['success']) {
+                    $email_sent = true;
+                } else {
+                    $email_error = $result['message'] ?? 'Email sending failed';
+                }
+                
+            } catch (Exception $e) {
+                $email_error = "Email error: " . $e->getMessage();
+                error_log("Email sending failed for user {$user_id}: " . $e->getMessage());
+            }
+        } else {
+            $email_error = "EmailService not available";
+        }
+        
+        // Log the approval action (FIXED: Correct column count)
         $log_stmt = $db->prepare("
             INSERT INTO notifications (
                 notification_id, 
@@ -179,23 +219,27 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                 sent_at,
                 sent_by_admin_id,
                 notes
-            ) VALUES (?, 'member', ?, 'approval', 'email', ?, ?, 'en', ?, NOW(), ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
         ");
         
         $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
         $subject = 'Welcome to HabeshaEqub - Account Approved';
         $message = "Congratulations! Your HabeshaEqub account has been approved. You can now log in and start participating in our equb system.";
         $email_status = $email_sent ? 'sent' : 'failed';
-        $notes = "User approved by admin ID: {$admin_id}" . ($email_error ? " | Email error: {$email_error}" : " | Email sent successfully");
+        $notes = "User approved by admin ID: {$admin_id}. Email status: " . ($email_sent ? 'sent' : 'failed');
         
         $log_stmt->execute([
-            $notification_id,
-            $user_id,
-            $subject,
-            $message,
-            $email_status,
-            $admin_id,
-            $notes
+            $notification_id,      // notification_id
+            'member',              // recipient_type  
+            $user_id,              // recipient_id
+            'approval',            // type
+            'email',               // channel
+            $subject,              // subject
+            $message,              // message
+            'en',                  // language
+            $email_status,         // status
+            $admin_id,             // sent_by_admin_id
+            $notes                 // notes
         ]);
         
         $db->commit();
