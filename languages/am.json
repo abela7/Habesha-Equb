@@ -305,7 +305,7 @@
     "personal_info_subtitle": "መሰረታዊ የመገለጫ መረጃዎን ያዘምኑ",
     "username": "የተጠቃሚ ስም",
     "email": "ኢሜል",
-    "email_address": "የኢሜይል አድራሻ",
+    "email_address": "የኢሜል አድራሻ",
     "first_name": "የመጀመሪያ ስም",
     "last_name": "የአባት ስም",
     "phone": "ስልክ",
@@ -352,7 +352,7 @@
     "payout_info": "የክፍያ መረጃ",
     "back_dashboard": "ወደ ዳሽቦርድ ተመለስ",
     "password_min_length": "ይለፍ ቃል ቢያንስ 6 ቁምፊዎች ሊሆን ይገባል",
-    "email_invalid": "እባክዎ ትክክለኛ የኢሜይል አድራሻ ያስገቡ"
+    "email_invalid": "እባክዎ ትክክለኛ የኢሜል አድራሻ ያስገቡ"
   },
   "user_profile": {
     "page_title": "የአካውንት ማስተካከያ",
@@ -390,7 +390,7 @@
     "payout_info": "የክፍያ መረጃ",
     "passwords_no_match": "አዲስ የይለፍ ቃሎች አይዛመዱም",
     "password_min_length": "ይለፍ ቃል ቢያንስ 6 ቁምፊዎች ሊሆን ይገባል",
-    "email_invalid": "እባክዎ ትክክለኛ የኢሜይል አድራሻ ያስገቡ"
+    "email_invalid": "እባክዎ ትክክለኛ የኢሜል አድራሻ ያስገቡ"
   },
   "members_directory": {
     "page_title": "የአባላት ዝርዝር",
@@ -474,8 +474,8 @@
     "feature_management": "የሚጥሉትን እቁብ ዘመናዊ በሆነ መንገድ ይከታተሉ",
     "feature_security": "እዚህ ዌብሳይት ላይ ያለ መረጃ ደህንነቱ የተጠበቀ ሲሆን ከእቁብተኞች በበስተቀር ማንም ሊመለከተው አይችልም!",
 
-    "email": "የኢሜይል አድራሻ",
-    "email_placeholder": "የኢሜይል አድራሻዎን ያስገቡ",
+    "email": "የኢሜል አድራሻ",
+    "email_placeholder": "የኢሜል አድራሻዎን ያስገቡ",
     "phone": "የስልክ ቁጥር",
     "phone_placeholder": "የስልክ ቁጥርዎን ያስገቡ",
     "password": "የይለፍ ቃል",
@@ -513,7 +513,7 @@
     "registration_error": "መለያ መፍጠር አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
     "login_error": "መግባት አልተሳካም። እባክዎ ግንኙነትዎን ይፈትሹ እና እንደገና ይሞክሩ።",
 
-    "email_required": "የኢሜይል አድራሻ ያስፈልጋል",
+    "email_required": "የኢሜል አድራሻ ያስፈልጋል",
     "email_invalid": "እባክዎ ትክክለኛ ኢሜል አድራሻ ያስገቡ",
     "phone_invalid": "እባክዎ ትክክለኛ የስልክ ቁጥር ያስገቡ",
     "password_min_length": "የይለፍ ቃል ቢያንስ 6 ቁምፊዎች መሆን አለበት",
