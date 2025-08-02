@@ -920,6 +920,7 @@
     "typical_approval_time": "Typical approval time: 8-12 hours",
     "contact_support": "Contact Support:",
     "support_message": "If you believe this is an error, please contact our support team at support@habeshaequb.com",
+    "personal_greeting": "Dear {name}, Welcome to HabeshaEqub!",
     "what_happens_next": "What happens next?",
     "review_details": "Our admin team will review your application details",
     "contact_guarantor": "We may contact your guarantor for verification",

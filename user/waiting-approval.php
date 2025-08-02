@@ -19,6 +19,11 @@ if (!isset($_SESSION['app_language'])) {
     setLanguage('am'); // Default to Amharic
 }
 
+// Ensure Amharic is always the default for waiting approval page
+if (!isset($_GET['lang'])) {
+    setLanguage('am'); // Force Amharic default
+}
+
 // Handle language switching
 if (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'am'])) {
     setLanguage($_GET['lang']);
@@ -447,7 +452,7 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         </div>
         
         <div class="waiting-content">
-            <h2 class="user-greeting"><?php echo t('user_auth.page_title'); ?> <?= htmlspecialchars($user['first_name']) ?>! 👋</h2>
+            <h2 class="user-greeting"><?= t('waiting_approval.personal_greeting', ['name' => htmlspecialchars($user['first_name'])]) ?> 👋</h2>
             
             <p class="waiting-message">
                 <?php if ($is_declined): ?>
