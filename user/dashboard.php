@@ -22,10 +22,32 @@ require_once '../includes/payout_sync_service.php';
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// CRITICAL: Ensure language is properly loaded for translations
+// CRITICAL: Ensure language and translations are properly loaded
 if (!function_exists('t')) {
     error_log("Dashboard - Translation function 't' not loaded, reloading language handler");
     require_once '../languages/translator.php';
+}
+
+// Force translation system initialization with user's language preference
+try {
+    $debug_user_id = get_current_user_id();
+    error_log("Dashboard - Current user_id: $debug_user_id");
+    
+    // Test a simple translation to verify system is working
+    $test_translation = t('member_dashboard.welcome_member');
+    error_log("Dashboard - Test translation result: '$test_translation'");
+    
+    // If translation is returning the key itself, the system isn't working
+    if ($test_translation === 'member_dashboard.welcome_member') {
+        error_log("Dashboard - Translation system not working, forcing reinitialization");
+        setUserLanguageFromDatabase($debug_user_id);
+        
+        // Test again
+        $test_translation_2 = t('member_dashboard.welcome_member');
+        error_log("Dashboard - Test translation after reinitialization: '$test_translation_2'");
+    }
+} catch (Exception $e) {
+    error_log("Dashboard - Translation system error: " . $e->getMessage());
 }
 
 // MASTER-LEVEL DATABASE QUERY - Get complete member and financial data
@@ -1627,7 +1649,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="welcome-content">
                                 <h1>
                                     <i class="fas fa-hand-wave text-warning"></i>
-                                    <?php echo sprintf(t('member_dashboard.welcome'), '<span class="text-primary">' . htmlspecialchars($member['first_name']) . '</span>'); ?>
+                                    <?php echo sprintf(t('member_dashboard.welcome_member'), '<span class="text-primary">' . htmlspecialchars($member['first_name']) . '</span>'); ?>
                                 </h1>
                                 <p><?php echo t('member_dashboard.welcome_message'); ?></p>
                                 <div class="member-status">
