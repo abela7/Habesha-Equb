@@ -258,7 +258,8 @@ class EmailService {
             'email_verification' => ['count' => 10, 'period' => 3600], // 10 per hour
             'welcome' => ['count' => 5, 'period' => 3600], // 5 per hour 
             'approval_notification' => ['count' => 5, 'period' => 3600], // 5 per hour
-            'account_approved' => ['count' => 10, 'period' => 3600] // 10 per hour (for testing)
+            'account_approved' => ['count' => 10, 'period' => 3600], // 10 per hour (for testing)
+            'otp_login' => ['count' => 15, 'period' => 3600] // 15 per hour (frequent logins)
         ];
         
         $limit = $limits[$type] ?? ['count' => 10, 'period' => 3600];
