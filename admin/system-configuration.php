@@ -858,6 +858,41 @@ $default_categories = [
                     Email Configuration
                 </h3>
                 <p class="section-description">Email server settings and notification preferences</p>
+                <!-- Brevo Quick Setup Guide -->
+                <div class="alert alert-info border-0 shadow-sm mb-4">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle fa-2x text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-rocket"></i>
+                                Brevo SMTP Setup (Recommended)
+                            </h6>
+                            <p class="mb-2"><strong>Quick Configuration for Brevo:</strong></p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>SMTP Host:</strong> <code>smtp-relay.brevo.com</code></li>
+                                        <li><strong>SMTP Port:</strong> <code>587</code></li>
+                                        <li><strong>Encryption:</strong> <code>TLS</code></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>Username:</strong> Your Brevo login email</li>
+                                        <li><strong>Password:</strong> Your Brevo SMTP Key</li>
+                                        <li><strong>From Email:</strong> Verified sender in Brevo</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-external-link-alt"></i>
+                                Get your SMTP Key: Brevo Dashboard → SMTP & API → SMTP → SMTP Key
+                            </small>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="section-content">
                 <div class="setting-item">
@@ -866,7 +901,7 @@ $default_categories = [
                         <div class="setting-description">SMTP server hostname</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="smtp_host" value="<?php echo htmlspecialchars(getSetting('smtp_host')); ?>" placeholder="smtp.gmail.com" data-category="email">
+                        <input type="text" class="form-control" name="smtp_host" value="<?php echo htmlspecialchars(getSetting('smtp_host')); ?>" placeholder="smtp-relay.brevo.com" data-category="email">
                     </div>
                 </div>
 
@@ -919,7 +954,7 @@ $default_categories = [
                         <div class="setting-description">SMTP authentication username (usually your email)</div>
                     </div>
                     <div class="setting-control">
-                        <input type="text" class="form-control" name="smtp_username" value="<?php echo htmlspecialchars(getSetting('smtp_username')); ?>" placeholder="your-email@domain.com" data-category="email">
+                        <input type="email" class="form-control" name="smtp_username" value="<?php echo htmlspecialchars(getSetting('smtp_username')); ?>" placeholder="your-brevo-login-email@domain.com" data-category="email">
                     </div>
                 </div>
 
@@ -929,10 +964,10 @@ $default_categories = [
                         <div class="setting-description">SMTP authentication password (use app-specific password for Gmail)</div>
                     </div>
                     <div class="setting-control">
-                        <input type="password" class="form-control" name="smtp_password" value="<?php echo htmlspecialchars(getSetting('smtp_password')); ?>" placeholder="Enter password" data-category="email">
+                        <input type="password" class="form-control" name="smtp_password" value="<?php echo htmlspecialchars(getSetting('smtp_password')); ?>" placeholder="Enter your Brevo SMTP Key" data-category="email">
                         <small class="form-text text-muted">
-                            <i class="fas fa-shield-alt"></i>
-                            For Gmail: Use App Password, not your regular password
+                            <i class="fas fa-key text-primary"></i>
+                            <strong>Use your Brevo SMTP Key</strong> (not your account password) - Find it in Brevo Dashboard → SMTP & API → SMTP
                         </small>
                     </div>
                 </div>

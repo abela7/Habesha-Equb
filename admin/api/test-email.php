@@ -137,50 +137,168 @@ $message = '
 ';
 
 try {
-    // Try to send using PHP's built-in mail function first (simpler)
-    if (function_exists('mail')) {
-        $headers = "MIME-Version: 1.0\r\n";
-        $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: {$from_name} <{$from_email}>\r\n";
-        $headers .= "Reply-To: {$from_email}\r\n";
-        $headers .= "X-Mailer: HabeshaEqub System\r\n";
-        
-        // For cPanel, we often can use the simple mail() function
-        if (mail($test_email, $subject, $message, $headers)) {
-            // Log the test
-            try {
-                $admin_id = $_SESSION['admin_id'];
-                $stmt = $pdo->prepare("
-                    INSERT INTO notifications (
-                        notification_id, recipient_type, recipient_email, type, channel, 
-                        subject, message, status, sent_at, sent_by_admin_id, notes
-                    ) VALUES (?, 'admin', ?, 'general', 'email', ?, ?, 'sent', NOW(), ?, ?)
-                ");
-                $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
-                $stmt->execute([
-                    $notification_id, $test_email, $subject, 'Test email via PHP mail()', 
-                    $admin_id, 'Email configuration test - PHP mail() method'
-                ]);
-            } catch (Exception $e) {
-                // Don't fail if logging fails
-                error_log("Failed to log test email: " . $e->getMessage());
-            }
-            
-            json_response(true, 'Test email sent successfully using PHP mail() function');
-        }
-    }
+    // Use PHPMailer-style SMTP connection with fsockopen for testing
+    $success = sendViaSMTP($smtp_host, $smtp_port, $smtp_username, $smtp_password, 
+                          $smtp_encryption, $from_email, $from_name, $test_email, $subject, $message);
     
-    // If we reach here, PHP mail() either failed or isn't available
-    // We'll need to implement SMTP later when we add PHPMailer
-    json_response(false, 'Email sending failed. This may be because:
-1. PHP mail() function is not properly configured on your server
-2. SMTP settings need to be configured (coming in next update)
-3. Server firewall is blocking outgoing emails
-
-For cPanel hosting, contact your hosting provider to enable PHP mail() function or we can implement PHPMailer SMTP in the next step.');
+    if ($success) {
+        // Log the test
+        try {
+            $admin_id = $_SESSION['admin_id'];
+            $stmt = $pdo->prepare("
+                INSERT INTO notifications (
+                    notification_id, recipient_type, recipient_email, type, channel, 
+                    subject, message, status, sent_at, sent_by_admin_id, notes
+                ) VALUES (?, 'admin', ?, 'general', 'email', ?, ?, 'sent', NOW(), ?, ?)
+            ");
+            $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
+            $stmt->execute([
+                $notification_id, $test_email, $subject, 'Test email via SMTP', 
+                $admin_id, "Email configuration test - SMTP: {$smtp_host}:{$smtp_port}"
+            ]);
+        } catch (Exception $e) {
+            // Don't fail if logging fails
+            error_log("Failed to log test email: " . $e->getMessage());
+        }
+        
+        json_response(true, 'Test email sent successfully via SMTP!');
+    } else {
+        json_response(false, 'SMTP test failed. Please check your Brevo SMTP settings:
+1. Verify SMTP Host: smtp-relay.brevo.com
+2. Verify Port: 587
+3. Verify your Brevo login email
+4. Verify your Brevo SMTP Key (not account password)
+5. Ensure "From Email" is verified in your Brevo account');
+    }
     
 } catch (Exception $e) {
     error_log("Test email error: " . $e->getMessage());
     json_response(false, 'Failed to send test email: ' . $e->getMessage());
+}
+
+/**
+ * Send email via SMTP using basic PHP sockets
+ * This is a simplified SMTP implementation for testing
+ */
+function sendViaSMTP($host, $port, $username, $password, $encryption, $from_email, $from_name, $to_email, $subject, $message) {
+    $boundary = uniqid();
+    
+    // Create socket context
+    $context = stream_context_create();
+    
+    if ($encryption === 'ssl') {
+        $host = 'ssl://' . $host;
+        $port = $port ?: 465;
+    }
+    
+    // Connect to SMTP server
+    $smtp = fsockopen($host, $port, $errno, $errstr, 30);
+    if (!$smtp) {
+        error_log("SMTP Connection failed: {$errstr} ({$errno})");
+        return false;
+    }
+    
+    // Read server response
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '220') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send EHLO
+    fputs($smtp, "EHLO " . $_SERVER['SERVER_NAME'] . "\r\n");
+    $response = fgets($smtp, 515);
+    
+    // Start TLS if required
+    if ($encryption === 'tls') {
+        fputs($smtp, "STARTTLS\r\n");
+        $response = fgets($smtp, 515);
+        if (substr($response, 0, 3) !== '220') {
+            fclose($smtp);
+            return false;
+        }
+        
+        if (!stream_socket_enable_crypto($smtp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+            fclose($smtp);
+            return false;
+        }
+        
+        // Send EHLO again after TLS
+        fputs($smtp, "EHLO " . $_SERVER['SERVER_NAME'] . "\r\n");
+        $response = fgets($smtp, 515);
+    }
+    
+    // Authenticate
+    fputs($smtp, "AUTH LOGIN\r\n");
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '334') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send username
+    fputs($smtp, base64_encode($username) . "\r\n");
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '334') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send password
+    fputs($smtp, base64_encode($password) . "\r\n");
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '235') {
+        error_log("SMTP Auth failed: " . $response);
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send MAIL FROM
+    fputs($smtp, "MAIL FROM:<{$from_email}>\r\n");
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '250') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send RCPT TO
+    fputs($smtp, "RCPT TO:<{$to_email}>\r\n");
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '250') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send DATA
+    fputs($smtp, "DATA\r\n");
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '354') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send email headers and body
+    $email_data = "From: {$from_name} <{$from_email}>\r\n";
+    $email_data .= "To: {$to_email}\r\n";
+    $email_data .= "Subject: {$subject}\r\n";
+    $email_data .= "MIME-Version: 1.0\r\n";
+    $email_data .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $email_data .= "X-Mailer: HabeshaEqub System\r\n";
+    $email_data .= "\r\n";
+    $email_data .= $message;
+    $email_data .= "\r\n.\r\n";
+    
+    fputs($smtp, $email_data);
+    $response = fgets($smtp, 515);
+    if (substr($response, 0, 3) !== '250') {
+        fclose($smtp);
+        return false;
+    }
+    
+    // Send QUIT
+    fputs($smtp, "QUIT\r\n");
+    fclose($smtp);
+    
+    return true;
 }
 ?>
