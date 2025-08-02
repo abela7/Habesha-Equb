@@ -158,12 +158,17 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         $approve_stmt->execute([$user_id]);
         
         if ($approve_stmt->rowCount() === 0) {
-            throw new Exception('Failed to approve user');
+            throw new Exception('Failed to approve user - no rows affected');
         }
         
-        // Device tracking update temporarily disabled for debugging
-        // $device_stmt = $db->prepare("UPDATE device_tracking SET is_approved = 1, last_seen = CURRENT_TIMESTAMP WHERE email = ?");
-        // $device_stmt->execute([$user['email']]);
+        // Update device tracking for approved user
+        try {
+            $device_stmt = $db->prepare("UPDATE device_tracking SET is_approved = 1, last_seen = CURRENT_TIMESTAMP WHERE email = ?");
+            $device_stmt->execute([$user['email']]);
+        } catch (Exception $e) {
+            error_log("Device tracking update failed: " . $e->getMessage());
+            // Continue - don't fail approval if device tracking fails
+        }
         
         // Send welcome email to approved user (SAFE implementation)
         $email_sent = false;
@@ -205,42 +210,50 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         }
         
         // Log the approval action (FIXED: Correct column count)
-        $log_stmt = $db->prepare("
-            INSERT INTO notifications (
-                notification_id, 
-                recipient_type, 
-                recipient_id, 
-                type, 
-                channel, 
-                subject, 
-                message, 
-                language,
-                status,
-                sent_at,
-                sent_by_admin_id,
-                notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
-        ");
-        
-        $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
-        $subject = 'Welcome to HabeshaEqub - Account Approved';
-        $message = "Congratulations! Your HabeshaEqub account has been approved. You can now log in and start participating in our equb system.";
-        $email_status = $email_sent ? 'sent' : 'failed';
-        $notes = "User approved by admin ID: {$admin_id}. Email status: " . ($email_sent ? 'sent' : 'failed');
-        
-        $log_stmt->execute([
-            $notification_id,      // notification_id
-            'member',              // recipient_type  
-            $user_id,              // recipient_id
-            'approval',            // type
-            'email',               // channel
-            $subject,              // subject
-            $message,              // message
-            'en',                  // language
-            $email_status,         // status
-            $admin_id,             // sent_by_admin_id
-            $notes                 // notes
-        ]);
+        try {
+            $log_stmt = $db->prepare("
+                INSERT INTO notifications (
+                    notification_id, 
+                    recipient_type, 
+                    recipient_id, 
+                    type, 
+                    channel, 
+                    subject, 
+                    message, 
+                    language,
+                    status,
+                    sent_at,
+                    sent_by_admin_id,
+                    notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
+            ");
+            
+            $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
+            $subject = 'Welcome to HabeshaEqub - Account Approved';
+            $message = "Congratulations! Your HabeshaEqub account has been approved. You can now log in and start participating in our equb system.";
+            $email_status = $email_sent ? 'sent' : 'failed';
+            $notes = "User approved by admin ID: {$admin_id}. Email status: " . ($email_sent ? 'sent' : 'failed');
+            
+            // Execute with exactly 11 parameters for 11 placeholders (+ NOW() for sent_at)
+            $log_stmt->execute([
+                $notification_id,      // 1. notification_id
+                'member',              // 2. recipient_type  
+                $user_id,              // 3. recipient_id
+                'approval',            // 4. type
+                'email',               // 5. channel
+                $subject,              // 6. subject
+                $message,              // 7. message
+                'en',                  // 8. language
+                $email_status,         // 9. status
+                $admin_id,             // 10. sent_by_admin_id
+                $notes                 // 11. notes
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Notification logging failed: " . $e->getMessage());
+            error_log("PDO Error Info: " . print_r($log_stmt->errorInfo(), true));
+            throw new Exception('Failed to log notification: ' . $e->getMessage());
+        }
         
         $db->commit();
         

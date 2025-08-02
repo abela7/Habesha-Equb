@@ -126,9 +126,9 @@ try {
     $stmt->execute([$email['value']]);
     if ($stmt->fetch()) {
         echo json_encode(['success' => false, 'message' => 'Email already registered']);
-        exit;
-    }
-    
+    exit;
+}
+
     // Create member
     $member_id = generate_member_id($first_name['value'], $last_name['value']);
     $username = explode('@', $email['value'])[0];
@@ -166,13 +166,13 @@ try {
                 INSERT INTO device_tracking (email, device_fingerprint, user_agent, ip_address, created_at, last_seen) 
                 VALUES (?, ?, ?, ?, NOW(), NOW())
             ");
-            $stmt->execute([
+        $stmt->execute([
                 $email['value'], 
                 $device_fp, 
-                $_SERVER['HTTP_USER_AGENT'] ?? '', 
-                $_SERVER['REMOTE_ADDR'] ?? ''
-            ]);
-        } catch (Exception $e) {
+            $_SERVER['HTTP_USER_AGENT'] ?? '',
+            $_SERVER['REMOTE_ADDR'] ?? ''
+        ]);
+    } catch (Exception $e) {
             // Ignore device tracking errors
         }
         
@@ -186,7 +186,7 @@ try {
             'redirect' => 'waiting-approval.php?email=' . urlencode($email['value'])
         ]);
         
-    } else {
+        } else {
         echo json_encode(['success' => false, 'message' => 'Registration failed']);
     }
     
@@ -194,4 +194,4 @@ try {
     error_log("Registration error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Server error occurred']);
 }
-?>
+?> 
