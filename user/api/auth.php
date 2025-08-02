@@ -203,7 +203,7 @@ try {
             ?, ?, 'active', 0.00, 0, 
             0.00, 0, 'Pending', 
             'Pending', 'Pending', 1, 0, 
-            1, CURDATE(), 0, NOW()
+            1, CURDATE(), 1, NOW()
         )
     ");
     
@@ -461,20 +461,15 @@ function handle_otp_verification($database) {
         unset($_SESSION['otp_user_id']);
         unset($_SESSION['otp_email']);
         
-        // CRITICAL: Always check rules_agreed for proper welcome flow
-        error_log("OTP Redirect Logic - User rules_agreed: {$user['rules_agreed']} (0=welcome, 1=dashboard)");
-        
         // Determine redirect based on rules agreement
-        if ($user['rules_agreed'] == 0 || $user['rules_agreed'] === '0') {
-            // First-time user - MUST see welcome page and agree to rules
+        if ($user['rules_agreed'] == 0) {
+            // First-time user - redirect to welcome page
             $redirect_url = 'welcome.php';
-            $message = 'Login successful! Please review and agree to our terms.';
-            error_log("OTP Redirect - Directing to welcome.php (rules not agreed)");
+            $message = 'Login successful! Welcome to HabeshaEqub.';
         } else {
-            // Returning user - rules already agreed
+            // Returning user - redirect to dashboard
             $redirect_url = 'dashboard.php';
             $message = 'Login successful! Welcome back.';
-            error_log("OTP Redirect - Directing to dashboard.php (rules agreed)");
         }
         
         echo json_encode([

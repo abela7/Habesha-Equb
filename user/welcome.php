@@ -45,16 +45,11 @@ if (!$user['is_approved']) {
 // Debug: Log successful welcome page load
 error_log("Welcome.php - Successfully loaded for user: {$user['first_name']} {$user['last_name']} (ID: $user_id), rules_agreed: {$user['rules_agreed']}");
 
-// CRITICAL: Check if user has already agreed to rules
-error_log("Welcome.php - User rules_agreed status: {$user['rules_agreed']} for user: {$user['first_name']} {$user['last_name']}");
-
-if ($user['rules_agreed'] == 1 || $user['rules_agreed'] === '1') {
-    error_log("Welcome.php - User already agreed to rules, redirecting to dashboard");
+// If user has already agreed to rules, redirect to dashboard
+if ($user['rules_agreed'] == 1) {
     header('Location: dashboard.php');
     exit;
 }
-
-error_log("Welcome.php - User has NOT agreed to rules, showing welcome page");
 
 // Set language preference
 $current_lang = $user['language_preference'] == 1 ? 'am' : 'en';
