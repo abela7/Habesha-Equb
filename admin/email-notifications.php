@@ -1,7 +1,7 @@
 <?php
 /**
  * HabeshaEqub - Email & Notifications Management
- * Dedicated page for email configuration, testing, and notification management
+ * Configure email settings, test email delivery, and manage notification system
  */
 
 require_once '../includes/db.php';
@@ -107,12 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $current_settings[$row['setting_key']] = $row['setting_value'];
             }
             
-            $message = "✅ Email settings saved successfully!";
+            $message = "Email settings saved successfully!";
             $messageType = "success";
             
         } catch (Exception $e) {
             $pdo->rollback();
-            $message = "❌ Error saving settings: " . $e->getMessage();
+            $message = "Error saving settings: " . $e->getMessage();
             $messageType = "danger";
         }
     }
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $from_email = trim($_POST['test_from_email'] ?? getSetting('from_email'));
         
         if (empty($test_email) || empty($from_email)) {
-            $message = "❌ Please provide both test email and from email addresses!";
+            $message = "Please provide both test email and from email addresses!";
             $messageType = "danger";
         } else {
             $testResult = testEmailDelivery($test_email, $from_email);
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 /**
- * Test email delivery with comprehensive reporting
+ * Test email delivery with multiple connection methods and better diagnostics
  */
 function testEmailDelivery($test_email, $from_email) {
     $smtp_host = getSetting('smtp_host');
@@ -171,7 +171,57 @@ function testEmailDelivery($test_email, $from_email) {
         $report[] = "🌐 SMTP: {$smtp_host}:{$smtp_port}";
         $report[] = "";
         
-        // Create context
+        // First try to resolve hostname using multiple methods
+        $report[] = "🔍 Checking DNS resolution...";
+        
+        // Method 1: Use gethostbyname
+        $ip = gethostbyname($smtp_host);
+        if ($ip !== $smtp_host) {
+            $report[] = "✅ DNS resolved: {$smtp_host} → {$ip}";
+        } else {
+            $report[] = "❌ DNS resolution failed for {$smtp_host}";
+            
+            // Method 2: Try using curl to test connectivity
+            $report[] = "🔧 Trying alternative connection method...";
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, "smtp://{$smtp_host}:{$smtp_port}");
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $result = curl_exec($ch);
+            $curl_error = curl_error($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($curl_error) {
+                $report[] = "❌ CURL connection failed: {$curl_error}";
+                
+                // Method 3: Try alternative Brevo SMTP servers
+                $report[] = "🔧 Trying alternative Brevo servers...";
+                $alternative_hosts = [
+                    'smtp-relay.sendinblue.com',  // Old Brevo hostname
+                    '178.33.242.93',              // Brevo IP (may change)
+                ];
+                
+                foreach ($alternative_hosts as $alt_host) {
+                    $alt_ip = gethostbyname($alt_host);
+                    if ($alt_ip !== $alt_host || filter_var($alt_host, FILTER_VALIDATE_IP)) {
+                        $report[] = "✅ Alternative found: {$alt_host} → {$alt_ip}";
+                        $smtp_host = $alt_host;
+                        break;
+                    } else {
+                        $report[] = "❌ Alternative failed: {$alt_host}";
+                    }
+                }
+            } else {
+                $report[] = "✅ CURL connection successful";
+            }
+        }
+        
+        // Create socket connection
+        $report[] = "";
+        $report[] = "🔗 Attempting socket connection...";
+        
         $context = stream_context_create([
             'ssl' => [
                 'verify_peer' => false,
@@ -180,19 +230,31 @@ function testEmailDelivery($test_email, $from_email) {
             ]
         ]);
         
-        $report[] = "🔗 Connecting to SMTP server...";
         $smtp = stream_socket_client("tcp://{$smtp_host}:{$smtp_port}", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
         
         if (!$smtp) {
-            $report[] = "❌ Connection failed: {$errstr} ({$errno})";
-            return ['success' => false, 'message' => implode("\n", $report), 'delivery_time' => round((microtime(true) - $start_time) * 1000, 2)];
+            $report[] = "❌ Socket connection failed: {$errstr} ({$errno})";
+            
+            // Try direct IP connection if hostname failed
+            if ($ip && $ip !== $smtp_host) {
+                $report[] = "🔧 Trying direct IP connection: {$ip}";
+                $smtp = stream_socket_client("tcp://{$ip}:{$smtp_port}", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
+                if (!$smtp) {
+                    $report[] = "❌ Direct IP connection also failed: {$errstr} ({$errno})";
+                    return ['success' => false, 'message' => implode("\n", $report), 'delivery_time' => round((microtime(true) - $start_time) * 1000, 2)];
+                } else {
+                    $report[] = "✅ Direct IP connection successful!";
+                }
+            } else {
+                return ['success' => false, 'message' => implode("\n", $report), 'delivery_time' => round((microtime(true) - $start_time) * 1000, 2)];
+            }
+        } else {
+            $report[] = "✅ Socket connection successful";
         }
-        
-        $report[] = "✅ Connected successfully";
         
         // Read welcome message
         $response = fgets($smtp, 515);
-        $report[] = "📨 Server: " . trim($response);
+        $report[] = "📨 Server welcome: " . trim($response);
         
         if (substr($response, 0, 3) !== '220') {
             fclose($smtp);
@@ -203,20 +265,19 @@ function testEmailDelivery($test_email, $from_email) {
         // Send EHLO
         fputs($smtp, "EHLO habeshaequb.com\r\n");
         $response = fgets($smtp, 515);
-        $report[] = "🤝 EHLO: " . trim($response);
+        $report[] = "🤝 EHLO response: " . trim($response);
         
         // Read all capabilities
-        $capabilities = [trim($response)];
         while (substr($response, 3, 1) === '-') {
             $response = fgets($smtp, 515);
-            $capabilities[] = trim($response);
+            $report[] = "   Extension: " . trim($response);
         }
         
         if ($smtp_encryption === 'tls') {
             $report[] = "🔐 Starting TLS encryption...";
             fputs($smtp, "STARTTLS\r\n");
             $response = fgets($smtp, 515);
-            $report[] = "🔒 STARTTLS: " . trim($response);
+            $report[] = "🔒 STARTTLS response: " . trim($response);
             
             if (substr($response, 0, 3) !== '220') {
                 fclose($smtp);
@@ -310,36 +371,20 @@ function testEmailDelivery($test_email, $from_email) {
         $delivery_time = round((microtime(true) - $start_time) * 1000, 2);
         $email_content = "From: {$from_name} <{$from_email}>\r\n";
         $email_content .= "To: {$test_email}\r\n";
-        $email_content .= "Subject: 📧 HabeshaEqub Email Test - Delivery Report\r\n";
+        $email_content .= "Subject: HabeshaEqub Email Test - Success Report\r\n";
         $email_content .= "MIME-Version: 1.0\r\n";
-        $email_content .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $email_content .= "Content-Type: text/plain; charset=UTF-8\r\n";
         $email_content .= "\r\n";
-        $email_content .= "<html><body style='font-family: Arial, sans-serif;'>";
-        $email_content .= "<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>";
-        $email_content .= "<h2 style='color: #28a745; text-align: center;'>📧 Email Delivery Test Report</h2>";
-        $email_content .= "<div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>";
-        $email_content .= "<h3>✅ Delivery Successful!</h3>";
-        $email_content .= "<p><strong>Test Details:</strong></p>";
-        $email_content .= "<ul>";
-        $email_content .= "<li><strong>From:</strong> {$from_name} &lt;{$from_email}&gt;</li>";
-        $email_content .= "<li><strong>To:</strong> {$test_email}</li>";
-        $email_content .= "<li><strong>SMTP Server:</strong> {$smtp_host}:{$smtp_port}</li>";
-        $email_content .= "<li><strong>Encryption:</strong> " . strtoupper($smtp_encryption) . "</li>";
-        $email_content .= "<li><strong>Delivery Time:</strong> {$delivery_time}ms</li>";
-        $email_content .= "<li><strong>Test Time:</strong> " . date('Y-m-d H:i:s T') . "</li>";
-        $email_content .= "</ul>";
-        $email_content .= "</div>";
-        $email_content .= "<div style='background: #e7f3ff; padding: 15px; border-radius: 5px;'>";
-        $email_content .= "<h4>📊 Delivery Report:</h4>";
-        $email_content .= "<pre style='background: white; padding: 10px; border-radius: 3px; font-size: 12px; overflow-x: auto;'>";
-        $email_content .= htmlspecialchars(implode("\n", $report));
-        $email_content .= "</pre>";
-        $email_content .= "</div>";
-        $email_content .= "<p style='text-align: center; color: #666; font-size: 12px; margin-top: 20px;'>";
-        $email_content .= "This test email was sent from your HabeshaEqub system to verify email delivery functionality.";
-        $email_content .= "</p>";
-        $email_content .= "</div>";
-        $email_content .= "</body></html>";
+        $email_content .= "✅ EMAIL DELIVERY TEST SUCCESSFUL!\r\n\r\n";
+        $email_content .= "Your HabeshaEqub email system is working correctly.\r\n\r\n";
+        $email_content .= "Test Details:\r\n";
+        $email_content .= "- From: {$from_name} <{$from_email}>\r\n";
+        $email_content .= "- To: {$test_email}\r\n";
+        $email_content .= "- SMTP Server: {$smtp_host}:{$smtp_port}\r\n";
+        $email_content .= "- Encryption: " . strtoupper($smtp_encryption) . "\r\n";
+        $email_content .= "- Delivery Time: {$delivery_time}ms\r\n";
+        $email_content .= "- Test Time: " . date('Y-m-d H:i:s T') . "\r\n\r\n";
+        $email_content .= "This email confirms that your SMTP configuration is working properly.\r\n";
         $email_content .= "\r\n.\r\n";
         
         fputs($smtp, $email_content);
@@ -360,7 +405,7 @@ function testEmailDelivery($test_email, $from_email) {
         $report[] = "";
         $report[] = "🎉 EMAIL DELIVERED SUCCESSFULLY!";
         $report[] = "⏱️ Total delivery time: {$final_delivery_time}ms";
-        $report[] = "📬 Check your inbox (and spam folder) for the detailed report email.";
+        $report[] = "📬 Check your inbox for the test email.";
         
         return [
             'success' => true, 
@@ -382,422 +427,467 @@ function testEmailDelivery($test_email, $from_email) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email & Notifications - HabeshaEqub Admin</title>
     
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="../Pictures/Icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../Pictures/Icon/favicon-16x16.png">
+    
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
-        :root {
-            --primary-color: #6C5B7B;
-            --secondary-color: #C06C84;
-            --accent-color: #F8B500;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
+        /* === EMAIL CONFIGURATION PAGE DESIGN === */
+        
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        body {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .admin-container {
-            padding: 2rem 0;
-        }
-        
-        .email-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-        
-        .email-header {
-            background: linear-gradient(135deg, var(--success-color), #20c997);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        
-        .email-header h1 {
-            margin: 0;
-            font-size: 2.5rem;
+        .page-title-section h1 {
+            font-size: 32px;
             font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
         }
         
+        .page-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .page-actions .btn {
+            padding: 16px 32px;
+            font-weight: 700;
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: none;
+            min-width: 180px;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Configuration Sections */
         .config-section {
-            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.06);
         }
-        
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .section-icon.primary {
+            background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-coral) 100%);
+        }
+
+        .section-icon.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .section-icon.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+
         .section-title {
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #eee;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0;
         }
-        
+
+        .section-description {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* Form Styling */
         .form-label {
             font-weight: 600;
-            color: #555;
+            color: var(--color-purple);
+            margin-bottom: 8px;
+            font-size: 14px;
         }
-        
+
+        .form-control, .form-select {
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--color-purple);
+            box-shadow: 0 0 0 0.2rem rgba(108, 91, 123, 0.25);
+        }
+
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-coral) 100%);
             border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 25px;
+            padding: 16px 32px;
+            border-radius: 12px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
+
         .btn-success {
-            background: linear-gradient(135deg, var(--success-color), #20c997);
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 25px;
+            padding: 16px 32px;
+            border-radius: 12px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
-        .btn-warning {
-            background: linear-gradient(135deg, var(--warning-color), #fd7e14);
-            border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 25px;
-            font-weight: 600;
-            color: white;
-        }
-        
+
+        /* Test Result Display */
         .test-result {
             background: #f8f9fa;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-top: 1rem;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
             font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            font-size: 14px;
             white-space: pre-line;
             max-height: 400px;
             overflow-y: auto;
-            border-left: 4px solid var(--info-color);
+            border-left: 4px solid #17a2b8;
         }
-        
+
         .test-result.success {
-            border-left-color: var(--success-color);
+            border-left-color: #28a745;
             background: #f8fff8;
         }
-        
+
         .test-result.error {
-            border-left-color: var(--danger-color);
+            border-left-color: #dc3545;
             background: #fff8f8;
         }
-        
-        .settings-display {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+
+        /* Status Display */
+        .settings-status {
+            background: var(--color-cream);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
         }
-        
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .status-value {
+            font-size: 16px;
             font-weight: 600;
+            color: var(--color-purple);
         }
-        
-        .status-working {
-            background: #d1e7dd;
-            color: #0f5132;
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 24px;
         }
-        
-        .status-pending {
-            background: #fff3cd;
-            color: #664d03;
-        }
-        
-        .quick-actions {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            padding: 1.5rem;
-            border-top: 1px solid #dee2e6;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(108, 91, 123, 0.25);
-        }
-        
-        .navigation-breadcrumb {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .navigation-breadcrumb a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .navigation-breadcrumb a:hover {
-            color: var(--accent-color);
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .config-section {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="admin-container">
-        <div class="container">
-            
-            <!-- Navigation Breadcrumb -->
-            <div class="navigation-breadcrumb">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="settings.php"><i class="fas fa-cog"></i> Settings</a></li>
-                        <li class="breadcrumb-item active text-white" aria-current="page">
-                            <i class="fas fa-envelope"></i> Email & Notifications
-                        </li>
-                    </ol>
-                </nav>
+    <?php include 'includes/navigation.php'; ?>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title-section">
+            <h1>
+                <div class="page-title-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                Email & Notifications
+            </h1>
+            <p class="page-subtitle">Configure SMTP settings, test email delivery, and manage notification system</p>
+        </div>
+        <div class="page-actions">
+            <a href="settings.php" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    <?php if ($message): ?>
+        <div class="alert alert-<?= $messageType ?> alert-dismissible fade show" role="alert">
+            <i class="fas fa-<?= $messageType === 'success' ? 'check-circle' : 'exclamation-triangle' ?> me-2"></i>
+            <?= $message ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Current Configuration Status -->
+    <div class="config-section">
+        <div class="section-header">
+            <div class="section-icon primary">
+                <i class="fas fa-info-circle"></i>
             </div>
-            
-            <!-- Main Email Card -->
-            <div class="email-card">
-                <div class="email-header">
-                    <h1><i class="fas fa-envelope-open-text"></i></h1>
-                    <h2>Email & Notifications</h2>
-                    <p class="lead mb-0">Manage SMTP configuration and test email delivery</p>
+            <div>
+                <h2 class="section-title">Current Configuration</h2>
+                <p class="section-description">Current SMTP settings and status</p>
+            </div>
+        </div>
+
+        <div class="settings-status">
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">SMTP Host</div>
+                    <div class="status-value"><?= htmlspecialchars(getSetting('smtp_host')) ?></div>
                 </div>
-                
-                <!-- Alert Messages -->
-                <?php if ($message): ?>
-                    <div class="alert alert-<?= $messageType ?> alert-dismissible fade show mx-3 mt-3" role="alert">
-                        <?= $message ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <?php endif; ?>
-                
-                <!-- Current Configuration Status -->
-                <div class="config-section border-bottom">
-                    <h3 class="section-title">
-                        <i class="fas fa-info-circle text-info"></i> Current Configuration Status
-                    </h3>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="settings-display">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <strong>SMTP Host:</strong> <?= htmlspecialchars(getSetting('smtp_host')) ?><br>
-                                        <strong>Port:</strong> <?= htmlspecialchars(getSetting('smtp_port')) ?><br>
-                                        <strong>Username:</strong> <?= htmlspecialchars(getSetting('smtp_username')) ?><br>
-                                        <strong>Encryption:</strong> <?= strtoupper(getSetting('smtp_encryption')) ?>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>From Name:</strong> <?= htmlspecialchars(getSetting('from_name')) ?><br>
-                                        <strong>From Email:</strong> <?= htmlspecialchars(getSetting('from_email')) ?><br>
-                                        <strong>Auth:</strong> <?= getSetting('smtp_auth') === '1' ? 'Enabled' : 'Disabled' ?><br>
-                                        <strong>Status:</strong> <span class="status-badge status-working">✅ Configured</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-center">
-                            <div class="text-center w-100">
-                                <div class="mb-3">
-                                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                                </div>
-                                <h5 class="text-success">Email System Ready</h5>
-                                <small class="text-muted">Configuration loaded successfully</small>
-                            </div>
-                        </div>
-                    </div>
+                <div class="status-item">
+                    <div class="status-label">Port</div>
+                    <div class="status-value"><?= htmlspecialchars(getSetting('smtp_port')) ?></div>
                 </div>
-                
-                <!-- Email Configuration Form -->
-                <div class="config-section border-bottom">
-                    <h3 class="section-title">
-                        <i class="fas fa-cog text-primary"></i> SMTP Configuration
-                    </h3>
-                    
-                    <form method="POST" action="">
-                        <input type="hidden" name="action" value="save_settings">
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">SMTP Host</label>
-                                <input type="text" name="smtp_host" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('smtp_host')) ?>" required>
-                                <small class="text-muted">e.g., smtp-relay.brevo.com</small>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">SMTP Port</label>
-                                <input type="number" name="smtp_port" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('smtp_port')) ?>" required>
-                                <small class="text-muted">587 (TLS) or 465 (SSL)</small>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">SMTP Username</label>
-                                <input type="text" name="smtp_username" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('smtp_username')) ?>" required>
-                                <small class="text-muted">Your SMTP login</small>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">SMTP Password</label>
-                                <input type="password" name="smtp_password" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('smtp_password')) ?>" required>
-                                <small class="text-muted">SMTP key or app password</small>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Encryption</label>
-                                <select name="smtp_encryption" class="form-select">
-                                    <option value="tls" <?= getSetting('smtp_encryption') === 'tls' ? 'selected' : '' ?>>TLS (Recommended)</option>
-                                    <option value="ssl" <?= getSetting('smtp_encryption') === 'ssl' ? 'selected' : '' ?>>SSL</option>
-                                    <option value="none" <?= getSetting('smtp_encryption') === 'none' ? 'selected' : '' ?>>None</option>
-                                </select>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">From Email</label>
-                                <input type="email" name="from_email" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('from_email')) ?>" required>
-                                <small class="text-muted">Must be verified in your email provider</small>
-                            </div>
-                            
-                            <div class="col-12 mb-3">
-                                <label class="form-label">From Name</label>
-                                <input type="text" name="from_name" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('from_name')) ?>" required>
-                                <small class="text-muted">Display name for outgoing emails</small>
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Configuration
-                            </button>
-                        </div>
-                    </form>
+                <div class="status-item">
+                    <div class="status-label">Username</div>
+                    <div class="status-value"><?= htmlspecialchars(getSetting('smtp_username')) ?></div>
                 </div>
-                
-                <!-- Email Testing Section -->
-                <div class="config-section border-bottom">
-                    <h3 class="section-title">
-                        <i class="fas fa-paper-plane text-warning"></i> Email Delivery Testing
-                    </h3>
-                    
-                    <form method="POST" action="">
-                        <input type="hidden" name="action" value="test_email">
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Test Email Address</label>
-                                <input type="email" name="test_email" class="form-control" 
-                                       placeholder="Enter email to receive test" required>
-                                <small class="text-muted">Where should we send the test email?</small>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">From Email</label>
-                                <input type="email" name="test_from_email" class="form-control" 
-                                       value="<?= htmlspecialchars(getSetting('from_email')) ?>" required>
-                                <small class="text-muted">Must be verified in your email provider</small>
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex gap-2 align-items-center">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-paper-plane"></i> Send Test Email with Full Report
-                            </button>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i>
-                                This will send a detailed delivery report to your email
-                            </small>
-                        </div>
-                    </form>
-                    
-                    <?php if ($testResult): ?>
-                        <div class="test-result <?= $testResult['success'] ? 'success' : 'error' ?>">
-                            <h5><?= $testResult['success'] ? '🎉 Email Test Result: SUCCESS' : '❌ Email Test Result: FAILED' ?></h5>
-                            <?php if ($testResult['success']): ?>
-                                <p><strong>✅ Email delivered successfully!</strong></p>
-                                <p><strong>📧 Recipient:</strong> <?= htmlspecialchars($testResult['recipient']) ?></p>
-                                <p><strong>⏱️ Delivery Time:</strong> <?= $testResult['delivery_time'] ?>ms</p>
-                                <p><strong>📬 Check your inbox:</strong> A detailed delivery report has been sent to your email.</p>
-                                <hr>
-                            <?php endif; ?>
-                            <strong>📊 Detailed Report:</strong>
-                            <?= htmlspecialchars($testResult['message']) ?>
-                        </div>
-                    <?php endif; ?>
+                <div class="status-item">
+                    <div class="status-label">Encryption</div>
+                    <div class="status-value"><?= strtoupper(getSetting('smtp_encryption')) ?></div>
                 </div>
-                
-                <!-- Quick Actions -->
-                <div class="quick-actions">
-                    <h4 class="mb-3">
-                        <i class="fas fa-bolt text-warning"></i> Quick Actions
-                    </h4>
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <div class="d-grid">
-                                <a href="test-your-brevo.php" class="btn btn-outline-success">
-                                    <i class="fas fa-rocket"></i> Simple Test Tool
-                                </a>
-                                <small class="text-muted mt-1">Basic working test (proven to work)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="d-grid">
-                                <a href="brevo-test-advanced.php" class="btn btn-outline-primary">
-                                    <i class="fas fa-cogs"></i> Advanced Diagnostics
-                                </a>
-                                <small class="text-muted mt-1">Multiple connection methods</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="d-grid">
-                                <a href="debug-email-config.php" class="btn btn-outline-info">
-                                    <i class="fas fa-bug"></i> Debug Configuration
-                                </a>
-                                <small class="text-muted mt-1">Check database settings</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-chart-line text-info"></i> Coming Soon:</h6>
-                            <ul class="list-unstyled small text-muted">
-                                <li>✨ Automated welcome emails</li>
-                                <li>✨ Payment reminder notifications</li>
-                                <li>✨ Payout confirmation emails</li>
-                                <li>✨ Admin alert notifications</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-shield-alt text-success"></i> Security:</h6>
-                            <ul class="list-unstyled small text-muted">
-                                <li>🔒 TLS encryption enabled</li>
-                                <li>🔑 Secure authentication</li>
-                                <li>📧 Verified sender domains</li>
-                                <li>🛡️ Anti-spam compliance</li>
-                            </ul>
-                        </div>
-                    </div>
+                <div class="status-item">
+                    <div class="status-label">From Name</div>
+                    <div class="status-value"><?= htmlspecialchars(getSetting('from_name')) ?></div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">From Email</div>
+                    <div class="status-value"><?= htmlspecialchars(getSetting('from_email')) ?></div>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- SMTP Configuration -->
+    <div class="config-section">
+        <div class="section-header">
+            <div class="section-icon primary">
+                <i class="fas fa-cog"></i>
+            </div>
+            <div>
+                <h2 class="section-title">SMTP Configuration</h2>
+                <p class="section-description">Configure your email server settings</p>
+            </div>
+        </div>
+
+        <form method="POST" action="">
+            <input type="hidden" name="action" value="save_settings">
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">SMTP Host</label>
+                    <input type="text" name="smtp_host" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('smtp_host')) ?>" required>
+                    <small class="text-muted">e.g., smtp-relay.brevo.com</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">SMTP Port</label>
+                    <input type="number" name="smtp_port" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('smtp_port')) ?>" required>
+                    <small class="text-muted">587 (TLS) or 465 (SSL)</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">SMTP Username</label>
+                    <input type="text" name="smtp_username" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('smtp_username')) ?>" required>
+                    <small class="text-muted">Your SMTP login</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">SMTP Password</label>
+                    <input type="password" name="smtp_password" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('smtp_password')) ?>" required>
+                    <small class="text-muted">SMTP key or app password</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Encryption</label>
+                    <select name="smtp_encryption" class="form-select">
+                        <option value="tls" <?= getSetting('smtp_encryption') === 'tls' ? 'selected' : '' ?>>TLS (Recommended)</option>
+                        <option value="ssl" <?= getSetting('smtp_encryption') === 'ssl' ? 'selected' : '' ?>>SSL</option>
+                        <option value="none" <?= getSetting('smtp_encryption') === 'none' ? 'selected' : '' ?>>None</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">From Email</label>
+                    <input type="email" name="from_email" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('from_email')) ?>" required>
+                    <small class="text-muted">Must be verified in your email provider</small>
+                </div>
+                
+                <div class="col-12 mb-3">
+                    <label class="form-label">From Name</label>
+                    <input type="text" name="from_name" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('from_name')) ?>" required>
+                    <small class="text-muted">Display name for outgoing emails</small>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>
+                    Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Email Testing -->
+    <div class="config-section">
+        <div class="section-header">
+            <div class="section-icon success">
+                <i class="fas fa-paper-plane"></i>
+            </div>
+            <div>
+                <h2 class="section-title">Email Delivery Testing</h2>
+                <p class="section-description">Test your email configuration with comprehensive diagnostics</p>
+            </div>
+        </div>
+
+        <form method="POST" action="">
+            <input type="hidden" name="action" value="test_email">
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Test Email Address</label>
+                    <input type="email" name="test_email" class="form-control" 
+                           placeholder="Enter email to receive test" required>
+                    <small class="text-muted">Where should we send the test email?</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">From Email</label>
+                    <input type="email" name="test_from_email" class="form-control" 
+                           value="<?= htmlspecialchars(getSetting('from_email')) ?>" required>
+                    <small class="text-muted">Must be verified in your email provider</small>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Send Test Email
+                </button>
+                <a href="test-your-brevo.php" class="btn btn-outline-primary">
+                    <i class="fas fa-tools me-2"></i>
+                    Simple Test Tool
+                </a>
+            </div>
+        </form>
+
+        <?php if ($testResult): ?>
+            <div class="test-result <?= $testResult['success'] ? 'success' : 'error' ?>">
+                <h5><?= $testResult['success'] ? '✅ Email Test Result: SUCCESS' : '❌ Email Test Result: FAILED' ?></h5>
+                <?php if ($testResult['success']): ?>
+                    <p><strong>✅ Email delivered successfully!</strong></p>
+                    <p><strong>📧 Recipient:</strong> <?= htmlspecialchars($testResult['recipient']) ?></p>
+                    <p><strong>⏱️ Delivery Time:</strong> <?= $testResult['delivery_time'] ?>ms</p>
+                    <hr>
+                <?php endif; ?>
+                <strong>📊 Detailed Report:</strong>
+                <?= htmlspecialchars($testResult['message']) ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         // Auto-dismiss alerts after 5 seconds
@@ -810,21 +900,6 @@ function testEmailDelivery($test_email, $from_email) {
                 }
             });
         }, 5000);
-        
-        // Smooth scroll for form submissions
-        document.addEventListener('DOMContentLoaded', function() {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                form.addEventListener('submit', function() {
-                    setTimeout(() => {
-                        window.scrollTo({
-                            top: 0,
-                            behavior: 'smooth'
-                        });
-                    }, 100);
-                });
-            });
-        });
     </script>
 </body>
 </html>

@@ -909,19 +909,12 @@ body.no-scroll {
         <!-- Communication -->
         <div class="nav-section">
             <div class="nav-section-title">Communication</div>
-            <a href="email-notifications.php" class="nav-item <?php echo ($current_page === 'email-notifications.php') ? 'active' : ''; ?>">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
-                </svg>
-                <span class="nav-text">Email & Notifications</span>
-            </a>
             <a href="notifications.php" class="nav-item <?php echo ($current_page === 'notifications.php') ? 'active' : ''; ?>">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span class="nav-text">View Notifications</span>
+                <span class="nav-text">Notifications</span>
             </a>
         </div>
         
@@ -994,7 +987,6 @@ body.no-scroll {
                     'reports.php' => t('navigation.reports'),
                     'profile.php' => t('navigation.profile'),
                     'notifications.php' => t('navigation.notifications'),
-                    'email-notifications.php' => 'Email & Notifications',
                     'rules.php' => t('navigation.rules'),
                     'settings.php' => t('navigation.settings')
                 ];
