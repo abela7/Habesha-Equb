@@ -30,6 +30,17 @@ function checkRememberedDevice() {
         require_once __DIR__ . '/../../includes/db.php';
         $database = isset($pdo) ? $pdo : $db;
         
+        // Check if device_tracking has device_token column first
+        $check_stmt = $database->prepare("SHOW COLUMNS FROM device_tracking LIKE 'device_token'");
+        $check_stmt->execute();
+        $has_device_token = $check_stmt->fetch();
+        
+        if (!$has_device_token) {
+            // Database not updated, remove invalid cookie and skip check
+            setcookie('device_token', '', time() - 3600, '/', '', true, true);
+            return false;
+        }
+        
         // Check if device token is valid and not expired
         $stmt = $database->prepare("
             SELECT dt.email, m.id, m.member_id, m.first_name, m.last_name, m.email as member_email

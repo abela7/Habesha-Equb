@@ -1,12 +1,42 @@
 <?php
 /**
- * SUPER SIMPLE AUTH - Just to get registration working
+ * ENHANCED AUTH - OTP Login System with Better Error Reporting
  */
 
-// Prevent any HTML output
+// Enhanced error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
+
+// Global error handler to ensure JSON output
+set_error_handler(function($severity, $message, $file, $line) {
+    error_log("PHP Error: $message in $file:$line");
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(500);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Server error: ' . $message,
+            'debug' => ['file' => basename($file), 'line' => $line]
+        ]);
+        exit;
+    }
+});
+
+// Global exception handler
+set_exception_handler(function($exception) {
+    error_log("PHP Exception: " . $exception->getMessage());
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(500);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Server exception: ' . $exception->getMessage(),
+            'debug' => ['file' => basename($exception->getFile()), 'line' => $exception->getLine()]
+        ]);
+        exit;
+    }
+});
 
 // Set JSON header
 header('Content-Type: application/json; charset=utf-8');
@@ -23,19 +53,30 @@ try {
     
     // Check database connection
     if (!isset($pdo) && !isset($db)) {
-        throw new Exception('Database not connected');
+        throw new Exception('Database variables not found - check includes/db.php');
     }
     
     $database = isset($pdo) ? $pdo : $db;
     
-    // Test database
-    $test = $database->query("SELECT 1")->fetch();
-    if (!$test) {
-        throw new Exception('Database test failed');
+    // Test database with more detailed error info
+    $test = $database->query("SELECT 1 as test")->fetch();
+    if (!$test || $test['test'] !== 1) {
+        throw new Exception('Database query test failed - connection may be broken');
+    }
+    
+    // Test if members table exists
+    $members_test = $database->query("SHOW TABLES LIKE 'members'")->fetch();
+    if (!$members_test) {
+        throw new Exception('Members table not found - database may not be imported');
     }
     
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    error_log("Database connection error: " . $e->getMessage());
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Database connection failed: ' . $e->getMessage(),
+        'debug' => ['action' => 'database_check']
+    ]);
     exit;
 }
 
@@ -350,33 +391,57 @@ function handle_otp_verification($database) {
         $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['member_id'] = $user['member_id'];
         
-        // Handle device remembering (7 days)
+        // Handle device remembering (7 days) - with fallback for missing columns
         if ($remember_device) {
-            $device_token = bin2hex(random_bytes(32));
-            $expires_at = date('Y-m-d H:i:s', strtotime('+7 days'));
-            
             try {
-                $stmt = $database->prepare("
-                    INSERT INTO device_tracking (email, device_fingerprint, device_token, expires_at, user_agent, ip_address, created_at, last_seen) 
-                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
-                    ON DUPLICATE KEY UPDATE 
-                    device_token = VALUES(device_token), 
-                    expires_at = VALUES(expires_at), 
-                    last_seen = NOW()
-                ");
+                // Check if device_tracking table has the new columns
+                $check_stmt = $database->prepare("SHOW COLUMNS FROM device_tracking LIKE 'device_token'");
+                $check_stmt->execute();
+                $has_device_token = $check_stmt->fetch();
                 
-                $device_fp = 'dv_' . substr(md5($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'), 0, 16);
-                $stmt->execute([
-                    $user['email'],
-                    $device_fp,
-                    $device_token,
-                    $expires_at,
-                    $_SERVER['HTTP_USER_AGENT'] ?? '',
-                    $_SERVER['REMOTE_ADDR'] ?? ''
-                ]);
-                
-                // Set device cookie
-                setcookie('device_token', $device_token, strtotime('+7 days'), '/', '', true, true);
+                if ($has_device_token) {
+                    // New version with device tokens
+                    $device_token = bin2hex(random_bytes(32));
+                    $expires_at = date('Y-m-d H:i:s', strtotime('+7 days'));
+                    
+                    $stmt = $database->prepare("
+                        INSERT INTO device_tracking (email, device_fingerprint, device_token, expires_at, user_agent, ip_address, created_at, last_seen) 
+                        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        ON DUPLICATE KEY UPDATE 
+                        device_token = VALUES(device_token), 
+                        expires_at = VALUES(expires_at), 
+                        last_seen = NOW()
+                    ");
+                    
+                    $device_fp = 'dv_' . substr(md5($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'), 0, 16);
+                    $stmt->execute([
+                        $user['email'],
+                        $device_fp,
+                        $device_token,
+                        $expires_at,
+                        $_SERVER['HTTP_USER_AGENT'] ?? '',
+                        $_SERVER['REMOTE_ADDR'] ?? ''
+                    ]);
+                    
+                    // Set device cookie
+                    setcookie('device_token', $device_token, strtotime('+7 days'), '/', '', true, true);
+                } else {
+                    // Fallback to basic device tracking (old version)
+                    $device_fp = 'dv_' . substr(md5($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'), 0, 16);
+                    $stmt = $database->prepare("
+                        INSERT INTO device_tracking (email, device_fingerprint, user_agent, ip_address, created_at, last_seen) 
+                        VALUES (?, ?, ?, ?, NOW(), NOW())
+                        ON DUPLICATE KEY UPDATE last_seen = NOW()
+                    ");
+                    $stmt->execute([
+                        $user['email'],
+                        $device_fp,
+                        $_SERVER['HTTP_USER_AGENT'] ?? '',
+                        $_SERVER['REMOTE_ADDR'] ?? ''
+                    ]);
+                    
+                    error_log("Device remembering disabled: database not updated. Run database_device_update.sql");
+                }
                 
             } catch (Exception $e) {
                 error_log("Device tracking error: " . $e->getMessage());

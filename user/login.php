@@ -1056,6 +1056,21 @@ if (isset($_GET['msg'])) {
                         body: formData
                     });
                     
+                    if (!response.ok) {
+                        let errorText = `HTTP ${response.status}: ${response.statusText}`;
+                        try {
+                            const errorData = await response.text();
+                            if (errorData.trim().startsWith('{')) {
+                                const errorJson = JSON.parse(errorData);
+                                errorText = errorJson.message || errorText;
+                            } else {
+                                errorText += ' - Server returned HTML error page (check server logs)';
+                                console.log('Server HTML response:', errorData.substring(0, 500));
+                            }
+                        } catch (e) {}
+                        throw new Error(errorText);
+                    }
+                    
                     const result = await response.json();
                     
                     if (result.success) {
@@ -1078,7 +1093,15 @@ if (isset($_GET['msg'])) {
                     }
                 } catch (error) {
                     console.error('OTP request error:', error);
-                    this.showAlert('error', '<?php echo t('user_auth.network_error'); ?>');
+                    let errorMessage = 'Unknown error occurred';
+                    if (error.name === 'SyntaxError') {
+                        errorMessage = 'Server returned invalid response (likely 500 error). Check server logs for PHP errors.';
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    } else {
+                        errorMessage = 'Network connection failed. Check your internet connection.';
+                    }
+                    this.showAlert('error', '❌ Login failed: ' + errorMessage);
                 } finally {
                     this.setButtonLoading(submitBtn, false);
                 }
