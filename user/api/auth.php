@@ -391,6 +391,13 @@ function handle_otp_verification($database) {
         $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['member_id'] = $user['member_id'];
         
+        // Force session write to ensure it's saved before redirect
+        session_write_close();
+        session_start(); // Restart session for any remaining operations
+        
+        // Debug logging
+        error_log("OTP Login Success - User ID: {$user['id']}, Email: {$user['email']}, Rules Agreed: {$user['rules_agreed']}");
+        
         // Handle device remembering (7 days) - with fallback for missing columns
         if ($remember_device) {
             try {

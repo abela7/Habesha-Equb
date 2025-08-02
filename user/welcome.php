@@ -14,6 +14,7 @@ require_once __DIR__ . '/../includes/db.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_logged_in']) || !$_SESSION['user_logged_in']) {
+    error_log("Welcome.php - Session check failed. user_id: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set') . ", user_logged_in: " . (isset($_SESSION['user_logged_in']) ? $_SESSION['user_logged_in'] : 'not set'));
     header('Location: login.php');
     exit;
 }
@@ -30,14 +31,19 @@ $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
+    error_log("Welcome.php - User not found in database for user_id: $user_id");
     header('Location: login.php?msg=' . urlencode('User not found'));
     exit;
 }
 
 if (!$user['is_approved']) {
+    error_log("Welcome.php - User not approved. user_id: $user_id, is_approved: {$user['is_approved']}");
     header('Location: login.php?msg=' . urlencode('Your account is pending approval'));
     exit;
 }
+
+// Debug: Log successful welcome page load
+error_log("Welcome.php - Successfully loaded for user: {$user['first_name']} {$user['last_name']} (ID: $user_id), rules_agreed: {$user['rules_agreed']}");
 
 // If user has already agreed to rules, redirect to dashboard
 if ($user['rules_agreed'] == 1) {
