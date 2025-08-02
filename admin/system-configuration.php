@@ -650,10 +650,7 @@ $default_categories = [
                 <i class="fas fa-user-cog me-2"></i>
                 Preferences
             </button>
-            <button class="category-tab" onclick="showCategory('email')">
-                <i class="fas fa-envelope me-2"></i>
-                Email Config
-            </button>
+
             <button class="category-tab" onclick="showCategory('currency')">
                 <i class="fas fa-dollar-sign me-2"></i>
                 Currency
@@ -854,164 +851,7 @@ $default_categories = [
             </div>
         </div>
 
-        <!-- Email Configuration -->
-        <div class="config-section" id="email-section">
-            <div class="section-header">
-                <h3 class="section-title">
-                    <i class="fas fa-envelope"></i>
-                    Email Configuration
-                </h3>
-                <p class="section-description">Email server settings and notification preferences</p>
-                <!-- Brevo Quick Setup Guide -->
-                <div class="alert alert-info border-0 shadow-sm mb-4">
-                    <div class="d-flex align-items-start">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-info-circle fa-2x text-primary"></i>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="alert-heading mb-2">
-                                <i class="fas fa-rocket"></i>
-                                Brevo SMTP Setup (Recommended)
-                            </h6>
-                            <p class="mb-2"><strong>Quick Configuration for Brevo:</strong></p>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul class="list-unstyled mb-0">
-                                        <li><strong>SMTP Host:</strong> <code>smtp-relay.brevo.com</code></li>
-                                        <li><strong>SMTP Port:</strong> <code>587</code></li>
-                                        <li><strong>Encryption:</strong> <code>TLS</code></li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <ul class="list-unstyled mb-0">
-                                        <li><strong>Username:</strong> Your Brevo login email</li>
-                                        <li><strong>Password:</strong> Your Brevo SMTP Key</li>
-                                        <li><strong>From Email:</strong> Verified sender in Brevo</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <small class="text-muted mt-2 d-block">
-                                <i class="fas fa-external-link-alt"></i>
-                                Get your SMTP Key: Brevo Dashboard → SMTP & API → SMTP → SMTP Key
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="section-content">
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">SMTP Host</div>
-                        <div class="setting-description">SMTP server hostname</div>
-                    </div>
-                    <div class="setting-control">
-                        <input type="text" class="form-control" name="smtp_host" value="<?php echo htmlspecialchars(getSetting('smtp_host')); ?>" placeholder="smtp-relay.brevo.com" data-category="email">
-                    </div>
-                </div>
 
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">SMTP Port</div>
-                        <div class="setting-description">SMTP server port (587 for TLS, 465 for SSL)</div>
-                    </div>
-                    <div class="setting-control">
-                        <input type="number" class="form-control" name="smtp_port" value="<?php echo htmlspecialchars(getSetting('smtp_port', '587')); ?>" data-category="email">
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">From Email</div>
-                        <div class="setting-description">Email address used as sender for system emails</div>
-                    </div>
-                    <div class="setting-control">
-                        <input type="email" class="form-control" name="from_email" value="<?php echo htmlspecialchars(getSetting('from_email')); ?>" placeholder="noreply@habeshaequb.com" data-category="email">
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">From Name</div>
-                        <div class="setting-description">Name displayed as sender for system emails</div>
-                    </div>
-                    <div class="setting-control">
-                        <input type="text" class="form-control" name="from_name" value="<?php echo htmlspecialchars(getSetting('from_name', 'HabeshaEqub System')); ?>" data-category="email">
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">SMTP Authentication</div>
-                        <div class="setting-description">Enable SMTP authentication (recommended)</div>
-                    </div>
-                    <div class="setting-control">
-                        <select class="form-select" name="smtp_auth" data-category="email">
-                            <option value="1" <?php echo getSetting('smtp_auth', '1') === '1' ? 'selected' : ''; ?>>Enabled (Recommended)</option>
-                            <option value="0" <?php echo getSetting('smtp_auth', '1') === '0' ? 'selected' : ''; ?>>Disabled</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">SMTP Username</div>
-                        <div class="setting-description">SMTP authentication username (usually your email)</div>
-                    </div>
-                    <div class="setting-control">
-                        <input type="email" class="form-control" name="smtp_username" value="<?php echo htmlspecialchars(getSetting('smtp_username')); ?>" placeholder="your-brevo-login-email@domain.com" data-category="email">
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">SMTP Password</div>
-                        <div class="setting-description">SMTP authentication password (use app-specific password for Gmail)</div>
-                    </div>
-                    <div class="setting-control">
-                        <input type="password" class="form-control" name="smtp_password" value="<?php echo htmlspecialchars(getSetting('smtp_password')); ?>" placeholder="Enter your Brevo SMTP Key" data-category="email">
-                        <small class="form-text text-muted">
-                            <i class="fas fa-key text-primary"></i>
-                            <strong>Use your Brevo SMTP Key</strong> (not your account password) - Find it in Brevo Dashboard → SMTP & API → SMTP
-                        </small>
-                    </div>
-                </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <div class="setting-label">SMTP Encryption</div>
-                        <div class="setting-description">SMTP encryption method (TLS recommended for port 587)</div>
-                    </div>
-                    <div class="setting-control">
-                        <select class="form-select" name="smtp_encryption" data-category="email">
-                            <option value="tls" <?php echo getSetting('smtp_encryption', 'tls') === 'tls' ? 'selected' : ''; ?>>TLS (Port 587 - Recommended)</option>
-                            <option value="ssl" <?php echo getSetting('smtp_encryption', 'tls') === 'ssl' ? 'selected' : ''; ?>>SSL (Port 465)</option>
-                            <option value="none" <?php echo getSetting('smtp_encryption', 'tls') === 'none' ? 'selected' : ''; ?>>None (Not recommended)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Email Test Section -->
-                <div class="setting-item border-top pt-3 mt-3">
-                    <div class="setting-info">
-                        <div class="setting-label">
-                            <i class="fas fa-paper-plane text-success"></i>
-                            Test Email Configuration
-                        </div>
-                        <div class="setting-description">Send a test email to verify your SMTP settings</div>
-                    </div>
-                    <div class="setting-control">
-                        <div class="input-group">
-                            <input type="email" class="form-control" id="test-email" placeholder="Enter test email address" value="<?php echo htmlspecialchars(getSetting('from_email')); ?>">
-                            <button class="btn btn-outline-success" type="button" id="send-test-email">
-                                <i class="fas fa-paper-plane"></i>
-                                Send Test Email
-                            </button>
-                        </div>
-                        <div id="test-email-result" class="mt-2"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Currency Settings -->
         <div class="config-section" id="currency-section">
@@ -1176,11 +1016,7 @@ $default_categories = [
                 });
             });
             
-            // Add test email button event listener
-            const testEmailBtn = document.getElementById('send-test-email');
-            if (testEmailBtn) {
-                testEmailBtn.addEventListener('click', sendTestEmail);
-            }
+
         });
 
         function showCategory(category) {
@@ -1365,76 +1201,7 @@ $default_categories = [
             });
         }
 
-        function sendTestEmail() {
-            const testEmailInput = document.getElementById('test-email');
-            const testButton = document.getElementById('send-test-email');
-            const resultDiv = document.getElementById('test-email-result');
-            
-            const testEmail = testEmailInput.value.trim();
-            if (!testEmail) {
-                showNotification('Please enter a test email address', 'error');
-                return;
-            }
-            
-            // Disable button and show loading
-            testButton.disabled = true;
-            testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-            resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Testing email configuration...</div>';
-            
-            // Get current SMTP settings from form
-            const formData = new FormData();
-            formData.append('action', 'test_email');
-            formData.append('test_email', testEmail);
-            
-            // Add current form values
-            const inputs = document.querySelectorAll('[data-category="email"]');
-            inputs.forEach(input => {
-                formData.append(input.name, input.value);
-            });
-            
-            fetch('api/test-email.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle"></i>
-                            <strong>Test email sent successfully!</strong><br>
-                            <small class="text-muted">Check ${testEmail} for the test message.</small>
-                        </div>
-                    `;
-                    showNotification('Test email sent successfully!', 'success');
-                } else {
-                    resultDiv.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Test email failed:</strong><br>
-                            <small>${data.message}</small>
-                        </div>
-                    `;
-                    showNotification('Test email failed: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                resultDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Error sending test email</strong><br>
-                        <small>Please check your settings and try again.</small>
-                    </div>
-                `;
-                showNotification('Error sending test email', 'error');
-            })
-            .finally(() => {
-                // Re-enable button
-                testButton.disabled = false;
-                testButton.innerHTML = '<i class="fas fa-paper-plane"></i> Send Test Email';
-            });
-        }
+
 
         function showNotification(message, type) {
             // Create notification element

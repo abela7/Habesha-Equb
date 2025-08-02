@@ -36,20 +36,7 @@ try {
 
 function getSetting($key, $default = '') {
     global $current_settings;
-    
-    // Use working Brevo settings as defaults
-    $brevo_defaults = [
-        'smtp_host' => 'smtp-relay.brevo.com',
-        'smtp_port' => '587',
-        'smtp_username' => '92bed1001@smtp-brevo.com',
-        'smtp_password' => '8VgfHCdmsZX0whkx',
-        'smtp_encryption' => 'tls',
-        'smtp_auth' => '1',
-        'from_name' => 'HabeshaEqub System',
-        'from_email' => 'admin@habeshaequb.com'
-    ];
-    
-    return $current_settings[$key] ?? $brevo_defaults[$key] ?? $default;
+    return $current_settings[$key] ?? $default;
 }
 
 $message = '';
