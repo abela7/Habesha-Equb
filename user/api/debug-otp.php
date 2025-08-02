@@ -88,6 +88,22 @@ CREATE TABLE user_otps (
         </pre>";
     }
     
+    echo "<h2>🚨 SCHEMA PROBLEM DETECTED!</h2>";
+    echo "<p><strong style='color: red;'>The otp_type column is an ENUM that doesn't allow 'otp_login'!</strong></p>";
+    echo "<p><strong style='color: red;'>That's why all Type fields are EMPTY and verification fails!</strong></p>";
+    
+    echo "<h3>🔧 IMMEDIATE FIX REQUIRED:</h3>";
+    echo "<p>Copy and paste this SQL into phpMyAdmin:</p>";
+    echo "<pre style='background: #f0f0f0; padding: 10px; border: 1px solid #ccc;'>
+-- FIX OTP TABLE SCHEMA
+ALTER TABLE user_otps MODIFY COLUMN otp_type 
+ENUM('email_verification','login','otp_login') NOT NULL DEFAULT 'email_verification';
+
+ALTER TABLE user_otps MODIFY COLUMN otp_code VARCHAR(10) NOT NULL;
+
+DELETE FROM user_otps;
+    </pre>";
+    
     echo "<h2>📋 Test EmailService</h2>";
     require_once __DIR__ . '/../../includes/email/EmailService.php';
     $emailService = new EmailService($database);
@@ -101,13 +117,19 @@ CREATE TABLE user_otps (
     if ($user) {
         echo "Test user: {$user['email']}<br>";
         
-        // Generate OTP
-        $otp = $emailService->generateOTP($user['id'], $user['email'], 'test_otp');
-        echo "Generated OTP: <strong>$otp</strong><br>";
-        
-        // Try to verify immediately
-        $verify_result = $emailService->verifyOTP($user['email'], $otp, 'test_otp');
-        echo "Verify result: " . ($verify_result ? "✅ SUCCESS" : "❌ FAILED") . "<br>";
+        // Generate OTP with otp_login type
+        echo "<h3>Testing with 'otp_login' type:</h3>";
+        try {
+            $otp = $emailService->generateOTP($user['id'], $user['email'], 'otp_login');
+            echo "Generated OTP: <strong>$otp</strong><br>";
+            
+            // Try to verify immediately
+            $verify_result = $emailService->verifyOTP($user['email'], $otp, 'otp_login');
+            echo "Verify result: " . ($verify_result ? "✅ SUCCESS" : "❌ FAILED") . "<br>";
+        } catch (Exception $e) {
+            echo "❌ Error: " . $e->getMessage() . "<br>";
+            echo "<p><strong>This confirms the ENUM problem - fix the schema first!</strong></p>";
+        }
         
     } else {
         echo "❌ No test user found<br>";
