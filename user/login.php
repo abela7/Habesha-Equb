@@ -20,6 +20,13 @@ header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
 define('SKIP_AUTH_CHECK', true);
 require_once 'includes/auth_guard.php';
 
+// Check for remembered device - auto login if valid
+require_once 'includes/device_auth.php';
+if (checkRememberedDevice()) {
+    header('Location: dashboard.php');
+    exit;
+}
+
 // Handle language switching
 if (isset($_POST['language'])) {
     setLanguage($_POST['language']);
@@ -864,34 +871,21 @@ if (isset($_GET['msg'])) {
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="login_password">
-                            <i class="fas fa-lock"></i>
-                            <?php echo t('user_auth.password'); ?>
-                        </label>
-                        <div class="password-input-wrapper">
-                            <input 
-                                type="password" 
-                                id="login_password" 
-                                name="password" 
-                                class="form-control has-toggle" 
-                                placeholder="<?php echo t('user_auth.password_placeholder'); ?>"
-                                autocomplete="current-password"
-                                required
-                            >
-                            <button type="button" class="password-toggle" onclick="togglePassword('login_password', this)">
-                                <i class="fas fa-eye"></i>
-                            </button>
+                        <div class="security-notice" style="background-color: rgba(218, 165, 32, 0.1); border: 1px solid rgba(218, 165, 32, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; color: #DAA520;">
+                                <i class="fas fa-shield-alt"></i>
+                                <div>
+                                    <strong><?php echo t('user_auth.security_title'); ?></strong>
+                                    <p style="margin: 4px 0 0 0; font-size: 14px; color: #4D4052; line-height: 1.4;">
+                                        <?php echo t('user_auth.security_description'); ?>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="error-message" id="loginPasswordError"></div>
-                    </div>
-
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="remember_me" name="remember_me">
-                        <label for="remember_me"><?php echo t('user_auth.remember_me'); ?></label>
                     </div>
 
                     <button type="submit" class="btn-primary">
-                        <span class="btn-text"><?php echo t('user_auth.login_button'); ?></span>
+                        <span class="btn-text"><?php echo t('user_auth.send_code_button'); ?></span>
                     </button>
 
                     <div class="page-toggle">
@@ -1053,6 +1047,9 @@ if (isset($_GET['msg'])) {
                 this.setButtonLoading(submitBtn, true);
                 this.clearAllAlerts();
 
+                // Add action type for OTP request
+                formData.set('action', 'request_otp');
+
                 try {
                     const response = await fetch('api/auth.php', {
                         method: 'POST',
@@ -1062,12 +1059,13 @@ if (isset($_GET['msg'])) {
                     const result = await response.json();
                     
                     if (result.success) {
-                        this.showAlert('success', '<?php echo t('user_auth.login_success'); ?>');
+                        this.showAlert('success', result.message || '<?php echo t('user_auth.otp_sent'); ?>');
+                        // Redirect to OTP verification page
                         setTimeout(() => {
-                            window.location.href = result.redirect || 'dashboard.php';
-                        }, 1000);
+                            window.location.href = 'verify-otp.php?email=' + encodeURIComponent(formData.get('email'));
+                        }, 1500);
                     } else {
-                        this.showAlert('error', result.message || '<?php echo t('user_auth.login_error'); ?>');
+                        this.showAlert('error', result.message || '<?php echo t('user_auth.otp_error'); ?>');
                         if (result.field_errors) {
                             this.displayFieldErrors(result.field_errors, 'login');
                         }
@@ -1079,7 +1077,7 @@ if (isset($_GET['msg'])) {
                         }
                     }
                 } catch (error) {
-                    console.error('Login error:', error);
+                    console.error('OTP request error:', error);
                     this.showAlert('error', '<?php echo t('user_auth.network_error'); ?>');
                 } finally {
                     this.setButtonLoading(submitBtn, false);
@@ -1135,16 +1133,16 @@ if (isset($_GET['msg'])) {
 
             validateLoginForm(form) {
                 const email = form.querySelector('#login_email');
-                const password = form.querySelector('#login_password');
                 let isValid = true;
 
-                if (!this.validateEmail(email.value)) {
-                    this.showFieldError(email, '<?php echo t('user_auth.email_invalid'); ?>');
-                    isValid = false;
-                }
+                // Clear any previous errors
+                this.clearFieldError(email);
 
-                if (password.value.length < 6) {
-                    this.showFieldError(password, '<?php echo t('user_auth.password_min_length'); ?>');
+                if (!email.value.trim()) {
+                    this.showFieldError(email, '<?php echo t('user_auth.email_required'); ?>');
+                    isValid = false;
+                } else if (!this.validateEmail(email.value)) {
+                    this.showFieldError(email, '<?php echo t('user_auth.email_invalid'); ?>');
                     isValid = false;
                 }
 

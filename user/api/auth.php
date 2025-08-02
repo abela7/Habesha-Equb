@@ -89,10 +89,26 @@ function check_csrf($token) {
 // Handle the request
 $action = $_POST['action'] ?? '';
 
-if ($action !== 'register') {
-    echo json_encode(['success' => false, 'message' => 'Invalid action']);
-    exit;
+// Route to different handlers based on action
+switch ($action) {
+    case 'register':
+        handle_register($database);
+        break;
+    case 'request_otp':
+        handle_otp_request($database);
+        break;
+    case 'verify_otp':
+        handle_otp_verification($database);
+        break;
+    default:
+        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        exit;
 }
+
+/**
+ * Handle user registration
+ */
+function handle_register($database) {
 
 try {
     // Check CSRF
@@ -193,5 +209,194 @@ try {
 } catch (Exception $e) {
     error_log("Registration error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+}
+}
+
+/**
+ * Handle OTP request for login
+ */
+function handle_otp_request($database) {
+    try {
+        // Check CSRF
+        if (!check_csrf($_POST['csrf_token'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Security token invalid']);
+            exit;
+        }
+        
+        // Validate email
+        $email = validate_input($_POST['email'] ?? '', 'email');
+        if (!$email['valid']) {
+            echo json_encode(['success' => false, 'message' => $email['message']]);
+            exit;
+        }
+        
+        // Check if user exists and is approved
+        $stmt = $database->prepare("
+            SELECT id, first_name, last_name, email, is_approved, is_active 
+            FROM members 
+            WHERE email = ?
+        ");
+        $stmt->execute([$email['value']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'No account found with this email address. Please register first.']);
+            exit;
+        }
+        
+        if (!$user['is_approved']) {
+            echo json_encode(['success' => false, 'message' => 'Your account is pending approval. Please wait for admin approval.']);
+            exit;
+        }
+        
+        if (!$user['is_active']) {
+            echo json_encode(['success' => false, 'message' => 'Your account is inactive. Please contact support.']);
+            exit;
+        }
+        
+        // Include EmailService
+        require_once __DIR__ . '/../../includes/email/EmailService.php';
+        
+        // Generate and store OTP
+        $emailService = new EmailService();
+        $otp_code = $emailService->generateOTP($user['email']);
+        
+        // Send OTP email
+        $result = $emailService->send('otp_login', $user['email'], $user['first_name'], [
+            'first_name' => $user['first_name'],
+            'otp_code' => $otp_code
+        ]);
+        
+        if ($result['success']) {
+            // Store user ID in session for OTP verification
+            $_SESSION['otp_user_id'] = $user['id'];
+            $_SESSION['otp_email'] = $user['email'];
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Login code sent! Check your email for the verification code.'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to send login code. Please try again.'
+            ]);
+        }
+        
+    } catch (Exception $e) {
+        error_log("OTP request error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+    }
+}
+
+/**
+ * Handle OTP verification and login
+ */
+function handle_otp_verification($database) {
+    try {
+        // Check CSRF
+        if (!check_csrf($_POST['csrf_token'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Security token invalid']);
+            exit;
+        }
+        
+        // Validate inputs
+        $otp_code = $_POST['otp_code'] ?? '';
+        $remember_device = isset($_POST['remember_device']) && $_POST['remember_device'] === 'on';
+        
+        if (empty($otp_code)) {
+            echo json_encode(['success' => false, 'message' => 'Please enter the verification code']);
+            exit;
+        }
+        
+        // Check if we have OTP session data
+        if (!isset($_SESSION['otp_user_id']) || !isset($_SESSION['otp_email'])) {
+            echo json_encode(['success' => false, 'message' => 'Session expired. Please request a new code.']);
+            exit;
+        }
+        
+        // Include EmailService for OTP verification
+        require_once __DIR__ . '/../../includes/email/EmailService.php';
+        $emailService = new EmailService();
+        
+        // Verify OTP
+        if (!$emailService->verifyOTP($_SESSION['otp_email'], $otp_code)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired verification code']);
+            exit;
+        }
+        
+        // Get user details
+        $stmt = $database->prepare("
+            SELECT id, member_id, first_name, last_name, email 
+            FROM members 
+            WHERE id = ? AND email = ? AND is_approved = 1 AND is_active = 1
+        ");
+        $stmt->execute([$_SESSION['otp_user_id'], $_SESSION['otp_email']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'User not found or inactive']);
+            exit;
+        }
+        
+        // Update last login
+        $stmt = $database->prepare("UPDATE members SET last_login = NOW() WHERE id = ?");
+        $stmt->execute([$user['id']]);
+        
+        // Set up user session
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_logged_in'] = true;
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
+        $_SESSION['member_id'] = $user['member_id'];
+        
+        // Handle device remembering (7 days)
+        if ($remember_device) {
+            $device_token = bin2hex(random_bytes(32));
+            $expires_at = date('Y-m-d H:i:s', strtotime('+7 days'));
+            
+            try {
+                $stmt = $database->prepare("
+                    INSERT INTO device_tracking (email, device_fingerprint, device_token, expires_at, user_agent, ip_address, created_at, last_seen) 
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE 
+                    device_token = VALUES(device_token), 
+                    expires_at = VALUES(expires_at), 
+                    last_seen = NOW()
+                ");
+                
+                $device_fp = 'dv_' . substr(md5($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'), 0, 16);
+                $stmt->execute([
+                    $user['email'],
+                    $device_fp,
+                    $device_token,
+                    $expires_at,
+                    $_SERVER['HTTP_USER_AGENT'] ?? '',
+                    $_SERVER['REMOTE_ADDR'] ?? ''
+                ]);
+                
+                // Set device cookie
+                setcookie('device_token', $device_token, strtotime('+7 days'), '/', '', true, true);
+                
+            } catch (Exception $e) {
+                error_log("Device tracking error: " . $e->getMessage());
+                // Continue login even if device tracking fails
+            }
+        }
+        
+        // Clean up OTP session data
+        unset($_SESSION['otp_user_id']);
+        unset($_SESSION['otp_email']);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Login successful! Welcome back.',
+            'redirect' => 'dashboard.php'
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("OTP verification error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+    }
 }
 ?> 
