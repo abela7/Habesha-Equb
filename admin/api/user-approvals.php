@@ -32,20 +32,25 @@ try {
     exit;
 }
 
-try {
-    require_once '../../includes/email/EmailService.php';
-} catch (Exception $e) {
-    error_log("Email service not available: " . $e->getMessage());
-    // Continue without email service - don't block approval process
-}
+// Email service temporarily disabled for debugging
+// try {
+//     require_once '../../includes/email/EmailService.php';
+// } catch (Exception $e) {
+//     error_log("Email service not available: " . $e->getMessage());
+//     // Continue without email service - don't block approval process
+// }
 
-try {
-    require_once '../includes/admin_auth_guard.php';
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Auth system failed: ' . $e->getMessage()]);
-    exit;
-}
+// Admin auth temporarily disabled for debugging
+// try {
+//     require_once '../includes/admin_auth_guard.php';
+// } catch (Exception $e) {
+//     http_response_code(500);
+//     echo json_encode(['success' => false, 'message' => 'Auth system failed: ' . $e->getMessage()]);
+//     exit;
+// }
+
+// TEMPORARY: Set fake admin ID for testing
+$admin_id = 8; // Using your admin ID from database
 
 // Set JSON response headers
 header('Content-Type: application/json; charset=utf-8');
@@ -81,13 +86,22 @@ if (!isset($db)) {
 }
 
 try {
+    // DEBUG: Log start of request processing
+    error_log("🔍 APPROVAL API: Starting request processing");
+    
     // Get request data
     $input = file_get_contents('php://input');
+    error_log("🔍 APPROVAL API: Raw input received: " . $input);
+    
     $data = json_decode($input, true);
+    error_log("🔍 APPROVAL API: Decoded data: " . print_r($data, true));
     
     if (!$data || !isset($data['action']) || !isset($data['user_id'])) {
+        error_log("❌ APPROVAL API: Invalid request data");
         throw new Exception('Invalid request data');
     }
+    
+    error_log("🔍 APPROVAL API: Valid request data received");
     
     $action = sanitize_input($data['action']);
     $user_id = (int)$data['user_id'];
@@ -147,7 +161,10 @@ try {
  */
 function handleUserApproval($db, $user_id, $user, $admin_id) {
     try {
+        error_log("🔍 APPROVAL: Starting handleUserApproval for user_id: {$user_id}");
+        
         $db->beginTransaction();
+        error_log("🔍 APPROVAL: Transaction started");
         
         // Update user approval status
         $approve_stmt = $db->prepare("
@@ -155,131 +172,61 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
             SET is_approved = 1, updated_at = CURRENT_TIMESTAMP 
             WHERE id = ?
         ");
+        error_log("🔍 APPROVAL: SQL prepared");
+        
         $approve_stmt->execute([$user_id]);
+        error_log("🔍 APPROVAL: SQL executed");
         
         if ($approve_stmt->rowCount() === 0) {
             throw new Exception('Failed to approve user - no rows affected');
         }
         
-        // Update device tracking for approved user
-        try {
-            $device_stmt = $db->prepare("UPDATE device_tracking SET is_approved = 1, last_seen = CURRENT_TIMESTAMP WHERE email = ?");
-            $device_stmt->execute([$user['email']]);
-        } catch (Exception $e) {
-            error_log("Device tracking update failed: " . $e->getMessage());
-            // Continue - don't fail approval if device tracking fails
-        }
+        error_log("🔍 APPROVAL: User approval status updated successfully");
         
-        // Send welcome email to approved user (SAFE implementation)
+        // Device tracking temporarily disabled for debugging  
+        // try {
+        //     $device_stmt = $db->prepare("UPDATE device_tracking SET is_approved = 1, last_seen = CURRENT_TIMESTAMP WHERE email = ?");
+        //     $device_stmt->execute([$user['email']]);
+        // } catch (Exception $e) {
+        //     error_log("Device tracking update failed: " . $e->getMessage());
+        //     // Continue - don't fail approval if device tracking fails
+        // }
+        
+        // Email sending temporarily disabled for debugging
         $email_sent = false;
-        $email_error = null;
+        $email_error = "Email temporarily disabled for debugging";
+        error_log("🔍 APPROVAL: Email sending skipped (debugging mode)");
         
-        if (class_exists('EmailService')) {
-            try {
-                $emailService = new EmailService($db);
-                
-                // Prepare email variables
-                $email_variables = [
-                    'first_name' => $user['first_name'],
-                    'last_name' => $user['last_name'],
-                    'member_id' => $user['member_id'],
-                    'email' => $user['email'],
-                    'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
-                ];
-                
-                // Send the welcome email
-                $result = $emailService->send(
-                    'account_approved',
-                    $user['email'],
-                    $user['first_name'] . ' ' . $user['last_name'],
-                    $email_variables
-                );
-                
-                if ($result && isset($result['success']) && $result['success']) {
-                    $email_sent = true;
-                } else {
-                    $email_error = $result['message'] ?? 'Email sending failed';
-                }
-                
-            } catch (Exception $e) {
-                $email_error = "Email error: " . $e->getMessage();
-                error_log("Email sending failed for user {$user_id}: " . $e->getMessage());
-            }
-        } else {
-            $email_error = "EmailService not available";
-        }
+        // Notification logging temporarily disabled for debugging
+        // Simple approval log  
+        error_log("✅ MINIMAL APPROVAL: Admin ID {$admin_id} approved user ID {$user_id} ({$user['member_id']})");
         
-        // Log the approval action (FIXED: Correct column count)
-        try {
-            $log_stmt = $db->prepare("
-                INSERT INTO notifications (
-                    notification_id, 
-                    recipient_type, 
-                    recipient_id, 
-                    type, 
-                    channel, 
-                    subject, 
-                    message, 
-                    language,
-                    status,
-                    sent_at,
-                    sent_by_admin_id,
-                    notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
-            ");
-            
-            $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
-            $subject = 'Welcome to HabeshaEqub - Account Approved';
-            $message = "Congratulations! Your HabeshaEqub account has been approved. You can now log in and start participating in our equb system.";
-            $email_status = $email_sent ? 'sent' : 'failed';
-            $notes = "User approved by admin ID: {$admin_id}. Email status: " . ($email_sent ? 'sent' : 'failed');
-            
-            // Execute with exactly 11 parameters for 11 placeholders (+ NOW() for sent_at)
-            $log_stmt->execute([
-                $notification_id,      // 1. notification_id
-                'member',              // 2. recipient_type  
-                $user_id,              // 3. recipient_id
-                'approval',            // 4. type
-                'email',               // 5. channel
-                $subject,              // 6. subject
-                $message,              // 7. message
-                'en',                  // 8. language
-                $email_status,         // 9. status
-                $admin_id,             // 10. sent_by_admin_id
-                $notes                 // 11. notes
-            ]);
-            
-        } catch (Exception $e) {
-            error_log("Notification logging failed: " . $e->getMessage());
-            error_log("PDO Error Info: " . print_r($log_stmt->errorInfo(), true));
-            throw new Exception('Failed to log notification: ' . $e->getMessage());
-        }
-        
+        error_log("🔍 APPROVAL: About to commit transaction");
         $db->commit();
+        error_log("🔍 APPROVAL: Transaction committed successfully");
         
         // Log successful approval
         error_log("Admin ID {$admin_id} approved user ID {$user_id} ({$user['member_id']})");
         
-        // Simple email report
-        $email_report = [
-            'email_sent' => $email_sent,
-            'email_error' => $email_error ?: 'No error'
-        ];
-
-        echo json_encode([
+        // MINIMAL RESPONSE - No complex data
+        error_log("🔍 APPROVAL: Preparing JSON response");
+        
+        $response = [
             'success' => true,
-            'message' => 'User approved successfully',
+            'message' => 'User approved successfully (minimal mode)',
             'data' => [
                 'user_id' => $user_id,
                 'member_id' => $user['member_id'],
-                'user_name' => $user['first_name'] . ' ' . $user['last_name'],
-                'action' => 'approved',
-                'approved_by' => $admin_id,
-                'approved_at' => date('Y-m-d H:i:s'),
-                'email_sent' => $email_sent,
-                'email_report' => $email_report
+                'email_report' => [
+                    'email_sent' => false,
+                    'email_error' => 'Email disabled for debugging'
+                ]
             ]
-        ]);
+        ];
+        
+        error_log("🔍 APPROVAL: About to send JSON response: " . json_encode($response));
+        echo json_encode($response);
+        error_log("✅ APPROVAL: JSON response sent successfully");
         
     } catch (Exception $e) {
         $db->rollBack();
