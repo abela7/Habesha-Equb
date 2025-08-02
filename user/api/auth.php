@@ -366,9 +366,9 @@ function handle_otp_verification($database) {
             exit;
         }
         
-        // Get user details
+        // Get user details including rules_agreed for redirect logic
         $stmt = $database->prepare("
-            SELECT id, member_id, first_name, last_name, email 
+            SELECT id, member_id, first_name, last_name, email, rules_agreed 
             FROM members 
             WHERE id = ? AND email = ? AND is_approved = 1 AND is_active = 1
         ");
@@ -453,10 +453,22 @@ function handle_otp_verification($database) {
         unset($_SESSION['otp_user_id']);
         unset($_SESSION['otp_email']);
         
+        // Determine redirect based on rules agreement
+        if ($user['rules_agreed'] == 0) {
+            // First-time user - redirect to welcome page
+            $redirect_url = 'welcome.php';
+            $message = 'Login successful! Welcome to HabeshaEqub.';
+        } else {
+            // Returning user - redirect to dashboard
+            $redirect_url = 'dashboard.php';
+            $message = 'Login successful! Welcome back.';
+        }
+        
         echo json_encode([
             'success' => true,
-            'message' => 'Login successful! Welcome back.',
-            'redirect' => 'dashboard.php'
+            'message' => $message,
+            'redirect' => $redirect_url,
+            'first_time' => ($user['rules_agreed'] == 0)
         ]);
         
     } catch (Exception $e) {
