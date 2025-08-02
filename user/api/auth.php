@@ -4,16 +4,38 @@
  * Secure OTP-based email verification system
  */
 
-// Error handling
+// Start output buffering to catch any unwanted output
+ob_start();
+
+// Error handling - prevent HTML error output
 error_reporting(E_ALL);
-ini_set('display_errors', 1); // Set to 0 for production
+ini_set('display_errors', 0); // Always 0 for API
+ini_set('log_errors', 1);
+
+// Custom error handler for API
+set_error_handler(function($severity, $message, $file, $line) {
+    error_log("PHP Error: $message in $file on line $line");
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+    exit;
+});
+
+// Custom exception handler for API
+set_exception_handler(function($exception) {
+    error_log("PHP Exception: " . $exception->getMessage());
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+    exit;
+});
 
 try {
-require_once __DIR__ . '/../../includes/db.php';
+    require_once __DIR__ . '/../../includes/db.php';
     require_once __DIR__ . '/../../includes/email/EmailService.php';
-require_once __DIR__ . '/../../languages/translator.php';
+    require_once __DIR__ . '/../../languages/translator.php';
 } catch (Exception $e) {
     error_log("Auth API - Include error: " . $e->getMessage());
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'System configuration error']);
     exit;
 }
@@ -30,6 +52,8 @@ header('Cache-Control: no-cache, must-revalidate');
 // Check if required variables exist
 if (!isset($pdo) && !isset($db)) {
     error_log("Auth API - Database connection not available");
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Database connection error']);
     exit;
 }
@@ -39,6 +63,8 @@ try {
     $database_connection = isset($pdo) ? $pdo : $db;
     $stmt = $database_connection->query("SHOW TABLES LIKE 'user_otps'");
     if (!$stmt->fetch()) {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => false, 
             'message' => 'Database not updated for passwordless system. Please run the SQL updates first.'
@@ -47,6 +73,8 @@ try {
     }
 } catch (Exception $e) {
     error_log("Auth API - Database table check error: " . $e->getMessage());
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Database configuration error']);
     exit;
 }
@@ -242,6 +270,11 @@ function verify_csrf_token($token) {
  * Send JSON response
  */
 function send_json_response($success, $message, $data = []) {
+    // Clean any output buffer to ensure clean JSON
+    if (ob_get_length()) ob_clean();
+    
+    // Ensure clean JSON output
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(array_merge([
         'success' => $success,
         'message' => $message
@@ -256,6 +289,8 @@ try {
     $emailService = new EmailService($database_connection);
 } catch (Exception $e) {
     error_log("Auth API - EmailService initialization error: " . $e->getMessage());
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Email service configuration error']);
     exit;
 }
@@ -505,6 +540,8 @@ switch ($action) {
 
 } catch (Exception $e) {
     error_log("Auth API - Main handler error: " . $e->getMessage());
+    if (ob_get_length()) ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Server error occurred. Please try again.']);
 }
 ?> 

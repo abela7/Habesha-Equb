@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 02, 2025 at 02:25 AM
+-- Generation Time: Aug 02, 2025 at 06:02 AM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -71,6 +71,36 @@ INSERT INTO `device_tracking` (`id`, `email`, `device_fingerprint`, `user_agent`
 (1, 'abelgoytom77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 14:13:26', '2025-07-31 14:13:26', 0),
 (2, 'abeldemessie77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 16:03:51', '2025-07-31 16:03:51', 0),
 (3, 'barnabasdagnachew25@gmail.com', 'dv_f6b20ee8a35c5adb', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.73.40', '2025-08-01 19:46:47', '2025-08-01 19:46:47', 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `email_preferences`
+--
+
+CREATE TABLE `email_preferences` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `receives_notifications` tinyint(1) DEFAULT 1,
+  `receives_reminders` tinyint(1) DEFAULT 1,
+  `unsubscribe_token` varchar(64) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `email_rate_limits`
+--
+
+CREATE TABLE `email_rate_limits` (
+  `id` int(11) NOT NULL,
+  `email_address` varchar(255) NOT NULL,
+  `email_type` varchar(50) NOT NULL,
+  `sent_count` int(11) DEFAULT 1,
+  `last_sent_at` timestamp NULL DEFAULT current_timestamp(),
+  `reset_at` timestamp NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -166,7 +196,6 @@ CREATE TABLE `members` (
   `full_name` varchar(100) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `phone` varchar(20) NOT NULL,
-  `password` varchar(255) NOT NULL COMMENT '6 digit alphanumeric',
   `status` varchar(20) DEFAULT 'active',
   `monthly_payment` decimal(10,2) NOT NULL COMMENT 'Monthly contribution amount',
   `payout_position` int(3) NOT NULL COMMENT 'Position in payout rotation (1,2,3...)',
@@ -199,10 +228,10 @@ CREATE TABLE `members` (
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
-(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$RKQ13.MlF/rkiwSzi4BeDur7E2i4yYjKh3XGo7sqrNu/Ck3qwJB2G', 'active', 1000.00, 1, '2025-07-05', 1000.00, 1, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 0, 1, 1, '', '2025-07-31 14:13:25', '2025-08-01 01:57:04', 1, 1, 0),
-(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', '$2y$12$3M/vVlU4AjXQuAcp.mDVrel70F2k/OEiOHM6HQe9qISnT0zuv1Wki', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 21:36:27', 1, 1, 0),
-(3, NULL, 'HEM-BO1', 'barnabasdagnachew25', 'Barnabas', 'Olana', 'Barnabas Olana', 'barnabasdagnachew25@gmail.com', '07904762565', '$2y$12$5VQjZGrjbUzS3Vvoszb9N.do2P1//JRTcRLuVWtj/170CIv.wyFwW', 'active', 0.00, 7, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 0, '2025-08-01', NULL, 'both', 1, 0, 0, NULL, '2025-08-01 19:46:47', '2025-08-01 19:46:47', 1, 1, 0);
+INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
+(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 1000.00, 1, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 0, 1, 1, '', '2025-07-31 14:13:25', '2025-08-01 01:57:04', 1, 1, 0),
+(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 21:36:27', 1, 1, 0),
+(3, NULL, 'HEM-BO1', 'barnabasdagnachew25', 'Barnabas', 'Olana', 'Barnabas Olana', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 0.00, 7, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 0, '2025-08-01', NULL, 'both', 1, 0, 0, NULL, '2025-08-01 19:46:47', '2025-08-01 19:46:47', 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -245,7 +274,11 @@ CREATE TABLE `notifications` (
 INSERT INTO `notifications` (`id`, `notification_id`, `recipient_type`, `recipient_id`, `recipient_email`, `recipient_phone`, `type`, `channel`, `subject`, `message`, `language`, `status`, `sent_at`, `delivered_at`, `opened_at`, `clicked_at`, `sent_by_admin_id`, `email_provider_response`, `sms_provider_response`, `retry_count`, `scheduled_for`, `priority`, `notes`, `created_at`, `updated_at`) VALUES
 (1, 'NOT-202508-590', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:22:18', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:22:18', '2025-08-01 13:22:18'),
 (2, 'NOT-202508-496', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:22:48', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:22:48', '2025-08-01 13:22:48'),
-(3, 'NOT-202508-994', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:23:05', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:23:05', '2025-08-01 13:23:05');
+(3, 'NOT-202508-994', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:23:05', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:23:05', '2025-08-01 13:23:05'),
+(4, 'NOT-202508-538', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub Email Test', '🔍 Starting email delivery test...\n📧 Test email: abelgoytom77@gmail.com\n📤 From: Habesha-Equb   <admin@habeshaequb.com>\n🌐 SMTP:  smtp-relay.brevo.com:587\n\n🔗 Connecting to SMTP server...\n❌ Connection failed: php_network_getaddresses: getaddrinfo for  smtp-relay.brevo.com failed: Name or service not known (0)', 'en', 'failed', '2025-08-02 03:45:40', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email test failed: 🔍 Starting email delivery test...\n📧 Test email: abelgoytom77@gmail.com\n📤 From: Habesha-Equb   <admin@habeshaequb.com>\n🌐 SMTP:  smtp-relay.brevo.com:587\n\n🔗 Connecting to SMTP server...\n❌ Connection failed: php_network_getaddresses: getaddrinfo for  smtp-relay.brevo.com failed: Name or service not known (0)', '2025-08-02 03:45:40', '2025-08-02 03:45:40'),
+(5, 'NOT-202508-761', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub Email Test', '🔍 Starting email delivery test...\n📧 Test email: abelgoytom77@gmail.com\n📤 From: Habesha-Equb   <admin@habeshaequb.com>\n🌐 SMTP:  smtp-relay.brevo.com:587\n\n🔍 Checking DNS resolution...\n❌ DNS resolution failed for  smtp-relay.brevo.com\n🔧 Trying alternative connection method...\n❌ CURL connection failed: URL rejected: Malformed input to a URL function\n🔧 Trying alternative Brevo servers...\n✅ Alternative found: smtp-relay.sendinblue.com → 1.179.115.0\n\n🔗 Attempting socket connection...\n✅ Socket connection successful\n📨 Server welcome: 220 smtp-relay.brevo.com ESMTP Service Ready\n🤝 EHLO response: 250-Hello habeshaequb.com\n   Extension: 250-PIPELINING\n   Extension: 250-8BITMIME\n   Extension: 250-ENHANCEDSTATUSCODES\n   Extension: 250-CHUNKING\n   Extension: 250-STARTTLS\n   Extension: 250-AUTH PLAIN LOGIN CRAM-MD5\n   Extension: 250 SIZE 20971520\n🔐 Starting TLS encryption...\n🔒 STARTTLS response: 220 2.0.0 Ready to start TLS\n✅ TLS encryption enabled\n🔑 Authenticating...\n✅ Authentication successful\n📤 MAIL FROM: 250 2.0.0 Roger, accepting mail from <admin@habeshaequb.com>\n📨 RCPT TO: 250 2.0.0 I\'ll make sure <abelgoytom77@gmail.com> gets this\n📝 DATA: 354 Go ahead. End your data with <CR><LF>.<CR><LF>\n📮 Email sent: 250 2.0.0 OK: queued as <202508020358.47907466195@smtp-relay.sendinblue.com>\n\n🎉 EMAIL DELIVERED SUCCESSFULLY!\n⏱️ Total delivery time: 265.57ms\n📬 Check your inbox for the test email.', 'en', 'sent', '2025-08-02 03:58:54', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email test successful', '2025-08-02 03:58:54', '2025-08-02 03:58:54'),
+(6, 'NOT-202508-036', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub Email Test', '🔍 Starting email delivery test...\n📧 Test email: abelgoytom77@gmail.com\n📤 From: Habesha-Equb   <admin@habeshaequb.com>\n🌐 SMTP:  smtp-relay.brevo.com:587\n\n🔍 Checking DNS resolution...\n❌ DNS resolution failed for  smtp-relay.brevo.com\n🔧 Trying alternative connection method...\n❌ CURL connection failed: URL rejected: Malformed input to a URL function\n🔧 Trying alternative Brevo servers...\n✅ Alternative found: smtp-relay.sendinblue.com → 1.179.115.0\n\n🔗 Attempting socket connection...\n✅ Socket connection successful\n📨 Server welcome: 220 smtp-relay.brevo.com ESMTP Service Ready\n🤝 EHLO response: 250-Hello habeshaequb.com\n   Extension: 250-PIPELINING\n   Extension: 250-8BITMIME\n   Extension: 250-ENHANCEDSTATUSCODES\n   Extension: 250-CHUNKING\n   Extension: 250-STARTTLS\n   Extension: 250-AUTH PLAIN LOGIN CRAM-MD5\n   Extension: 250 SIZE 20971520\n🔐 Starting TLS encryption...\n🔒 STARTTLS response: 220 2.0.0 Ready to start TLS\n✅ TLS encryption enabled\n🔑 Authenticating...\n✅ Authentication successful\n📤 MAIL FROM: 250 2.0.0 Roger, accepting mail from <admin@habeshaequb.com>\n📨 RCPT TO: 250 2.0.0 I\'ll make sure <abelgoytom77@gmail.com> gets this\n📝 DATA: 354 Go ahead. End your data with <CR><LF>.<CR><LF>\n📮 Email sent: 250 2.0.0 OK: queued as <202508020409.57302070127@smtp-relay.sendinblue.com>\n\n🎉 EMAIL DELIVERED SUCCESSFULLY!\n⏱️ Total delivery time: 297.89ms\n📬 Check your inbox for the test email.', 'en', 'sent', '2025-08-02 04:09:19', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email test successful', '2025-08-02 04:09:19', '2025-08-02 04:09:19'),
+(7, 'NOT-202508-353', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub Email Test', '🔍 Starting email delivery test...\n📧 Test email: abelgoytom77@gmail.com\n📤 From: Habesha Equb <admin@habeshaequb.com>\n🌐 SMTP: smtp-relay.brevo.com:587\n\n🔍 Checking DNS resolution...\n✅ DNS resolved: smtp-relay.brevo.com → 1.179.115.1\n\n🔗 Attempting socket connection...\n✅ Socket connection successful\n📨 Server welcome: 220 smtp-relay.brevo.com ESMTP Service Ready\n🤝 EHLO response: 250-Hello habeshaequb.com\n   Extension: 250-PIPELINING\n   Extension: 250-8BITMIME\n   Extension: 250-ENHANCEDSTATUSCODES\n   Extension: 250-CHUNKING\n   Extension: 250-STARTTLS\n   Extension: 250-AUTH PLAIN LOGIN CRAM-MD5\n   Extension: 250 SIZE 20971520\n🔐 Starting TLS encryption...\n🔒 STARTTLS response: 220 2.0.0 Ready to start TLS\n✅ TLS encryption enabled\n🔑 Authenticating...\n✅ Authentication successful\n📤 MAIL FROM: 250 2.0.0 Roger, accepting mail from <admin@habeshaequb.com>\n📨 RCPT TO: 250 2.0.0 I\'ll make sure <abelgoytom77@gmail.com> gets this\n📝 DATA: 354 Go ahead. End your data with <CR><LF>.<CR><LF>\n📮 Email sent: 250 2.0.0 OK: queued as <202508020410.85138954410@smtp-relay.sendinblue.com>\n\n🎉 EMAIL DELIVERED SUCCESSFULLY!\n⏱️ Total delivery time: 257.48ms\n📬 Check your inbox for the test email.', 'en', 'sent', '2025-08-02 04:10:05', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email test successful', '2025-08-02 04:10:05', '2025-08-02 04:10:05');
 
 -- --------------------------------------------------------
 
@@ -335,30 +368,48 @@ CREATE TABLE `system_settings` (
 --
 
 INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_category`, `setting_type`, `setting_description`, `created_at`, `updated_at`) VALUES
-(1, 'app_name', 'HabeshaEqub', 'general', 'text', 'The name of your application shown throughout the system', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(2, 'app_description', 'Ethiopian traditional savings group management system', 'general', 'text', 'Brief description of your equb application', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(3, 'maintenance_mode', '0', 'general', 'boolean', 'Enable to put the system in maintenance mode', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(4, 'session_timeout', '60', 'general', 'select', 'User session timeout in minutes', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(5, 'default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(6, 'default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(7, 'default_language', 'en', 'defaults', 'select', 'Default language for new users', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(8, 'auto_activate_members', '0', 'defaults', 'boolean', 'Automatically activate new member registrations', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(9, 'date_format', 'm/d/Y', 'preferences', 'select', 'How dates are displayed throughout the system', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(10, 'timezone', 'UTC', 'preferences', 'select', 'System timezone for all date/time operations', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(11, 'items_per_page', '25', 'preferences', 'select', 'Number of items to show per page in lists', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(12, 'enable_notifications', '0', 'preferences', 'boolean', 'Enable system notifications for users', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(13, 'smtp_host', 'mail.habeshaequb.com', 'email', 'text', 'SMTP server hostname', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(14, 'smtp_port', '465', 'email', 'number', 'SMTP server port (587 for TLS, 465 for SSL)', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(15, 'from_email', 'admin@habeshaequb.com', 'email', 'text', 'Email address used as sender for system emails', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(16, 'from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(17, 'currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(18, 'currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(19, 'decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(20, 'thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
-(21, 'smtp_username', 'admin@habeshaequb.com', 'email', 'text', 'SMTP authentication username', '2025-08-01 12:59:15', '2025-08-01 13:22:43'),
-(22, 'smtp_password', 'q6c57Z1.zn+!2ZF8X-@GP', 'email', 'password', 'SMTP authentication password', '2025-08-01 12:59:15', '2025-08-01 13:22:43'),
-(23, 'smtp_encryption', 'ssl', 'email', 'select', 'SMTP encryption method (tls, ssl, none)', '2025-08-01 12:59:15', '2025-08-01 13:22:43'),
-(24, 'smtp_auth', '1', 'email', 'boolean', 'Enable SMTP authentication', '2025-08-01 12:59:15', '2025-08-01 13:22:43');
+(1, 'app_name', 'HabeshaEqub', 'general', 'text', 'The name of your application shown throughout the system', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(2, 'app_description', 'Ethiopian traditional savings group management system', 'general', 'text', 'Brief description of your equb application', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(3, 'maintenance_mode', '0', 'general', 'boolean', 'Enable to put the system in maintenance mode', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(4, 'session_timeout', '60', 'general', 'select', 'User session timeout in minutes', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(5, 'default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(6, 'default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(7, 'default_language', 'en', 'defaults', 'select', 'Default language for new users', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(8, 'auto_activate_members', '0', 'defaults', 'boolean', 'Automatically activate new member registrations', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(9, 'date_format', 'm/d/Y', 'preferences', 'select', 'How dates are displayed throughout the system', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(10, 'timezone', 'UTC', 'preferences', 'select', 'System timezone for all date/time operations', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(11, 'items_per_page', '25', 'preferences', 'select', 'Number of items to show per page in lists', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(12, 'enable_notifications', '0', 'preferences', 'boolean', 'Enable system notifications for users', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(13, 'smtp_host', 'smtp-relay.brevo.com', 'email', 'text', 'SMTP server hostname', '2025-07-29 20:54:46', '2025-08-02 04:09:58'),
+(14, 'smtp_port', '587', 'email', 'number', 'SMTP server port (587 for TLS, 465 for SSL)', '2025-07-29 20:54:46', '2025-08-02 04:09:58'),
+(15, 'from_email', 'admin@habeshaequb.com', 'email', 'text', 'Email address used as sender for system emails', '2025-07-29 20:54:46', '2025-08-02 04:09:58'),
+(16, 'from_name', 'Habesha Equb', 'email', 'text', 'Name displayed as sender for system emails', '2025-07-29 20:54:46', '2025-08-02 04:09:58'),
+(17, 'currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(18, 'currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(19, 'decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(20, 'thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands', '2025-07-29 20:54:46', '2025-08-02 02:25:09'),
+(21, 'smtp_username', '92bed1001@smtp-brevo.com', 'email', 'text', 'SMTP authentication username', '2025-08-01 12:59:15', '2025-08-02 04:09:58'),
+(22, 'smtp_password', '8VgfHCdmsZX0whkx', 'email', 'password', 'SMTP authentication password', '2025-08-01 12:59:15', '2025-08-02 04:09:58'),
+(23, 'smtp_encryption', 'tls', 'email', 'select', 'SMTP encryption method (tls, ssl, none)', '2025-08-01 12:59:15', '2025-08-02 04:09:58'),
+(24, 'smtp_auth', '1', 'email', 'boolean', 'Enable SMTP authentication', '2025-08-01 12:59:15', '2025-08-02 04:09:58');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_otps`
+--
+
+CREATE TABLE `user_otps` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `email` varchar(255) NOT NULL,
+  `otp_code` varchar(6) NOT NULL,
+  `otp_type` enum('email_verification','login') NOT NULL DEFAULT 'email_verification',
+  `expires_at` timestamp NOT NULL,
+  `is_used` tinyint(1) DEFAULT 0,
+  `attempt_count` int(11) DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Indexes for dumped tables
@@ -381,6 +432,22 @@ ALTER TABLE `device_tracking`
   ADD KEY `idx_email` (`email`),
   ADD KEY `idx_fingerprint` (`device_fingerprint`),
   ADD KEY `idx_approval` (`is_approved`);
+
+--
+-- Indexes for table `email_preferences`
+--
+ALTER TABLE `email_preferences`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unsubscribe_token` (`unsubscribe_token`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `email_rate_limits`
+--
+ALTER TABLE `email_rate_limits`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_email_type` (`email_address`,`email_type`),
+  ADD KEY `idx_reset_at` (`reset_at`);
 
 --
 -- Indexes for table `equb_rules`
@@ -472,6 +539,16 @@ ALTER TABLE `system_settings`
   ADD KEY `idx_key` (`setting_key`);
 
 --
+-- Indexes for table `user_otps`
+--
+ALTER TABLE `user_otps`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_email` (`email`),
+  ADD KEY `idx_otp_code` (`otp_code`),
+  ADD KEY `idx_expires_at` (`expires_at`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -486,6 +563,18 @@ ALTER TABLE `admins`
 --
 ALTER TABLE `device_tracking`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `email_preferences`
+--
+ALTER TABLE `email_preferences`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `email_rate_limits`
+--
+ALTER TABLE `email_rate_limits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `equb_rules`
@@ -509,7 +598,7 @@ ALTER TABLE `members`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `payments`
@@ -530,8 +619,20 @@ ALTER TABLE `system_settings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
+-- AUTO_INCREMENT for table `user_otps`
+--
+ALTER TABLE `user_otps`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `email_preferences`
+--
+ALTER TABLE `email_preferences`
+  ADD CONSTRAINT `email_preferences_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `members` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `equb_settings`
@@ -565,6 +666,12 @@ ALTER TABLE `payments`
 ALTER TABLE `payouts`
   ADD CONSTRAINT `payouts_ibfk_1` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `payouts_ibfk_2` FOREIGN KEY (`processed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `user_otps`
+--
+ALTER TABLE `user_otps`
+  ADD CONSTRAINT `user_otps_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `members` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
