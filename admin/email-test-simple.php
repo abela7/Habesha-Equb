@@ -121,7 +121,7 @@ function testBrevoSMTP($host, $port, $username, $password, $from_email, $to_emai
             return ['success' => false, 'message' => "Server not ready: {$response}"];
         }
         
-        // Send EHLO
+        // Send EHLO and read all responses
         fputs($smtp, "EHLO habeshaequb.com\r\n");
         $response = fgets($smtp, 515);
         if (substr($response, 0, 3) !== '250') {
@@ -129,12 +129,17 @@ function testBrevoSMTP($host, $port, $username, $password, $from_email, $to_emai
             return ['success' => false, 'message' => "EHLO failed: {$response}"];
         }
         
+        // Read all EHLO responses (multi-line)
+        while (substr($response, 3, 1) === '-') {
+            $response = fgets($smtp, 515);
+        }
+        
         // Start TLS
         fputs($smtp, "STARTTLS\r\n");
         $response = fgets($smtp, 515);
         if (substr($response, 0, 3) !== '220') {
             fclose($smtp);
-            return ['success' => false, 'message' => "STARTTLS failed: {$response}"];
+            return ['success' => false, 'message' => "STARTTLS failed: {$response}. Server may not support STARTTLS."];
         }
         
         // Enable TLS encryption
