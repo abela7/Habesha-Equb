@@ -22,6 +22,12 @@ require_once '../includes/payout_sync_service.php';
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
+// CRITICAL: Ensure language is properly loaded for translations
+if (!function_exists('t')) {
+    error_log("Dashboard - Translation function 't' not loaded, reloading language handler");
+    require_once '../languages/translator.php';
+}
+
 // MASTER-LEVEL DATABASE QUERY - Get complete member and financial data
 try {
     $stmt = $db->prepare("
