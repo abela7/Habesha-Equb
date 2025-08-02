@@ -70,39 +70,29 @@ try {
         
     } else {
         echo "❌ user_otps table does not exist!<br>";
-        echo "<p><strong>SOLUTION:</strong> Run this SQL in phpMyAdmin:</p>";
-        echo "<pre>
-CREATE TABLE user_otps (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    otp_code VARCHAR(10) NOT NULL,
-    otp_type VARCHAR(50) DEFAULT 'email_verification',
-    expires_at TIMESTAMP NOT NULL,
-    is_used TINYINT(1) DEFAULT 0,
-    attempt_count INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX(email, otp_type),
-    INDEX(expires_at)
-);
-        </pre>";
     }
     
-    echo "<h2>🚨 SCHEMA PROBLEM DETECTED!</h2>";
-    echo "<p><strong style='color: red;'>The otp_type column is an ENUM that doesn't allow 'otp_login'!</strong></p>";
-    echo "<p><strong style='color: red;'>That's why all Type fields are EMPTY and verification fails!</strong></p>";
+    echo "<h2>🚨 TIME BUG DETECTED!</h2>";
+    echo "<p><strong style='color: red;'>OTPs are EXPIRING BEFORE THEY'RE CREATED!</strong></p>";
+    echo "<p><strong style='color: red;'>Check your database: expires_at is BEFORE created_at!</strong></p>";
     
-    echo "<h3>🔧 IMMEDIATE FIX REQUIRED:</h3>";
-    echo "<p>Copy and paste this SQL into phpMyAdmin:</p>";
-    echo "<pre style='background: #f0f0f0; padding: 10px; border: 1px solid #ccc;'>
--- FIX OTP TABLE SCHEMA
-ALTER TABLE user_otps MODIFY COLUMN otp_type 
-ENUM('email_verification','login','otp_login') NOT NULL DEFAULT 'email_verification';
-
-ALTER TABLE user_otps MODIFY COLUMN otp_code VARCHAR(10) NOT NULL;
-
-DELETE FROM user_otps;
-    </pre>";
+    // Time debugging
+    echo "<h3>🕐 TIME DEBUGGING:</h3>";
+    echo "Server time (PHP): " . date('Y-m-d H:i:s') . "<br>";
+    echo "Database time: ";
+    $time_stmt = $database->prepare("SELECT NOW() as db_time");
+    $time_stmt->execute();
+    $db_time = $time_stmt->fetch();
+    echo $db_time['db_time'] . "<br>";
+    
+    echo "PHP +10 minutes: " . date('Y-m-d H:i:s', strtotime('+10 minutes')) . "<br>";
+    
+    // Check timezone
+    echo "PHP timezone: " . date_default_timezone_get() . "<br>";
+    $tz_stmt = $database->prepare("SELECT @@global.time_zone, @@session.time_zone");
+    $tz_stmt->execute();
+    $tz = $tz_stmt->fetch();
+    echo "DB timezone: global={$tz['@@global.time_zone']}, session={$tz['@@session.time_zone']}<br>";
     
     echo "<h2>📋 Test EmailService</h2>";
     require_once __DIR__ . '/../../includes/email/EmailService.php';
@@ -117,18 +107,46 @@ DELETE FROM user_otps;
     if ($user) {
         echo "Test user: {$user['email']}<br>";
         
+        // First clean all old broken OTPs
+        echo "<h3>🧹 Cleaning old broken OTPs...</h3>";
+        $clean_stmt = $database->prepare("DELETE FROM user_otps WHERE email = ?");
+        $clean_stmt->execute([$user['email']]);
+        echo "Old OTPs cleaned<br>";
+        
         // Generate OTP with otp_login type
         echo "<h3>Testing with 'otp_login' type:</h3>";
         try {
             $otp = $emailService->generateOTP($user['id'], $user['email'], 'otp_login');
             echo "Generated OTP: <strong>$otp</strong><br>";
             
+            // Show the stored OTP details immediately
+            $check_stmt = $database->prepare("
+                SELECT *, NOW() as current_time, 
+                       (expires_at > NOW()) as is_valid,
+                       TIMESTAMPDIFF(MINUTE, NOW(), expires_at) as minutes_until_expire
+                FROM user_otps 
+                WHERE email = ? AND otp_type = 'otp_login' 
+                ORDER BY id DESC LIMIT 1
+            ");
+            $check_stmt->execute([$user['email']]);
+            $stored = $check_stmt->fetch();
+            if ($stored) {
+                echo "<p><strong>Stored OTP Details:</strong><br>";
+                echo "Code: {$stored['otp_code']}<br>";
+                echo "Created: {$stored['created_at']}<br>";
+                echo "Expires: {$stored['expires_at']}<br>";
+                echo "Current: {$stored['current_time']}<br>";
+                echo "Valid: " . ($stored['is_valid'] ? 'YES' : 'NO') . "<br>";
+                echo "Minutes until expire: {$stored['minutes_until_expire']}<br>";
+                echo "</p>";
+            }
+            
             // Try to verify immediately
             $verify_result = $emailService->verifyOTP($user['email'], $otp, 'otp_login');
             echo "Verify result: " . ($verify_result ? "✅ SUCCESS" : "❌ FAILED") . "<br>";
+            
         } catch (Exception $e) {
             echo "❌ Error: " . $e->getMessage() . "<br>";
-            echo "<p><strong>This confirms the ENUM problem - fix the schema first!</strong></p>";
         }
         
     } else {

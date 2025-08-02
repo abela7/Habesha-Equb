@@ -302,23 +302,35 @@ class EmailService {
      */
     public function generateOTP($user_id, $email, $type = 'email_verification') {
         $otp_code = sprintf('%04d', mt_rand(1000, 9999));
-        $expires_at = date('Y-m-d H:i:s', strtotime('+10 minutes'));
         
-        error_log("Generating OTP - User ID: $user_id, Email: $email, Code: $otp_code, Type: $type, Expires: $expires_at");
+        error_log("Generating OTP - User ID: $user_id, Email: $email, Code: $otp_code, Type: $type");
         
         // Clean up old OTPs
         $stmt = $this->pdo->prepare("DELETE FROM user_otps WHERE email = ? AND otp_type = ?");
         $stmt->execute([$email, $type]);
         
-        // Insert new OTP
+        // Insert new OTP using database NOW() + INTERVAL to avoid timezone issues
         $stmt = $this->pdo->prepare("
             INSERT INTO user_otps (user_id, email, otp_code, otp_type, expires_at) 
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))
         ");
-        $result = $stmt->execute([$user_id, $email, $otp_code, $type, $expires_at]);
+        $result = $stmt->execute([$user_id, $email, $otp_code, $type]);
         
         if ($result) {
             error_log("OTP stored successfully in database");
+            
+            // Log the actual stored values for debugging
+            $check_stmt = $this->pdo->prepare("
+                SELECT expires_at, created_at, NOW() as current_time 
+                FROM user_otps 
+                WHERE email = ? AND otp_code = ? AND otp_type = ? 
+                ORDER BY id DESC LIMIT 1
+            ");
+            $check_stmt->execute([$email, $otp_code, $type]);
+            $stored_otp = $check_stmt->fetch();
+            if ($stored_otp) {
+                error_log("OTP times - Created: {$stored_otp['created_at']}, Expires: {$stored_otp['expires_at']}, Current: {$stored_otp['current_time']}");
+            }
         } else {
             error_log("Failed to store OTP in database");
         }
@@ -345,6 +357,21 @@ class EmailService {
         error_log("Found OTPs for $email ($type): " . json_encode($debug_otps));
         
         $stmt = $this->pdo->prepare("
+            SELECT id, user_id, attempt_count, expires_at, created_at, NOW() as current_time,
+                   (expires_at > NOW()) as is_not_expired,
+                   (is_used = 0) as is_not_used
+            FROM user_otps 
+            WHERE email = ? AND otp_code = ? AND otp_type = ?
+            ORDER BY id DESC LIMIT 1
+        ");
+        $stmt->execute([$email, $otp_code, $type]);
+        $otp_debug = $stmt->fetch();
+        
+        if ($otp_debug) {
+            error_log("OTP found - Created: {$otp_debug['created_at']}, Expires: {$otp_debug['expires_at']}, Current: {$otp_debug['current_time']}, Not Expired: {$otp_debug['is_not_expired']}, Not Used: {$otp_debug['is_not_used']}");
+        }
+        
+        $stmt = $this->pdo->prepare("
             SELECT id, user_id, attempt_count FROM user_otps 
             WHERE email = ? AND otp_code = ? AND otp_type = ? 
             AND expires_at > NOW() AND is_used = 0
@@ -353,7 +380,7 @@ class EmailService {
         $otp = $stmt->fetch();
         
         if (!$otp) {
-            error_log("OTP verification failed - no matching OTP found");
+            error_log("OTP verification failed - no matching valid OTP found");
             // Increment attempt count for wrong codes
             $stmt = $this->pdo->prepare("
                 UPDATE user_otps SET attempt_count = attempt_count + 1 
