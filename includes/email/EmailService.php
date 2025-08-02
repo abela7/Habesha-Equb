@@ -10,9 +10,7 @@ class EmailService {
     
     public function __construct($pdo) {
         $this->pdo = $pdo;
-        error_log("EmailService: Constructor called");
         $this->loadSMTPConfig();
-        error_log("EmailService: SMTP config loaded");
     }
     
     private function loadSMTPConfig() {
@@ -39,33 +37,22 @@ class EmailService {
      * Send email using template
      */
     public function send($template, $to_email, $to_name, $variables = []) {
-        error_log("EmailService: send() called with template='{$template}', to_email='{$to_email}'");
-        
         // Rate limiting check
-        error_log("EmailService: Checking rate limit for {$to_email}, template {$template}");
         if (!$this->checkRateLimit($to_email, $template)) {
-            error_log("EmailService: Rate limit exceeded for {$to_email}, template {$template}");
             throw new Exception('Rate limit exceeded for this email type');
         }
-        error_log("EmailService: Rate limit check passed");
         
         // Load template
-        error_log("EmailService: Loading template {$template}");
         $email_content = $this->loadTemplate($template, $variables);
         if (!$email_content) {
-            error_log("EmailService: Template not found: {$template}");
             throw new Exception('Email template not found: ' . $template);
         }
-        error_log("EmailService: Template loaded successfully, subject: " . $email_content['subject']);
         
         // Send via SMTP
-        error_log("EmailService: Attempting SMTP send to {$to_email}");
         $result = $this->sendViaSMTP($to_email, $to_name, $email_content['subject'], $email_content['html'], $email_content['text']);
-        error_log("EmailService: SMTP result: " . json_encode($result));
         
         // Update rate limit
         if ($result['success']) {
-            error_log("EmailService: Updating rate limit for successful send");
             $this->updateRateLimit($to_email, $template);
         }
         
