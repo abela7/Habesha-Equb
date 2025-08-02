@@ -166,25 +166,25 @@ $t = Translator::getInstance();
             </div>
 
             <!-- Email & Notifications -->
-            <div class="settings-category">
-                <div class="category-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                        <polyline points="22,6 12,13 2,6"/>
-                    </svg>
+            <div class="settings-category active-module">
+                <div class="module-header">
+                    <div class="module-icon success">
+                        <i class="fas fa-envelope" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="module-status">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
                 </div>
                 <h3>Email & Notifications</h3>
-                <p>Configure email settings, notification templates, and communication</p>
+                <p>Configure SMTP settings, test email delivery, and manage notification system</p>
                 <div class="category-features">
-                    <span class="feature-tag">Email Config</span>
-                    <span class="feature-tag">Templates</span>
-                    <span class="feature-tag">Notifications</span>
+                    <span class="feature-tag">SMTP Config</span>
+                    <span class="feature-tag">Email Testing</span>
+                    <span class="feature-tag">Delivery Reports</span>
                 </div>
-                <a href="#" class="btn btn-secondary" onclick="showComingSoon('Email & Notifications')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    Configure Email
+                <a href="email-notifications.php" class="btn btn-primary">
+                    <i class="fas fa-envelope-open-text me-2"></i>
+                    Manage Email System
                 </a>
             </div>
 
