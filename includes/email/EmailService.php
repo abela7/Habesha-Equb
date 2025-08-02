@@ -253,14 +253,15 @@ class EmailService {
      * Check rate limiting for anti-spam
      */
     private function checkRateLimit($email, $type) {
+        // TESTING MODE: More lenient rate limits for testing approvals
         $limits = [
-            'email_verification' => ['count' => 3, 'period' => 3600], // 3 per hour
-            'welcome' => ['count' => 1, 'period' => 86400], // 1 per day
-            'approval_notification' => ['count' => 1, 'period' => 86400], // 1 per day
-            'account_approved' => ['count' => 1, 'period' => 86400] // 1 per day
+            'email_verification' => ['count' => 10, 'period' => 3600], // 10 per hour
+            'welcome' => ['count' => 5, 'period' => 3600], // 5 per hour 
+            'approval_notification' => ['count' => 5, 'period' => 3600], // 5 per hour
+            'account_approved' => ['count' => 10, 'period' => 3600] // 10 per hour (for testing)
         ];
         
-        $limit = $limits[$type] ?? ['count' => 5, 'period' => 3600];
+        $limit = $limits[$type] ?? ['count' => 10, 'period' => 3600];
         
         $stmt = $this->pdo->prepare("
             SELECT sent_count FROM email_rate_limits 

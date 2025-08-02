@@ -706,7 +706,7 @@ $total_recent = count($recent_actions);
                         '❌ Welcome email failed: ' + (result.email_error || 'Unknown error');
                     
                     setTimeout(() => {
-                        showToast(emailMsg, result.email_sent ? 'success' : 'warning');
+                        showToast(emailMsg, result.email_sent ? 'success' : 'warning', true); // persistent = true
                     }, 1500);
                     
                     // Log steps for debugging (in console)
@@ -844,22 +844,29 @@ $total_recent = count($recent_actions);
             setTimeout(() => location.reload(), 2000);
         }
 
-        function showToast(message, type = 'info') {
+        function showToast(message, type = 'info', persistent = false) {
             const toast = document.createElement('div');
             toast.className = `toast-notification ${type}`;
+            
+            const closeButton = persistent ? '<button class="toast-close" onclick="this.parentElement.remove()" style="background:none;border:none;color:white;float:right;font-size:18px;cursor:pointer;margin-left:10px;">&times;</button>' : '';
+            
             toast.innerHTML = `
                 <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
                 <span>${message}</span>
+                ${closeButton}
             `;
             
             document.getElementById('toast-container').appendChild(toast);
             
             setTimeout(() => toast.classList.add('show'), 100);
             
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
+            // Only auto-dismiss if not persistent
+            if (!persistent) {
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            }
         }
 
 
