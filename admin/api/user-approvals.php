@@ -173,30 +173,19 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         $email_sent = false;
         $email_error = null;
         $detailed_error = null;
-        
-        error_log("Starting email process for user approval - User ID: {$user_id}, Email: {$user['email']}");
+        $smtp_count = 0;
         
         // Check if EmailService class is available
-        if (!class_exists('EmailService')) {
-            $email_error = "EmailService class not available - email system not properly configured";
-            $detailed_error = "The EmailService.php file may be missing or corrupted. Check: includes/email/EmailService.php";
-            error_log("EmailService class not found - email cannot be sent");
-        } else {
-            error_log("EmailService class found, attempting to send email...");
-            
+        if (class_exists('EmailService')) {
             try {
-                $emailService = new EmailService($db);
-                error_log("EmailService initialized successfully");
-                
                 // Check SMTP configuration
                 $smtp_stmt = $db->prepare("SELECT COUNT(*) as count FROM system_settings WHERE setting_category = 'email'");
                 $smtp_stmt->execute();
                 $smtp_count = $smtp_stmt->fetch()['count'];
                 
-                if ($smtp_count == 0) {
-                    $email_error = "SMTP not configured";
-                    $detailed_error = "No SMTP settings found in database. Please configure SMTP in admin/email-notifications.php";
-                } else {
+                if ($smtp_count > 0) {
+                    $emailService = new EmailService($db);
+                    
                     // Prepare email variables
                     $email_variables = [
                         'first_name' => $user['first_name'],
@@ -206,8 +195,6 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                         'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
                     ];
                     
-                    error_log("Email variables prepared: " . json_encode($email_variables));
-                    
                     // Send the welcome email
                     $result = $emailService->send(
                         'account_approved',
@@ -216,24 +203,24 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                         $email_variables
                     );
                     
-                    error_log("Email send result: " . json_encode($result));
-                    
                     if ($result && isset($result['success']) && $result['success']) {
                         $email_sent = true;
-                        error_log("Welcome email sent successfully to {$user['email']} (User ID: {$user_id})");
                     } else {
-                        $email_error = $result['message'] ?? 'Unknown email error';
-                        $detailed_error = $result['message'] ?? 'Unknown error occurred during email sending';
-                        error_log("Email sending returned failure: " . $email_error);
+                        $email_error = $result['message'] ?? 'Email sending failed';
+                        $detailed_error = $email_error;
                     }
+                } else {
+                    $email_error = "SMTP not configured";
+                    $detailed_error = "No SMTP settings found in database";
                 }
                 
             } catch (Exception $e) {
-                $email_error = $e->getMessage();
-                $detailed_error = "Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine();
-                error_log("Exception during email sending to {$user['email']}: " . $email_error);
-                error_log("Exception trace: " . $e->getTraceAsString());
+                $email_error = "Email system error";
+                $detailed_error = $e->getMessage();
             }
+        } else {
+            $email_error = "EmailService not available";
+            $detailed_error = "EmailService class not found";
         }
         
         // Log the approval action (regardless of email status)
@@ -275,26 +262,11 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         // Log successful approval
         error_log("Admin ID {$admin_id} approved user ID {$user_id} ({$user['member_id']})");
         
-        // Prepare detailed email report
+        // Simple email report
         $email_report = [
-            'email_attempted' => true,
             'email_sent' => $email_sent,
-            'email_error' => $email_error,
-            'user_email' => $user['email'],
-            'template_used' => 'account_approved',
-            'smtp_configured' => class_exists('EmailService') && ($smtp_count ?? 0) > 0,
-            'timestamp' => date('Y-m-d H:i:s')
+            'email_error' => $email_error ?: 'No error'
         ];
-        
-        // Add detailed status message
-        if ($email_sent) {
-            $email_report['status_message'] = '✅ Welcome email sent successfully to ' . $user['email'];
-            $email_report['status_type'] = 'success';
-        } else {
-            $email_report['status_message'] = '❌ Welcome email failed to send to ' . $user['email'];
-            $email_report['status_type'] = 'error';
-            $email_report['error_details'] = $detailed_error ?: ($email_error ?: 'Unknown error occurred');
-        }
 
         echo json_encode([
             'success' => true,
@@ -307,7 +279,6 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                 'approved_by' => $admin_id,
                 'approved_at' => date('Y-m-d H:i:s'),
                 'email_sent' => $email_sent,
-                'email_status' => $email_sent ? 'Welcome email sent successfully' : 'Welcome email failed to send',
                 'email_report' => $email_report
             ]
         ]);

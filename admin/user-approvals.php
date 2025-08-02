@@ -683,9 +683,15 @@ $total_recent = count($recent_actions);
                 if (result.success) {
                     showToast('User approved successfully!', 'success');
                     
-                    // Show detailed email report popup
+                    // Show email status
                     if (result.data && result.data.email_report) {
-                        showEmailReport(result.data.email_report, result.data.user_name);
+                        const emailStatus = result.data.email_report.email_sent ? 
+                            '✅ Welcome email sent successfully!' : 
+                            '❌ Welcome email failed: ' + (result.data.email_report.email_error || 'Unknown error');
+                        
+                        setTimeout(() => {
+                            showToast(emailStatus, result.data.email_report.email_sent ? 'success' : 'error');
+                        }, 1000);
                     }
                     
                     removeUserCard(userId);
@@ -788,128 +794,7 @@ $total_recent = count($recent_actions);
             }, 4000);
         }
 
-        function showEmailReport(emailReport, userName) {
-            // Create modal HTML
-            const modalHtml = `
-                <div class="modal fade" id="emailReportModal" tabindex="-1" aria-labelledby="emailReportModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header bg-${emailReport.status_type === 'success' ? 'success' : 'danger'} text-white">
-                                <h5 class="modal-title" id="emailReportModalLabel">
-                                    📧 Email Report for ${userName}
-                                </h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="alert alert-${emailReport.status_type === 'success' ? 'success' : 'danger'} mb-4">
-                                    <h6 class="alert-heading">${emailReport.status_message}</h6>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h6 class="text-muted mb-3">📊 Email Details</h6>
-                                        <table class="table table-sm">
-                                            <tr>
-                                                <td><strong>Recipient:</strong></td>
-                                                <td>${emailReport.user_email}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Template:</strong></td>
-                                                <td>${emailReport.template_used}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Time:</strong></td>
-                                                <td>${emailReport.timestamp}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Status:</strong></td>
-                                                <td>
-                                                    <span class="badge bg-${emailReport.email_sent ? 'success' : 'danger'}">
-                                                        ${emailReport.email_sent ? '✅ Sent' : '❌ Failed'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6 class="text-muted mb-3">🔧 System Status</h6>
-                                        <table class="table table-sm">
-                                            <tr>
-                                                <td><strong>SMTP Configured:</strong></td>
-                                                <td>
-                                                    <span class="badge bg-${emailReport.smtp_configured ? 'success' : 'danger'}">
-                                                        ${emailReport.smtp_configured ? '✅ Yes' : '❌ No'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Email Service:</strong></td>
-                                                <td>
-                                                    <span class="badge bg-${emailReport.email_attempted ? 'info' : 'secondary'}">
-                                                        ${emailReport.email_attempted ? '🔄 Attempted' : '⏸️ Not Attempted'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                                
-                                ${emailReport.error_details ? `
-                                    <div class="mt-4">
-                                        <h6 class="text-danger mb-3">🐛 Error Details</h6>
-                                        <div class="alert alert-danger">
-                                            <pre class="mb-0 small">${emailReport.error_details}</pre>
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${!emailReport.email_sent ? `
-                                    <div class="mt-4">
-                                        <h6 class="text-warning mb-3">💡 Troubleshooting Tips</h6>
-                                        <div class="alert alert-warning">
-                                            <ul class="mb-0 small">
-                                                ${!emailReport.smtp_configured ? '<li>❌ Configure SMTP settings in Email Notifications page</li>' : ''}
-                                                <li>🔍 Check if SMTP credentials are correct</li>
-                                                <li>📧 Verify the recipient email address is valid</li>
-                                                <li>🌐 Ensure server can connect to external SMTP servers</li>
-                                                <li>📊 Run the Email Diagnostic Tool for detailed testing</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            <div class="modal-footer">
-                                <a href="debug-email-approval.php" target="_blank" class="btn btn-info btn-sm">
-                                    🔧 Run Email Diagnostic
-                                </a>
-                                <a href="email-notifications.php" target="_blank" class="btn btn-warning btn-sm">
-                                    ⚙️ SMTP Settings
-                                </a>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Remove existing modal if any
-            const existingModal = document.getElementById('emailReportModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-            
-            // Add modal to page
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('emailReportModal'));
-            modal.show();
-            
-            // Auto-remove modal when closed
-            document.getElementById('emailReportModal').addEventListener('hidden.bs.modal', function() {
-                this.remove();
-            });
-        }
+
 
         // Auto-refresh every 5 minutes to check for new pending approvals
         setInterval(() => {
