@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 31, 2025 at 11:06 PM
+-- Generation Time: Aug 02, 2025 at 02:25 AM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -44,7 +44,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`) VALUES
-(8, 'abel', NULL, NULL, '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-07-29 20:43:41');
+(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-08-01 01:10:10');
 
 -- --------------------------------------------------------
 
@@ -69,7 +69,8 @@ CREATE TABLE `device_tracking` (
 
 INSERT INTO `device_tracking` (`id`, `email`, `device_fingerprint`, `user_agent`, `ip_address`, `created_at`, `last_seen`, `is_approved`) VALUES
 (1, 'abelgoytom77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 14:13:26', '2025-07-31 14:13:26', 0),
-(2, 'abeldemessie77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 16:03:51', '2025-07-31 16:03:51', 0);
+(2, 'abeldemessie77@gmail.com', 'dv_52ed2545d59e9df4', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 16:03:51', '2025-07-31 16:03:51', 0),
+(3, 'barnabasdagnachew25@gmail.com', 'dv_f6b20ee8a35c5adb', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.73.40', '2025-08-01 19:46:47', '2025-08-01 19:46:47', 0);
 
 -- --------------------------------------------------------
 
@@ -199,8 +200,9 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `password`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
-(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$RKQ13.MlF/rkiwSzi4BeDur7E2i4yYjKh3XGo7sqrNu/Ck3qwJB2G', 'active', 1000.00, 1, '2025-07-05', 1000.00, 1, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 1, 1, '', '2025-07-31 14:13:25', '2025-07-31 20:37:42', 1, 1, 0),
-(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', '$2y$12$3M/vVlU4AjXQuAcp.mDVrel70F2k/OEiOHM6HQe9qISnT0zuv1Wki', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 21:36:27', 1, 1, 0);
+(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$RKQ13.MlF/rkiwSzi4BeDur7E2i4yYjKh3XGo7sqrNu/Ck3qwJB2G', 'active', 1000.00, 1, '2025-07-05', 1000.00, 1, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 0, 1, 1, '', '2025-07-31 14:13:25', '2025-08-01 01:57:04', 1, 1, 0),
+(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', '$2y$12$3M/vVlU4AjXQuAcp.mDVrel70F2k/OEiOHM6HQe9qISnT0zuv1Wki', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 0, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-07-31 21:36:27', 1, 1, 0),
+(3, NULL, 'HEM-BO1', 'barnabasdagnachew25', 'Barnabas', 'Olana', 'Barnabas Olana', 'barnabasdagnachew25@gmail.com', '07904762565', '$2y$12$5VQjZGrjbUzS3Vvoszb9N.do2P1//JRTcRLuVWtj/170CIv.wyFwW', 'active', 0.00, 7, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 0, '2025-08-01', NULL, 'both', 1, 0, 0, NULL, '2025-08-01 19:46:47', '2025-08-01 19:46:47', 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -235,6 +237,15 @@ CREATE TABLE `notifications` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `notification_id`, `recipient_type`, `recipient_id`, `recipient_email`, `recipient_phone`, `type`, `channel`, `subject`, `message`, `language`, `status`, `sent_at`, `delivered_at`, `opened_at`, `clicked_at`, `sent_by_admin_id`, `email_provider_response`, `sms_provider_response`, `retry_count`, `scheduled_for`, `priority`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 'NOT-202508-590', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:22:18', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:22:18', '2025-08-01 13:22:18'),
+(2, 'NOT-202508-496', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:22:48', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:22:48', '2025-08-01 13:22:48'),
+(3, 'NOT-202508-994', 'admin', NULL, 'abelgoytom77@gmail.com', NULL, 'general', 'email', 'HabeshaEqub - Email Configuration Test', 'Test email via PHP mail()', 'en', 'sent', '2025-08-01 13:23:05', NULL, NULL, NULL, 8, NULL, NULL, 0, NULL, 'normal', 'Email configuration test - PHP mail() method', '2025-08-01 13:23:05', '2025-08-01 13:23:05');
 
 -- --------------------------------------------------------
 
@@ -324,26 +335,30 @@ CREATE TABLE `system_settings` (
 --
 
 INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_category`, `setting_type`, `setting_description`, `created_at`, `updated_at`) VALUES
-(1, 'app_name', 'HabeshaEqub', 'general', 'text', 'The name of your application shown throughout the system', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(2, 'app_description', 'Ethiopian traditional savings group management system', 'general', 'text', 'Brief description of your equb application', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(3, 'maintenance_mode', '0', 'general', 'boolean', 'Enable to put the system in maintenance mode', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(4, 'session_timeout', '60', 'general', 'select', 'User session timeout in minutes', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(5, 'default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(6, 'default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(7, 'default_language', 'en', 'defaults', 'select', 'Default language for new users', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(8, 'auto_activate_members', '0', 'defaults', 'boolean', 'Automatically activate new member registrations', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(9, 'date_format', 'm/d/Y', 'preferences', 'select', 'How dates are displayed throughout the system', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(10, 'timezone', 'UTC', 'preferences', 'select', 'System timezone for all date/time operations', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(11, 'items_per_page', '25', 'preferences', 'select', 'Number of items to show per page in lists', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(12, 'enable_notifications', '0', 'preferences', 'boolean', 'Enable system notifications for users', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(13, 'smtp_host', '', 'email', 'text', 'SMTP server hostname', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(14, 'smtp_port', '587', 'email', 'number', 'SMTP server port (587 for TLS, 465 for SSL)', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(15, 'from_email', '', 'email', 'text', 'Email address used as sender for system emails', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(16, 'from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(17, 'currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(18, 'currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(19, 'decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency', '2025-07-29 20:54:46', '2025-07-29 21:07:50'),
-(20, 'thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands', '2025-07-29 20:54:46', '2025-07-29 21:07:50');
+(1, 'app_name', 'HabeshaEqub', 'general', 'text', 'The name of your application shown throughout the system', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(2, 'app_description', 'Ethiopian traditional savings group management system', 'general', 'text', 'Brief description of your equb application', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(3, 'maintenance_mode', '0', 'general', 'boolean', 'Enable to put the system in maintenance mode', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(4, 'session_timeout', '60', 'general', 'select', 'User session timeout in minutes', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(5, 'default_contribution', '1000', 'defaults', 'number', 'Default monthly contribution amount for new members', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(6, 'default_currency', 'GBP', 'defaults', 'select', 'Default currency for the system', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(7, 'default_language', 'en', 'defaults', 'select', 'Default language for new users', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(8, 'auto_activate_members', '0', 'defaults', 'boolean', 'Automatically activate new member registrations', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(9, 'date_format', 'm/d/Y', 'preferences', 'select', 'How dates are displayed throughout the system', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(10, 'timezone', 'UTC', 'preferences', 'select', 'System timezone for all date/time operations', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(11, 'items_per_page', '25', 'preferences', 'select', 'Number of items to show per page in lists', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(12, 'enable_notifications', '0', 'preferences', 'boolean', 'Enable system notifications for users', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(13, 'smtp_host', 'mail.habeshaequb.com', 'email', 'text', 'SMTP server hostname', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(14, 'smtp_port', '465', 'email', 'number', 'SMTP server port (587 for TLS, 465 for SSL)', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(15, 'from_email', 'admin@habeshaequb.com', 'email', 'text', 'Email address used as sender for system emails', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(16, 'from_name', 'HabeshaEqub System', 'email', 'text', 'Name displayed as sender for system emails', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(17, 'currency_symbol', '£', 'currency', 'text', 'Symbol to display for currency amounts', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(18, 'currency_position', 'before', 'currency', 'select', 'Position of currency symbol relative to amount', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(19, 'decimal_places', '2', 'currency', 'select', 'Number of decimal places to show for currency', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(20, 'thousands_separator', ',', 'currency', 'select', 'Character used to separate thousands', '2025-07-29 20:54:46', '2025-08-01 13:22:43'),
+(21, 'smtp_username', 'admin@habeshaequb.com', 'email', 'text', 'SMTP authentication username', '2025-08-01 12:59:15', '2025-08-01 13:22:43'),
+(22, 'smtp_password', 'q6c57Z1.zn+!2ZF8X-@GP', 'email', 'password', 'SMTP authentication password', '2025-08-01 12:59:15', '2025-08-01 13:22:43'),
+(23, 'smtp_encryption', 'ssl', 'email', 'select', 'SMTP encryption method (tls, ssl, none)', '2025-08-01 12:59:15', '2025-08-01 13:22:43'),
+(24, 'smtp_auth', '1', 'email', 'boolean', 'Enable SMTP authentication', '2025-08-01 12:59:15', '2025-08-01 13:22:43');
 
 --
 -- Indexes for dumped tables
@@ -470,7 +485,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `device_tracking`
 --
 ALTER TABLE `device_tracking`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `equb_rules`
@@ -488,13 +503,13 @@ ALTER TABLE `equb_settings`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `payments`
@@ -512,7 +527,7 @@ ALTER TABLE `payouts`
 -- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- Constraints for dumped tables
