@@ -17,6 +17,28 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
+// Set up error and exception handlers to ensure JSON responses
+set_error_handler(function($severity, $message, $file, $line) {
+    error_log("🚨 PHP ERROR: $message in $file:$line");
+    if (!(error_reporting() & $severity)) return;
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+set_exception_handler(function($exception) {
+    error_log("🚨 UNCAUGHT EXCEPTION: " . $exception->getMessage());
+    http_response_code(500);
+    ob_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => 'Internal server error: ' . $exception->getMessage(),
+        'error_details' => [
+            'file' => basename($exception->getFile()),
+            'line' => $exception->getLine()
+        ]
+    ]);
+    exit;
+});
+
 // Start output buffering to prevent any unwanted output
 ob_start();
 
@@ -251,6 +273,8 @@ function declineUser($db, $user_id, $user, $admin_id, $reason) {
 
 // Main request processing
 try {
+    error_log("🔍 APPROVAL API: Request started from " . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    
     // Validate request method
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Only POST requests are allowed');
@@ -258,7 +282,10 @@ try {
     
     // Get and validate input
     $input = file_get_contents('php://input');
+    error_log("🔍 APPROVAL API: Raw input: " . $input);
+    
     $data = json_decode($input, true);
+    error_log("🔍 APPROVAL API: Parsed data: " . print_r($data, true));
     
     if (!$data || !isset($data['action']) || !isset($data['user_id'])) {
         throw new Exception('Invalid request data. Action and user_id are required.');
@@ -296,8 +323,14 @@ try {
     }
     
 } catch (Exception $e) {
+    // Log the error for debugging
+    error_log("🚨 USER APPROVAL ERROR: " . $e->getMessage());
+    error_log("🚨 ERROR FILE: " . $e->getFile());
+    error_log("🚨 ERROR LINE: " . $e->getLine());
+    error_log("🚨 ERROR TRACE: " . $e->getTraceAsString());
+    
     http_response_code(400);
-    send_response(false, $e->getMessage());
+    send_response(false, 'Error: ' . $e->getMessage());
 }
 
 // This should never be reached due to send_response() exit calls

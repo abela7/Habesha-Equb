@@ -678,6 +678,24 @@ $total_recent = count($recent_actions);
                     })
                 });
                 
+                // Check if response is ok
+                if (!response.ok) {
+                    let errorText = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.text();
+                        if (errorData.trim().startsWith('{')) {
+                            const errorJson = JSON.parse(errorData);
+                            errorText = errorJson.message || errorText;
+                        } else {
+                            // Server returned HTML (likely a PHP error)
+                            errorText += ' - Server returned HTML error page (check server logs)';
+                        }
+                    } catch (e) {
+                        // Could not parse error response
+                    }
+                    throw new Error(errorText);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -701,7 +719,19 @@ $total_recent = count($recent_actions);
                 }
             } catch (error) {
                 console.error('Approval error:', error);
-                showToast('Network error. Please try again.', 'error');
+                
+                // Try to get detailed error information
+                let errorMessage = 'Unknown error occurred';
+                
+                if (error.name === 'SyntaxError') {
+                    errorMessage = 'Server returned invalid response (likely 500 error). Check server logs.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                } else {
+                    errorMessage = 'Network connection failed. Check your internet connection.';
+                }
+                
+                showToast('❌ Approval failed: ' + errorMessage, 'error');
             } finally {
                 hideLoading(button);
             }
@@ -727,6 +757,24 @@ $total_recent = count($recent_actions);
                     })
                 });
                 
+                // Check if response is ok
+                if (!response.ok) {
+                    let errorText = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.text();
+                        if (errorData.trim().startsWith('{')) {
+                            const errorJson = JSON.parse(errorData);
+                            errorText = errorJson.message || errorText;
+                        } else {
+                            // Server returned HTML (likely a PHP error)
+                            errorText += ' - Server returned HTML error page (check server logs)';
+                        }
+                    } catch (e) {
+                        // Could not parse error response
+                    }
+                    throw new Error(errorText);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -738,7 +786,19 @@ $total_recent = count($recent_actions);
                 }
             } catch (error) {
                 console.error('Decline error:', error);
-                showToast('Network error. Please try again.', 'error');
+                
+                // Try to get detailed error information
+                let errorMessage = 'Unknown error occurred';
+                
+                if (error.name === 'SyntaxError') {
+                    errorMessage = 'Server returned invalid response (likely 500 error). Check server logs.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                } else {
+                    errorMessage = 'Network connection failed. Check your internet connection.';
+                }
+                
+                showToast('❌ Decline failed: ' + errorMessage, 'error');
             } finally {
                 hideLoading(button);
             }
