@@ -531,8 +531,6 @@ if (isset($_GET['msg'])) {
                             <input type="text" class="otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
                             <input type="text" class="otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
                             <input type="text" class="otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
-                            <input type="text" class="otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
-                            <input type="text" class="otp-digit" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
                         </div>
                         <div class="error-message" id="otpError"></div>
                     </div>
@@ -622,7 +620,7 @@ if (isset($_GET['msg'])) {
                     }
                 });
                 
-                if (digits.length === 6) {
+                if (digits.length === 4) {
                     this.checkAllInputsFilled();
                 }
             }
@@ -661,7 +659,7 @@ if (isset($_GET['msg'])) {
                 const submitBtn = form.querySelector('.btn-primary');
                 const otpCode = this.getOTPValue();
                 
-                if (otpCode.length !== 6) {
+                if (otpCode.length !== 4) {
                     this.showAlert('error', '<?php echo t('otp_verification.code_required'); ?>');
                     return;
                 }
