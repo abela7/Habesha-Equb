@@ -32,12 +32,7 @@ try {
     exit;
 }
 
-try {
-    require_once '../../includes/email/EmailService.php';
-} catch (Exception $e) {
-    error_log("Email service not available: " . $e->getMessage());
-    // Continue without email service - don't block approval process
-}
+// Email service temporarily disabled for debugging
 
 try {
     require_once '../includes/admin_auth_guard.php';
@@ -161,67 +156,13 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
             throw new Exception('Failed to approve user');
         }
         
-        // Update device tracking for approved user
-        $device_stmt = $db->prepare("
-            UPDATE device_tracking 
-            SET is_approved = 1, last_seen = CURRENT_TIMESTAMP 
-            WHERE email = ?
-        ");
-        $device_stmt->execute([$user['email']]);
+        // Device tracking update temporarily disabled for debugging
+        // $device_stmt = $db->prepare("UPDATE device_tracking SET is_approved = 1, last_seen = CURRENT_TIMESTAMP WHERE email = ?");
+        // $device_stmt->execute([$user['email']]);
         
-        // Send welcome email to approved user
+        // Email sending temporarily disabled for debugging
         $email_sent = false;
-        $email_error = null;
-        $detailed_error = null;
-        $smtp_count = 0;
-        
-        // Check if EmailService class is available
-        if (class_exists('EmailService')) {
-            try {
-                // Check SMTP configuration
-                $smtp_stmt = $db->prepare("SELECT COUNT(*) as count FROM system_settings WHERE setting_category = 'email'");
-                $smtp_stmt->execute();
-                $smtp_count = $smtp_stmt->fetch()['count'];
-                
-                if ($smtp_count > 0) {
-                    $emailService = new EmailService($db);
-                    
-                    // Prepare email variables
-                    $email_variables = [
-                        'first_name' => $user['first_name'],
-                        'last_name' => $user['last_name'],
-                        'member_id' => $user['member_id'],
-                        'email' => $user['email'],
-                        'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
-                    ];
-                    
-                    // Send the welcome email
-                    $result = $emailService->send(
-                        'account_approved',
-                        $user['email'],
-                        $user['first_name'] . ' ' . $user['last_name'],
-                        $email_variables
-                    );
-                    
-                    if ($result && isset($result['success']) && $result['success']) {
-                        $email_sent = true;
-                    } else {
-                        $email_error = $result['message'] ?? 'Email sending failed';
-                        $detailed_error = $email_error;
-                    }
-                } else {
-                    $email_error = "SMTP not configured";
-                    $detailed_error = "No SMTP settings found in database";
-                }
-                
-            } catch (Exception $e) {
-                $email_error = "Email system error";
-                $detailed_error = $e->getMessage();
-            }
-        } else {
-            $email_error = "EmailService not available";
-            $detailed_error = "EmailService class not found";
-        }
+        $email_error = "Email disabled for debugging";
         
         // Log the approval action (regardless of email status)
         $log_stmt = $db->prepare("

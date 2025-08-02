@@ -682,18 +682,6 @@ $total_recent = count($recent_actions);
                 
                 if (result.success) {
                     showToast('User approved successfully!', 'success');
-                    
-                    // Show email status
-                    if (result.data && result.data.email_report) {
-                        const emailStatus = result.data.email_report.email_sent ? 
-                            '✅ Welcome email sent successfully!' : 
-                            '❌ Welcome email failed: ' + (result.data.email_report.email_error || 'Unknown error');
-                        
-                        setTimeout(() => {
-                            showToast(emailStatus, result.data.email_report.email_sent ? 'success' : 'error');
-                        }, 1000);
-                    }
-                    
                     removeUserCard(userId);
                     updateStats();
                 } else {
