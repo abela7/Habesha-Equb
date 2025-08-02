@@ -1,7 +1,7 @@
 <?php
 /**
- * HabeshaEqub - Waiting for Approval Page
- * User sees this page after registration while waiting for admin approval
+ * HabeshaEqub - Modern Waiting for Approval Page
+ * Beautiful golden-themed design showing user their status while waiting for admin approval
  */
 
 // Skip auth check since this is for users waiting for approval
@@ -23,15 +23,15 @@ if (!$user_email && isset($_GET['email'])) {
     $user_email = filter_var($_GET['email'], FILTER_VALIDATE_EMAIL);
 }
 
-// Set language from user preference or default to Amharic
+// Set language from user preference or default
 if (!isset($_SESSION['app_language'])) {
-    setLanguage('am');
+    setLanguage('en');
 }
 
 // Load user's language preference if they have an account
 if ($user_email) {
     try {
-        $lang_stmt = $db->prepare("SELECT language_preference FROM members WHERE email = ?");
+        $lang_stmt = $pdo->prepare("SELECT language_preference FROM members WHERE email = ?");
         $lang_stmt->execute([$user_email]);
         $lang_result = $lang_stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -40,7 +40,6 @@ if ($user_email) {
             setLanguage($user_language);
         }
     } catch (Exception $e) {
-        // Fallback to default language if there's an error
         error_log("Error loading user language preference: " . $e->getMessage());
     }
 }
@@ -53,16 +52,19 @@ if (!$user_email) {
 
 // Check user status in database
 try {
-    $stmt = $db->prepare("
-        SELECT id, member_id, first_name, last_name, email, is_approved, is_active, created_at 
-        FROM members 
-        WHERE email = ?
+    $stmt = $pdo->prepare("
+        SELECT m.id, m.member_id, m.first_name, m.last_name, m.email, m.phone, 
+               m.is_approved, m.is_active, m.email_verified, m.created_at,
+               es.equb_name, es.duration_months, es.max_members, es.current_members
+        FROM members m
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
+        WHERE m.email = ?
     ");
     $stmt->execute([$user_email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user) {
-        header('Location: login.php?msg=' . urlencode('Registration not found'));
+        header('Location: login.php?msg=' . urlencode('Registration not found. Please register again.'));
         exit;
     }
     
@@ -73,12 +75,14 @@ try {
         exit;
     }
     
-    // If user is declined (inactive), show message
-    if ($user['is_active'] == 0) {
-        $declined = true;
-    } else {
-        $declined = false;
+    // If email is not verified, redirect to verification
+    if ($user['email_verified'] == 0) {
+        header('Location: verify-email.php?email=' . urlencode($user_email));
+        exit;
     }
+    
+    // If user is declined (inactive), show message
+    $is_declined = ($user['is_active'] == 0);
     
 } catch (Exception $e) {
     error_log("Waiting approval page error: " . $e->getMessage());
@@ -88,39 +92,43 @@ try {
 
 $user_name = $user['first_name'] . ' ' . $user['last_name'];
 $registration_date = new DateTime($user['created_at']);
-$waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new DateTime())->diff($registration_date)->h;
+$waiting_time = (new DateTime())->diff($registration_date);
+$waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
+$waiting_days = $waiting_time->days;
 ?>
-
 <!DOCTYPE html>
 <html lang="<?php echo getCurrentLanguage(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo t('waiting_approval.page_title'); ?></title>
+    <title>Registration Under Review - HabeshaEqub</title>
     
-    <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="../assets/img/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32x32.png">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../assets/img/favicon-32x32.png">
     
-    <!-- Custom Styles -->
     <style>
+        /* Beautiful Golden Color Palette */
         :root {
-            --color-cream: #F1ECE2;
-            --color-dark-purple: #4D4052;
-            --color-navy: #301934;
-            --color-gold: #DAA520;
-            --color-light-cream: #CDAF56;
-            --color-brown: #5D4225;
-            --gradient-primary: linear-gradient(135deg, var(--color-navy) 0%, var(--color-dark-purple) 100%);
-            --gradient-secondary: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-cream) 100%);
-            --shadow-elegant: 0 20px 40px rgba(48, 25, 52, 0.1);
-            --shadow-card: 0 8px 32px rgba(48, 25, 52, 0.08);
+            --cream: #F1ECE2;
+            --dark-purple: #4D4052;
+            --darker-purple: #301934;
+            --gold: #DAA520;
+            --light-gold: #CDAF56;
+            --white: #FFFFFF;
+            --success: #28a745;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --error: #dc3545;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-lg: 0 25px 50px -12px rgba(48, 25, 52, 0.25);
+            --shadow-xl: 0 35px 60px -15px rgba(48, 25, 52, 0.3);
         }
         
         * {
@@ -130,14 +138,15 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--gradient-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--darker-purple) 0%, var(--dark-purple) 40%, rgba(241, 236, 226, 0.3) 70%, var(--cream) 100%);
             min-height: 100vh;
-            position: relative;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            position: relative;
         }
         
-        /* Animated background patterns */
+        /* Animated Background Pattern */
         body::before {
             content: '';
             position: fixed;
@@ -146,564 +155,603 @@ $waiting_hours = (new DateTime())->diff($registration_date)->days * 24 + (new Da
             width: 100%;
             height: 100%;
             background: 
-                radial-gradient(circle at 20% 50%, rgba(218, 165, 32, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(205, 175, 86, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(77, 64, 82, 0.1) 0%, transparent 50%);
+                radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(205, 175, 86, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 60%, rgba(77, 64, 82, 0.05) 0%, transparent 50%);
             z-index: -1;
-            animation: backgroundFloat 20s ease-in-out infinite;
+            animation: float 20s ease-in-out infinite;
         }
         
-        @keyframes backgroundFloat {
+        @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(1deg); }
+            33% { transform: translateY(-20px) rotate(1deg); }
+            66% { transform: translateY(10px) rotate(-1deg); }
         }
         
-        .waiting-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .waiting-card {
-            background: rgba(241, 236, 226, 0.98);
+        /* Top Navigation */
+        .top-nav {
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--light-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--darker-purple);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--gold);
+        }
+        
+        /* Main Container */
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+        
+        /* Status Card */
+        .status-card {
+            background: var(--white);
             border-radius: 24px;
-            box-shadow: var(--shadow-elegant);
-            max-width: 600px;
-            width: 100%;
+            box-shadow: var(--shadow-xl);
             overflow: hidden;
             position: relative;
-            animation: cardSlideUp 0.8s ease-out;
         }
         
-        @keyframes cardSlideUp {
-            from { 
-                opacity: 0; 
-                transform: translateY(50px) scale(0.95); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0) scale(1); 
-            }
-        }
-        
-        .waiting-header {
-            background: var(--gradient-secondary);
-            padding: 40px 30px 30px;
+        .status-header {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--light-gold) 100%);
+            padding: 40px 30px;
             text-align: center;
+            color: white;
             position: relative;
         }
         
-        .waiting-header::before {
+        .status-header::before {
             content: '';
             position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 20px;
-            background: var(--gradient-secondary);
-            border-radius: 100px;
-            filter: blur(8px);
-            opacity: 0.6;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
         }
         
         .status-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
+            font-size: 64px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
             animation: pulse 2s ease-in-out infinite;
         }
         
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-        }
-        
-        .status-icon i {
-            font-size: 2.5rem;
-            color: var(--color-navy);
-        }
-        
-        .waiting-title {
-            color: var(--color-navy);
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .waiting-subtitle {
-            color: var(--color-brown);
-            font-size: 1rem;
-            opacity: 0.9;
-            font-weight: 500;
-        }
-        
-        .waiting-content {
-            padding: 40px 30px;
-        }
-        
-        .user-info {
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .user-name {
-            color: var(--color-navy);
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        
-        .user-email {
-            color: var(--color-brown);
-            font-size: 1rem;
-            margin-bottom: 15px;
-        }
-        
-        .user-meta {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--color-brown);
-            font-size: 0.9rem;
-        }
-        
-        .meta-item i {
-            color: var(--color-gold);
-            width: 16px;
-        }
-        
-        .status-section {
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
-            text-align: center;
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
         
         .status-title {
-            color: var(--color-navy);
-            font-size: 1.3rem;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .status-subtitle {
+            font-size: 18px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .status-content {
+            padding: 40px 30px;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .user-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--darker-purple);
+            margin-bottom: 8px;
+        }
+        
+        .welcome-text {
+            font-size: 18px;
+            color: var(--dark-purple);
+            line-height: 1.6;
+        }
+        
+        /* Progress Timeline */
+        .progress-timeline {
+            margin: 40px 0;
+        }
+        
+        .timeline-title {
+            font-size: 20px;
             font-weight: 600;
-            margin-bottom: 20px;
+            color: var(--darker-purple);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--success) 0%, var(--warning) 50%, #e0e0e0 100%);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 40px;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            left: -10px;
+            top: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            color: white;
         }
         
-        .status-message {
-            color: var(--color-brown);
-            font-size: 1rem;
-            line-height: 1.6;
-            margin-bottom: 25px;
+        .timeline-marker.completed {
+            background: var(--success);
         }
         
-        .waiting-time {
-            background: rgba(255, 193, 7, 0.1);
-            border: 2px solid rgba(255, 193, 7, 0.3);
-            border-radius: 12px;
-            padding: 15px;
-            color: #e67e22;
+        .timeline-marker.current {
+            background: var(--warning);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        .timeline-marker.pending {
+            background: #e0e0e0;
+            color: var(--dark-purple);
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(255, 193, 7, 0); }
+        }
+        
+        .timeline-content h4 {
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 20px;
+            color: var(--darker-purple);
+            margin-bottom: 4px;
+        }
+        
+        .timeline-content p {
+            font-size: 14px;
+            color: var(--dark-purple);
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        
+        /* Info Cards */
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(48, 25, 52, 0.08);
+            border-left: 4px solid var(--gold);
+        }
+        
+        .info-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--darker-purple);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-card p {
+            font-size: 14px;
+            color: var(--dark-purple);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        
+        .info-card ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .info-card li {
+            font-size: 14px;
+            color: var(--dark-purple);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        /* Registration Details */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .detail-item {
+            background: var(--cream);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .detail-label {
+            font-size: 12px;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--darker-purple);
+        }
+        
+        /* Contact Section */
+        .contact-section {
+            background: linear-gradient(135deg, var(--darker-purple) 0%, var(--dark-purple) 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+        }
+        
+        .contact-section h3 {
+            color: var(--light-gold);
+            margin-bottom: 16px;
+        }
+        
+        .contact-section p {
+            opacity: 0.9;
+            margin-bottom: 16px;
+        }
+        
+        .contact-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .contact-link {
+            color: var(--light-gold);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        
+        .contact-link:hover {
+            color: white;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 20px 15px;
+            }
+            
+            .status-header {
+                padding: 30px 20px;
+            }
+            
+            .status-content {
+                padding: 30px 20px;
+            }
+            
+            .status-title {
+                font-size: 24px;
+            }
+            
+            .user-name {
+                font-size: 24px;
+            }
+            
+            .welcome-text {
+                font-size: 16px;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-container {
+                padding: 0 15px;
+            }
+            
+            .logo {
+                font-size: 20px;
+            }
+        }
+        
+        /* Declined Status */
+        .declined-status .status-header {
+            background: linear-gradient(135deg, var(--error) 0%, #c82333 100%);
         }
         
         .declined-message {
             background: rgba(220, 53, 69, 0.1);
-            border: 2px solid rgba(220, 53, 69, 0.3);
-            border-radius: 12px;
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            border-radius: 8px;
             padding: 20px;
-            color: #dc3545;
+            margin: 20px 0;
+            color: var(--error);
             text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .declined-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        
-        .next-steps {
-            background: rgba(40, 167, 69, 0.1);
-            border: 2px solid rgba(40, 167, 69, 0.2);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 30px;
-        }
-        
-        .next-steps-title {
-            color: var(--color-navy);
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .next-steps-list {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .next-steps-list li {
-            color: var(--color-brown);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.95rem;
-        }
-        
-        .next-steps-list li i {
-            color: #28a745;
-            width: 16px;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .btn-custom {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-primary-custom {
-            background: var(--gradient-primary);
-            color: white;
-        }
-        
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(48, 25, 52, 0.3);
-            color: white;
-        }
-        
-        .btn-secondary-custom {
-            background: rgba(255, 255, 255, 0.8);
-            color: var(--color-navy);
-            border: 2px solid var(--color-gold);
-        }
-        
-        .btn-secondary-custom:hover {
-            background: var(--color-gold);
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        .refresh-info {
-            text-align: center;
-            color: var(--color-brown);
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 20px;
-        }
-        
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
-            .waiting-container {
-                padding: 10px;
-            }
-            
-            .waiting-card {
-                border-radius: 20px;
-                margin: 10px;
-            }
-            
-            .waiting-header {
-                padding: 30px 20px 25px;
-            }
-            
-            .waiting-content {
-                padding: 30px 20px;
-            }
-            
-            .waiting-title {
-                font-size: 1.6rem;
-            }
-            
-            .user-meta {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .status-icon {
-                width: 60px;
-                height: 60px;
-            }
-            
-            .status-icon i {
-                font-size: 2rem;
-            }
-        }
-        
-        /* Auto-refresh animation */
-        .refresh-animation {
-            animation: refreshSpin 1s linear;
-        }
-        
-        @keyframes refreshSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="waiting-container">
-        <div class="waiting-card">
-            <!-- Header -->
-            <div class="waiting-header">
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="logo">🏛️ HabeshaEqub</div>
+            <div class="nav-links">
+                <a href="mailto:support@habeshaequb.com" class="nav-link">📧 Support</a>
+                <a href="login.php" class="nav-link">🔐 Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Main Status Card -->
+        <div class="status-card <?= $is_declined ? 'declined-status' : '' ?>">
+            <div class="status-header">
                 <div class="status-icon">
-                    <i class="fas fa-<?php echo $declined ? 'times-circle' : 'hourglass-half'; ?>"></i>
+                    <?= $is_declined ? '❌' : '⏳' ?>
                 </div>
-                <h1 class="waiting-title">
-                    <?php echo $declined ? t('waiting_approval.declined_title') : t('waiting_approval.waiting_title'); ?>
+                <h1 class="status-title">
+                    <?= $is_declined ? 'Registration Declined' : 'Under Review' ?>
                 </h1>
-                <p class="waiting-subtitle">
-                    <?php echo $declined ? t('waiting_approval.declined_subtitle') : t('waiting_approval.waiting_subtitle'); ?>
+                <p class="status-subtitle">
+                    <?= $is_declined ? 'Your application was not approved' : 'Your registration is being reviewed by our admin team' ?>
                 </p>
             </div>
             
-            <!-- Content -->
-            <div class="waiting-content">
-                <!-- User Information -->
-                <div class="user-info">
-                    <div class="user-name"><?php echo htmlspecialchars($user_name); ?></div>
-                    <div class="user-email"><?php echo htmlspecialchars($user_email); ?></div>
-                    <div class="user-meta">
-                        <div class="meta-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <?php echo t('waiting_approval.registered'); ?>: <?php echo $registration_date->format('M j, Y'); ?>
+            <div class="status-content">
+                <div class="welcome-message">
+                    <h2 class="user-name">Dear <?= htmlspecialchars($user['first_name']) ?>,</h2>
+                    <p class="welcome-text">
+                        <?php if ($is_declined): ?>
+                            Unfortunately, your registration for HabeshaEqub could not be approved at this time. Please contact our support team for more information.
+                        <?php else: ?>
+                            Thank you for registering with HabeshaEqub! We have received your registration and before you can login and access the dashboard, our equb admin needs to review your details and approve your registration. Once your registration is approved, we will send you an email notification. Keep your eyes on your inbox!
+                        <?php endif; ?>
+                    </p>
+                </div>
+                
+                <?php if (!$is_declined): ?>
+                <div class="progress-timeline">
+                    <h3 class="timeline-title">📋 Registration Progress</h3>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker completed">✓</div>
+                            <div class="timeline-content">
+                                <h4>Registration Submitted</h4>
+                                <p>Your details have been successfully submitted</p>
+                            </div>
                         </div>
-                        <div class="meta-item">
-                            <i class="fas fa-id-card"></i>
-                            <?php echo t('waiting_approval.member_id'); ?>: <?php echo htmlspecialchars($user['member_id']); ?>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker completed">✓</div>
+                            <div class="timeline-content">
+                                <h4>Email Verified</h4>
+                                <p>Your email address has been confirmed</p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker current">⏳</div>
+                            <div class="timeline-content">
+                                <h4>Admin Review (In Progress)</h4>
+                                <p>Our administrator is reviewing your registration details and guarantor information</p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker pending">📧</div>
+                            <div class="timeline-content">
+                                <h4>Approval Notification</h4>
+                                <p>You'll receive an email when your registration is approved</p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-marker pending">🚀</div>
+                            <div class="timeline-content">
+                                <h4>Access Dashboard</h4>
+                                <p>Login and start managing your equb contributions</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <?php if ($declined): ?>
-                    <!-- Declined Message -->
-                    <div class="declined-message">
-                        <div class="declined-icon">
-                            <i class="fas fa-times-circle"></i>
-                        </div>
-                        <h4><?php echo t('waiting_approval.application_not_approved'); ?></h4>
-                        <p><?php echo t('waiting_approval.declined_message'); ?></p>
-                        
-                        <div class="action-buttons" style="margin-top: 20px;">
-                            <a href="login.php" class="btn-custom btn-secondary-custom">
-                                <i class="fas fa-arrow-left"></i>
-                                <?php echo t('waiting_approval.back_to_login'); ?>
-                            </a>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <!-- Waiting Status -->
-                    <div class="status-section">
-                        <h3 class="status-title">
-                            <i class="fas fa-clock"></i>
-                            <?php echo t('waiting_approval.approval_under_review'); ?>
-                        </h3>
-                        <p class="status-message">
-                            <?php echo t('waiting_approval.approval_message'); ?>
-                        </p>
-                        <p class="status-message" style="margin-top: 15px; font-size: 0.95em; opacity: 0.9;">
-                            <?php echo t('waiting_approval.detailed_message'); ?>
-                        </p>
-                        
-                        <div class="waiting-time">
-                            <i class="fas fa-hourglass-half"></i>
-                            <?php echo t('waiting_approval.waiting_time'); ?>: <?php echo $waiting_hours; ?> <?php echo t('waiting_approval.hours'); ?>
-                        </div>
-                    </div>
-
-                    <!-- Next Steps -->
-                    <div class="next-steps">
-                        <h4 class="next-steps-title">
-                            <i class="fas fa-list-check"></i>
-                            <?php echo t('waiting_approval.what_happens_next'); ?>
-                        </h4>
-                        <ul class="next-steps-list">
-                            <li>
-                                <i class="fas fa-user-check"></i>
-                                <?php echo t('waiting_approval.review_details'); ?>
-                            </li>
-                            <li>
-                                <i class="fas fa-phone"></i>
-                                <?php echo t('waiting_approval.contact_guarantor'); ?>
-                            </li>
-                            <li>
-                                <i class="fas fa-envelope"></i>
-                                <?php echo t('waiting_approval.email_notification'); ?>
-                            </li>
-                            <li>
-                                <i class="fas fa-sign-in-alt"></i>
-                                <?php echo t('waiting_approval.login_access'); ?>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="action-buttons">
-                        <button type="button" class="btn-custom btn-primary-custom" onclick="refreshStatus()">
-                            <i class="fas fa-sync-alt" id="refresh-icon"></i>
-                            <?php echo t('waiting_approval.check_status'); ?>
-                        </button>
-                        <a href="login.php" class="btn-custom btn-secondary-custom">
-                            <i class="fas fa-sign-in-alt"></i>
-                            <?php echo t('waiting_approval.try_login'); ?>
-                        </a>
-                    </div>
-                    
-                    <div class="refresh-info">
-                        <i class="fas fa-info-circle"></i>
-                        <?php echo t('waiting_approval.auto_refresh_info'); ?>
-                    </div>
                 <?php endif; ?>
+                
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Registration Date</div>
+                        <div class="detail-value"><?= $registration_date->format('M j, Y') ?></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Waiting Time</div>
+                        <div class="detail-value">
+                            <?= $waiting_days > 0 ? $waiting_days . ' day' . ($waiting_days > 1 ? 's' : '') : $waiting_hours . ' hour' . ($waiting_hours != 1 ? 's' : '') ?>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Member ID</div>
+                        <div class="detail-value"><?= htmlspecialchars($user['member_id']) ?></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email Status</div>
+                        <div class="detail-value">✅ Verified</div>
+                    </div>
+                </div>
+                
+                <?php if ($is_declined): ?>
+                <div class="declined-message">
+                    <h4>📞 Contact Support</h4>
+                    <p>If you believe this is an error or would like to discuss your application, please contact our support team for assistance.</p>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- Info Sidebar -->
+        <div class="info-section">
+            <?php if (!$is_declined): ?>
+            <div class="info-card">
+                <h3>💡 While You Wait</h3>
+                <p>The approval process typically takes 24-48 hours. Here's what happens next:</p>
+                <ul>
+                    <li>Our admin reviews your registration details</li>
+                    <li>Your guarantor information is verified</li>
+                    <li>You'll receive an email notification once approved</li>
+                    <li>Check your spam/junk folder regularly</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3>📊 Your Registration Details</h3>
+                <p><strong>Name:</strong> <?= htmlspecialchars($user_name) ?></p>
+                <p><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
+                <p><strong>Phone:</strong> <?= htmlspecialchars($user['phone']) ?></p>
+                <?php if ($user['equb_name']): ?>
+                <p><strong>Equb:</strong> <?= htmlspecialchars($user['equb_name']) ?></p>
+                <?php endif; ?>
+            </div>
+            
+            <div class="info-card">
+                <h3>🔐 Passwordless Login</h3>
+                <p>Once approved, you'll use our secure passwordless login system:</p>
+                <ul>
+                    <li>Enter your email address</li>
+                    <li>Receive a verification code</li>
+                    <li>Access your dashboard securely</li>
+                    <li>No passwords to remember!</li>
+                </ul>
+            </div>
+            <?php endif; ?>
+            
+            <div class="contact-section">
+                <h3>📞 Need Help?</h3>
+                <p>If you have any questions about your registration or the approval process, don't hesitate to contact us:</p>
+                <div class="contact-links">
+                    <a href="mailto:support@habeshaequb.com">📧 Email Support</a>
+                    <a href="tel:+447360436171">📱 Call Us</a>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Custom JavaScript -->
     <script>
-        // Refresh status function
-        function refreshStatus() {
-            const icon = document.getElementById('refresh-icon');
-            icon.classList.add('refresh-animation');
-            
-            // Remove animation after 1 second, then reload page
-            setTimeout(() => {
-                icon.classList.remove('refresh-animation');
-                location.reload();
-            }, 1000);
-        }
-        
-        // Auto-refresh every 2 minutes if not declined
-        <?php if (!$declined): ?>
+        // Auto-refresh page every 5 minutes to check for approval status changes
         setInterval(() => {
-            location.reload();
-        }, 120000); // 2 minutes
-        <?php endif; ?>
-        
-        // Check for approval status every 30 seconds
-        <?php if (!$declined): ?>
-        setInterval(async () => {
-            try {
-                const response = await fetch('api/check-approval-status.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: '<?php echo htmlspecialchars($user_email); ?>'
-                    })
+            fetch('api/check-approval-status.php?email=<?= urlencode($user_email) ?>')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.approved) {
+                        // Show success message and redirect
+                        alert('🎉 Great news! Your registration has been approved. Redirecting to login...');
+                        window.location.href = 'login.php?msg=' + encodeURIComponent('Your account has been approved! Please log in.');
+                    }
+                })
+                .catch(error => {
+                    console.log('Status check failed:', error);
                 });
-                
-                const result = await response.json();
-                
-                if (result.success && result.data.is_approved) {
-                    // User has been approved, show success message and redirect
-                    showApprovalSuccess();
-                }
-                
-            } catch (error) {
-                // Silently handle errors to avoid disrupting user experience
-                console.log('Status check failed:', error);
-            }
-        }, 30000); // 30 seconds
-        <?php endif; ?>
+        }, 300000); // 5 minutes
         
-        function showApprovalSuccess() {
-            // Create and show success overlay
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(40, 167, 69, 0.95);
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                animation: fadeIn 0.5s ease-out;
-            `;
+        // Add some subtle animations
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate timeline items
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            timelineItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
             
-            overlay.innerHTML = `
-                <div style="text-align: center; animation: slideUp 0.8s ease-out;">
-                    <i class="fas fa-check-circle" style="font-size: 4rem; margin-bottom: 20px;"></i>
-                    <h2 style="margin-bottom: 15px;"><?php echo t('waiting_approval.account_approved'); ?></h2>
-                    <p style="font-size: 1.2rem; margin-bottom: 25px;"><?php echo t('waiting_approval.account_approved_message'); ?></p>
-                    <p><?php echo t('waiting_approval.redirecting'); ?></p>
-                </div>
-            `;
-            
-            document.body.appendChild(overlay);
-            
-            // Redirect after 3 seconds
-            setTimeout(() => {
-                window.location.href = 'login.php?msg=' + encodeURIComponent('Your account has been approved! Please log in.');
-            }, 3000);
-        }
-        
-        // Add some CSS for animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            @keyframes slideUp {
-                from { opacity: 0; transform: translateY(50px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-        `;
-        document.head.appendChild(style);
+            // Initialize timeline items as hidden for animation
+            timelineItems.forEach(item => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                item.style.transition = 'all 0.5s ease';
+            });
+        });
     </script>
 </body>
-</html> 
+</html>

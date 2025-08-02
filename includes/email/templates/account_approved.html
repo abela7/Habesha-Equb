@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Approved - Welcome to HabeshaEqub!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #F1ECE2;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(77, 64, 82, 0.15);
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header p {
+            margin: 8px 0 0 0;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #4D4052;
+        }
+        .greeting {
+            font-size: 24px;
+            font-weight: 600;
+            color: #301934;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .approval-card {
+            background: linear-gradient(135deg, #d4edda 0%, #ffffff 100%);
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .approval-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        .approval-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #28a745;
+            margin-bottom: 12px;
+        }
+        .approval-description {
+            font-size: 16px;
+            color: #4D4052;
+            line-height: 1.5;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%);
+            color: white;
+            text-decoration: none;
+            padding: 18px 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 18px;
+            text-align: center;
+            margin: 30px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(218, 165, 32, 0.4);
+        }
+        .equb-details {
+            background: #F1ECE2;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border-left: 4px solid #DAA520;
+        }
+        .equb-details h3 {
+            margin: 0 0 20px 0;
+            color: #301934;
+            font-size: 18px;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .detail-item {
+            background: white;
+            padding: 16px;
+            border-radius: 6px;
+            border-left: 3px solid #CDAF56;
+        }
+        .detail-label {
+            font-size: 12px;
+            color: #4D4052;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #301934;
+        }
+        .next-steps {
+            background: #4D4052;
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        .next-steps h3 {
+            margin: 0 0 20px 0;
+            color: #CDAF56;
+        }
+        .next-steps ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .next-steps li {
+            margin-bottom: 12px;
+            opacity: 0.95;
+        }
+        .login-instructions {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .login-instructions h4 {
+            margin: 0 0 12px 0;
+            color: #0056b3;
+            font-size: 16px;
+        }
+        .login-instructions p {
+            margin: 0;
+            font-size: 14px;
+            color: #004085;
+        }
+        .footer {
+            background: #4D4052;
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .footer .links {
+            margin-top: 16px;
+        }
+        .footer .links a {
+            color: #CDAF56;
+            text-decoration: none;
+            margin: 0 12px;
+            font-size: 12px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .header, .content, .footer {
+                padding: 30px 20px;
+            }
+            .approval-card, .equb-details, .next-steps {
+                padding: 20px;
+            }
+            .detail-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .greeting {
+                font-size: 20px;
+            }
+            .cta-button {
+                padding: 16px 32px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Account Approved!</h1>
+            <p>Welcome to the HabeshaEqub Community</p>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">Congratulations {{first_name}}!</div>
+            
+            <div class="approval-card">
+                <div class="approval-icon">✅</div>
+                <div class="approval-title">Your Registration is Approved</div>
+                <div class="approval-description">
+                    Your HabeshaEqub account has been reviewed and approved by our administrator. You can now access your dashboard and start your savings journey!
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{login_url}}" class="cta-button">🚀 Access Your Dashboard</a>
+            </div>
+            
+            <div class="equb-details">
+                <h3>📊 Your Equb Details</h3>
+                
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Equb Name</div>
+                        <div class="detail-value">{{equb_name}}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Monthly Contribution</div>
+                        <div class="detail-value">£{{monthly_contribution}}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Payout Position</div>
+                        <div class="detail-value">#{{payout_position}}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Expected Payout</div>
+                        <div class="detail-value">{{payout_month}}</div>
+                    </div>
+                </div>
+                
+                <p><strong>Total Members:</strong> {{total_members}} | <strong>Duration:</strong> {{duration_months}} months</p>
+            </div>
+            
+            <div class="login-instructions">
+                <h4>🔐 How to Login (Passwordless System)</h4>
+                <p>We use a secure, passwordless login system. Simply enter your email address on the login page, and we'll send you a verification code to access your account safely.</p>
+            </div>
+            
+            <div class="next-steps">
+                <h3>🚀 Next Steps:</h3>
+                <ul>
+                    <li><strong>Login to your dashboard</strong> - Start exploring your equb management tools</li>
+                    <li><strong>Review equb rules</strong> - Familiarize yourself with payment schedules and guidelines</li>
+                    <li><strong>Set up payment reminders</strong> - Never miss a contribution deadline</li>
+                    <li><strong>Connect with members</strong> - View other participants in your equb group</li>
+                    <li><strong>Track your progress</strong> - Monitor contributions and upcoming payout</li>
+                </ul>
+            </div>
+            
+            <p style="font-size: 16px; color: #301934; font-weight: 500; text-align: center; margin: 30px 0;">
+                Welcome to the HabeshaEqub family! 🤝<br>
+                <em>Building financial prosperity together through traditional savings.</em>
+            </p>
+            
+            <p style="color: #4D4052; font-size: 14px; margin-top: 30px; text-align: center;">
+                Questions? Contact us at <a href="mailto:support@habeshaequb.com" style="color: #DAA520;">support@habeshaequb.com</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 HabeshaEqub - Traditional Savings Group</p>
+            <div class="links">
+                <a href="{{unsubscribe_url}}">Unsubscribe</a>
+                <a href="mailto:support@habeshaequb.com">Support</a>
+                <a href="{{website_url}}/privacy-policy.php">Privacy</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

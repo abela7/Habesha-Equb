@@ -480,6 +480,37 @@ if (isset($_GET['msg'])) {
             font-weight: 500;
         }
         
+        /* Passwordless Info Section */
+        .passwordless-info {
+            background: linear-gradient(135deg, rgba(218, 165, 32, 0.1) 0%, rgba(205, 175, 86, 0.1) 100%);
+            border: 2px solid rgba(218, 165, 32, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 10px 0 20px;
+        }
+        
+        .passwordless-info .info-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        
+        .passwordless-info .info-content h4 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--darker-purple);
+        }
+        
+        .passwordless-info .info-content p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--dark-purple);
+            line-height: 1.4;
+        }
+        
         /* Terms and Privacy Policy Links */
         .terms-link {
             color: var(--gold);
@@ -977,47 +1008,13 @@ if (isset($_GET['msg'])) {
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="register_password">
-                            <i class="fas fa-lock"></i>
-                            <?php echo t('user_auth.password'); ?>
-                        </label>
-                        <div class="password-input-wrapper">
-                            <input 
-                                type="password" 
-                                id="register_password" 
-                                name="password" 
-                                class="form-control has-toggle" 
-                                placeholder="<?php echo t('user_auth.password_placeholder'); ?>"
-                                autocomplete="new-password"
-                                required
-                            >
-                            <button type="button" class="password-toggle" onclick="togglePassword('register_password', this)">
-                                <i class="fas fa-eye"></i>
-                            </button>
+                        <div class="passwordless-info">
+                            <div class="info-icon">🔐</div>
+                            <div class="info-content">
+                                <h4>Passwordless Security</h4>
+                                <p>We use a secure, passwordless system. After registration, you'll receive an email verification code to complete your account setup.</p>
+                            </div>
                         </div>
-                        <div class="error-message" id="registerPasswordError"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="register_confirm_password">
-                            <i class="fas fa-lock"></i>
-                            <?php echo t('user_auth.confirm_password'); ?>
-                        </label>
-                        <div class="password-input-wrapper">
-                            <input 
-                                type="password" 
-                                id="register_confirm_password" 
-                                name="confirm_password" 
-                                class="form-control has-toggle" 
-                                placeholder="<?php echo t('user_auth.confirm_password_placeholder'); ?>"
-                                autocomplete="new-password"
-                                required
-                            >
-                            <button type="button" class="password-toggle" onclick="togglePassword('register_confirm_password', this)">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                        <div class="error-message" id="registerConfirmPasswordError"></div>
                     </div>
 
                     <div class="checkbox-group">
@@ -1196,8 +1193,6 @@ if (isset($_GET['msg'])) {
                 const lastName = form.querySelector('#register_last_name');
                 const email = form.querySelector('#register_email');
                 const phone = form.querySelector('#register_phone');
-                const password = form.querySelector('#register_password');
-                const confirmPassword = form.querySelector('#register_confirm_password');
                 const agreeTerms = form.querySelector('#agree_terms');
                 let isValid = true;
 
@@ -1218,16 +1213,6 @@ if (isset($_GET['msg'])) {
 
                 if (!this.validatePhone(phone.value)) {
                     this.showFieldError(phone, '<?php echo t('user_auth.phone_invalid'); ?>');
-                    isValid = false;
-                }
-
-                if (password.value.length < 6) {
-                    this.showFieldError(password, '<?php echo t('user_auth.password_min_length'); ?>');
-                    isValid = false;
-                }
-
-                if (password.value !== confirmPassword.value) {
-                    this.showFieldError(confirmPassword, '<?php echo t('user_auth.password_mismatch'); ?>');
                     isValid = false;
                 }
 
