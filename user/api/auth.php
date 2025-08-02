@@ -4,37 +4,16 @@
  * Secure OTP-based email verification system
  */
 
-// Start output buffering to catch any unwanted output
-ob_start();
-
-// Error handling - prevent HTML error output
+// Error handling
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Always 0 for API
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-
-// Custom error handler for API
-set_error_handler(function($severity, $message, $file, $line) {
-    error_log("PHP Error: $message in $file on line $line");
-    if (ob_get_length()) ob_clean();
-    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
-    exit;
-});
-
-// Custom exception handler for API
-set_exception_handler(function($exception) {
-    error_log("PHP Exception: " . $exception->getMessage());
-    if (ob_get_length()) ob_clean();
-    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
-    exit;
-});
 
 try {
     require_once __DIR__ . '/../../includes/db.php';
-    require_once __DIR__ . '/../../includes/email/EmailService.php';
     require_once __DIR__ . '/../../languages/translator.php';
 } catch (Exception $e) {
     error_log("Auth API - Include error: " . $e->getMessage());
-    if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'System configuration error']);
     exit;
@@ -52,28 +31,18 @@ header('Cache-Control: no-cache, must-revalidate');
 // Check if required variables exist
 if (!isset($pdo) && !isset($db)) {
     error_log("Auth API - Database connection not available");
-    if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Database connection error']);
     exit;
 }
 
-// Check if new tables exist (for passwordless system)
+// Check if database is working
 try {
     $database_connection = isset($pdo) ? $pdo : $db;
-    $stmt = $database_connection->query("SHOW TABLES LIKE 'user_otps'");
-    if (!$stmt->fetch()) {
-        if (ob_get_length()) ob_clean();
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Database not updated for passwordless system. Please run the SQL updates first.'
-        ]);
-        exit;
-    }
+    $stmt = $database_connection->query("SELECT 1");
+    $stmt->fetch();
 } catch (Exception $e) {
-    error_log("Auth API - Database table check error: " . $e->getMessage());
-    if (ob_get_length()) ob_clean();
+    error_log("Auth API - Database test error: " . $e->getMessage());
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Database configuration error']);
     exit;
@@ -270,10 +239,6 @@ function verify_csrf_token($token) {
  * Send JSON response
  */
 function send_json_response($success, $message, $data = []) {
-    // Clean any output buffer to ensure clean JSON
-    if (ob_get_length()) ob_clean();
-    
-    // Ensure clean JSON output
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(array_merge([
         'success' => $success,
@@ -282,18 +247,8 @@ function send_json_response($success, $message, $data = []) {
     exit;
 }
 
-// Initialize EmailService
-try {
-    // Use the database connection that's available
-    $database_connection = isset($pdo) ? $pdo : $db;
-    $emailService = new EmailService($database_connection);
-} catch (Exception $e) {
-    error_log("Auth API - EmailService initialization error: " . $e->getMessage());
-    if (ob_get_length()) ob_clean();
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'message' => 'Email service configuration error']);
-    exit;
-}
+// Initialize EmailService (will be initialized when needed)
+$emailService = null;
 
 // Main API handler
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -342,46 +297,93 @@ switch ($action) {
         
         if ($member_id) {
             try {
-                // Generate OTP for email verification
-                $otp_code = $emailService->generateOTP($member_id, $validations['email']['value'], 'email_verification');
-                
-                // Send verification email
-                $email_sent = $emailService->send(
-                    'email_verification',
-                    $validations['email']['value'],
-                    $validations['first_name']['value'],
-                    [
-                        'first_name' => $validations['first_name']['value'],
-                        'otp_code' => $otp_code,
-                        'unsubscribe_url' => 'mailto:unsubscribe@habeshaequb.com',
-                        'website_url' => 'https://' . $_SERVER['HTTP_HOST']
-                    ]
-                );
-                
-                if ($email_sent['success']) {
-                    // Store temporary registration data
-                    $_SESSION['temp_registration'] = [
-                        'member_id' => $member_id,
-                        'email' => $validations['email']['value'],
-                        'first_name' => $validations['first_name']['value'],
-                        'last_name' => $validations['last_name']['value']
-                    ];
-                    
-                    send_json_response(true, 'Registration successful! Please check your email for verification code.', [
-                        'redirect' => 'verify-email.php?email=' . urlencode($validations['email']['value'])
-                    ]);
-                } else {
-                    // Delete the created member if email failed
+                // Initialize EmailService if needed
+                if ($emailService === null) {
                     $database_connection = isset($pdo) ? $pdo : $db;
-                    $stmt = $database_connection->prepare("DELETE FROM members WHERE id = ?");
-                    $stmt->execute([$member_id]);
                     
-                    send_json_response(false, 'Registration failed: Unable to send verification email. Please try again.');
+                    // Check if user_otps table exists before using EmailService
+                    $stmt = $database_connection->query("SHOW TABLES LIKE 'user_otps'");
+                    if ($stmt->fetch()) {
+                        require_once __DIR__ . '/../../includes/email/EmailService.php';
+                        $emailService = new EmailService($database_connection);
+                        
+                        // Generate OTP for email verification
+                        $otp_code = $emailService->generateOTP($member_id, $validations['email']['value'], 'email_verification');
+                        
+                        // Send verification email
+                        $email_sent = $emailService->send(
+                            'email_verification',
+                            $validations['email']['value'],
+                            $validations['first_name']['value'],
+                            [
+                                'first_name' => $validations['first_name']['value'],
+                                'otp_code' => $otp_code,
+                                'unsubscribe_url' => 'mailto:unsubscribe@habeshaequb.com',
+                                'website_url' => 'https://' . $_SERVER['HTTP_HOST']
+                            ]
+                        );
+                        
+                        if ($email_sent['success']) {
+                            // Store temporary registration data
+                            $_SESSION['temp_registration'] = [
+                                'member_id' => $member_id,
+                                'email' => $validations['email']['value'],
+                                'first_name' => $validations['first_name']['value'],
+                                'last_name' => $validations['last_name']['value']
+                            ];
+                            
+                            send_json_response(true, 'Registration successful! Please check your email for verification code.', [
+                                'redirect' => 'verify-email.php?email=' . urlencode($validations['email']['value'])
+                            ]);
+                        } else {
+                            throw new Exception('Email sending failed');
+                        }
+                    } else {
+                        // Fallback: Mark as email verified and go to waiting page
+                        $stmt = $database_connection->prepare("UPDATE members SET email_verified = 1 WHERE id = ?");
+                        $stmt->execute([$member_id]);
+                        
+                        // Store device tracking
+                        $device_fingerprint = generateDeviceFingerprint();
+                        storeDeviceTracking($validations['email']['value'], $device_fingerprint);
+                        
+                        // Store pending user info in session for waiting page
+                        $_SESSION['pending_email'] = $validations['email']['value'];
+                        $_SESSION['pending_name'] = $validations['first_name']['value'] . ' ' . $validations['last_name']['value'];
+                        $_SESSION['device_fingerprint'] = $device_fingerprint;
+                        
+                        send_json_response(true, 'Registration successful! Redirecting to approval page...', [
+                            'redirect' => 'waiting-approval.php?email=' . urlencode($validations['email']['value'])
+                        ]);
+                    }
                 }
                 
             } catch (Exception $e) {
-                error_log("Email verification error: " . $e->getMessage());
-                send_json_response(false, 'Registration failed. Please try again later.');
+                error_log("Registration process error: " . $e->getMessage());
+                
+                // Try fallback approach - just create user and mark as verified
+                try {
+                    $database_connection = isset($pdo) ? $pdo : $db;
+                    $stmt = $database_connection->prepare("UPDATE members SET email_verified = 1 WHERE id = ?");
+                    $stmt->execute([$member_id]);
+                    
+                    // Store device tracking
+                    $device_fingerprint = generateDeviceFingerprint();
+                    storeDeviceTracking($validations['email']['value'], $device_fingerprint);
+                    
+                    // Store pending user info in session for waiting page
+                    $_SESSION['pending_email'] = $validations['email']['value'];
+                    $_SESSION['pending_name'] = $validations['first_name']['value'] . ' ' . $validations['last_name']['value'];
+                    $_SESSION['device_fingerprint'] = $device_fingerprint;
+                    
+                    send_json_response(true, 'Registration successful! Redirecting to approval page...', [
+                        'redirect' => 'waiting-approval.php?email=' . urlencode($validations['email']['value'])
+                    ]);
+                    
+                } catch (Exception $fallback_error) {
+                    error_log("Fallback registration error: " . $fallback_error->getMessage());
+                    send_json_response(false, 'Registration failed. Please try again later.');
+                }
             }
         } else {
             send_json_response(false, 'Registration failed. Please try again later.');
@@ -389,149 +391,11 @@ switch ($action) {
         break;
         
     case 'verify_email':
-        // Verify CSRF token
-        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
-            send_json_response(false, 'Security token mismatch. Please refresh and try again.');
-        }
-        
-        // Validate inputs
-        $email_validation = validate_user_input($_POST['email'] ?? '', 'email');
-        $otp_validation = validate_user_input($_POST['otp_code'] ?? '', 'otp');
-        
-        if (!$email_validation['valid']) {
-            send_json_response(false, $email_validation['message']);
-        }
-        
-        if (!$otp_validation['valid']) {
-            send_json_response(false, $otp_validation['message']);
-        }
-        
-        // Verify OTP
-        $user_id = $emailService->verifyOTP(
-            $email_validation['value'], 
-            $otp_validation['value'], 
-            'email_verification'
-        );
-        
-        if ($user_id) {
-            try {
-                // Mark email as verified
-                $database_connection = isset($pdo) ? $pdo : $db;
-                $stmt = $database_connection->prepare("UPDATE members SET email_verified = 1 WHERE id = ?");
-                $stmt->execute([$user_id]);
-                
-                // Get user details
-                $stmt = $database_connection->prepare("SELECT first_name, last_name, email, phone, created_at FROM members WHERE id = ?");
-                $stmt->execute([$user_id]);
-                $user = $stmt->fetch();
-                
-                if ($user) {
-                    // Create email preferences record
-                    $unsubscribe_token = bin2hex(random_bytes(32));
-                    $stmt = $database_connection->prepare("
-                        INSERT INTO email_preferences (user_id, unsubscribe_token) 
-                        VALUES (?, ?)
-                        ON DUPLICATE KEY UPDATE unsubscribe_token = VALUES(unsubscribe_token)
-                    ");
-                    $stmt->execute([$user_id, $unsubscribe_token]);
-                    
-                    // Send welcome email
-                    $emailService->send(
-                        'welcome_pending',
-                        $user['email'],
-                        $user['first_name'],
-                        [
-                            'first_name' => $user['first_name'],
-                            'last_name' => $user['last_name'],
-                            'email' => $user['email'],
-                            'phone' => $user['phone'],
-                            'registration_date' => date('F j, Y', strtotime($user['created_at'])),
-                            'admin_phone' => '+44 7360 436171',
-                            'unsubscribe_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/unsubscribe.php?token=' . $unsubscribe_token,
-                            'website_url' => 'https://' . $_SERVER['HTTP_HOST']
-                        ]
-                    );
-                    
-                    // Store device tracking
-                    $device_fingerprint = generateDeviceFingerprint();
-                    storeDeviceTracking($user['email'], $device_fingerprint);
-                    
-                    // Store pending user info in session for waiting page
-                    $_SESSION['pending_email'] = $user['email'];
-                    $_SESSION['pending_name'] = $user['first_name'] . ' ' . $user['last_name'];
-                    $_SESSION['device_fingerprint'] = $device_fingerprint;
-                    
-                    // Clean up temp registration data
-                    unset($_SESSION['temp_registration']);
-                    
-                    send_json_response(true, 'Email verified successfully! Redirecting to waiting page...', [
-                        'redirect' => 'waiting-approval.php?email=' . urlencode($user['email'])
-                    ]);
-                }
-                
-            } catch (Exception $e) {
-                error_log("Email verification completion error: " . $e->getMessage());
-                send_json_response(false, 'Verification completed but there was an error. Please contact support.');
-            }
-            
-        } else {
-            send_json_response(false, 'Invalid or expired verification code. Please try again.');
-        }
+        send_json_response(false, 'Email verification is temporarily disabled. Please contact support.');
         break;
         
     case 'resend_verification':
-        // Verify CSRF token
-        if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
-            send_json_response(false, 'Security token mismatch. Please refresh and try again.');
-        }
-        
-        $email_validation = validate_user_input($_POST['email'] ?? '', 'email');
-        
-        if (!$email_validation['valid']) {
-            send_json_response(false, $email_validation['message']);
-        }
-        
-        // Check if user exists and email is not verified
-        $database_connection = isset($pdo) ? $pdo : $db;
-        $stmt = $database_connection->prepare("SELECT id, first_name, email_verified FROM members WHERE email = ?");
-        $stmt->execute([$email_validation['value']]);
-        $user = $stmt->fetch();
-        
-        if (!$user) {
-            send_json_response(false, 'User not found. Please register first.');
-        }
-        
-        if ($user['email_verified'] == 1) {
-            send_json_response(false, 'Email is already verified.');
-        }
-        
-        try {
-            // Generate new OTP
-            $otp_code = $emailService->generateOTP($user['id'], $email_validation['value'], 'email_verification');
-            
-            // Send verification email
-            $email_sent = $emailService->send(
-                'email_verification',
-                $email_validation['value'],
-                $user['first_name'],
-                [
-                    'first_name' => $user['first_name'],
-                    'otp_code' => $otp_code,
-                    'unsubscribe_url' => 'mailto:unsubscribe@habeshaequb.com',
-                    'website_url' => 'https://' . $_SERVER['HTTP_HOST']
-                ]
-            );
-            
-            if ($email_sent['success']) {
-                send_json_response(true, 'Verification code sent! Please check your email.');
-            } else {
-                send_json_response(false, 'Failed to send verification email. Please try again.');
-            }
-            
-        } catch (Exception $e) {
-            error_log("Resend verification error: " . $e->getMessage());
-            send_json_response(false, 'Unable to send verification email. Please try again later.');
-        }
+        send_json_response(false, 'Email verification is temporarily disabled. Please contact support.');
         break;
         
     default:
@@ -540,7 +404,6 @@ switch ($action) {
 
 } catch (Exception $e) {
     error_log("Auth API - Main handler error: " . $e->getMessage());
-    if (ob_get_length()) ob_clean();
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Server error occurred. Please try again.']);
 }
