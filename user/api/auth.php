@@ -299,7 +299,7 @@ function handle_otp_request($database) {
         require_once __DIR__ . '/../../includes/email/EmailService.php';
         
         // Generate and store OTP
-        $emailService = new EmailService();
+        $emailService = new EmailService($database);
         $otp_code = $emailService->generateOTP($user['email']);
         
         // Send OTP email
@@ -358,7 +358,7 @@ function handle_otp_verification($database) {
         
         // Include EmailService for OTP verification
         require_once __DIR__ . '/../../includes/email/EmailService.php';
-        $emailService = new EmailService();
+        $emailService = new EmailService($database);
         
         // Verify OTP
         if (!$emailService->verifyOTP($_SESSION['otp_email'], $otp_code)) {
