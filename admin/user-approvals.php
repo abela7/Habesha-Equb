@@ -667,13 +667,12 @@ $total_recent = count($recent_actions);
             showLoading(button);
             
             try {
-                const response = await fetch('api/user-approvals.php', {
+                const response = await fetch('api/approve-user-simple.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        action: 'approve',
                         user_id: userId
                     })
                 });
@@ -702,20 +701,29 @@ $total_recent = count($recent_actions);
                     showToast(result.message || 'User approved successfully!', 'success');
                     
                     // Show email status
-                    if (result.data) {
-                        const emailMsg = result.data.email_sent ? 
-                            '✅ Welcome email sent to ' + result.data.email : 
-                            '❌ Welcome email failed: ' + (result.data.email_error || 'Unknown error');
-                        
-                        setTimeout(() => {
-                            showToast(emailMsg, result.data.email_sent ? 'success' : 'warning');
-                        }, 1500);
+                    const emailMsg = result.email_sent ? 
+                        '✅ Welcome email sent to ' + result.user.email : 
+                        '❌ Welcome email failed: ' + (result.email_error || 'Unknown error');
+                    
+                    setTimeout(() => {
+                        showToast(emailMsg, result.email_sent ? 'success' : 'warning');
+                    }, 1500);
+                    
+                    // Log steps for debugging (in console)
+                    if (result.steps) {
+                        console.log('📋 Approval Steps:', result.steps);
                     }
                     
                     removeUserCard(userId);
                     updateStats();
                 } else {
-                    showToast(result.message || 'Failed to approve user', 'error');
+                    // Show detailed error with steps
+                    let errorMsg = result.message || 'Failed to approve user';
+                    if (result.steps && result.steps.length > 0) {
+                        console.error('❌ Failure Steps:', result.steps);
+                        errorMsg += ' (Check console for details)';
+                    }
+                    showToast(errorMsg, 'error');
                 }
             } catch (error) {
                 console.error('Approval error:', error);
