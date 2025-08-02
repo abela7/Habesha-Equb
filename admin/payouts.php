@@ -1170,11 +1170,7 @@ $csrf_token = generate_csrf_token();
         const action = isEditMode ? 'update' : 'add';
         formData.append('action', action);
         
-        // Debug: Log the actual_payout_date value being sent
-        const actualDateValue = formData.get('actual_payout_date');
-        console.log('DEBUG: Submitting actual_payout_date:', actualDateValue);
-        console.log('DEBUG: Status:', formData.get('status'));
-        console.log('DEBUG: Action:', action);
+        // Submit the form data
         
         fetch('api/payouts.php', {
             method: 'POST',
@@ -1211,18 +1207,48 @@ $csrf_token = generate_csrf_token();
         });
     });
 
-    // Auto-calculate total amount when member is selected
+    // Auto-calculate correct payout amount when member is selected
     document.getElementById('memberId').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.value) {
-            const monthlyPayment = parseFloat(selectedOption.dataset.payment || 0);
-            // Calculate total pool amount (assuming all active members contribute)
-            const totalMembers = <?php echo count($members); ?>;
-            const suggestedAmount = monthlyPayment * totalMembers;
+        if (selectedOption.value && !isEditMode) {
+            const memberId = selectedOption.value;
             
-            if (!isEditMode) {
-                document.getElementById('totalAmount').value = suggestedAmount.toFixed(2);
-            }
+            // Fetch correct payout calculation from server
+            fetch('api/calculate-payout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `member_id=${memberId}&action=calculate`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('totalAmount').value = data.net_payout.toFixed(2);
+                    
+                    // Show calculation details for admin reference
+                    console.info('Equb Payout Calculation:');
+                    console.info('├─ Member:', data.member_name);
+                    console.info('├─ Monthly Payment: £' + data.monthly_payment);
+                    console.info('├─ Share Ratio:', data.share_ratio);
+                    console.info('├─ Monthly Pool: £' + data.total_monthly_pool);
+                    console.info('├─ Total Pool: £' + data.total_pool);
+                    console.info('├─ Gross Payout: £' + data.gross_payout.toFixed(2));
+                    console.info('├─ Admin Fee: £' + data.admin_fee.toFixed(2));
+                    console.info('└─ Net Payout: £' + data.net_payout.toFixed(2));
+                } else {
+                    console.error('Calculation error:', data.error);
+                    // Fallback to simple calculation
+                    const monthlyPayment = parseFloat(selectedOption.dataset.payment || 0);
+                    document.getElementById('totalAmount').value = (monthlyPayment * 8).toFixed(2);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching calculation:', error);
+                // Fallback to simple calculation
+                const monthlyPayment = parseFloat(selectedOption.dataset.payment || 0);
+                document.getElementById('totalAmount').value = (monthlyPayment * 8).toFixed(2);
+            });
         }
     });
 
@@ -1277,8 +1303,6 @@ $csrf_token = generate_csrf_token();
     document.getElementById('status').addEventListener('change', function() {
         const actualDateField = document.getElementById('actualPayoutDate');
         const statusValue = this.value;
-        
-        console.log('DEBUG: Status changed to:', statusValue);
         
         if (statusValue !== 'completed') {
             // Clear and disable the actual date field when status is not completed
