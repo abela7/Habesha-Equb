@@ -681,16 +681,16 @@ $total_recent = count($recent_actions);
                 const result = await response.json();
                 
                 if (result.success) {
-                    showToast('User approved successfully!', 'success');
+                    showToast(result.message || 'User approved successfully!', 'success');
                     
-                    // Show email status if available
-                    if (result.data && result.data.email_report) {
-                        const emailMsg = result.data.email_report.email_sent ? 
-                            '✅ Welcome email sent successfully!' : 
-                            '❌ Welcome email failed: ' + (result.data.email_report.email_error || 'Unknown error');
+                    // Show email status
+                    if (result.data) {
+                        const emailMsg = result.data.email_sent ? 
+                            '✅ Welcome email sent to ' + result.data.email : 
+                            '❌ Welcome email failed: ' + (result.data.email_error || 'Unknown error');
                         
                         setTimeout(() => {
-                            showToast(emailMsg, result.data.email_report.email_sent ? 'success' : 'error');
+                            showToast(emailMsg, result.data.email_sent ? 'success' : 'warning');
                         }, 1500);
                     }
                     
