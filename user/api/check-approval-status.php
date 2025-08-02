@@ -1,43 +1,53 @@
 <?php
 /**
- * HabeshaEqub - Check Approval Status API
- * Allows waiting users to check if their approval status has changed
+ * HabeshaEqub - Check User Approval Status API
+ * Used by waiting-approval.php to auto-refresh approval status
  */
 
-// Skip auth check since this is for users waiting for approval
-define('SKIP_AUTH_CHECK', true);
+// Start output buffering to catch any unwanted output
+ob_start();
 
-require_once '../../includes/db.php';
+// Error handling - prevent HTML error output
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
-// Set JSON response headers
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-cache, must-revalidate');
-
-// Only allow POST requests
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+// Custom error handler for API
+set_error_handler(function($severity, $message, $file, $line) {
+    error_log("PHP Error in check-approval-status: $message in $file on line $line");
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
     exit;
-}
+});
+
+// Custom exception handler for API
+set_exception_handler(function($exception) {
+    error_log("PHP Exception in check-approval-status: " . $exception->getMessage());
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
+    exit;
+});
+
+header('Content-Type: application/json; charset=utf-8');
 
 try {
-    // Get request data
-    $input = file_get_contents('php://input');
-    $data = json_decode($input, true);
+    require_once __DIR__ . '/../../includes/db.php';
     
-    if (!$data || !isset($data['email'])) {
-        throw new Exception('Email is required');
-    }
-    
-    $email = filter_var(trim($data['email']), FILTER_VALIDATE_EMAIL);
+    // Get email from request
+    $email = isset($_GET['email']) ? filter_var($_GET['email'], FILTER_VALIDATE_EMAIL) : null;
     
     if (!$email) {
-        throw new Exception('Invalid email format');
+        if (ob_get_length()) ob_clean();
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Invalid email parameter'
+        ]);
+        exit;
     }
     
-    // Check user status in database
-    $stmt = $db->prepare("
-        SELECT id, member_id, first_name, last_name, email, is_approved, is_active, updated_at 
+    // Check user approval status
+    $stmt = $pdo->prepare("
+        SELECT id, is_approved, is_active 
         FROM members 
         WHERE email = ?
     ");
@@ -45,29 +55,29 @@ try {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user) {
-        throw new Exception('User not found');
+        if (ob_get_length()) ob_clean();
+        echo json_encode([
+            'success' => false, 
+            'message' => 'User not found'
+        ]);
+        exit;
     }
     
-    // Return user status
+    // Return approval status
+    if (ob_get_length()) ob_clean();
     echo json_encode([
         'success' => true,
-        'data' => [
-            'user_id' => $user['id'],
-            'member_id' => $user['member_id'],
-            'is_approved' => (bool)$user['is_approved'],
-            'is_active' => (bool)$user['is_active'],
-            'status' => $user['is_approved'] ? 'approved' : ($user['is_active'] ? 'pending' : 'declined'),
-            'last_updated' => $user['updated_at']
-        ]
+        'approved' => ($user['is_approved'] == 1),
+        'active' => ($user['is_active'] == 1),
+        'declined' => ($user['is_active'] == 0)
     ]);
     
 } catch (Exception $e) {
     error_log("Check approval status error: " . $e->getMessage());
-    
-    http_response_code(400);
+    if (ob_get_length()) ob_clean();
     echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
+        'success' => false, 
+        'message' => 'Database error occurred'
     ]);
 }
-?> 
+?>

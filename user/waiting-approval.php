@@ -1,7 +1,7 @@
 <?php
 /**
- * HabeshaEqub - Clean Waiting for Approval Page
- * Simple, elegant design matching login.php styling
+ * HabeshaEqub - Bilingual Waiting for Approval Page
+ * Beautiful design with Amharic default + language switcher
  */
 
 // Skip auth check since this is for users waiting for approval
@@ -14,6 +14,23 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Set default language to Amharic if not set
+if (!isset($_SESSION['app_language'])) {
+    setLanguage('am'); // Default to Amharic
+}
+
+// Handle language switching
+if (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'am'])) {
+    setLanguage($_GET['lang']);
+    // Redirect to remove lang parameter from URL
+    $redirect_url = strtok($_SERVER["REQUEST_URI"], '?');
+    if (isset($_GET['email'])) {
+        $redirect_url .= '?email=' . urlencode($_GET['email']);
+    }
+    header('Location: ' . $redirect_url);
+    exit;
+}
+
 // Check if user has a pending registration
 $user_email = isset($_SESSION['pending_email']) ? $_SESSION['pending_email'] : null;
 $user_name = isset($_SESSION['pending_name']) ? $_SESSION['pending_name'] : null;
@@ -23,14 +40,9 @@ if (!$user_email && isset($_GET['email'])) {
     $user_email = filter_var($_GET['email'], FILTER_VALIDATE_EMAIL);
 }
 
-// Set language from user preference or default
-if (!isset($_SESSION['app_language'])) {
-    setLanguage('en');
-}
-
 // If still no email, redirect to registration
 if (!$user_email) {
-    header('Location: login.php?msg=' . urlencode('Please register first'));
+    header('Location: login.php?msg=' . urlencode(t('waiting_approval.pending_message')));
     exit;
 }
 
@@ -46,14 +58,14 @@ try {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user) {
-        header('Location: login.php?msg=' . urlencode('Registration not found. Please register again.'));
+        header('Location: login.php?msg=' . urlencode(t('waiting_approval.pending_message')));
         exit;
     }
     
     // If user is already approved, redirect to login
     if ($user['is_approved'] == 1) {
         unset($_SESSION['pending_email'], $_SESSION['pending_name']);
-        header('Location: login.php?msg=' . urlencode('Your account has been approved! Please log in.'));
+        header('Location: login.php?msg=' . urlencode(t('waiting_approval.account_approved_message')));
         exit;
     }
     
@@ -62,7 +74,7 @@ try {
     
 } catch (Exception $e) {
     error_log("Waiting approval page error: " . $e->getMessage());
-    header('Location: login.php?msg=' . urlencode('An error occurred. Please try again.'));
+    header('Location: login.php?msg=' . urlencode(t('errors.something_went_wrong')));
     exit;
 }
 
@@ -70,13 +82,19 @@ $user_name = $user['first_name'] . ' ' . $user['last_name'];
 $registration_date = new DateTime($user['created_at']);
 $waiting_time = (new DateTime())->diff($registration_date);
 $waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
+
+// Get current language for HTML attributes
+$current_lang = getCurrentLanguage();
+$current_lang_name = ($current_lang === 'am') ? 'አማርኛ' : 'English';
+$opposite_lang = ($current_lang === 'am') ? 'en' : 'am';
+$opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo getCurrentLanguage(); ?>">
+<html lang="<?php echo $current_lang; ?>" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration Under Review - HabeshaEqub</title>
+    <title><?php echo t('waiting_approval.page_title'); ?></title>
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -145,6 +163,40 @@ $waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
             0%, 100% { transform: translateY(0px) rotate(0deg); }
             33% { transform: translateY(-15px) rotate(120deg); }
             66% { transform: translateY(-10px) rotate(240deg); }
+        }
+        
+        /* Language Switcher */
+        .language-switcher {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 25px rgba(48, 25, 52, 0.15);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--darker-purple);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .language-switcher:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(48, 25, 52, 0.25);
+            text-decoration: none;
+            color: var(--darker-purple);
+        }
+        
+        .language-switcher i {
+            font-size: 16px;
+            color: var(--gold);
         }
         
         /* Main Container */
@@ -277,6 +329,17 @@ $waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
             color: var(--darker-purple);
         }
         
+        .approval-time {
+            text-align: center;
+            color: var(--dark-purple);
+            font-size: 14px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
         .back-button {
             display: inline-flex;
             align-items: center;
@@ -325,6 +388,13 @@ $waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
                 padding: 10px;
             }
             
+            .language-switcher {
+                top: 20px;
+                right: 20px;
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            
             .waiting-header {
                 padding: 40px 30px;
             }
@@ -357,59 +427,65 @@ $waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
     </style>
 </head>
 <body>
+    <!-- Language Switcher -->
+    <a href="?lang=<?php echo $opposite_lang; ?><?php echo isset($_GET['email']) ? '&email=' . urlencode($_GET['email']) : ''; ?>" class="language-switcher">
+        <i class="fas fa-globe"></i>
+        <span><?php echo $opposite_lang_name; ?></span>
+    </a>
+
     <div class="waiting-container <?= $is_declined ? 'declined' : '' ?>">
         <div class="waiting-header">
             <div class="status-icon">
                 <?= $is_declined ? '❌' : '⏳' ?>
             </div>
             <h1 class="status-title">
-                <?= $is_declined ? 'Registration Declined' : 'Under Review' ?>
+                <?= $is_declined ? t('waiting_approval.declined_title') : t('waiting_approval.waiting_title') ?>
             </h1>
             <p class="status-subtitle">
-                <?= $is_declined ? 'Your application was not approved' : 'Your registration is being reviewed by our admin' ?>
+                <?= $is_declined ? t('waiting_approval.declined_subtitle') : t('waiting_approval.waiting_subtitle') ?>
             </p>
         </div>
         
         <div class="waiting-content">
-            <h2 class="user-greeting">Hello <?= htmlspecialchars($user['first_name']) ?>! 👋</h2>
+            <h2 class="user-greeting"><?php echo t('user_auth.page_title'); ?> <?= htmlspecialchars($user['first_name']) ?>! 👋</h2>
             
             <p class="waiting-message">
                 <?php if ($is_declined): ?>
-                    Unfortunately, your registration for HabeshaEqub could not be approved at this time. Please contact our support team for more information.
+                    <?= t('waiting_approval.declined_message') ?>
                 <?php else: ?>
-                    Thank you for joining HabeshaEqub! Your registration has been submitted and is currently under review. You'll receive an email notification once your account is approved.
+                    <?= t('waiting_approval.detailed_message') ?>
                 <?php endif; ?>
             </p>
             
             <div class="status-details">
                 <div class="detail-grid">
                     <div class="detail-item">
-                        <div class="detail-label">Member ID</div>
+                        <div class="detail-label"><?= t('waiting_approval.member_id') ?></div>
                         <div class="detail-value"><?= htmlspecialchars($user['member_id']) ?></div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Registration Date</div>
+                        <div class="detail-label"><?= t('waiting_approval.registered') ?></div>
                         <div class="detail-value"><?= $registration_date->format('M j, Y') ?></div>
                     </div>
                 </div>
                 
                 <?php if (!$is_declined): ?>
-                <p style="text-align: center; color: var(--dark-purple); font-size: 14px; margin: 0;">
-                    <i class="fas fa-clock"></i> Typical approval time: 24-48 hours
+                <p class="approval-time">
+                    <i class="fas fa-clock"></i> <?= t('waiting_approval.typical_approval_time') ?>
                 </p>
                 <?php endif; ?>
             </div>
             
             <?php if ($is_declined): ?>
             <div class="declined-message">
-                <strong>📞 Contact Support:</strong><br>
-                If you believe this is an error, please contact our support team at support@habeshaequb.com
+                <strong><?= t('waiting_approval.contact_support') ?></strong><br>
+                <?= t('waiting_approval.support_message') ?>
             </div>
             <?php endif; ?>
             
             <a href="login.php" class="back-button">
                 <i class="fas fa-arrow-left"></i>
-                Back to Login
+                <?= t('waiting_approval.back_to_login') ?>
             </a>
         </div>
     </div>
@@ -422,7 +498,7 @@ $waiting_hours = $waiting_time->days * 24 + $waiting_time->h;
                 .then(response => response.json())
                 .then(data => {
                     if (data.approved) {
-                        window.location.href = 'login.php?msg=' + encodeURIComponent('Your account has been approved! Please log in.');
+                        window.location.href = 'login.php?msg=' + encodeURIComponent('<?= t('waiting_approval.account_approved_message') ?>');
                     }
                 })
                 .catch(error => {
