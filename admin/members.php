@@ -12,6 +12,9 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username() ?? 'Admin';
 
+// Generate CSRF token for form security
+$csrf_token = generate_csrf_token();
+
 // Get members data
 try {
     $stmt = $pdo->query("
@@ -791,6 +794,7 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                 <form id="memberForm">
                     <div class="modal-body">
                         <input type="hidden" id="memberId" name="member_id">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                         
                         <!-- Personal Information -->
                         <h6 class="text-primary mb-3"><?php echo t('members.personal_information'); ?></h6>
