@@ -90,15 +90,25 @@ function logout_and_redirect($message = '') {
  * Require authentication - call this in all protected pages
  */
 function require_user_auth() {
+    // Debug: Log authentication attempt
+    error_log("Auth Guard - Authentication check for page: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+    error_log("Auth Guard - Session data: user_id=" . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set') . 
+              ", user_logged_in=" . (isset($_SESSION['user_logged_in']) ? $_SESSION['user_logged_in'] : 'not set') . 
+              ", user_login_time=" . (isset($_SESSION['user_login_time']) ? $_SESSION['user_login_time'] : 'not set'));
+    
     // Check if user is authenticated
     if (!is_user_authenticated()) {
+        error_log("Auth Guard - Authentication failed, redirecting to login");
         logout_and_redirect();
     }
-    
+
     // Check session timeout
     if (check_session_timeout()) {
+        error_log("Auth Guard - Session timeout, redirecting to login");
         logout_and_redirect('Your session has expired. Please log in again.');
     }
+    
+    error_log("Auth Guard - Authentication successful for user_id: " . $_SESSION['user_id']);
     
     // Load user's language preference from database
     $user_id = get_current_user_id();

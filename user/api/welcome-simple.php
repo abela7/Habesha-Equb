@@ -26,6 +26,7 @@ try {
     
     // Check if user is logged in
     if (!isset($_SESSION['user_id']) || !$_SESSION['user_logged_in']) {
+        error_log("Welcome API - Authentication failed. user_id: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set') . ", user_logged_in: " . (isset($_SESSION['user_logged_in']) ? $_SESSION['user_logged_in'] : 'not set'));
         throw new Exception('User not authenticated');
     }
     
@@ -79,13 +80,18 @@ try {
         
     } elseif ($action === 'agree_rules') {
         
+        error_log("Welcome API - Processing agree_rules for user_id: $user_id");
+        
         // Update rules agreement
         $stmt = $db_conn->prepare("UPDATE members SET rules_agreed = 1 WHERE id = ?");
         $result = $stmt->execute([$user_id]);
         
         if (!$result) {
+            error_log("Welcome API - Failed to update rules_agreed for user_id: $user_id");
             throw new Exception('Failed to save rules agreement');
         }
+        
+        error_log("Welcome API - Successfully updated rules_agreed for user_id: $user_id");
         
         echo json_encode([
             'success' => true,

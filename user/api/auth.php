@@ -390,6 +390,7 @@ function handle_otp_verification($database) {
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['member_id'] = $user['member_id'];
+        $_SESSION['user_login_time'] = time(); // CRITICAL: Required by auth_guard.php
         
         // Force session write to ensure it's saved before redirect
         session_write_close();
