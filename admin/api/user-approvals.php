@@ -33,6 +33,13 @@ try {
 }
 
 try {
+    require_once '../../includes/email/EmailService.php';
+} catch (Exception $e) {
+    error_log("Email service not available: " . $e->getMessage());
+    // Continue without email service - don't block approval process
+}
+
+try {
     require_once '../includes/admin_auth_guard.php';
 } catch (Exception $e) {
     http_response_code(500);
@@ -162,7 +169,41 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         ");
         $device_stmt->execute([$user['email']]);
         
-        // Log the approval action
+        // Send welcome email to approved user
+        $email_sent = false;
+        $email_error = null;
+        
+        if (class_exists('EmailService')) {
+            try {
+                $emailService = new EmailService($db);
+                
+                // Prepare email variables
+                $email_variables = [
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name'],
+                    'member_id' => $user['member_id'],
+                    'email' => $user['email'],
+                    'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
+                ];
+                
+                // Send the welcome email
+                $emailService->send(
+                    'account_approved',
+                    $user['email'],
+                    $user['first_name'] . ' ' . $user['last_name'],
+                    $email_variables
+                );
+                
+                $email_sent = true;
+                error_log("Welcome email sent successfully to {$user['email']} (User ID: {$user_id})");
+                
+            } catch (Exception $e) {
+                $email_error = $e->getMessage();
+                error_log("Failed to send welcome email to {$user['email']}: " . $email_error);
+            }
+        }
+        
+        // Log the approval action (regardless of email status)
         $log_stmt = $db->prepare("
             INSERT INTO notifications (
                 notification_id, 
@@ -177,19 +218,21 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                 sent_at,
                 sent_by_admin_id,
                 notes
-            ) VALUES (?, 'member', ?, 'approval', 'email', ?, ?, 'en', 'sent', NOW(), ?, ?)
+            ) VALUES (?, 'member', ?, 'approval', 'email', ?, ?, 'en', ?, NOW(), ?, ?)
         ");
         
         $notification_id = 'NOT-' . date('Ym') . '-' . str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
         $subject = 'Welcome to HabeshaEqub - Account Approved';
         $message = "Congratulations! Your HabeshaEqub account has been approved. You can now log in and start participating in our equb system.";
-        $notes = "User approved by admin ID: {$admin_id}";
+        $email_status = $email_sent ? 'sent' : 'failed';
+        $notes = "User approved by admin ID: {$admin_id}" . ($email_error ? " | Email error: {$email_error}" : " | Email sent successfully");
         
         $log_stmt->execute([
             $notification_id,
             $user_id,
             $subject,
             $message,
+            $email_status,
             $admin_id,
             $notes
         ]);
@@ -208,7 +251,9 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                 'user_name' => $user['first_name'] . ' ' . $user['last_name'],
                 'action' => 'approved',
                 'approved_by' => $admin_id,
-                'approved_at' => date('Y-m-d H:i:s')
+                'approved_at' => date('Y-m-d H:i:s'),
+                'email_sent' => $email_sent,
+                'email_status' => $email_sent ? 'Welcome email sent successfully' : 'Welcome email failed to send'
             ]
         ]);
         
