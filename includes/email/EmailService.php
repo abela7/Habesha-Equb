@@ -10,7 +10,9 @@ class EmailService {
     
     public function __construct($pdo) {
         $this->pdo = $pdo;
+        error_log("EmailService: Constructor called");
         $this->loadSMTPConfig();
+        error_log("EmailService: SMTP config loaded");
     }
     
     private function loadSMTPConfig() {
@@ -37,22 +39,35 @@ class EmailService {
      * Send email using template
      */
     public function send($template, $to_email, $to_name, $variables = []) {
+        error_log("EmailService: send() called with template='{$template}', to_email='{$to_email}'");
+        
         // Rate limiting check
+        error_log("EmailService: Checking rate limit for {$to_email}, template {$template}");
         if (!$this->checkRateLimit($to_email, $template)) {
+            error_log("EmailService: Rate limit exceeded for {$to_email}, template {$template}");
             throw new Exception('Rate limit exceeded for this email type');
         }
+        error_log("EmailService: Rate limit check passed");
         
         // Load template
+        error_log("EmailService: Loading template {$template}");
         $email_content = $this->loadTemplate($template, $variables);
         if (!$email_content) {
+            error_log("EmailService: Template not found: {$template}");
             throw new Exception('Email template not found: ' . $template);
         }
+        error_log("EmailService: Template loaded successfully, subject: " . $email_content['subject']);
         
         // Send via SMTP
+        error_log("EmailService: Attempting SMTP send to {$to_email}");
         $result = $this->sendViaSMTP($to_email, $to_name, $email_content['subject'], $email_content['html'], $email_content['text']);
+        error_log("EmailService: SMTP result: " . json_encode($result));
         
         // Update rate limit
-        $this->updateRateLimit($to_email, $template);
+        if ($result['success']) {
+            error_log("EmailService: Updating rate limit for successful send");
+            $this->updateRateLimit($to_email, $template);
+        }
         
         return $result;
     }
@@ -254,7 +269,8 @@ class EmailService {
         $limits = [
             'email_verification' => ['count' => 3, 'period' => 3600], // 3 per hour
             'welcome' => ['count' => 1, 'period' => 86400], // 1 per day
-            'approval_notification' => ['count' => 1, 'period' => 86400] // 1 per day
+            'approval_notification' => ['count' => 1, 'period' => 86400], // 1 per day
+            'account_approved' => ['count' => 1, 'period' => 86400] // 1 per day
         ];
         
         $limit = $limits[$type] ?? ['count' => 5, 'period' => 3600];
@@ -276,7 +292,8 @@ class EmailService {
         $limits = [
             'email_verification' => 3600, // 1 hour
             'welcome' => 86400, // 1 day  
-            'approval_notification' => 86400 // 1 day
+            'approval_notification' => 86400, // 1 day
+            'account_approved' => 86400 // 1 day
         ];
         
         $period = $limits[$type] ?? 3600;

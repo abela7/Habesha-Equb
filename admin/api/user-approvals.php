@@ -173,9 +173,13 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
         $email_sent = false;
         $email_error = null;
         
+        error_log("Starting email process for user approval - User ID: {$user_id}, Email: {$user['email']}");
+        
         if (class_exists('EmailService')) {
+            error_log("EmailService class found, attempting to send email...");
             try {
                 $emailService = new EmailService($db);
+                error_log("EmailService initialized successfully");
                 
                 // Prepare email variables
                 $email_variables = [
@@ -186,21 +190,34 @@ function handleUserApproval($db, $user_id, $user, $admin_id) {
                     'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
                 ];
                 
+                error_log("Email variables prepared: " . json_encode($email_variables));
+                
                 // Send the welcome email
-                $emailService->send(
+                $result = $emailService->send(
                     'account_approved',
                     $user['email'],
                     $user['first_name'] . ' ' . $user['last_name'],
                     $email_variables
                 );
                 
-                $email_sent = true;
-                error_log("Welcome email sent successfully to {$user['email']} (User ID: {$user_id})");
+                error_log("Email send result: " . json_encode($result));
+                
+                if ($result && isset($result['success']) && $result['success']) {
+                    $email_sent = true;
+                    error_log("Welcome email sent successfully to {$user['email']} (User ID: {$user_id})");
+                } else {
+                    $email_error = $result['message'] ?? 'Unknown email error';
+                    error_log("Email sending returned failure: " . $email_error);
+                }
                 
             } catch (Exception $e) {
                 $email_error = $e->getMessage();
-                error_log("Failed to send welcome email to {$user['email']}: " . $email_error);
+                error_log("Exception during email sending to {$user['email']}: " . $email_error);
+                error_log("Exception trace: " . $e->getTraceAsString());
             }
+        } else {
+            $email_error = "EmailService class not available";
+            error_log("EmailService class not found - email cannot be sent");
         }
         
         // Log the approval action (regardless of email status)
