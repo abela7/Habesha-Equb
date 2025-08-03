@@ -12,14 +12,17 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = $_SESSION['admin_username'];
 
-// Get payments data with member information
+// Get payments data with enhanced member information including joint membership
 try {
     $stmt = $pdo->query("
         SELECT p.*, 
                m.id as member_db_id, m.first_name, m.last_name, m.member_id, m.email,
+               m.membership_type, m.joint_group_id, m.primary_joint_member,
+               jmg.group_name as joint_group_name,
                va.username as verified_by_name
         FROM payments p 
         LEFT JOIN members m ON p.member_id = m.id
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         LEFT JOIN admins va ON p.verified_by_admin_id = va.id
         ORDER BY p.payment_date DESC, p.created_at DESC
     ");
@@ -29,18 +32,39 @@ try {
     $payments = [];
 }
 
-// Get members for dropdown
+// Get members for dropdown with joint membership information
 try {
     $stmt = $pdo->query("
-        SELECT id, member_id, first_name, last_name, monthly_payment 
-        FROM members 
-        WHERE is_active = 1 
-        ORDER BY first_name ASC, last_name ASC
+        SELECT m.id, m.member_id, m.first_name, m.last_name, m.monthly_payment,
+               m.membership_type, m.joint_group_id, m.primary_joint_member,
+               jmg.group_name as joint_group_name
+        FROM members m
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
+        WHERE m.is_active = 1 
+        ORDER BY m.membership_type DESC, m.primary_joint_member DESC, m.first_name ASC, m.last_name ASC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Error fetching members: " . $e->getMessage());
     $members = [];
+}
+
+// Get joint groups for payout processing
+try {
+    $stmt = $pdo->query("
+        SELECT jmg.*, 
+               COUNT(m.id) as member_count,
+               GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) SEPARATOR ', ') as member_names
+        FROM joint_membership_groups jmg
+        LEFT JOIN members m ON jmg.joint_group_id = m.joint_group_id AND m.is_active = 1
+        WHERE jmg.is_active = 1
+        GROUP BY jmg.id
+        ORDER BY jmg.equb_settings_id, jmg.payout_position
+    ");
+    $joint_groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Error fetching joint groups: " . $e->getMessage());
+    $joint_groups = [];
 }
 
 // Calculate payment statistics

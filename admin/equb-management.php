@@ -474,6 +474,122 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
 
+        <!-- Enhanced Financial Features Navigation -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info border-0" style="background: linear-gradient(135deg, var(--light-purple) 0%, #F8F6FF 100%); border-left: 4px solid var(--purple) !important;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">
+                                <i class="fas fa-star text-gold me-2"></i>
+                                <?php echo t('financial_audit.title'); ?> & <?php echo t('joint_membership.title'); ?> Features
+                            </h5>
+                            <p class="mb-2">Access advanced financial analytics, real-time payout calculations, and joint membership management.</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group" role="group">
+                                <a href="financial-analytics.php" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-chart-line me-1"></i>
+                                    Financial Analytics
+                                </a>
+                                <a href="joint-groups.php" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-users me-1"></i>
+                                    Joint Groups
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Feature Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--success) !important;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-success-light p-3 me-3">
+                                <i class="fas fa-calculator text-success"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Real-time Calculations</h6>
+                                <small class="text-muted">Traditional EQUB logic</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">Accurate payout calculations using authentic traditional EQUB principles.</p>
+                        <a href="financial-analytics.php" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-external-link-alt me-1"></i>
+                            View Analytics
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--info) !important;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-info-light p-3 me-3">
+                                <i class="fas fa-users text-info"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Joint Groups</h6>
+                                <small class="text-muted">Shared memberships</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">Manage joint memberships where multiple people share one position.</p>
+                        <a href="joint-groups.php" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-external-link-alt me-1"></i>
+                            Manage Groups
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--warning) !important;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-warning-light p-3 me-3">
+                                <i class="fas fa-heartbeat text-warning"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Financial Health</h6>
+                                <small class="text-muted">Monitoring dashboard</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">Monitor collection rates, distributions, and financial integrity.</p>
+                        <a href="financial-analytics.php#health" class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-external-link-alt me-1"></i>
+                            Health Check
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--purple) !important;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-purple-light p-3 me-3">
+                                <i class="fas fa-clipboard-check text-purple"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Financial Audit</h6>
+                                <small class="text-muted">Comprehensive reports</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">Generate detailed financial audit reports with member calculations.</p>
+                        <a href="financial-analytics.php#audit" class="btn btn-sm btn-outline-purple">
+                            <i class="fas fa-external-link-alt me-1"></i>
+                            Run Audit
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Content Panel -->
         <div class="content-panel">
             <div class="panel-header">

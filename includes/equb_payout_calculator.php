@@ -463,11 +463,17 @@ class EqubPayoutCalculator {
 }
 
 /**
- * Helper function to get calculator instance
+ * Helper function to get EqubPayoutCalculator instance
+ * 
+ * @return EqubPayoutCalculator
  */
 function getEqubPayoutCalculator() {
-    global $pdo, $db;
-    $database = isset($db) ? $db : $pdo;
-    return new EqubPayoutCalculator($database);
+    global $pdo;
+    
+    if (!isset($pdo)) {
+        require_once __DIR__ . '/db.php';
+    }
+    
+    return new EqubPayoutCalculator($pdo);
 }
 ?>
