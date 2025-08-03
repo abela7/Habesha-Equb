@@ -896,6 +896,113 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
             </div>
         </div>
 
+        <!-- Membership Type Selection -->
+        <div class="row">
+            <div class="col-md-12">
+                <h6 class="text-primary mb-3 mt-4">
+                    <i class="fas fa-users text-info"></i>
+                    <?php echo t('joint_membership.title'); ?>
+                </h6>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="membershipType" class="form-label">
+                        <i class="fas fa-user-friends text-info"></i>
+                        Membership Type *
+                    </label>
+                    <select class="form-select" id="membershipType" name="membership_type" required>
+                        <option value="individual">Individual Membership</option>
+                        <option value="joint">Joint Membership</option>
+                    </select>
+                    <div class="form-text"><?php echo t('joint_membership.description'); ?></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3" id="existingJointGroupField" style="display: none;">
+                    <label for="existingJointGroup" class="form-label">
+                        <i class="fas fa-link text-warning"></i>
+                        Existing Joint Group
+                    </label>
+                    <select class="form-select" id="existingJointGroup" name="existing_joint_group">
+                        <option value="">Create new joint group</option>
+                    </select>
+                    <div class="form-text">Join existing group or create new one</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Joint Membership Configuration (shown when joint type is selected) -->
+        <div id="jointMembershipConfig" style="display: none;">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Joint Membership Configuration</h6>
+                <p class="mb-0">Multiple people will share one position in the equb. Each person contributes individually but receives their share when the group's turn comes.</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="jointGroupName" class="form-label">
+                            <i class="fas fa-tag text-primary"></i>
+                            <?php echo t('joint_membership.group_name'); ?>
+                        </label>
+                        <input type="text" class="form-control" id="jointGroupName" name="joint_group_name" placeholder="e.g., Smith Family Group">
+                        <div class="form-text">Optional descriptive name</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="individualContribution" class="form-label">
+                            <i class="fas fa-pound-sign text-success"></i>
+                            <?php echo t('joint_membership.individual_contribution'); ?> *
+                        </label>
+                        <input type="number" class="form-control" id="individualContribution" name="individual_contribution" min="1" step="0.01">
+                        <div class="form-text">This person's monthly contribution</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="payoutSplitMethod" class="form-label">
+                            <i class="fas fa-chart-pie text-warning"></i>
+                            <?php echo t('joint_membership.split_method'); ?> *
+                        </label>
+                        <select class="form-select" id="payoutSplitMethod" name="payout_split_method">
+                            <option value="equal"><?php echo t('joint_membership.equal_split'); ?></option>
+                            <option value="proportional"><?php echo t('joint_membership.proportional_split'); ?></option>
+                            <option value="custom"><?php echo t('joint_membership.custom_split'); ?></option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row" id="customShareField" style="display: none;">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="jointPositionShare" class="form-label">
+                            <i class="fas fa-percentage text-info"></i>
+                            Custom Share Percentage
+                        </label>
+                        <input type="number" class="form-control" id="jointPositionShare" name="joint_position_share" min="0.01" max="1" step="0.01" placeholder="0.50">
+                        <div class="form-text">Enter as decimal (0.50 = 50%)</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Primary Member</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="primaryJointMember" name="primary_joint_member" value="1" checked>
+                            <label class="form-check-label" for="primaryJointMember">
+                                This is the primary contact for the joint group
+                            </label>
+                        </div>
+                        <div class="form-text">Primary member receives group communications</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Payout Assignment -->
         <div class="row">
             <div class="col-md-6">
@@ -1408,6 +1515,120 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
             const monthlyPaymentInput = document.getElementById('monthlyPayment');
             monthlyPaymentInput.value = this.value || '';
         });
+
+        // Joint Membership Type Selection
+        document.getElementById('membershipType').addEventListener('change', function() {
+            const isJoint = this.value === 'joint';
+            const jointConfig = document.getElementById('jointMembershipConfig');
+            const existingJointField = document.getElementById('existingJointGroupField');
+            const equbTermSelect = document.getElementById('equbTerm');
+            
+            if (isJoint) {
+                jointConfig.style.display = 'block';
+                existingJointField.style.display = 'block';
+                
+                // Load existing joint groups for the selected equb term
+                if (equbTermSelect.value) {
+                    loadExistingJointGroups(equbTermSelect.value);
+                }
+            } else {
+                jointConfig.style.display = 'none';
+                existingJointField.style.display = 'none';
+                resetJointFields();
+            }
+        });
+
+        // Payout Split Method Selection
+        document.getElementById('payoutSplitMethod').addEventListener('change', function() {
+            const customShareField = document.getElementById('customShareField');
+            if (this.value === 'custom') {
+                customShareField.style.display = 'block';
+                document.getElementById('jointPositionShare').required = true;
+            } else {
+                customShareField.style.display = 'none';
+                document.getElementById('jointPositionShare').required = false;
+            }
+        });
+
+        // Existing Joint Group Selection
+        document.getElementById('existingJointGroup').addEventListener('change', function() {
+            if (this.value) {
+                // Populate fields with existing group data
+                fetch('api/members.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=get_joint_group_details&joint_group_id=${this.value}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const group = data.group;
+                        document.getElementById('jointGroupName').value = group.group_name || '';
+                        document.getElementById('payoutSplitMethod').value = group.payout_split_method;
+                        document.getElementById('paymentTier').value = group.total_monthly_payment;
+                        document.getElementById('monthlyPayment').value = group.total_monthly_payment;
+                        document.getElementById('payoutPosition').value = group.payout_position;
+                        
+                        // Calculate suggested individual contribution
+                        const memberCount = group.member_count || 1;
+                        const suggestedContribution = group.total_monthly_payment / (memberCount + 1);
+                        document.getElementById('individualContribution').value = suggestedContribution.toFixed(2);
+                        
+                        // Show split method field if custom
+                        if (group.payout_split_method === 'custom') {
+                            document.getElementById('customShareField').style.display = 'block';
+                            document.getElementById('jointPositionShare').required = true;
+                        }
+                        
+                        // Set as secondary member by default
+                        document.getElementById('primaryJointMember').checked = false;
+                    }
+                })
+                .catch(error => console.error('Error loading joint group:', error));
+            } else {
+                resetJointFields();
+            }
+        });
+
+        // Load existing joint groups for an equb term
+        function loadExistingJointGroups(equbTermId) {
+            const existingJointSelect = document.getElementById('existingJointGroup');
+            
+            fetch('api/members.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=get_existing_joint_groups&equb_term_id=${equbTermId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    existingJointSelect.innerHTML = '<option value="">Create new joint group</option>';
+                    data.joint_groups.forEach(group => {
+                        const memberCount = group.member_count || 0;
+                        const maxMembers = 3; // This should come from equb settings
+                        if (memberCount < maxMembers) {
+                            existingJointSelect.innerHTML += `
+                                <option value="${group.joint_group_id}">
+                                    ${group.group_name || group.joint_group_id} - ${memberCount}/${maxMembers} members - £${group.total_monthly_payment}/month
+                                </option>
+                            `;
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('Error loading joint groups:', error));
+        }
+
+        // Reset joint membership fields
+        function resetJointFields() {
+            document.getElementById('jointGroupName').value = '';
+            document.getElementById('individualContribution').value = '';
+            document.getElementById('payoutSplitMethod').value = 'equal';
+            document.getElementById('jointPositionShare').value = '';
+            document.getElementById('primaryJointMember').checked = true;
+            document.getElementById('existingJointGroup').value = '';
+            document.getElementById('customShareField').style.display = 'none';
+        }
 
         // Payout Position Selection
         document.getElementById('payoutPosition').addEventListener('change', function() {

@@ -49,12 +49,29 @@ try {
     die("❌ DATABASE ERROR: " . $e->getMessage());
 }
 
-// Calculate payout information
+// Calculate payout information using Traditional EQUB Logic
 $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
 $monthly_contribution = (float)$member['monthly_payment'];
 $payout_position = (int)$member['payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
-$expected_payout = $total_equb_members * $monthly_contribution;
+
+// Use professional payout calculator for accurate calculations
+require_once '../includes/equb_payout_calculator.php';
+$payout_calculator = getEqubPayoutCalculator();
+$payout_calculation = $payout_calculator->calculateMemberPayoutAmount($user_id);
+
+if ($payout_calculation['success']) {
+    $expected_payout = $payout_calculation['net_payout'];
+    $gross_payout = $payout_calculation['gross_payout'];
+    $admin_fee = $payout_calculation['admin_fee'];
+    $calculation_details = $payout_calculation['calculation_details'];
+} else {
+    // Fallback calculation
+    $expected_payout = $monthly_contribution * (int)$member['expected_payment_months'];
+    $gross_payout = $expected_payout;
+    $admin_fee = 0;
+    $calculation_details = null;
+}
 
 // GET REAL PAYOUT INFORMATION using our top-tier sync service
 $payout_service = getPayoutSyncService();

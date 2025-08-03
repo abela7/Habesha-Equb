@@ -89,8 +89,19 @@ $duration_months = (int)$member['duration_months'];
 $expected_total_member = $monthly_contribution * $duration_months;
 $progress_percentage = $expected_total_member > 0 ? ($total_contributed / $expected_total_member) * 100 : 0;
 
-// Expected payout amount (what they'll receive when it's their turn)
-$expected_payout = $total_equb_members * $monthly_contribution;
+// Expected payout amount (what they'll receive when it's their turn) - Traditional EQUB Logic
+require_once '../includes/equb_payout_calculator.php';
+$payout_calculator = getEqubPayoutCalculator();
+$payout_calculation = $payout_calculator->calculateMemberPayoutAmount($user_id);
+
+if ($payout_calculation['success']) {
+    $expected_payout = $payout_calculation['net_payout'];
+    $gross_payout = $payout_calculation['gross_payout'];
+} else {
+    // Fallback calculation
+    $expected_payout = $monthly_contribution * $duration_months;
+    $gross_payout = $expected_payout;
+}
 
 // Get payout information
 $payout_service = getPayoutSyncService();

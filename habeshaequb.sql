@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 02, 2025 at 10:54 AM
+-- Generation Time: Aug 03, 2025 at 02:08 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -44,7 +44,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`) VALUES
-(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-08-01 01:10:10');
+(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 1, '2025-07-29 15:13:13', '2025-08-02 10:59:39');
 
 -- --------------------------------------------------------
 
@@ -70,11 +70,13 @@ CREATE TABLE `device_tracking` (
 --
 
 INSERT INTO `device_tracking` (`id`, `email`, `device_fingerprint`, `device_token`, `expires_at`, `user_agent`, `ip_address`, `created_at`, `last_seen`, `is_approved`) VALUES
-(1, 'abelgoytom77@gmail.com', 'dv_52ed2545d59e9df4', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 14:13:26', '2025-08-02 08:27:16', 1),
-(2, 'abeldemessie77@gmail.com', 'dv_52ed2545d59e9df4', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-07-31 16:03:51', '2025-08-02 07:56:36', 1),
-(3, 'barnabasdagnachew25@gmail.com', 'dv_f6b20ee8a35c5adb', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.73.40', '2025-08-01 19:46:47', '2025-08-01 19:46:47', 0),
-(4, 'abelgtm@gmail.com', 'dv_7ddeda88d0c599cc', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '143.159.176.60', '2025-08-02 05:34:21', '2025-08-02 05:34:21', 0),
-(5, 'abelgtm77@gmail.com', 'dv_7ddeda88d0c599cc', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '143.159.176.60', '2025-08-02 06:25:58', '2025-08-02 07:53:35', 1);
+(7, 'abelgoytom77@gmail.com', 'dv_c3b9db2b1191d5d7', NULL, NULL, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36', '143.159.176.60', '2025-08-02 11:37:05', '2025-08-02 11:38:24', 1),
+(8, 'fisssaba@gmail.com', 'dv_709dbc26aaaccdaf', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/138.0.7204.119 Mobile/15E148 Safari/604.1', '31.94.31.42', '2025-08-02 12:16:00', '2025-08-02 12:16:00', 0),
+(9, 'abeldemessie77@gmail.com', 'dv_7ddeda88d0c599cc', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '143.159.176.60', '2025-08-02 13:22:38', '2025-08-02 13:22:38', 0),
+(10, 'barnabasdagnachew25@gmail.com', 'dv_ea039d75b1a1fe89', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.34.4', '2025-08-02 13:24:34', '2025-08-02 13:24:34', 0),
+(11, 'koketabebe17@gmail.com', 'dv_74f5298ecd624920', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1', '109.151.51.153', '2025-08-02 14:23:22', '2025-08-02 14:23:22', 0),
+(12, 'biniamtsegay77@gmail.com', 'dv_c3b9db2b1191d5d7', NULL, NULL, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36', '148.252.141.193', '2025-08-03 11:27:46', '2025-08-03 11:27:46', 0),
+(13, 'marufnasirrrr@gmail.com', 'dv_31a88f4f3f387ee7', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', '31.94.34.102', '2025-08-03 12:12:17', '2025-08-03 12:12:17', 0);
 
 -- --------------------------------------------------------
 
@@ -113,8 +115,8 @@ CREATE TABLE `email_rate_limits` (
 INSERT INTO `email_rate_limits` (`id`, `email_address`, `email_type`, `sent_count`, `last_sent_at`, `reset_at`) VALUES
 (1, 'abelgtm77@gmail.com', 'account_approved', 4, '2025-08-02 08:53:48', '2025-08-03 07:53:35'),
 (2, 'abeldemessie77@gmail.com', 'account_approved', 2, '2025-08-02 09:14:56', '2025-08-03 07:56:36'),
-(3, 'abelgoytom77@gmail.com', 'account_approved', 4, '2025-08-02 09:12:10', '2025-08-03 08:27:16'),
-(11, 'abelgoytom77@gmail.com', 'otp_login', 7, '2025-08-02 09:52:54', '2025-08-02 10:30:05'),
+(3, 'abelgoytom77@gmail.com', 'account_approved', 6, '2025-08-02 11:38:24', '2025-08-03 08:27:16'),
+(11, 'abelgoytom77@gmail.com', 'otp_login', 33, '2025-08-03 12:53:52', '2025-08-02 10:30:05'),
 (16, 'abeldemessie77@gmail.com', 'otp_login', 1, '2025-08-02 09:46:53', '2025-08-02 10:46:53');
 
 -- --------------------------------------------------------
@@ -139,10 +141,10 @@ CREATE TABLE `equb_rules` (
 
 INSERT INTO `equb_rules` (`id`, `rule_number`, `rule_en`, `rule_am`, `is_active`, `created_at`, `updated_at`) VALUES
 (1, 1, 'Monthly payments are due on the 1st day of each month.', 'ሁሉም አባላት እቁባቸውን በወሩ የመጀመሪያ ቀን መክፈል አለባቸው', 1, '2025-07-22 21:51:08', '2025-07-22 21:59:41'),
-(2, 2, 'If you are unable to pay on time due to an emergency, you must notify the admin as soon as possible. An extension of up to two additional days may be granted.', 'አባላቶች ከአቅም በላይ በሆነ ጉዳይ በሰዓቱ መክፈል ካልቻሉ ለሰብሳቢው ቀድመው ማሳወቅ አለባቸው፣ ይሄም እቁቡን ለመክፈል ተጨማሪ 2 ቀናትን እንዲያገኙ ያስችልዎታል', 1, '2025-07-22 22:22:15', '2025-07-22 22:22:15'),
-(3, 3, 'If payment is not received within this grace period, a late fee of £20 will be charged automatically.', 'እቁቡን በሰአቱ ካልከፈሉ ተጨማሪ £20 ቅጣት ይከፍላሉ', 1, '2025-07-22 22:23:35', '2025-07-22 22:23:35'),
+(2, 2, 'If you are unable to pay on time due to an emergency, you must notify the admin as soon as possible. An extension of up to two additional days may be granted.', 'አባላቶች ከአቅም በላይ በሆነ ጉዳይ በሰዓቱ መክፈል ካልቻሉ ለሰብሳቢው ቀድመው ማሳወቅ አለባቸው፣ ይሄም እቁቡን ለመክፈል ተጨማሪ 2 ቀናትን እንዲያገኙ ያስችላቸዋል', 1, '2025-07-22 22:22:15', '2025-08-02 11:00:05'),
+(3, 3, 'If payment is not received within this grace period, a late fee of £20 will be charged automatically.', 'እቁቡን በሰዓቱ ካልከፈሉ ተጨማሪ £20 ቅጣት ይከፍላሉ', 1, '2025-07-22 22:23:35', '2025-08-02 11:00:44'),
 (4, 4, 'Each member receives their full payout on the 5th day of the month.', 'አባላቶች ወር በገባ በአምስተኛው ቀን እቁባቸውን የሚወስዱ ይሆናል', 1, '2025-07-22 22:24:32', '2025-07-22 22:24:32'),
-(5, 5, 'A £10 service fee will be deducted from each payout.', 'ሁሉም አባል ተራው ደርሶ እቁብ ሲወስድ ለእቁብ ስራ ማስኬጃ የሚውል £10 ይቀነስበታል', 1, '2025-07-22 22:26:27', '2025-07-22 22:26:27'),
+(5, 5, 'A £10 service fee will be deducted from each payout.', 'ሁሉም አባል ተራው ደርሶ እቁብ ሲወስድ ከሚወስደው ጠቅላላ የእቁብ መጠን ላይ ለስራ ማስኬጃ የሚውል £20 ይቀነስበታል', 1, '2025-07-22 22:26:27', '2025-08-02 11:02:10'),
 (6, 6, 'Once your payout turn is assigned, it cannot be changed.\r\nIf you must request a change, you must notify the admin at least 3 weeks in advance.', 'አንዴ እቁብ የሚወስዱበት ቀን ከታወቀ በኋላ መቀየር አይቻልም፣ ግዴታ መቀየር አስፈላጊ ሆኖ ከተገኘ ለሰብሳቢው ቢያንስ ከ 3 ሳምንት በፊት ማሳወቅ ይኖርብዎታል', 1, '2025-07-22 22:28:18', '2025-07-22 22:28:18');
 
 -- --------------------------------------------------------
@@ -193,7 +195,7 @@ CREATE TABLE `equb_settings` (
 --
 
 INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`) VALUES
-(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 8, 2, 8, '2025-07-01', '2026-03-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"}]', '£', 5, 10.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 64000.00, 2000.00, 2000.00, '', '2025-07-31 14:18:24', '2025-07-31 18:08:20');
+(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 10, 1, 9, '2025-07-01', '2026-04-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 90000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-08-03 12:04:00');
 
 -- --------------------------------------------------------
 
@@ -229,7 +231,7 @@ CREATE TABLE `members` (
   `last_login` timestamp NULL DEFAULT NULL,
   `notification_preferences` set('email','sms','both') DEFAULT 'both',
   `go_public` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Public visibility: 1=Yes (public), 0=No (private)',
-  `language_preference` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Web language: 0=English, 1=Amharic',
+  `language_preference` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Web language: 0=English, 1=Amharic',
   `rules_agreed` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1=Agreed to rules, 0=Not agreed',
   `notes` text DEFAULT NULL COMMENT 'Admin notes about member',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -244,9 +246,12 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
-(1, 2, 'HEM-AD1', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 1000.00, 1, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-07-31', NULL, 'both', 0, 1, 1, '', '2025-07-31 14:13:25', '2025-08-02 09:12:09', 1, 1, 0),
-(2, 2, 'HEM-MW1', 'abeldemessie77', 'Michael', 'werkeneh', 'Michael werkeneh', 'abeldemessie77@gmail.com', '+447415329333', 'active', 1000.00, 6, '2025-12-05', 1000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-07-31', NULL, 'both', 1, 0, 1, '', '2025-07-31 16:03:51', '2025-08-02 09:14:56', 1, 1, 0),
-(5, NULL, 'HEM-AG578', 'abelgtm77', 'Abel', 'Goytom', 'Abel Goytom', 'abelgtm77@gmail.com', '+447360436170', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 1, 1, '2025-08-02', NULL, 'both', 1, 0, 1, NULL, '2025-08-02 06:25:58', '2025-08-02 08:53:48', 1, 1, 0);
+(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-03 12:43:57', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-03 12:44:07', 1, 1, 0),
+(8, NULL, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, NULL, '2025-08-02 12:16:00', '2025-08-03 11:49:18', 1, 1, 0),
+(10, NULL, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, NULL, '2025-08-02 13:24:34', '2025-08-03 11:49:29', 1, 1, 0),
+(11, NULL, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, NULL, '2025-08-02 14:23:22', '2025-08-03 11:49:32', 1, 1, 0),
+(12, NULL, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, NULL, '2025-08-03 11:27:46', '2025-08-03 11:49:36', 1, 1, 0),
+(13, NULL, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, NULL, '2025-08-03 12:12:17', '2025-08-03 12:12:17', 1, 1, 0);
 
 -- --------------------------------------------------------
 
@@ -305,7 +310,9 @@ INSERT INTO `notifications` (`id`, `notification_id`, `recipient_type`, `recipie
 (16, 'NOT-202508-413', 'member', 5, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 08:42:01', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 08:42:01', '2025-08-02 08:42:01'),
 (17, 'NOT-202508-880', 'member', 5, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 08:53:48', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 08:53:48', '2025-08-02 08:53:48'),
 (18, 'NOT-202508-951', 'member', 1, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 09:12:10', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 09:12:10', '2025-08-02 09:12:10'),
-(19, 'NOT-202508-871', 'member', 2, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 09:14:56', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 09:14:56', '2025-08-02 09:14:56');
+(19, 'NOT-202508-871', 'member', 2, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 09:14:56', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 09:14:56', '2025-08-02 09:14:56'),
+(20, 'NOT-202508-860', 'member', 6, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 10:45:38', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 10:45:38', '2025-08-02 10:45:38'),
+(21, 'NOT-202508-670', 'member', 7, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 11:38:24', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 11:38:24', '2025-08-02 11:38:24');
 
 -- --------------------------------------------------------
 
@@ -332,14 +339,6 @@ CREATE TABLE `payments` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `payments`
---
-
-INSERT INTO `payments` (`id`, `payment_id`, `member_id`, `amount`, `payment_month`, `payment_date`, `status`, `payment_method`, `verified_by_admin`, `verified_by_admin_id`, `verification_date`, `receipt_number`, `notes`, `late_fee`, `created_at`, `updated_at`) VALUES
-(1, 'HEP-20250731-437', 1, 1000.00, '0000-00-00', '2025-06-01', 'paid', 'cash', 1, 8, '2025-07-31 16:25:20', 'HER-20250731-182450', '', 0.00, '2025-07-31 17:25:20', '2025-07-31 17:25:20'),
-(2, 'HEP-20250731-908', 2, 1000.00, '0000-00-00', '2025-06-01', 'paid', 'cash', 1, 8, '2025-07-31 16:26:59', 'HER-20250731-182534', '', 0.00, '2025-07-31 17:25:55', '2025-07-31 17:26:59');
-
 -- --------------------------------------------------------
 
 --
@@ -365,13 +364,6 @@ CREATE TABLE `payouts` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `payouts`
---
-
-INSERT INTO `payouts` (`id`, `payout_id`, `member_id`, `total_amount`, `scheduled_date`, `actual_payout_date`, `status`, `payout_method`, `processed_by_admin_id`, `admin_fee`, `net_amount`, `transaction_reference`, `receipt_issued`, `member_signature`, `payout_notes`, `created_at`, `updated_at`) VALUES
-(2, 'PAYOUT-AD-062025', 1, 2000.00, '2025-06-01', '2025-07-31', 'completed', 'cash', 8, 20.00, 1980.00, NULL, 0, 0, '', '2025-07-31 18:52:35', '2025-07-31 18:52:56');
 
 -- --------------------------------------------------------
 
@@ -443,7 +435,7 @@ CREATE TABLE `user_otps` (
 --
 
 INSERT INTO `user_otps` (`id`, `user_id`, `email`, `otp_code`, `otp_type`, `expires_at`, `is_used`, `attempt_count`, `created_at`) VALUES
-(17, 1, 'abelgoytom77@gmail.com', '2060', 'otp_login', '2025-08-02 09:03:25', 0, 1, '2025-08-02 09:53:25');
+(50, 7, 'abelgoytom77@gmail.com', '4032', 'otp_login', '2025-08-03 13:03:51', 0, 0, '2025-08-03 12:53:51');
 
 --
 -- Indexes for dumped tables
@@ -599,7 +591,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `device_tracking`
 --
 ALTER TABLE `device_tracking`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `email_preferences`
@@ -611,7 +603,7 @@ ALTER TABLE `email_preferences`
 -- AUTO_INCREMENT for table `email_rate_limits`
 --
 ALTER TABLE `email_rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `equb_rules`
@@ -629,13 +621,13 @@ ALTER TABLE `equb_settings`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `payments`
@@ -647,7 +639,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `payouts`
 --
 ALTER TABLE `payouts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
@@ -659,7 +651,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `user_otps`
 --
 ALTER TABLE `user_otps`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- Constraints for dumped tables

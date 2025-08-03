@@ -60,6 +60,12 @@ switch ($action) {
     case 'get_equb_start_date':
         getEqubStartDate();
         break;
+    case 'get_existing_joint_groups':
+        getExistingJointGroups();
+        break;
+    case 'get_joint_group_details':
+        getJointGroupDetails();
+        break;
     default:
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         break;
@@ -102,6 +108,15 @@ function addMember() {
         $notes = sanitize_input($_POST['notes'] ?? '');
         $payout_month = $_POST['payout_month'] ?? null;
         
+        // Joint membership fields
+        $membership_type = sanitize_input($_POST['membership_type'] ?? 'individual');
+        $existing_joint_group = sanitize_input($_POST['existing_joint_group'] ?? '');
+        $joint_group_name = sanitize_input($_POST['joint_group_name'] ?? '');
+        $individual_contribution = floatval($_POST['individual_contribution'] ?? 0);
+        $payout_split_method = sanitize_input($_POST['payout_split_method'] ?? 'equal');
+        $joint_position_share = floatval($_POST['joint_position_share'] ?? 1.0);
+        $primary_joint_member = isset($_POST['primary_joint_member']) ? 1 : 0;
+        
         // Validate email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['success' => false, 'message' => 'Invalid email format']);
@@ -118,13 +133,115 @@ function addMember() {
             return;
         }
         
-        // Check if payout position is already taken in this equb term
-        $stmt = $pdo->prepare("SELECT id FROM members WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1");
-        $stmt->execute([$equb_settings_id, $payout_position]);
-        if ($stmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Payout position already taken in this equb term']);
-            $pdo->rollback();
-            return;
+        // Handle joint membership logic
+        $joint_group_id = null;
+        $joint_member_count = 1;
+        
+        if ($membership_type === 'joint') {
+            if (!empty($existing_joint_group)) {
+                // Joining existing joint group
+                $joint_group_id = $existing_joint_group;
+                
+                // Validate existing group
+                $stmt = $pdo->prepare("
+                    SELECT jmg.*, COUNT(m.id) as current_members, es.max_joint_members_per_group
+                    FROM joint_membership_groups jmg
+                    LEFT JOIN members m ON jmg.joint_group_id = m.joint_group_id AND m.is_active = 1
+                    JOIN equb_settings es ON jmg.equb_settings_id = es.id
+                    WHERE jmg.joint_group_id = ? AND jmg.is_active = 1
+                    GROUP BY jmg.id
+                ");
+                $stmt->execute([$joint_group_id]);
+                $group_data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$group_data) {
+                    echo json_encode(['success' => false, 'message' => 'Joint group not found']);
+                    $pdo->rollback();
+                    return;
+                }
+                
+                if ($group_data['current_members'] >= $group_data['max_joint_members_per_group']) {
+                    echo json_encode(['success' => false, 'message' => 'Joint group is full']);
+                    $pdo->rollback();
+                    return;
+                }
+                
+                // Use group's payout position and monthly payment
+                $payout_position = $group_data['payout_position'];
+                $monthly_payment = $group_data['total_monthly_payment'];
+                $payout_split_method = $group_data['payout_split_method'];
+                $joint_member_count = $group_data['current_members'] + 1;
+                
+                // For existing groups, new members are usually secondary
+                $primary_joint_member = 0;
+                
+            } else {
+                // Creating new joint group
+                if ($individual_contribution <= 0) {
+                    echo json_encode(['success' => false, 'message' => 'Individual contribution is required for joint membership']);
+                    $pdo->rollback();
+                    return;
+                }
+                
+                // Check if position is available (for new joint groups)
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*) FROM (
+                        SELECT 1 FROM members WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
+                        UNION ALL
+                        SELECT 1 FROM joint_membership_groups WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
+                    ) as occupied
+                ");
+                $stmt->execute([$equb_settings_id, $payout_position, $equb_settings_id, $payout_position]);
+                if ($stmt->fetchColumn() > 0) {
+                    echo json_encode(['success' => false, 'message' => 'Payout position already taken']);
+                    $pdo->rollback();
+                    return;
+                }
+                
+                // Generate joint group ID
+                $stmt = $pdo->prepare("SELECT equb_id FROM equb_settings WHERE id = ?");
+                $stmt->execute([$equb_settings_id]);
+                $equb_data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*) + 1 as next_number 
+                    FROM joint_membership_groups 
+                    WHERE equb_settings_id = ?
+                ");
+                $stmt->execute([$equb_settings_id]);
+                $next_number = str_pad($stmt->fetchColumn(), 3, '0', STR_PAD_LEFT);
+                $joint_group_id = "JNT-{$equb_data['equb_id']}-{$next_number}";
+                
+                // Create joint group record
+                $stmt = $pdo->prepare("
+                    INSERT INTO joint_membership_groups (
+                        joint_group_id, equb_settings_id, group_name, total_monthly_payment,
+                        payout_position, payout_split_method, member_count
+                    ) VALUES (?, ?, ?, ?, ?, ?, 0)
+                ");
+                $stmt->execute([
+                    $joint_group_id, $equb_settings_id, $joint_group_name, $monthly_payment,
+                    $payout_position, $payout_split_method
+                ]);
+                
+                // First member is primary by default
+                $primary_joint_member = 1;
+            }
+        } else {
+            // Individual membership - check position availability
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) FROM (
+                    SELECT 1 FROM members WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
+                    UNION ALL
+                    SELECT 1 FROM joint_membership_groups WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
+                ) as occupied
+            ");
+            $stmt->execute([$equb_settings_id, $payout_position, $equb_settings_id, $payout_position]);
+            if ($stmt->fetchColumn() > 0) {
+                echo json_encode(['success' => false, 'message' => 'Payout position already taken']);
+                $pdo->rollback();
+                return;
+            }
         }
         
         // Verify equb term has available spots
@@ -172,7 +289,7 @@ function addMember() {
             $payout_month_date = null;
         }
         
-        // Insert member
+        // Insert member with joint membership support
         $stmt = $pdo->prepare("
             INSERT INTO members (
                 equb_settings_id, member_id, first_name, last_name, email, phone, password, 
@@ -180,15 +297,19 @@ function addMember() {
                 has_received_payout, guarantor_first_name, guarantor_last_name, 
                 guarantor_phone, guarantor_email, guarantor_relationship, 
                 is_active, is_approved, email_verified, join_date, 
-                notification_preferences, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'email,sms', ?, NOW(), NOW())
+                notification_preferences, notes, membership_type, joint_group_id,
+                joint_member_count, individual_contribution, joint_position_share,
+                primary_joint_member, payout_split_method, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'email,sms', ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         
         $result = $stmt->execute([
             $equb_settings_id, $member_id, $first_name, $last_name, $email, $phone, $hashed_password,
             $monthly_payment, $payout_position, $payout_month_date,
             $guarantor_first_name, $guarantor_last_name, $guarantor_phone, 
-            $guarantor_email, $guarantor_relationship, $notes
+            $guarantor_email, $guarantor_relationship, $notes, $membership_type, $joint_group_id,
+            $joint_member_count, $individual_contribution, $joint_position_share,
+            $primary_joint_member, $payout_split_method
         ]);
         
         if ($result) {
@@ -201,6 +322,17 @@ function addMember() {
             ");
             $stmt->execute([$equb_settings_id]);
             
+            // Update joint group member count if applicable
+            if ($membership_type === 'joint' && $joint_group_id) {
+                $stmt = $pdo->prepare("
+                    UPDATE joint_membership_groups 
+                    SET member_count = member_count + 1,
+                        updated_at = NOW()
+                    WHERE joint_group_id = ?
+                ");
+                $stmt->execute([$joint_group_id]);
+            }
+            
             // Commit transaction
             $pdo->commit();
             
@@ -211,6 +343,9 @@ function addMember() {
                 $payout_sync_result = $payout_service->calculateMemberPayoutDate($new_member_result, true);
                 
                 $message = 'Member added successfully and assigned to equb term';
+                if ($membership_type === 'joint') {
+                    $message .= " (Joint Group: {$joint_group_id})";
+                }
                 if (isset($payout_sync_result['calculated_payout_date'])) {
                     $message .= '. Payout date: ' . date('M j, Y', strtotime($payout_sync_result['calculated_payout_date']));
                 }
@@ -220,6 +355,8 @@ function addMember() {
                     'message' => $message,
                     'member_id' => $member_id,
                     'password' => $password,
+                    'membership_type' => $membership_type,
+                    'joint_group_id' => $joint_group_id,
                     'payout_info' => $payout_sync_result
                 ]);
                 
@@ -714,6 +851,106 @@ function getEqubStartDate() {
         
     } catch (PDOException $e) {
         error_log("Error getting equb start date: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
+}
+
+/**
+ * Get existing joint groups for an equb term
+ */
+function getExistingJointGroups() {
+    global $pdo;
+    
+    try {
+        $equb_term_id = intval($_POST['equb_term_id'] ?? $_GET['equb_term_id'] ?? 0);
+        
+        if (!$equb_term_id) {
+            echo json_encode(['success' => false, 'message' => 'Equb term ID is required']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                jmg.*,
+                COUNT(m.id) as current_member_count,
+                es.max_joint_members_per_group
+            FROM joint_membership_groups jmg
+            LEFT JOIN members m ON jmg.joint_group_id = m.joint_group_id AND m.is_active = 1
+            JOIN equb_settings es ON jmg.equb_settings_id = es.id
+            WHERE jmg.equb_settings_id = ? AND jmg.is_active = 1
+            GROUP BY jmg.id
+            HAVING current_member_count < es.max_joint_members_per_group
+            ORDER BY jmg.created_at DESC
+        ");
+        $stmt->execute([$equb_term_id]);
+        $joint_groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Add member count to each group
+        foreach ($joint_groups as &$group) {
+            $group['member_count'] = $group['current_member_count'];
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'joint_groups' => $joint_groups
+        ]);
+        
+    } catch (PDOException $e) {
+        error_log("Error getting existing joint groups: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
+}
+
+/**
+ * Get detailed information about a specific joint group
+ */
+function getJointGroupDetails() {
+    global $pdo;
+    
+    try {
+        $joint_group_id = $_POST['joint_group_id'] ?? $_GET['joint_group_id'] ?? '';
+        
+        if (!$joint_group_id) {
+            echo json_encode(['success' => false, 'message' => 'Joint group ID is required']);
+            return;
+        }
+        
+        // Get group details
+        $stmt = $pdo->prepare("
+            SELECT jmg.*, es.equb_name, COUNT(m.id) as member_count
+            FROM joint_membership_groups jmg
+            JOIN equb_settings es ON jmg.equb_settings_id = es.id
+            LEFT JOIN members m ON jmg.joint_group_id = m.joint_group_id AND m.is_active = 1
+            WHERE jmg.joint_group_id = ?
+            GROUP BY jmg.id
+        ");
+        $stmt->execute([$joint_group_id]);
+        $group = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$group) {
+            echo json_encode(['success' => false, 'message' => 'Joint group not found']);
+            return;
+        }
+        
+        // Get group members
+        $stmt = $pdo->prepare("
+            SELECT m.*, 
+                   CASE WHEN m.primary_joint_member = 1 THEN 'Primary' ELSE 'Secondary' END as role
+            FROM members m
+            WHERE m.joint_group_id = ? AND m.is_active = 1
+            ORDER BY m.primary_joint_member DESC, m.created_at ASC
+        ");
+        $stmt->execute([$joint_group_id]);
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'group' => $group,
+            'members' => $members
+        ]);
+        
+    } catch (PDOException $e) {
+        error_log("Error getting joint group details: " . $e->getMessage());
         echo json_encode(['success' => false, 'message' => 'Database error occurred']);
     }
 }

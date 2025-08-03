@@ -110,8 +110,21 @@ $total_contributed = (float)$member['total_contributed'];
 $payout_position = (int)$member['payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
 
-// Enhanced Financial Calculations
-$expected_payout = $total_equb_members * $monthly_contribution;
+// Enhanced Financial Calculations using Traditional EQUB Logic
+require_once '../includes/equb_payout_calculator.php';
+$payout_calculator = getEqubPayoutCalculator();
+$payout_calculation = $payout_calculator->calculateMemberPayoutAmount($user_id);
+
+if ($payout_calculation['success']) {
+    $expected_payout = $payout_calculation['net_payout'];
+    $gross_payout = $payout_calculation['gross_payout'];
+    $admin_fee = $payout_calculation['admin_fee'];
+} else {
+    // Fallback to traditional calculation
+    $expected_payout = $monthly_contribution * (int)$member['expected_payment_months'];
+    $gross_payout = $expected_payout + (float)$member['admin_fee'];
+    $admin_fee = (float)$member['admin_fee'];
+}
 $expected_total_contribution = $monthly_contribution * (int)$member['expected_payment_months'];
 $contribution_progress = $expected_total_contribution > 0 ? min(100, ($total_contributed / $expected_total_contribution) * 100) : 0;
 
