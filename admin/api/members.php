@@ -278,10 +278,6 @@ function addMember() {
         
         $member_id = "HEM-{$initials}{$next_number}";
         
-        // Generate random 6-character password
-        $password = generateRandomPassword();
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        
         // Convert payout_month to proper date format
         if ($payout_month) {
             $payout_month_date = $payout_month . '-05'; // Set to 5th of the month (payout day)
@@ -289,10 +285,10 @@ function addMember() {
             $payout_month_date = null;
         }
         
-        // Insert member with joint membership support
+        // Insert member with joint membership support (matching your database schema exactly)
         $stmt = $pdo->prepare("
             INSERT INTO members (
-                equb_settings_id, member_id, first_name, last_name, email, phone, password, 
+                equb_settings_id, member_id, first_name, last_name, email, phone, 
                 monthly_payment, payout_position, payout_month, total_contributed, 
                 has_received_payout, guarantor_first_name, guarantor_last_name, 
                 guarantor_phone, guarantor_email, guarantor_relationship, 
@@ -300,11 +296,11 @@ function addMember() {
                 notification_preferences, notes, membership_type, joint_group_id,
                 joint_member_count, individual_contribution, joint_position_share,
                 primary_joint_member, payout_split_method, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'email,sms', ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'email,sms', ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         
         $result = $stmt->execute([
-            $equb_settings_id, $member_id, $first_name, $last_name, $email, $phone, $hashed_password,
+            $equb_settings_id, $member_id, $first_name, $last_name, $email, $phone,
             $monthly_payment, $payout_position, $payout_month_date,
             $guarantor_first_name, $guarantor_last_name, $guarantor_phone, 
             $guarantor_email, $guarantor_relationship, $notes, $membership_type, $joint_group_id,
