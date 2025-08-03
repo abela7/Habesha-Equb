@@ -1621,7 +1621,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="welcome-content">
                                 <h1>
                                     <i class="fas fa-hand-wave text-warning"></i>
-                                    <?php echo sprintf(t('member_dashboard.welcome'), '<span class="text-primary">' . htmlspecialchars($member['first_name']) . '</span>'); ?>
+                                    <?php echo sprintf(t('member_dashboard.welcome_member'), '<span class="text-primary">' . htmlspecialchars($member['first_name']) . '</span>'); ?>
                                 </h1>
                                 <p><?php echo t('member_dashboard.welcome_message'); ?></p>
                                 <div class="member-status">

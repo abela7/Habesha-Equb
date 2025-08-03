@@ -226,29 +226,33 @@ if (isset($_GET['msg'])) {
         }
 
         .otp-subtitle {
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(255, 255, 255, 0.95);
             font-size: 1rem;
             line-height: 1.5;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .otp-info {
-            background: rgba(218, 165, 32, 0.1);
+            background: rgba(241, 236, 226, 0.95);
             border: 1px solid rgba(218, 165, 32, 0.3);
             border-radius: 12px;
-            padding: 16px;
+            padding: 18px;
             margin-bottom: 24px;
             text-align: center;
+            backdrop-filter: blur(10px);
         }
 
         .otp-info-text {
-            color: var(--gold);
-            font-size: 14px;
+            color: var(--darker-purple);
+            font-size: 15px;
+            font-weight: 500;
             margin: 0;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .otp-info strong {
-            color: var(--white);
+            color: var(--gold);
+            font-weight: 700;
         }
 
         /* Form Styles */
@@ -313,10 +317,12 @@ if (isset($_GET['msg'])) {
         }
 
         .checkbox-group label {
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--white);
             font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             line-height: 1.4;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .btn-primary {
@@ -552,8 +558,8 @@ if (isset($_GET['msg'])) {
 
                 <!-- Back to Login -->
                 <div style="text-align: center; margin-top: 24px;">
-                    <a href="login.php" style="color: rgba(255, 255, 255, 0.7); text-decoration: none; font-size: 14px; transition: color 0.3s ease;">
-                        <i class="fas fa-arrow-left"></i>
+                    <a href="login.php" style="color: var(--white); text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s ease; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--white)'">
+                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
                         <?php echo t('otp_verification.back_to_login'); ?>
                     </a>
                 </div>
