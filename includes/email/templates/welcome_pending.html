@@ -3,175 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to HabeshaEqub - Registration Received</title>
+    <title>Registration Received</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                margin: 0 10px !important;
+            }
+            .content-padding {
+                padding: 30px 20px !important;
+            }
+            .header-padding {
+                padding: 25px 20px !important;
+            }
+            .footer-padding {
+                padding: 15px !important;
+            }
+        }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F1ECE2; line-height: 1.6;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #F1ECE2; line-height: 1.4;">
     
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; padding: 40px 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; padding: 30px 15px;">
         <tr>
             <td align="center">
                 
-                <!-- Main Email Container -->
-                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; max-width: 600px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(48, 25, 52, 0.15);">
+                <!-- Simple Email Container -->
+                <table class="email-container" width="500" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; max-width: 500px; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 25px rgba(48, 25, 52, 0.1);">
                     
-                    <!-- Header Section -->
+                    <!-- Header -->
                     <tr>
-                        <td style="background-color: #301934; padding: 40px 30px; text-align: center;">
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                    <td style="text-align: center; padding-bottom: 20px;">
-                                        <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
-                                            <tr>
-                                                <td style="width: 60px; height: 60px; background-color: #DAA520; border-radius: 50%; text-align: center; vertical-align: middle;">
-                                                    <span style="color: #FFFFFF; font-size: 24px; font-weight: bold; line-height: 60px;">H</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align: center;">
-                                        <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 600; letter-spacing: 1px;">
-                                            HabeshaEqub
-                                        </h1>
-                                    </td>
-                                </tr>
-                            </table>
+                        <td class="header-padding" style="background: linear-gradient(135deg, #301934 0%, #4D4052 100%); padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #FFFFFF; font-size: 22px; font-weight: 600;">
+                                HabeshaEqub
+                            </h1>
                         </td>
                     </tr>
                     
-                    <!-- Welcome Banner -->
+                    <!-- Status Banner -->
                     <tr>
-                        <td style="background-color: #5D4225; padding: 25px 30px; text-align: center;">
-                            <h2 style="margin: 0; color: #FFFFFF; font-size: 24px; font-weight: 600;">
-                                Welcome to HabeshaEqub!
+                        <td style="background: linear-gradient(135deg, #5D4225 0%, #DAA520 100%); padding: 20px; text-align: center;">
+                            <h2 style="margin: 0; color: #FFFFFF; font-size: 20px; font-weight: 600;">
+                                📝 Registration Received!
                             </h2>
-                            <p style="margin: 8px 0 0 0; color: #CDAF56; font-size: 16px;">
-                                Registration under review
-                            </p>
                         </td>
                     </tr>
                     
-                    <!-- Main Content -->
+                    <!-- Content -->
                     <tr>
-                        <td style="padding: 40px 30px;">
+                        <td class="content-padding" style="padding: 40px 30px; text-align: center;">
                             
-                            <!-- Personal Greeting -->
-                            <h3 style="margin: 0 0 20px 0; color: #301934; font-size: 20px; font-weight: 600;">
-                                Dear {{first_name}},
+                            <h3 style="margin: 0 0 15px 0; color: #301934; font-size: 18px; font-weight: 600;">
+                                Thank you {{first_name}}!
                             </h3>
                             
-                            <!-- Main Message -->
-                            <p style="margin: 0 0 25px 0; color: #4D4052; font-size: 16px; line-height: 1.7;">
-                                Thank you for joining <strong style="color: #DAA520;">HabeshaEqub</strong>! We have received your registration and it's currently being reviewed by our admin team to ensure community security.
+                            <p style="margin: 0 0 25px 0; color: #4D4052; font-size: 16px; line-height: 1.6;">
+                                We received your registration and our admin team will review your application soon.
                             </p>
                             
-                            <!-- Status Steps -->
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; border-radius: 8px; margin: 30px 0;">
+                            <!-- Member Details -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; border-radius: 8px; margin: 25px 0;">
                                 <tr>
-                                    <td style="padding: 25px;">
-                                        <h4 style="margin: 0 0 20px 0; color: #301934; font-size: 16px; font-weight: 600;">
-                                            Current Status:
-                                        </h4>
-                                        
-                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #4D4052; font-size: 14px;">
-                                                    ✓ <strong>Email Verified</strong> - Complete
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #DAA520; font-size: 14px;">
-                                                    ⏳ <strong>Admin Review</strong> - In Progress
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">
-                                                    ⚪ <strong>Account Access</strong> - Pending Approval
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <!-- Waiting Information -->
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #FFFFFF; border: 2px solid #F1ECE2; border-radius: 8px; margin: 30px 0;">
-                                <tr>
-                                    <td style="padding: 25px;">
-                                        <h4 style="margin: 0 0 16px 0; color: #301934; font-size: 16px; font-weight: 600;">
-                                            What to expect:
-                                        </h4>
-                                        <p style="margin: 0 0 15px 0; color: #4D4052; font-size: 14px; line-height: 1.6;">
-                                            <strong style="color: #DAA520;">Typical approval time:</strong> 8-12 hours
+                                    <td style="padding: 20px; text-align: center;">
+                                        <p style="margin: 0 0 8px 0; color: #5D4225; font-size: 14px; font-weight: 600;">
+                                            Your Member ID
                                         </p>
-                                        <p style="margin: 0; color: #4D4052; font-size: 14px; line-height: 1.6;">
-                                            You'll receive an email notification once your account is approved. Keep an eye on your inbox!
+                                        <p style="margin: 0; color: #301934; font-size: 18px; font-weight: 700;">
+                                            {{member_id}}
                                         </p>
                                     </td>
                                 </tr>
                             </table>
                             
-                            <!-- Registration Summary -->
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F1ECE2; border-radius: 8px; margin: 30px 0;">
-                                <tr>
-                                    <td style="padding: 25px;">
-                                        <h4 style="margin: 0 0 16px 0; color: #301934; font-size: 16px; font-weight: 600;">
-                                            Registration Summary:
-                                        </h4>
-                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                                            <tr>
-                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px; font-weight: 600; width: 120px;">
-                                                    Name:
-                                                </td>
-                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px;">
-                                                    {{first_name}} {{last_name}}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px; font-weight: 600;">
-                                                    Email:
-                                                </td>
-                                                <td style="padding: 6px 0; color: #4D4052; font-size: 14px;">
-                                                    {{email}}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
+                            <p style="margin: 25px 0 0 0; color: #5D4225; font-size: 14px;">
+                                ⏰ Approval typically takes 24-48 hours
+                            </p>
                             
                         </td>
                     </tr>
                     
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #F1ECE2; padding: 30px; text-align: center; border-top: 1px solid #E5E7EB;">
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                    <td style="text-align: center; padding-bottom: 15px;">
-                                        <p style="margin: 0; color: #4D4052; font-size: 16px; font-weight: 500;">
-                                            Thank you for choosing HabeshaEqub!
-                                        </p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align: center; padding-bottom: 15px;">
-                                        <p style="margin: 0; color: #5D4225; font-size: 14px;">
-                                            Questions? Contact us at 
-                                            <a href="mailto:admin@habeshaequb.com" style="color: #DAA520; text-decoration: none; font-weight: 500;">admin@habeshaequb.com</a>
-                                        </p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align: center; padding-top: 15px; border-top: 1px solid #E5E7EB;">
-                                        <p style="margin: 0; color: #6B7280; font-size: 12px; line-height: 1.5;">
-                                            © 2025 HabeshaEqub - Traditional Savings Community<br>
-                                            This email was sent because you registered for an account.
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
+                        <td class="footer-padding" style="background-color: #F1ECE2; padding: 20px; text-align: center;">
+                            <p style="margin: 0; color: #5D4225; font-size: 13px;">
+                                Questions? Contact us at 
+                                <a href="mailto:admin@habeshaequb.com" style="color: #DAA520; text-decoration: none;">admin@habeshaequb.com</a>
+                            </p>
                         </td>
                     </tr>
                 </table>
