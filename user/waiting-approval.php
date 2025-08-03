@@ -289,12 +289,14 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         
         .waiting-message {
             font-size: 18px;
-            color: var(--dark-purple);
-            line-height: 1.6;
+            color: var(--darker-purple);
+            line-height: 1.7;
             margin-bottom: 40px;
             max-width: 500px;
             margin-left: auto;
             margin-right: auto;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
         }
         
         .status-details {
@@ -336,13 +338,25 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         
         .approval-time {
             text-align: center;
-            color: var(--dark-purple);
-            font-size: 14px;
+            color: var(--darker-purple);
+            font-size: 15px;
+            font-weight: 600;
             margin: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(218, 165, 32, 0.2);
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(77, 64, 82, 0.08);
+        }
+        
+        .approval-time i {
+            color: var(--gold);
+            font-size: 16px;
         }
         
         .back-button {
@@ -378,13 +392,17 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         }
         
         .declined-message {
-            background: rgba(220, 53, 69, 0.1);
-            border: 2px solid rgba(220, 53, 69, 0.2);
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--error);
             border-radius: 12px;
             padding: 25px;
             margin: 25px 0;
             color: var(--error);
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 16px;
+            line-height: 1.6;
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.15);
+            text-align: center;
         }
         
         /* Responsive Design */
@@ -427,6 +445,20 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
             
             .detail-item {
                 padding: 16px;
+            }
+            
+            .approval-time {
+                font-size: 14px;
+                padding: 14px 20px;
+            }
+            
+            .waiting-message {
+                font-size: 16px;
+            }
+            
+            .declined-message {
+                font-size: 15px;
+                padding: 20px;
             }
         }
     </style>

@@ -203,7 +203,7 @@ try {
             ?, ?, 'active', 0.00, 0, 
             0.00, 0, 'Pending', 
             'Pending', 'Pending', 1, 0, 
-            1, CURDATE(), 1, NOW()
+            1, CURDATE(), 0, NOW()
         )
     ");
     
