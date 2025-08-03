@@ -357,12 +357,12 @@ if (isset($_GET['msg'])) {
 
         .btn-secondary {
             width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(241, 236, 226, 0.95);
+            border: 1px solid rgba(218, 165, 32, 0.3);
             border-radius: 12px;
             padding: 12px 24px;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
+            color: var(--darker-purple);
+            font-weight: 600;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -371,8 +371,11 @@ if (isset($_GET['msg'])) {
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-            color: var(--white);
+            background: var(--white);
+            color: var(--darker-purple);
+            border-color: var(--gold);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.2);
         }
 
         /* Alert Styles */
@@ -557,9 +560,9 @@ if (isset($_GET['msg'])) {
                 </form>
 
                 <!-- Back to Login -->
-                <div style="text-align: center; margin-top: 24px;">
-                    <a href="login.php" style="color: var(--white); text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.3s ease; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--white)'">
-                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
+                <div style="text-align: center; margin-top: 24px; padding: 16px; background: rgba(241, 236, 226, 0.9); border-radius: 12px; backdrop-filter: blur(10px);">
+                    <a href="login.php" style="color: var(--darker-purple); text-decoration: none; font-size: 14px; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--darker-purple)'">
+                        <i class="fas fa-arrow-left"></i>
                         <?php echo t('otp_verification.back_to_login'); ?>
                     </a>
                 </div>
