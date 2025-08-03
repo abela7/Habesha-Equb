@@ -276,7 +276,7 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         }
         
         .waiting-content {
-            padding: 50px 40px;
+            padding: 40px 40px 50px 40px;
             text-align: center;
         }
         
@@ -338,41 +338,40 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         
         .approval-time {
             text-align: center;
-            color: var(--darker-purple);
+            color: var(--white);
             font-size: 15px;
             font-weight: 600;
-            margin: 0;
+            margin: 20px 0 0 0;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--light-gold) 100%);
+            padding: 18px 24px;
             border-radius: 12px;
-            border: 1px solid rgba(218, 165, 32, 0.2);
-            margin-top: 20px;
-            box-shadow: 0 4px 12px rgba(77, 64, 82, 0.08);
+            border: none;
+            box-shadow: 0 6px 20px rgba(218, 165, 32, 0.3);
         }
         
         .approval-time i {
-            color: var(--gold);
+            color: var(--white);
             font-size: 16px;
         }
         
         .back-button {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             background: linear-gradient(135deg, var(--dark-purple) 0%, var(--darker-purple) 100%);
             color: white;
             text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 12px;
+            padding: 18px 36px;
+            border-radius: 14px;
             font-weight: 600;
             font-size: 16px;
             transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(77, 64, 82, 0.3);
-            margin-top: 30px;
+            box-shadow: 0 8px 25px rgba(77, 64, 82, 0.3);
+            margin-top: 40px;
         }
         
         .back-button:hover {
@@ -392,16 +391,16 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
         }
         
         .declined-message {
-            background: rgba(255, 255, 255, 0.95);
+            background: linear-gradient(135deg, var(--white) 0%, rgba(255, 255, 255, 0.95) 100%);
             border: 2px solid var(--error);
-            border-radius: 12px;
-            padding: 25px;
-            margin: 25px 0;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
             color: var(--error);
             font-weight: 600;
             font-size: 16px;
-            line-height: 1.6;
-            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.15);
+            line-height: 1.7;
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.2);
             text-align: center;
         }
         
@@ -449,7 +448,8 @@ $opposite_lang_name = ($current_lang === 'am') ? 'English' : 'አማርኛ';
             
             .approval-time {
                 font-size: 14px;
-                padding: 14px 20px;
+                padding: 16px 20px;
+                margin: 20px 0 0 0;
             }
             
             .waiting-message {
