@@ -6,17 +6,39 @@
 
 require_once '../../includes/db.php';
 require_once '../../includes/equb_payout_calculator.php';
-require_once '../../includes/functions.php';
 
-// Set JSON header
-header('Content-Type: application/json');
+// Start session if not started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Set headers
+header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
 
-// Check admin authentication
-session_start();
-if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
+// Simple admin authentication check
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
+}
+
+/**
+ * JSON response helper
+ */
+function json_response($success, $message, $data = null) {
+    echo json_encode([
+        'success' => $success,
+        'message' => $message,
+        'data' => $data
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/**
+ * Sanitize input data
+ */
+function sanitize_input($data) {
+    return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
 }
 
 $admin_id = $_SESSION['admin_id'];

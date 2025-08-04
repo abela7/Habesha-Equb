@@ -12,20 +12,17 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username();
 
-// Get all equb settings with payment tiers
+// Get all equb settings with payment tiers - using stored current_members
 try {
     $stmt = $pdo->query("
         SELECT 
-            es.id, es.equb_id, es.equb_name, es.status, es.payment_tiers, es.admin_fee, 
-            es.max_members, es.duration_months,
-            COUNT(DISTINCT m.id) as current_members
-        FROM equb_settings es
-        LEFT JOIN members m ON m.equb_settings_id = es.id AND m.is_active = 1
-        WHERE es.status IN ('planning', 'active') 
-        GROUP BY es.id
+            id, equb_id, equb_name, status, payment_tiers, admin_fee, 
+            max_members, current_members, duration_months
+        FROM equb_settings
+        WHERE status IN ('planning', 'active') 
         ORDER BY 
-            CASE WHEN es.status = 'active' THEN 1 WHEN es.status = 'planning' THEN 2 ELSE 3 END,
-            es.created_at DESC
+            CASE WHEN status = 'active' THEN 1 WHEN status = 'planning' THEN 2 ELSE 3 END,
+            created_at DESC
     ");
     $equb_terms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

@@ -4,28 +4,21 @@
  * Professional API for managing member payout positions
  */
 
-// Define skip auth check to prevent automatic redirect
-define('SKIP_ADMIN_AUTH_CHECK', true);
-
-// Start session first
-session_start();
-
-// Include required files
+// Include database connection
 require_once '../../includes/db.php';
-require_once '../../includes/functions.php';
 
-// Security headers
-header('Content-Type: application/json; charset=utf-8');
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: DENY');
-header('X-XSS-Protection: 1; mode=block');
-
-// Check admin authentication manually
-if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-    exit;
+// Start session if not started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
+// Set headers
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, must-revalidate');
+
+/**
+ * JSON response helper
+ */
 function json_response($success, $message, $data = null) {
     echo json_encode([
         'success' => $success,
@@ -33,6 +26,11 @@ function json_response($success, $message, $data = null) {
         'data' => $data
     ], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+// Simple admin authentication check
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    json_response(false, 'Unauthorized access');
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -75,9 +73,9 @@ function getPositions() {
     }
     
     try {
-        // Get EQUB info
+        // Get EQUB info - using exact schema fields
         $stmt = $pdo->prepare("
-            SELECT duration_months, admin_fee 
+            SELECT duration_months, admin_fee, current_members, max_members
             FROM equb_settings 
             WHERE id = ?
         ");
@@ -88,7 +86,7 @@ function getPositions() {
             json_response(false, 'EQUB term not found');
         }
         
-        // Get members with current positions
+        // Get members with current positions - using exact schema
         $stmt = $pdo->prepare("
             SELECT 
                 m.id, m.member_id, m.first_name, m.last_name, m.email,
@@ -109,7 +107,7 @@ function getPositions() {
             $member['estimated_payout_date'] = calculatePayoutDate($member['payout_position'], $equb_info['duration_months']);
         }
         
-        // Get statistics
+        // Get statistics - using actual data
         $stats = [
             'total_members' => count($members),
             'individual_members' => count(array_filter($members, fn($m) => $m['membership_type'] === 'individual')),
