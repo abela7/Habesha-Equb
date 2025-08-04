@@ -239,8 +239,8 @@ function addMember() {
             $stmt->execute([$equb_settings_id, $payout_position, $equb_settings_id, $payout_position]);
             if ($stmt->fetchColumn() > 0) {
                 echo json_encode(['success' => false, 'message' => 'Payout position already taken']);
-                $pdo->rollback();
-                return;
+            $pdo->rollback();
+            return;
             }
         }
         
@@ -285,23 +285,27 @@ function addMember() {
             $payout_month_date = null;
         }
         
-        // Insert member with joint membership support (matching your database schema exactly)
+        // Generate derived fields to match your exact database schema
+        $username = strtolower(str_replace([' ', '.', '@', '+'], ['', '', '', ''], substr($email, 0, strpos($email, '@'))));
+        $full_name = trim($first_name . ' ' . $last_name);
+        
+        // Insert member with ALL columns matching your EXACT database schema
         $stmt = $pdo->prepare("
             INSERT INTO members (
-                equb_settings_id, member_id, first_name, last_name, email, phone, 
-                monthly_payment, payout_position, payout_month, total_contributed, 
-                has_received_payout, guarantor_first_name, guarantor_last_name, 
-                guarantor_phone, guarantor_email, guarantor_relationship, 
-                is_active, is_approved, email_verified, join_date, 
-                notification_preferences, notes, membership_type, joint_group_id,
-                joint_member_count, individual_contribution, joint_position_share,
-                primary_joint_member, payout_split_method, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'email,sms', ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                equb_settings_id, member_id, username, first_name, last_name, full_name,
+                email, phone, status, monthly_payment, payout_position, payout_month, 
+                total_contributed, has_received_payout, guarantor_first_name, guarantor_last_name, 
+                guarantor_phone, guarantor_email, guarantor_relationship, is_active, is_approved, 
+                email_verified, join_date, notification_preferences, go_public, language_preference, 
+                rules_agreed, notes, created_at, updated_at, email_notifications, payment_reminders, 
+                swap_terms_allowed, membership_type, joint_group_id, joint_member_count, 
+                individual_contribution, joint_position_share, primary_joint_member, payout_split_method
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, 1, 1, 0, CURDATE(), 'both', 1, 1, 0, ?, NOW(), NOW(), 1, 1, 0, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $result = $stmt->execute([
-            $equb_settings_id, $member_id, $first_name, $last_name, $email, $phone,
-            $monthly_payment, $payout_position, $payout_month_date,
+            $equb_settings_id, $member_id, $username, $first_name, $last_name, $full_name,
+            $email, $phone, $monthly_payment, $payout_position, $payout_month_date,
             $guarantor_first_name, $guarantor_last_name, $guarantor_phone, 
             $guarantor_email, $guarantor_relationship, $notes, $membership_type, $joint_group_id,
             $joint_member_count, $individual_contribution, $joint_position_share,

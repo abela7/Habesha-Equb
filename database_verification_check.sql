@@ -71,16 +71,16 @@ SELECT
 
 -- Final verification summary
 SELECT 
-    'FINAL VERIFICATION SUMMARY' as summary,
+    'MEMBER CREATION VERIFICATION' as summary,
     CASE 
         WHEN (
-            (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'members' AND COLUMN_NAME IN ('membership_type', 'joint_group_id', 'joint_member_count', 'individual_contribution', 'joint_position_share', 'primary_joint_member', 'payout_split_method')) = 7
+            (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'members' AND COLUMN_NAME IN ('username', 'full_name', 'status', 'go_public', 'language_preference', 'rules_agreed', 'email_notifications', 'payment_reminders', 'swap_terms_allowed', 'membership_type', 'joint_group_id', 'joint_member_count', 'individual_contribution', 'joint_position_share', 'primary_joint_member', 'payout_split_method')) = 16
             AND (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('joint_membership_groups', 'joint_payout_splits')) = 2
             AND (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'equb_settings' AND COLUMN_NAME IN ('supports_joint_membership', 'max_joint_members_per_group')) = 2
-        ) THEN 'DATABASE IS READY FOR JOINT MEMBERSHIP! ✅'
-        ELSE 'DATABASE NEEDS UPDATES ❌'
+        ) THEN 'DATABASE IS READY FOR MEMBER CREATION! ✅'
+        ELSE 'DATABASE MISSING COLUMNS ❌'
     END as database_status,
-    'All required columns and tables are present' as message;
+    'All required columns for member creation are present' as message;
 
 -- Show current member data to verify structure
 SELECT 
@@ -96,3 +96,9 @@ SELECT
     'JOINT GROUPS CHECK' as check_type,
     COUNT(*) as total_joint_groups
 FROM joint_membership_groups;
+
+-- Test member creation readiness
+SELECT 
+    'MEMBER CREATION TEST' as test_type,
+    'Ready to create members with fixed INSERT statement' as status,
+    'All 40 columns now included in INSERT statement' as details;

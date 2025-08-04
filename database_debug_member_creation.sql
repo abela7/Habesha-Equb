@@ -8,13 +8,14 @@ DESCRIBE members;
 
 -- Check if any constraints might be failing
 SELECT 
-    CONSTRAINT_NAME,
-    CONSTRAINT_TYPE,
-    TABLE_NAME,
-    COLUMN_NAME
+    tc.CONSTRAINT_NAME,
+    tc.CONSTRAINT_TYPE,
+    tc.TABLE_NAME,
+    kcu.COLUMN_NAME
 FROM information_schema.TABLE_CONSTRAINTS tc
 JOIN information_schema.KEY_COLUMN_USAGE kcu 
-    ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+    ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME 
+    AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
 WHERE tc.TABLE_SCHEMA = DATABASE() 
     AND tc.TABLE_NAME = 'members'
     AND tc.CONSTRAINT_TYPE IN ('FOREIGN KEY', 'UNIQUE', 'CHECK');
