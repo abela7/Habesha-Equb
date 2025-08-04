@@ -24,7 +24,13 @@ try {
             es.*,
             COUNT(DISTINCT m.id) as current_members,
             COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as collected_amount,
-            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as distributed_amount
+            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as distributed_amount,
+            COALESCE(SUM(
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                    ELSE m.monthly_payment
+                END
+            ) * es.duration_months, 0) as calculated_pool_amount
         FROM equb_settings es
         LEFT JOIN members m ON m.equb_settings_id = es.id AND m.is_active = 1
         LEFT JOIN payments p ON p.member_id = m.id
@@ -37,7 +43,7 @@ try {
     // Calculate overall statistics
     $total_equbs = count($equbs);
     $active_equbs = count(array_filter($equbs, fn($e) => $e['status'] === 'active'));
-    $total_pool = array_sum(array_column($equbs, 'total_pool_amount'));
+    $total_pool = array_sum(array_column($equbs, 'calculated_pool_amount'));
     $total_members = array_sum(array_column($equbs, 'current_members'));
     
 } catch (PDOException $e) {
@@ -995,7 +1001,7 @@ $csrf_token = generate_csrf_token();
                                     </div>
                                 </td>
                                 <td>${equb.duration_months} months</td>
-                                <td>£${parseFloat(equb.total_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+                                <td>£${parseFloat(equb.calculated_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
                                 <td>${formatDate(equb.start_date)}</td>
                                 <td>
                                     <div class="action-buttons">
@@ -1050,7 +1056,7 @@ $csrf_token = generate_csrf_token();
                     <div class="col-md-6">
                         <h6 class="text-primary mb-3">Financial Details</h6>
                         <table class="table table-borderless">
-                            <tr><td><strong>Total Pool:</strong></td><td>£${parseFloat(equb.total_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
+                            <tr><td><strong>Total Pool:</strong></td><td>£${parseFloat(equb.calculated_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
                             <tr><td><strong>Collected:</strong></td><td>£${parseFloat(equb.collected_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
                             <tr><td><strong>Distributed:</strong></td><td>£${parseFloat(equb.distributed_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
                             <tr><td><strong>Payout Day:</strong></td><td>${equb.payout_day}th of each month</td></tr>
