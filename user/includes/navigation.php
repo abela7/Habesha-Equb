@@ -22,7 +22,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 // Get REAL member data from database - only if user is authenticated
 $user_id = get_current_user_id();
 $member_name = 'Guest'; // Default fallback
-$unread_notifications = 0; // Default notification count
 
 if ($user_id) {
     try {
@@ -34,15 +33,7 @@ if ($user_id) {
             $member_name = trim($member_data['first_name'] . ' ' . $member_data['last_name']);
         }
         
-        // Get unread member messages count
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) 
-            FROM member_message_reads mmr
-            JOIN member_messages mm ON mmr.message_id = mm.id
-            WHERE mmr.member_id = ? AND mmr.is_read = 0 AND mm.status = 'active'
-        ");
-        $stmt->execute([$user_id]);
-        $unread_notifications = intval($stmt->fetchColumn());
+
         
     } catch (PDOException $e) {
         // Keep default if database error
@@ -234,43 +225,7 @@ $csrf_token = generate_csrf_token();
     display: none;
 }
 
-/* === NOTIFICATION BADGE STYLES === */
-.notification-badge {
-    position: absolute;
-    top: -2px;
-    right: 8px;
-    background: linear-gradient(135deg, #EF4444, #DC2626);
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-    animation: notification-pulse 2s infinite;
-    z-index: 10;
-}
 
-.notification-badge.zero {
-    display: none;
-}
-
-@keyframes notification-pulse {
-    0%, 100% { box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
-    50% { box-shadow: 0 2px 8px rgba(239, 68, 68, 0.8), 0 0 0 4px rgba(239, 68, 68, 0.2); }
-}
-
-.nav-item-with-badge {
-    position: relative;
-}
-
-.app-sidebar.collapsed .notification-badge {
-    top: 8px;
-    right: 8px;
-}
 
 /* === MAIN CONTENT AREA === */
 .app-main {
