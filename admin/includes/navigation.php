@@ -938,6 +938,12 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Settings</span>
             </a>
+            <a href="security-settings.php" class="nav-item <?php echo ($current_page === 'security-settings.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span class="nav-text">Security Settings</span>
+            </a>
             
             <!-- Language Selector -->
             <div class="language-dropdown sidebar-language" data-csrf-token="<?php echo htmlspecialchars($csrf_token); ?>">
@@ -980,6 +986,7 @@ body.no-scroll {
                 <?php 
                 $page_titles = [
                     'dashboard.php' => t('navigation.dashboard'),
+                    'welcome_admin.php' => 'Dashboard',
                     'members.php' => t('navigation.members'),
                     'member-profile.php' => t('navigation.member_profile'),
                     'payments.php' => t('navigation.payments'),
@@ -988,7 +995,8 @@ body.no-scroll {
                     'profile.php' => t('navigation.profile'),
                     'notifications.php' => t('navigation.notifications'),
                     'rules.php' => t('navigation.rules'),
-                    'settings.php' => t('navigation.settings')
+                    'settings.php' => t('navigation.settings'),
+                    'security-settings.php' => 'Security Settings'
                 ];
                 echo $page_titles[$current_page] ?? 'HabeshaEqub Admin';
                 ?>

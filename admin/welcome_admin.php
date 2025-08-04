@@ -718,6 +718,14 @@ try {
                     <div class="action-title">Joint Groups</div>
                     <p class="action-desc">Manage joint memberships and shared positions</p>
                 </a>
+                
+                <a href="security-settings.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="action-title">Security Settings</div>
+                    <p class="action-desc">Monitor member activities, login tracking, and security events</p>
+                </a>
             </div>
 
             <!-- Activity Section -->
