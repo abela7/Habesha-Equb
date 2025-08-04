@@ -38,6 +38,7 @@ $admin_username = get_current_admin_username();
                             <button class="btn btn-primary me-2" onclick="testAPI('test-connection')">Test Basic Connection</button>
                             <button class="btn btn-info me-2" onclick="testAPI('payout-positions')">Test Payout Positions</button>
                             <button class="btn btn-success me-2" onclick="testAPI('joint-membership')">Test Joint Groups</button>
+                            <button class="btn btn-secondary me-2" onclick="testAPI('joint-details')">Test Joint Details</button>
                             <button class="btn btn-warning" onclick="testAPI('payment-tiers')">Test Payment Tiers</button>
                         </div>
                         
@@ -67,6 +68,10 @@ $admin_username = get_current_admin_username();
                 case 'joint-membership':
                     url = 'api/joint-membership.php';
                     body = 'action=get_existing_joint_groups&equb_term_id=2';
+                    break;
+                case 'joint-details':
+                    url = 'api/joint-membership.php';
+                    body = 'action=get_joint_group_details&joint_group_id=test-id';
                     break;
                 case 'payment-tiers':
                     url = 'api/payment-tiers.php';
