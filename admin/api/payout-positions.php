@@ -1,0 +1,187 @@
+<?php
+/**
+ * HabeshaEqub - Payout Positions Management API
+ * Professional API for managing member payout positions
+ */
+
+require_once '../../includes/db.php';
+require_once '../includes/admin_auth_guard.php';
+
+// Security headers
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+
+function json_response($success, $message, $data = null) {
+    echo json_encode([
+        'success' => $success,
+        'message' => $message,
+        'data' => $data
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    json_response(false, 'Only POST requests allowed');
+}
+
+// Handle JSON input for save_positions
+$input = json_decode(file_get_contents('php://input'), true);
+if ($input) {
+    $_POST = array_merge($_POST, $input);
+}
+
+$action = $_POST['action'] ?? '';
+
+switch ($action) {
+    case 'get_positions':
+        getPositions();
+        break;
+    
+    case 'save_positions':
+        savePositions();
+        break;
+    
+    default:
+        json_response(false, 'Invalid action');
+}
+
+function getPositions() {
+    global $pdo;
+    
+    $equb_id = intval($_POST['equb_id'] ?? 0);
+    
+    if (!$equb_id) {
+        json_response(false, 'EQUB ID is required');
+    }
+    
+    try {
+        // Get EQUB info
+        $stmt = $pdo->prepare("
+            SELECT duration_months, admin_fee 
+            FROM equb_settings 
+            WHERE id = ?
+        ");
+        $stmt->execute([$equb_id]);
+        $equb_info = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$equb_info) {
+            json_response(false, 'EQUB term not found');
+        }
+        
+        // Get members with current positions
+        $stmt = $pdo->prepare("
+            SELECT 
+                m.id, m.member_id, m.first_name, m.last_name, m.email,
+                m.monthly_payment, m.payout_position, m.membership_type, 
+                m.joint_group_id, m.join_date, m.payout_month,
+                jmg.group_name
+            FROM members m
+            LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
+            WHERE m.equb_settings_id = ? AND m.is_active = 1
+            ORDER BY m.payout_position ASC, m.id ASC
+        ");
+        $stmt->execute([$equb_id]);
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Add calculated fields
+        foreach ($members as &$member) {
+            $member['duration_months'] = $equb_info['duration_months'];
+            $member['estimated_payout_date'] = calculatePayoutDate($member['payout_position'], $equb_info['duration_months']);
+        }
+        
+        // Get statistics
+        $stats = [
+            'total_members' => count($members),
+            'individual_members' => count(array_filter($members, fn($m) => $m['membership_type'] === 'individual')),
+            'joint_groups' => count(array_unique(array_filter(array_column($members, 'joint_group_id')))),
+            'duration' => $equb_info['duration_months']
+        ];
+        
+        json_response(true, 'Positions loaded successfully', [
+            'members' => $members,
+            'stats' => $stats
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Error getting positions: " . $e->getMessage());
+        json_response(false, 'Database error occurred');
+    }
+}
+
+function savePositions() {
+    global $pdo;
+    
+    $equb_id = intval($_POST['equb_id'] ?? 0);
+    $positions = $_POST['positions'] ?? [];
+    
+    if (!$equb_id || !is_array($positions) || empty($positions)) {
+        json_response(false, 'Invalid data provided');
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Update each member's position
+        $stmt = $pdo->prepare("
+            UPDATE members 
+            SET payout_position = ?, updated_at = NOW() 
+            WHERE id = ? AND equb_settings_id = ?
+        ");
+        
+        foreach ($positions as $position_data) {
+            $member_id = intval($position_data['member_id'] ?? 0);
+            $position = intval($position_data['position'] ?? 0);
+            
+            if ($member_id > 0 && $position > 0) {
+                $stmt->execute([$position, $member_id, $equb_id]);
+            }
+        }
+        
+        // Update payout months based on new positions
+        updatePayoutMonths($equb_id);
+        
+        $pdo->commit();
+        json_response(true, 'Payout positions updated successfully');
+        
+    } catch (Exception $e) {
+        $pdo->rollback();
+        error_log("Error saving positions: " . $e->getMessage());
+        json_response(false, 'Failed to save positions');
+    }
+}
+
+function updatePayoutMonths($equb_id) {
+    global $pdo;
+    
+    // Get EQUB start date
+    $stmt = $pdo->prepare("SELECT start_date FROM equb_settings WHERE id = ?");
+    $stmt->execute([$equb_id]);
+    $start_date = $stmt->fetchColumn();
+    
+    if (!$start_date) return;
+    
+    // Update payout months for all members
+    $stmt = $pdo->prepare("
+        UPDATE members 
+        SET payout_month = DATE_ADD(?, INTERVAL (payout_position - 1) MONTH)
+        WHERE equb_settings_id = ? AND is_active = 1
+    ");
+    $stmt->execute([$start_date, $equb_id]);
+}
+
+function calculatePayoutDate($position, $duration_months) {
+    if (!$position || $position > $duration_months) {
+        return 'TBD';
+    }
+    
+    // For display purposes, assume start date is current month
+    $start_date = new DateTime();
+    $start_date->modify('first day of this month');
+    $payout_date = clone $start_date;
+    $payout_date->modify('+' . ($position - 1) . ' months');
+    
+    return $payout_date->format('M Y');
+}
+?>

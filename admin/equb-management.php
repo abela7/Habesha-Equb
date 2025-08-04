@@ -487,16 +487,24 @@ $csrf_token = generate_csrf_token();
                             <p class="mb-2">Access advanced financial analytics, real-time payout calculations, and joint membership management.</p>
                         </div>
                         <div class="col-md-4 text-end">
-                            <div class="btn-group" role="group">
-                                <a href="financial-analytics.php" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-chart-line me-1"></i>
-                                    Financial Analytics
-                                </a>
-                                <a href="joint-groups.php" class="btn btn-outline-info btn-sm">
-                                    <i class="fas fa-users me-1"></i>
-                                    Joint Groups
-                                </a>
-                            </div>
+                                                    <div class="btn-group" role="group">
+                            <a href="financial-analytics.php" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-chart-line me-1"></i>
+                                Financial Analytics
+                            </a>
+                            <a href="joint-groups.php" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-users me-1"></i>
+                                Joint Groups
+                            </a>
+                            <a href="payment-tiers.php" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-coins me-1"></i>
+                                Payment Tiers
+                            </a>
+                            <a href="payout-positions.php" class="btn btn-outline-purple btn-sm">
+                                <i class="fas fa-sort-numeric-down me-1"></i>
+                                Payout Positions
+                            </a>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -552,17 +560,17 @@ $csrf_token = generate_csrf_token();
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="rounded-circle bg-warning-light p-3 me-3">
-                                <i class="fas fa-heartbeat text-warning"></i>
+                                <i class="fas fa-coins text-warning"></i>
                             </div>
                             <div>
-                                <h6 class="mb-0">Financial Health</h6>
-                                <small class="text-muted">Monitoring dashboard</small>
+                                <h6 class="mb-0">Payment Tiers</h6>
+                                <small class="text-muted">Configure payment options</small>
                             </div>
                         </div>
-                        <p class="small text-muted mb-3">Monitor collection rates, distributions, and financial integrity.</p>
-                        <a href="financial-analytics.php#health" class="btn btn-sm btn-outline-warning">
+                        <p class="small text-muted mb-3">Set up and customize payment tiers for each EQUB term.</p>
+                        <a href="payment-tiers.php" class="btn btn-sm btn-outline-warning">
                             <i class="fas fa-external-link-alt me-1"></i>
-                            Health Check
+                            Manage Tiers
                         </a>
                     </div>
                 </div>
@@ -573,16 +581,61 @@ $csrf_token = generate_csrf_token();
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
                             <div class="rounded-circle bg-purple-light p-3 me-3">
-                                <i class="fas fa-clipboard-check text-purple"></i>
+                                <i class="fas fa-sort-numeric-down text-purple"></i>
                             </div>
                             <div>
-                                <h6 class="mb-0">Financial Audit</h6>
-                                <small class="text-muted">Comprehensive reports</small>
+                                <h6 class="mb-0">Payout Positions</h6>
+                                <small class="text-muted">Customize order</small>
                             </div>
                         </div>
-                        <p class="small text-muted mb-3">Generate detailed financial audit reports with member calculations.</p>
-                        <a href="financial-analytics.php#audit" class="btn btn-sm btn-outline-purple">
+                        <p class="small text-muted mb-3">Drag and drop to customize member payout positions and timing.</p>
+                        <a href="payout-positions.php" class="btn btn-sm btn-outline-purple">
                             <i class="fas fa-external-link-alt me-1"></i>
+                            Manage Positions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Management Tools -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--gold) !important;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle" style="background: rgba(218, 165, 32, 0.1); padding: 15px; margin-right: 15px;">
+                                <i class="fas fa-heartbeat" style="color: var(--gold);"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Financial Health Monitoring</h6>
+                                <small class="text-muted">Real-time financial insights</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">Monitor collection rates, distribution percentages, and financial integrity with comprehensive dashboards.</p>
+                        <a href="financial-analytics.php#health" class="btn btn-sm" style="background: var(--gold); color: white; border: none;">
+                            <i class="fas fa-chart-line me-1"></i>
+                            View Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--gold) !important;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle" style="background: rgba(218, 165, 32, 0.1); padding: 15px; margin-right: 15px;">
+                                <i class="fas fa-clipboard-check" style="color: var(--gold);"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Comprehensive Financial Audit</h6>
+                                <small class="text-muted">Detailed reporting system</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">Generate detailed financial audit reports with member calculations and verification status.</p>
+                        <a href="financial-analytics.php#audit" class="btn btn-sm" style="background: var(--gold); color: white; border: none;">
+                            <i class="fas fa-file-invoice me-1"></i>
                             Run Audit
                         </a>
                     </div>

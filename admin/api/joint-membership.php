@@ -235,6 +235,123 @@ function createJointGroup() {
 }
 
 /**
+ * Update an existing joint membership group
+ */
+function updateJointGroup() {
+    global $pdo, $admin_id;
+    
+    $joint_group_id = trim($_POST['joint_group_id'] ?? '');
+    $group_name = trim($_POST['group_name'] ?? '');
+    $total_monthly_payment = floatval($_POST['total_monthly_payment'] ?? 0);
+    $payout_position = intval($_POST['payout_position'] ?? 0);
+    $payout_split_method = $_POST['payout_split_method'] ?? 'equal';
+    
+    // Validation
+    if (!$joint_group_id) {
+        echo json_encode(['success' => false, 'message' => 'Joint group ID is required']);
+        return;
+    }
+    
+    if (!$total_monthly_payment || !$payout_position) {
+        echo json_encode(['success' => false, 'message' => 'All required fields must be provided']);
+        return;
+    }
+    
+    if (!in_array($payout_split_method, ['equal', 'proportional', 'custom'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid payout split method']);
+        return;
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Check if group exists
+        $stmt = $pdo->prepare("SELECT equb_settings_id FROM joint_membership_groups WHERE joint_group_id = ?");
+        $stmt->execute([$joint_group_id]);
+        $equb_settings_id = $stmt->fetchColumn();
+        
+        if (!$equb_settings_id) {
+            echo json_encode(['success' => false, 'message' => 'Joint group not found']);
+            return;
+        }
+        
+        // Update joint group
+        $stmt = $pdo->prepare("
+            UPDATE joint_membership_groups 
+            SET group_name = ?, total_monthly_payment = ?, payout_position = ?, 
+                payout_split_method = ?, updated_at = NOW()
+            WHERE joint_group_id = ?
+        ");
+        
+        $stmt->execute([
+            $group_name, $total_monthly_payment, $payout_position, 
+            $payout_split_method, $joint_group_id
+        ]);
+        
+        $pdo->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Joint group updated successfully'
+        ]);
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
+/**
+ * Delete a joint membership group
+ */
+function deleteJointGroup() {
+    global $pdo, $admin_id;
+    
+    $joint_group_id = trim($_POST['joint_group_id'] ?? '');
+    
+    if (!$joint_group_id) {
+        echo json_encode(['success' => false, 'message' => 'Joint group ID is required']);
+        return;
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Check if group has members
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM members WHERE joint_group_id = ? AND is_active = 1");
+        $stmt->execute([$joint_group_id]);
+        $member_count = $stmt->fetchColumn();
+        
+        if ($member_count > 0) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Cannot delete joint group with active members. Remove members first.'
+            ]);
+            return;
+        }
+        
+        // Delete joint group
+        $stmt = $pdo->prepare("UPDATE joint_membership_groups SET is_active = 0 WHERE joint_group_id = ?");
+        $result = $stmt->execute([$joint_group_id]);
+        
+        if ($result && $stmt->rowCount() > 0) {
+            $pdo->commit();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Joint group deleted successfully'
+            ]);
+        } else {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'message' => 'Joint group not found or already deleted']);
+        }
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
+/**
  * Calculate joint membership payout distribution
  */
 function calculateJointPayout() {
@@ -247,25 +364,66 @@ function calculateJointPayout() {
         return;
     }
     
-    $calculator = getEqubPayoutCalculator();
-    
-    // Get a member from this joint group to calculate payout
-    $stmt = $pdo->prepare("
-        SELECT id FROM members 
-        WHERE joint_group_id = ? AND is_active = 1 
-        LIMIT 1
-    ");
-    $stmt->execute([$joint_group_id]);
-    $member_id = $stmt->fetchColumn();
-    
-    if (!$member_id) {
-        echo json_encode(['success' => false, 'message' => 'No active members found in joint group']);
-        return;
+    try {
+        // Get joint group info
+        $stmt = $pdo->prepare("
+            SELECT jmg.*, es.duration_months, es.admin_fee
+            FROM joint_membership_groups jmg
+            JOIN equb_settings es ON jmg.equb_settings_id = es.id
+            WHERE jmg.joint_group_id = ?
+        ");
+        $stmt->execute([$joint_group_id]);
+        $group = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$group) {
+            echo json_encode(['success' => false, 'message' => 'Joint group not found']);
+            return;
+        }
+        
+        // Calculate payout using traditional EQUB logic
+        $monthly_payment = $group['total_monthly_payment'];
+        $duration_months = $group['duration_months'];
+        $admin_fee = $group['admin_fee'];
+        
+        $gross_payout = $monthly_payment * $duration_months;
+        $net_payout = $gross_payout - $admin_fee;
+        
+        // Get member split details
+        $stmt = $pdo->prepare("
+            SELECT m.id, m.first_name, m.last_name, m.individual_contribution, 
+                   m.joint_position_share, m.primary_joint_member
+            FROM members m
+            WHERE m.joint_group_id = ? AND m.is_active = 1
+        ");
+        $stmt->execute([$joint_group_id]);
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $joint_split_details = [];
+        foreach ($members as $member) {
+            $share_percentage = $member['joint_position_share'] * 100;
+            $member_net_amount = $net_payout * $member['joint_position_share'];
+            
+            $joint_split_details[] = [
+                'member_name' => $member['first_name'] . ' ' . $member['last_name'],
+                'share_percentage' => $share_percentage,
+                'net_amount' => $member_net_amount
+            ];
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'gross_payout' => $gross_payout,
+            'admin_fee' => $admin_fee,
+            'net_payout' => $net_payout,
+            'monthly_payment' => $monthly_payment,
+            'duration_months' => $duration_months,
+            'calculation_method' => 'Traditional EQUB',
+            'joint_split_details' => $joint_split_details
+        ]);
+        
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
-    
-    $calculation = $calculator->calculateMemberPayoutAmount($member_id);
-    
-    echo json_encode($calculation);
 }
 
 /**

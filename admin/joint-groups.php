@@ -198,6 +198,10 @@ $csrf_token = generate_csrf_token();
                         <i class="fas fa-arrow-left me-1"></i>
                         Back to EQUB Management
                     </a>
+                    <button class="btn btn-success me-2" onclick="openCreateGroupModal()">
+                        <i class="fas fa-plus me-1"></i>
+                        Create Joint Group
+                    </button>
                     <a href="financial-analytics.php" class="btn btn-primary">
                         <i class="fas fa-chart-line me-1"></i>
                         Financial Analytics
@@ -255,15 +259,19 @@ $csrf_token = generate_csrf_token();
         <!-- Joint Groups Listing -->
         <div id="jointGroupsContainer">
             <?php if (empty($joint_groups)): ?>
-                <div class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <h4>No Joint Groups Found</h4>
-                    <p class="text-muted">Joint groups will appear here when they are created through member registration.</p>
-                    <a href="members.php" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>
-                        Add Members
-                    </a>
-                </div>
+                                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h4>No Joint Groups Found</h4>
+                        <p class="text-muted">Create your first joint group to manage shared EQUB positions.</p>
+                        <button class="btn btn-primary" onclick="openCreateGroupModal()">
+                            <i class="fas fa-plus me-1"></i>
+                            Create Joint Group
+                        </button>
+                        <a href="members.php" class="btn btn-outline-primary ms-2">
+                            <i class="fas fa-user-plus me-1"></i>
+                            Add Members
+                        </a>
+                    </div>
             <?php else: ?>
                 <div class="row">
                     <?php foreach ($joint_groups as $group): ?>
@@ -292,8 +300,14 @@ $csrf_token = generate_csrf_token();
                                         <button class="btn btn-outline-primary btn-sm" onclick="viewGroupDetails('<?php echo $group['joint_group_id']; ?>')">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        <button class="btn btn-outline-warning btn-sm ms-1" onclick="editGroup('<?php echo $group['joint_group_id']; ?>')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                                         <button class="btn btn-outline-success btn-sm ms-1" onclick="calculateGroupPayout('<?php echo $group['joint_group_id']; ?>')">
                                             <i class="fas fa-calculator"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm ms-1" onclick="deleteGroup('<?php echo $group['joint_group_id']; ?>')">
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -350,6 +364,75 @@ $csrf_token = generate_csrf_token();
         </div>
     </div>
 
+    <!-- Create/Edit Joint Group Modal -->
+    <div class="modal fade" id="jointGroupModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">
+                        <i class="fas fa-users text-info me-2"></i>
+                        Create Joint Group
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="jointGroupForm">
+                        <input type="hidden" id="editGroupId">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">EQUB Term *</label>
+                                <select class="form-select" id="modalEqubSettings" required>
+                                    <option value="">Select EQUB Term...</option>
+                                    <?php foreach ($all_equbs as $equb): ?>
+                                        <option value="<?php echo $equb['id']; ?>">
+                                            <?php echo htmlspecialchars($equb['equb_name'] . ' (' . $equb['equb_id'] . ')'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Group Name</label>
+                                <input type="text" class="form-control" id="modalGroupName" placeholder="Optional group name">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Total Monthly Payment (£) *</label>
+                                <input type="number" class="form-control" id="modalTotalPayment" step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Payout Position *</label>
+                                <input type="number" class="form-control" id="modalPayoutPosition" min="1" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Split Method *</label>
+                                <select class="form-select" id="modalSplitMethod" required>
+                                    <option value="equal">Equal Split</option>
+                                    <option value="proportional">Proportional Split</option>
+                                    <option value="custom">Custom Split</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> After creating the joint group, you can add members to it through the Members page.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveJointGroup()">
+                        <i class="fas fa-save me-1"></i>
+                        Save Group
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Payout Calculation Modal -->
     <div class="modal fade" id="payoutCalculationModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -379,6 +462,103 @@ $csrf_token = generate_csrf_token();
         // Filter functionality
         document.getElementById('equbFilter').addEventListener('change', filterGroups);
         document.getElementById('searchFilter').addEventListener('input', filterGroups);
+
+        // Open create group modal
+        function openCreateGroupModal() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-users text-info me-2"></i>Create Joint Group';
+            document.getElementById('jointGroupForm').reset();
+            document.getElementById('editGroupId').value = '';
+            new bootstrap.Modal(document.getElementById('jointGroupModal')).show();
+        }
+
+        // Edit group
+        function editGroup(jointGroupId) {
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit text-warning me-2"></i>Edit Joint Group';
+            
+            fetch('api/joint-membership.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=get_joint_group_details&joint_group_id=${jointGroupId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const group = data.group;
+                    document.getElementById('editGroupId').value = jointGroupId;
+                    document.getElementById('modalEqubSettings').value = group.equb_settings_id;
+                    document.getElementById('modalGroupName').value = group.group_name || '';
+                    document.getElementById('modalTotalPayment').value = group.total_monthly_payment;
+                    document.getElementById('modalPayoutPosition').value = group.payout_position;
+                    document.getElementById('modalSplitMethod').value = group.payout_split_method;
+                    
+                    new bootstrap.Modal(document.getElementById('jointGroupModal')).show();
+                } else {
+                    alert('Error loading group details: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading group details.');
+            });
+        }
+
+        // Save joint group
+        function saveJointGroup() {
+            const editGroupId = document.getElementById('editGroupId').value;
+            const action = editGroupId ? 'update_joint_group' : 'create_joint_group';
+            
+            const formData = new FormData();
+            formData.append('action', action);
+            if (editGroupId) formData.append('joint_group_id', editGroupId);
+            formData.append('equb_settings_id', document.getElementById('modalEqubSettings').value);
+            formData.append('group_name', document.getElementById('modalGroupName').value);
+            formData.append('total_monthly_payment', document.getElementById('modalTotalPayment').value);
+            formData.append('payout_position', document.getElementById('modalPayoutPosition').value);
+            formData.append('payout_split_method', document.getElementById('modalSplitMethod').value);
+            
+            fetch('api/joint-membership.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(editGroupId ? 'Joint group updated successfully!' : 'Joint group created successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('jointGroupModal')).hide();
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            });
+        }
+
+        // Delete group
+        function deleteGroup(jointGroupId) {
+            if (confirm('Are you sure you want to delete this joint group? This action cannot be undone.')) {
+                fetch('api/joint-membership.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=delete_joint_group&joint_group_id=${jointGroupId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Joint group deleted successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Network error. Please try again.');
+                });
+            }
+        }
 
         function filterGroups() {
             const equbFilter = document.getElementById('equbFilter').value;
