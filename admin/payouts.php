@@ -32,11 +32,25 @@ try {
 // Get members for dropdown
 try {
     $stmt = $pdo->query("
-        SELECT id, member_id, first_name, last_name, monthly_payment, 
-               payout_position, has_received_payout
-        FROM members 
-        WHERE is_active = 1 
-        ORDER BY payout_position ASC, first_name ASC
+        SELECT m.id, m.member_id, m.first_name, m.last_name, 
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                   ELSE m.monthly_payment
+               END as effective_monthly_payment,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                   ELSE m.payout_position
+               END as actual_payout_position,
+               m.membership_type, m.joint_group_id, jmg.group_name,
+               m.has_received_payout
+        FROM members m
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
+        WHERE m.is_active = 1 
+        ORDER BY 
+            CASE 
+                WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                ELSE m.payout_position
+            END ASC, m.first_name ASC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

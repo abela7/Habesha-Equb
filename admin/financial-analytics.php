@@ -67,14 +67,27 @@ if ($selected_equb_id) {
         $stmt->execute([$selected_equb_id]);
         $joint_groups_summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get all members for payout calculations
+        // Get all members for payout calculations with correct joint positions
         $stmt = $pdo->prepare("
             SELECT m.id, m.first_name, m.last_name, m.member_id, m.membership_type,
-                   m.monthly_payment, m.payout_position, m.joint_group_id,
+                   CASE 
+                       WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                       ELSE m.monthly_payment
+                   END as monthly_payment,
+                   CASE 
+                       WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                       ELSE m.payout_position
+                   END as payout_position,
+                   m.joint_group_id, jmg.group_name,
                    m.total_contributed, m.has_received_payout
             FROM members m
+            LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
             WHERE m.equb_settings_id = ? AND m.is_active = 1
-            ORDER BY m.payout_position ASC
+            ORDER BY 
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                    ELSE m.payout_position
+                END ASC
         ");
         $stmt->execute([$selected_equb_id]);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);

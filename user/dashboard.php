@@ -26,6 +26,20 @@ $user_id = get_current_user_id();
 try {
     $stmt = $db->prepare("
         SELECT m.*, 
+               -- Joint Group Information
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.group_name
+                   ELSE NULL
+               END as joint_group_name,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                   ELSE m.payout_position
+               END as actual_payout_position,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                   ELSE m.monthly_payment
+               END as effective_monthly_payment,
+               -- EQUB Settings
                es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
                es.admin_fee, es.late_fee,
                
@@ -70,6 +84,7 @@ try {
                
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         LEFT JOIN payments p ON m.id = p.member_id AND p.status IN ('paid', 'completed', 'pending')
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
@@ -105,9 +120,9 @@ if (isset($payout_info['error'])) {
 
 // MASTER-LEVEL STATISTICS CALCULATIONS
 $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
-$monthly_contribution = (float)$member['monthly_payment'];
+$monthly_contribution = (float)$member['effective_monthly_payment'];
 $total_contributed = (float)$member['total_contributed']; 
-$payout_position = (int)$member['payout_position'];
+$payout_position = (int)$member['actual_payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
 
 // Enhanced Financial Calculations using Traditional EQUB Logic

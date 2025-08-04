@@ -26,6 +26,20 @@ $user_id = get_current_user_id();
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
+               -- Joint Group Information
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.group_name
+                   ELSE NULL
+               END as joint_group_name,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                   ELSE m.payout_position
+               END as actual_payout_position,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                   ELSE m.monthly_payment
+               END as effective_monthly_payment,
+               -- EQUB Settings
                es.equb_name, es.equb_id, es.start_date, es.end_date, es.payout_day, es.duration_months, 
                es.max_members, es.current_members, es.status as equb_status, es.currency,
                es.admin_fee, es.late_fee, es.grace_period_days,
@@ -57,6 +71,7 @@ try {
                
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.id = ? AND m.is_active = 1 AND es.status = 'active'
         GROUP BY m.id
@@ -80,7 +95,7 @@ try {
 }
 
 // Calculate financial statistics based on equb term
-$monthly_contribution = (float)$member['monthly_payment'];
+$monthly_contribution = (float)$member['effective_monthly_payment'];
 $total_contributed = (float)$member['total_contributed']; 
 $total_equb_members = (int)$member['total_equb_members'];
 $duration_months = (int)$member['duration_months'];
