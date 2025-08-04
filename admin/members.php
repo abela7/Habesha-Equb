@@ -1221,6 +1221,39 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                     // Set monthly payment (might be overridden by payment tier selection)
                     document.getElementById('monthlyPayment').value = member.monthly_payment;
                     
+                    // Joint membership information
+                    const membershipTypeSelect = document.getElementById('membershipType');
+                    membershipTypeSelect.value = member.membership_type || 'individual';
+                    
+                    if (member.membership_type === 'joint') {
+                        // Show joint membership fields
+                        document.getElementById('jointMembershipConfig').style.display = 'block';
+                        document.getElementById('existingJointGroupField').style.display = 'block';
+                        
+                        // Load joint groups and set the current one
+                        if (member.equb_settings_id) {
+                            loadExistingJointGroups(member.equb_settings_id);
+                            setTimeout(() => {
+                                document.getElementById('existingJointGroup').value = member.joint_group_id || '';
+                            }, 500);
+                        }
+                        
+                        // Set joint membership fields
+                        document.getElementById('individualContribution').value = member.individual_contribution || '';
+                        document.getElementById('payoutSplitMethod').value = member.payout_split_method || 'equal';
+                        document.getElementById('jointPositionShare').value = member.joint_position_share || '';
+                        document.getElementById('primaryJointMember').checked = member.primary_joint_member == 1;
+                        
+                        // Show custom share field if needed
+                        if (member.payout_split_method === 'custom') {
+                            document.getElementById('customShareField').style.display = 'block';
+                        }
+                    } else {
+                        // Hide joint membership fields
+                        document.getElementById('jointMembershipConfig').style.display = 'none';
+                        document.getElementById('existingJointGroupField').style.display = 'none';
+                    }
+                    
                     // Guarantor information
                     document.getElementById('guarantorFirstName').value = member.guarantor_first_name || '';
                     document.getElementById('guarantorLastName').value = member.guarantor_last_name || '';
@@ -1594,16 +1627,16 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
         function loadExistingJointGroups(equbTermId) {
             const existingJointSelect = document.getElementById('existingJointGroup');
             
-            fetch('api/members.php', {
+            fetch('api/joint-membership.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `action=get_existing_joint_groups&equb_term_id=${equbTermId}`
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data.success && data.data) {
                     existingJointSelect.innerHTML = '<option value="">Create new joint group</option>';
-                    data.joint_groups.forEach(group => {
+                    data.data.forEach(group => {
                         const memberCount = group.member_count || 0;
                         const maxMembers = 3; // This should come from equb settings
                         if (memberCount < maxMembers) {

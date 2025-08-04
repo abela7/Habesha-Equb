@@ -297,16 +297,19 @@ $csrf_token = generate_csrf_token();
                                         </p>
                                     </div>
                                     <div class="text-end">
-                                        <button class="btn btn-outline-primary btn-sm" onclick="viewGroupDetails('<?php echo $group['joint_group_id']; ?>')">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="viewGroupDetails('<?php echo $group['joint_group_id']; ?>')" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-warning btn-sm ms-1" onclick="editGroup('<?php echo $group['joint_group_id']; ?>')">
+                                        <button class="btn btn-outline-info btn-sm ms-1" onclick="manageMembers('<?php echo $group['joint_group_id']; ?>', <?php echo $group['equb_settings_id']; ?>)" title="Manage Members">
+                                            <i class="fas fa-user-plus"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm ms-1" onclick="editGroup('<?php echo $group['joint_group_id']; ?>')" title="Edit Group">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-outline-success btn-sm ms-1" onclick="calculateGroupPayout('<?php echo $group['joint_group_id']; ?>')">
+                                        <button class="btn btn-outline-success btn-sm ms-1" onclick="calculateGroupPayout('<?php echo $group['joint_group_id']; ?>')" title="Calculate Payout">
                                             <i class="fas fa-calculator"></i>
                                         </button>
-                                        <button class="btn btn-outline-danger btn-sm ms-1" onclick="deleteGroup('<?php echo $group['joint_group_id']; ?>')">
+                                        <button class="btn btn-outline-danger btn-sm ms-1" onclick="deleteGroup('<?php echo $group['joint_group_id']; ?>')" title="Delete Group">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -454,6 +457,78 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
     </div>
+
+    <!-- Member Management Modal -->
+    <div class="modal fade" id="memberManagementModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus text-info me-2"></i>
+                        Manage Joint Group Members
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Available Members -->
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-users me-2"></i>Available Members</h6>
+                            <div id="availableMembersList" class="member-assignment-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Assigned Members -->
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user-check me-2"></i>Assigned Members</h6>
+                            <div id="assignedMembersList" class="member-assignment-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="refreshMemberAssignments()">
+                        <i class="fas fa-sync me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .member-assignment-list {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .member-assignment-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .member-assignment-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    </style>
 
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -741,6 +816,214 @@ $csrf_token = generate_csrf_token();
                     ` : ''}
                 </div>
             `;
+        }
+        
+        // Member Management Functions
+        let currentJointGroupId = null;
+        let currentEqubSettingsId = null;
+        
+        function manageMembers(jointGroupId, equbSettingsId) {
+            currentJointGroupId = jointGroupId;
+            currentEqubSettingsId = equbSettingsId;
+            
+            const modal = new bootstrap.Modal(document.getElementById('memberManagementModal'));
+            loadAvailableMembers();
+            loadAssignedMembers();
+            modal.show();
+        }
+        
+        function loadAvailableMembers() {
+            document.getElementById('availableMembersList').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            fetch('api/joint-membership.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=get_available_members&equb_settings_id=${currentEqubSettingsId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayAvailableMembers(data.data);
+                } else {
+                    document.getElementById('availableMembersList').innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${data.message}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('availableMembersList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading available members
+                    </div>
+                `;
+            });
+        }
+        
+        function loadAssignedMembers() {
+            document.getElementById('assignedMembersList').innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            fetch('api/joint-membership.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=get_joint_group_details&joint_group_id=${currentJointGroupId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.members) {
+                    displayAssignedMembers(data.data.members);
+                } else {
+                    document.getElementById('assignedMembersList').innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No members assigned to this group yet
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('assignedMembersList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading assigned members
+                    </div>
+                `;
+            });
+        }
+        
+        function displayAvailableMembers(members) {
+            if (members.length === 0) {
+                document.getElementById('availableMembersList').innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No available members found
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = members.map(member => `
+                <div class="member-assignment-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${member.first_name} ${member.last_name}</h6>
+                            <small class="text-muted">${member.member_id} • £${parseFloat(member.monthly_payment).toFixed(2)}/month</small>
+                        </div>
+                        <button class="btn btn-success btn-sm" onclick="assignMember(${member.id}, '${member.first_name} ${member.last_name}')">
+                            <i class="fas fa-plus me-1"></i>Assign
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('availableMembersList').innerHTML = html;
+        }
+        
+        function displayAssignedMembers(members) {
+            if (members.length === 0) {
+                document.getElementById('assignedMembersList').innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No members assigned to this group yet
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = members.map(member => `
+                <div class="member-assignment-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${member.first_name} ${member.last_name}</h6>
+                            <small class="text-muted">
+                                ${member.role} • 
+                                £${parseFloat(member.individual_contribution || 0).toFixed(2)} contribution
+                            </small>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="removeMember(${member.id}, '${member.first_name} ${member.last_name}')">
+                            <i class="fas fa-minus me-1"></i>Remove
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('assignedMembersList').innerHTML = html;
+        }
+        
+        function assignMember(memberId, memberName) {
+            const contribution = prompt(`Enter individual contribution amount for ${memberName}:`, '500');
+            if (!contribution || isNaN(contribution) || parseFloat(contribution) <= 0) {
+                alert('Please enter a valid contribution amount.');
+                return;
+            }
+            
+            const isPrimary = confirm(`Make ${memberName} the primary contact for this joint group?`);
+            
+            fetch('api/joint-membership.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=assign_member_to_group&member_id=${memberId}&joint_group_id=${currentJointGroupId}&individual_contribution=${contribution}&joint_position_share=0.5&is_primary=${isPrimary ? 1 : 0}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Member assigned successfully!');
+                    refreshMemberAssignments();
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            });
+        }
+        
+        function removeMember(memberId, memberName) {
+            if (confirm(`Remove ${memberName} from this joint group?`)) {
+                fetch('api/joint-membership.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=remove_member_from_group&member_id=${memberId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ Member removed successfully!');
+                        refreshMemberAssignments();
+                    } else {
+                        alert('❌ Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Network error. Please try again.');
+                });
+            }
+        }
+        
+        function refreshMemberAssignments() {
+            loadAvailableMembers();
+            loadAssignedMembers();
+            // Refresh the page to update the joint group listing
+            setTimeout(() => location.reload(), 1000);
         }
     </script>
 </body>
