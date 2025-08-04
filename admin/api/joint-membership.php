@@ -4,21 +4,45 @@
  * Professional-grade joint membership functionality for traditional EQUB system
  */
 
-require_once '../../includes/db.php';
-require_once '../../includes/equb_payout_calculator.php';
+// Prevent any output before JSON
+ob_start();
 
-// Start session if not started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Error handling
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
-// Set headers
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-cache, must-revalidate');
-
-// Simple admin authentication check
-if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+try {
+    require_once '../../includes/db.php';
+    require_once '../../includes/equb_payout_calculator.php';
+    
+    // Start session if not started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Set headers
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, must-revalidate');
+    
+    // Clean any output
+    if (ob_get_length()) {
+        ob_clean();
+    }
+    
+    // Simple admin authentication check
+    if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+        exit;
+    }
+    
+} catch (Exception $e) {
+    ob_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => 'Server error: ' . $e->getMessage(),
+        'error_line' => $e->getLine(),
+        'error_file' => basename($e->getFile())
+    ]);
     exit;
 }
 

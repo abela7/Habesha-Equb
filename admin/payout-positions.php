@@ -318,14 +318,16 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    currentMembers = data.members;
-                    displayPositions(data.members);
-                    updateStats(data.stats);
+                if (data.success && data.data && data.data.members) {
+                    currentMembers = data.data.members || [];
+                    displayPositions(currentMembers);
+                    updateStats(data.data.stats || {});
                     document.getElementById('equbStats').style.display = 'block';
                     document.getElementById('autoSortSection').style.display = 'block';
                 } else {
-                    alert('Error loading positions: ' + data.message);
+                    alert('Error loading positions: ' + (data.message || 'Unknown error'));
+                    currentMembers = [];
+                    displayPositions([]);
                 }
             })
             .catch(error => {
@@ -337,7 +339,8 @@ $csrf_token = generate_csrf_token();
         function displayPositions(members) {
             const container = document.getElementById('positionsContent');
             
-            if (members.length === 0) {
+            // Ensure members is an array
+            if (!members || !Array.isArray(members) || members.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-5 text-muted">
                         <i class="fas fa-users fa-3x mb-3"></i>

@@ -4,33 +4,57 @@
  * Professional API for managing member payout positions
  */
 
-// Include database connection
-require_once '../../includes/db.php';
+// Prevent any output before JSON
+ob_start();
 
-// Start session if not started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Error handling
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
-// Set headers
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-cache, must-revalidate');
-
-/**
- * JSON response helper
- */
-function json_response($success, $message, $data = null) {
+try {
+    // Include database connection
+    require_once '../../includes/db.php';
+    
+    // Start session if not started
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Set headers
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, must-revalidate');
+    
+    // Clean any output
+    if (ob_get_length()) {
+        ob_clean();
+    }
+    
+    /**
+     * JSON response helper
+     */
+    function json_response($success, $message, $data = null) {
+        echo json_encode([
+            'success' => $success,
+            'message' => $message,
+            'data' => $data
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    
+    // Simple admin authentication check
+    if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+        json_response(false, 'Unauthorized access');
+    }
+    
+} catch (Exception $e) {
+    ob_clean();
     echo json_encode([
-        'success' => $success,
-        'message' => $message,
-        'data' => $data
-    ], JSON_UNESCAPED_UNICODE);
+        'success' => false,
+        'message' => 'Server error: ' . $e->getMessage(),
+        'error_line' => $e->getLine(),
+        'error_file' => basename($e->getFile())
+    ]);
     exit;
-}
-
-// Simple admin authentication check
-if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    json_response(false, 'Unauthorized access');
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
