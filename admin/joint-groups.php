@@ -557,8 +557,8 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    const group = data.group;
+                if (data.success && data.data && data.data.group) {
+                    const group = data.data.group;
                     document.getElementById('editGroupId').value = jointGroupId;
                     document.getElementById('modalEqubSettings').value = group.equb_settings_id;
                     document.getElementById('modalGroupName').value = group.group_name || '';
@@ -671,8 +671,8 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    document.getElementById('groupDetailsContent').innerHTML = generateGroupDetailsHTML(data);
+                if (data.success && data.data) {
+                    document.getElementById('groupDetailsContent').innerHTML = generateGroupDetailsHTML(data.data);
                 } else {
                     document.getElementById('groupDetailsContent').innerHTML = `
                         <div class="alert alert-danger">
@@ -706,13 +706,13 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    document.getElementById('payoutCalculationContent').innerHTML = generatePayoutCalculationHTML(data);
+                if (data.success && data.data) {
+                    document.getElementById('payoutCalculationContent').innerHTML = generatePayoutCalculationHTML(data.data);
                 } else {
                     document.getElementById('payoutCalculationContent').innerHTML = `
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            Error calculating payout: ${data.error}
+                            Error calculating payout: ${data.message || 'Unknown error'}
                         </div>
                     `;
                 }
@@ -732,88 +732,96 @@ $csrf_token = generate_csrf_token();
 
         function generateGroupDetailsHTML(data) {
             // This function would generate the detailed HTML for group information
+            const group = data.group || {};
+            const members = data.members || [];
+            
             return `
                 <div class="group-details">
                     <h6>Group Information</h6>
-                    <p><strong>Group ID:</strong> ${data.group.joint_group_id}</p>
-                    <p><strong>Group Name:</strong> ${data.group.group_name || 'Unnamed'}</p>
-                    <p><strong>EQUB:</strong> ${data.group.equb_name}</p>
-                    <p><strong>Total Monthly Payment:</strong> £${parseFloat(data.group.total_monthly_payment).toLocaleString()}</p>
-                    <p><strong>Split Method:</strong> ${data.group.payout_split_method}</p>
-                    <p><strong>Payout Position:</strong> ${data.group.payout_position}</p>
+                    <p><strong>Group ID:</strong> ${group.joint_group_id || 'N/A'}</p>
+                    <p><strong>Group Name:</strong> ${group.group_name || 'Unnamed'}</p>
+                    <p><strong>EQUB:</strong> ${group.equb_name || 'N/A'}</p>
+                    <p><strong>Total Monthly Payment:</strong> £${parseFloat(group.total_monthly_payment || 0).toLocaleString()}</p>
+                    <p><strong>Split Method:</strong> ${group.payout_split_method || 'equal'}</p>
+                    <p><strong>Shared Payout Position:</strong> ${group.payout_position || 'N/A'}</p>
                     
-                    <h6 class="mt-4">Members</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Role</th>
-                                    <th>Individual Contribution</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.members.map(member => `
+                    <h6 class="mt-4">Members (${members.length})</h6>
+                    ${members.length > 0 ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
                                     <tr>
-                                        <td>${member.first_name} ${member.last_name}</td>
-                                        <td>${member.role}</td>
-                                        <td>£${parseFloat(member.individual_contribution || 0).toFixed(2)}</td>
+                                        <th>Name</th>
+                                        <th>Role</th>
+                                        <th>Individual Contribution</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    ${members.map(member => `
+                                        <tr>
+                                            <td>${member.first_name} ${member.last_name}</td>
+                                            <td>${member.role || 'Member'}</td>
+                                            <td>£${parseFloat(member.individual_contribution || 0).toFixed(2)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : '<p class="text-muted">No members assigned to this group yet.</p>'}
                 </div>
             `;
         }
 
         function generatePayoutCalculationHTML(data) {
             // This function would generate the payout calculation details
+            const group = data.group || {};
+            const members = data.members || [];
+            
             return `
                 <div class="payout-calculation">
                     <div class="alert alert-success">
-                        <h6><i class="fas fa-check-circle me-2"></i>Calculation Complete</h6>
-                        <p class="mb-0">Traditional EQUB calculation method applied.</p>
+                        <h6><i class="fas fa-check-circle me-2"></i>Joint Payout Calculation Complete</h6>
+                        <p class="mb-0">Traditional EQUB method: Members share ONE position and split the payout.</p>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Group Payout</h6>
-                            <p><strong>Gross Amount:</strong> £${parseFloat(data.gross_payout || 0).toLocaleString()}</p>
+                            <h6>Shared Group Payout</h6>
+                            <p><strong>Total Contribution:</strong> £${parseFloat(data.total_contribution || 0).toLocaleString()}</p>
                             <p><strong>Admin Fee:</strong> £${parseFloat(data.admin_fee || 0).toLocaleString()}</p>
-                            <p><strong>Net Amount:</strong> £${parseFloat(data.net_payout || 0).toLocaleString()}</p>
+                            <p><strong>Net Payout:</strong> £${parseFloat(data.net_payout || 0).toLocaleString()}</p>
                         </div>
                         <div class="col-md-6">
                             <h6>Details</h6>
-                            <p><strong>Monthly Payment:</strong> £${parseFloat(data.monthly_payment || 0).toLocaleString()}</p>
-                            <p><strong>Duration:</strong> ${data.duration_months || 0} months</p>
-                            <p><strong>Calculation:</strong> ${data.calculation_method || 'Traditional EQUB'}</p>
+                            <p><strong>Monthly Payment:</strong> £${parseFloat(group.total_monthly_payment || 0).toLocaleString()}</p>
+                            <p><strong>Shared Position:</strong> ${group.payout_position || 'N/A'}</p>
+                            <p><strong>Split Method:</strong> ${group.payout_split_method || 'equal'}</p>
                         </div>
                     </div>
                     
-                    ${data.joint_split_details ? `
-                        <h6 class="mt-4">Individual Splits</h6>
+                    ${members.length > 0 ? `
+                        <h6 class="mt-4">Individual Member Splits</h6>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
                                         <th>Member</th>
-                                        <th>Share %</th>
-                                        <th>Amount</th>
+                                        <th>Share</th>
+                                        <th>Payout Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${Object.values(data.joint_split_details).map(split => `
+                                    ${members.map(member => `
                                         <tr>
-                                            <td>${split.member_name}</td>
-                                            <td>${split.share_percentage}%</td>
-                                            <td>£${parseFloat(split.net_amount).toFixed(2)}</td>
+                                            <td>${member.first_name} ${member.last_name}</td>
+                                            <td>${parseFloat(member.payout_amount / data.net_payout * 100).toFixed(1)}%</td>
+                                            <td>£${parseFloat(member.payout_amount || 0).toFixed(2)}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                         </div>
-                    ` : ''}
+                    ` : '<p class="text-muted">No members found for payout calculation.</p>'}
                 </div>
             `;
         }

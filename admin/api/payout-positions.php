@@ -114,32 +114,92 @@ function getPositions() {
             json_response(false, 'EQUB term not found');
         }
         
-        // Get members with current positions - using exact schema
+        // Get positions with proper joint member handling
         $stmt = $pdo->prepare("
             SELECT 
-                m.id, m.member_id, m.first_name, m.last_name, m.email,
-                m.monthly_payment, m.payout_position, m.membership_type, 
-                m.joint_group_id, m.join_date, m.payout_month,
-                jmg.group_name
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN CONCAT('joint_', m.joint_group_id)
+                    ELSE CONCAT('individual_', m.id)
+                END as position_key,
+                m.payout_position,
+                m.membership_type,
+                m.joint_group_id,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.group_name
+                    ELSE CONCAT(m.first_name, ' ', m.last_name)
+                END as display_name,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                    ELSE m.monthly_payment
+                END as position_payment,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ', ')
+                    ELSE CONCAT(m.first_name, ' ', m.last_name)
+                END as member_names,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN COUNT(m.id)
+                    ELSE 1
+                END as member_count,
+                MIN(m.join_date) as join_date,
+                MIN(m.id) as primary_id
             FROM members m
             LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
             WHERE m.equb_settings_id = ? AND m.is_active = 1
-            ORDER BY m.payout_position ASC, m.id ASC
+            GROUP BY 
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN m.joint_group_id
+                    ELSE m.id
+                END,
+                m.payout_position
+            ORDER BY m.payout_position ASC, MIN(m.id) ASC
         ");
         $stmt->execute([$equb_id]);
-        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $position_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Add calculated fields
-        foreach ($members as &$member) {
-            $member['duration_months'] = $equb_info['duration_months'];
-            $member['estimated_payout_date'] = calculatePayoutDate($member['payout_position'], $equb_info['duration_months']);
+        // Add calculated fields and convert to member-like structure for compatibility
+        $members = [];
+        $individual_count = 0;
+        $joint_count = 0;
+        $total_member_count = 0;
+        
+        foreach ($position_data as $position) {
+            $position['duration_months'] = $equb_info['duration_months'];
+            $position['estimated_payout_date'] = calculatePayoutDate($position['payout_position'], $equb_info['duration_months']);
+            
+            // Convert to member-like structure for frontend compatibility
+            $member = [
+                'id' => $position['primary_id'],
+                'member_id' => $position['position_key'],
+                'first_name' => $position['display_name'],
+                'last_name' => ($position['membership_type'] === 'joint' ? '(Joint Group)' : ''),
+                'email' => '',
+                'monthly_payment' => $position['position_payment'],
+                'payout_position' => $position['payout_position'],
+                'membership_type' => $position['membership_type'],
+                'joint_group_id' => $position['joint_group_id'],
+                'member_names' => $position['member_names'],
+                'member_count' => $position['member_count'],
+                'duration_months' => $equb_info['duration_months'],
+                'estimated_payout_date' => $position['estimated_payout_date']
+            ];
+            
+            $members[] = $member;
+            
+            if ($position['membership_type'] === 'joint') {
+                $joint_count++;
+                $total_member_count += $position['member_count'];
+            } else {
+                $individual_count++;
+                $total_member_count++;
+            }
         }
         
         // Get statistics - using actual data
         $stats = [
-            'total_members' => count($members),
-            'individual_members' => count(array_filter($members, fn($m) => $m['membership_type'] === 'individual')),
-            'joint_groups' => count(array_unique(array_filter(array_column($members, 'joint_group_id')))),
+            'total_members' => $total_member_count,
+            'individual_members' => $individual_count,
+            'joint_groups' => $joint_count,
+            'total_positions' => count($position_data),
             'duration' => $equb_info['duration_months']
         ];
         

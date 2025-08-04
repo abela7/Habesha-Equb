@@ -396,17 +396,23 @@ $csrf_token = generate_csrf_token();
                         <div class="member-info">
                             <div class="member-name">
                                 ${member.first_name} ${member.last_name}
-                                ${isJoint ? `<span class="joint-badge">Joint</span>` : ''}
+                                ${isJoint ? `<span class="joint-badge">Joint Group</span>` : ''}
                             </div>
                             <div class="member-details">
-                                <i class="fas fa-id-card me-1"></i>${member.member_id}
-                                <span class="ms-3"><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month</span>
-                                ${isJoint ? `<span class="ms-3"><i class="fas fa-users me-1"></i>${member.joint_group_id}</span>` : ''}
+                                ${isJoint ? `
+                                    <div><i class="fas fa-users me-1"></i>${member.member_names}</div>
+                                    <div><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month (shared)</div>
+                                    <div><i class="fas fa-info-circle me-1"></i>${member.member_count} members sharing position ${position}</div>
+                                ` : `
+                                    <i class="fas fa-id-card me-1"></i>${member.member_id}
+                                    <span class="ms-3"><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month</span>
+                                `}
                             </div>
                         </div>
                         <div class="payout-info">
                             <div class="payout-amount">£${payoutAmount.toFixed(2)}</div>
                             <div class="payout-date">${member.estimated_payout_date || 'TBD'}</div>
+                            ${isJoint ? '<div class="small text-light">Split among members</div>' : ''}
                         </div>
                         <div class="ms-3 text-muted">
                             <i class="fas fa-grip-vertical"></i>

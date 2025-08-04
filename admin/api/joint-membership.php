@@ -392,12 +392,22 @@ function calculateJointPayout() {
         $stmt->execute([$joint_group_id]);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Calculate individual payouts
+        // Calculate individual payouts for joint members sharing ONE position
         foreach ($members as &$member) {
             if ($group['payout_split_method'] === 'equal') {
+                // Equal split among all joint members
                 $member['payout_amount'] = $net_payout / count($members);
+            } elseif ($group['payout_split_method'] === 'proportional') {
+                // Proportional to individual contribution
+                $total_contributions = array_sum(array_column($members, 'individual_contribution'));
+                if ($total_contributions > 0) {
+                    $member['payout_amount'] = ($member['individual_contribution'] / $total_contributions) * $net_payout;
+                } else {
+                    $member['payout_amount'] = $net_payout / count($members);
+                }
             } else {
-                $member['payout_amount'] = $net_payout * $member['joint_position_share'];
+                // Custom split based on joint_position_share
+                $member['payout_amount'] = $net_payout * ($member['joint_position_share'] ?: (1 / count($members)));
             }
         }
         
@@ -486,14 +496,37 @@ function assignMemberToGroup() {
             json_response(false, 'Joint group is full');
         }
         
-        // Update member to join the group
+        // Get the joint group's payout position
+        $group_stmt = $pdo->prepare("
+            SELECT payout_position, total_monthly_payment, payout_split_method 
+            FROM joint_membership_groups 
+            WHERE joint_group_id = ?
+        ");
+        $group_stmt->execute([$joint_group_id]);
+        $group_data = $group_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$group_data) {
+            $pdo->rollBack();
+            json_response(false, 'Joint group data not found');
+        }
+        
+        // Update member to join the group and share the group's position
         $stmt = $pdo->prepare("
             UPDATE members 
             SET membership_type = 'joint', joint_group_id = ?, individual_contribution = ?, 
-                joint_position_share = ?, primary_joint_member = ?
+                joint_position_share = ?, primary_joint_member = ?, 
+                payout_position = ?, monthly_payment = ?
             WHERE id = ? AND is_active = 1
         ");
-        $stmt->execute([$joint_group_id, $individual_contribution, $joint_position_share, $is_primary, $member_id]);
+        $stmt->execute([
+            $joint_group_id, 
+            $individual_contribution, 
+            $joint_position_share, 
+            $is_primary, 
+            $group_data['payout_position'], // Share the group's position
+            $group_data['total_monthly_payment'], // Share the group's total payment
+            $member_id
+        ]);
         
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
@@ -525,14 +558,30 @@ function removeMemberFromGroup() {
     try {
         $pdo->beginTransaction();
         
-        // Update member to remove from joint group
-        $stmt = $pdo->prepare("
-            UPDATE members 
-            SET membership_type = 'individual', joint_group_id = NULL, individual_contribution = NULL, 
-                joint_position_share = 1.0000, primary_joint_member = 1
+        // Get member's current individual payment for restoration
+        $member_stmt = $pdo->prepare("
+            SELECT individual_contribution, equb_settings_id 
+            FROM members 
             WHERE id = ? AND is_active = 1
         ");
-        $stmt->execute([$member_id]);
+        $member_stmt->execute([$member_id]);
+        $member_data = $member_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$member_data) {
+            $pdo->rollBack();
+            json_response(false, 'Member not found');
+        }
+        
+        // Update member to remove from joint group and restore individual settings
+        $stmt = $pdo->prepare("
+            UPDATE members 
+            SET membership_type = 'individual', joint_group_id = NULL, 
+                individual_contribution = NULL, joint_position_share = 1.0000, 
+                primary_joint_member = 1, payout_position = 0, 
+                monthly_payment = ?
+            WHERE id = ? AND is_active = 1
+        ");
+        $stmt->execute([$member_data['individual_contribution'] ?: 0, $member_id]);
         
         if ($stmt->rowCount() === 0) {
             $pdo->rollBack();
