@@ -88,6 +88,12 @@ try {
         case 'remove_member_from_group':
             removeMemberFromGroup();
             break;
+        case 'get_equb_info':
+            getEqubInfo();
+            break;
+        case 'update_group_position':
+            updateGroupPosition();
+            break;
         default:
             json_response(false, 'Invalid action: ' . $action);
     }
@@ -595,6 +601,107 @@ function removeMemberFromGroup() {
         $pdo->rollBack();
         error_log("Error removing member from group: " . $e->getMessage());
         json_response(false, 'Failed to remove member from group');
+    }
+}
+
+/**
+ * Get EQUB information
+ */
+function getEqubInfo() {
+    global $pdo;
+    
+    $equb_id = intval($_POST['equb_id'] ?? 0);
+    
+    if (!$equb_id) {
+        json_response(false, 'EQUB ID is required');
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id, equb_id, equb_name, duration_months, start_date, payout_day,
+                   max_members, current_members, status
+            FROM equb_settings 
+            WHERE id = ?
+        ");
+        $stmt->execute([$equb_id]);
+        $equb_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$equb_data) {
+            json_response(false, 'EQUB not found');
+        }
+        
+        json_response(true, 'EQUB info retrieved successfully', $equb_data);
+        
+    } catch (Exception $e) {
+        error_log("Error getting EQUB info: " . $e->getMessage());
+        json_response(false, 'Failed to get EQUB information');
+    }
+}
+
+/**
+ * Update joint group position
+ */
+function updateGroupPosition() {
+    global $pdo;
+    
+    $joint_group_id = sanitize_input($_POST['joint_group_id'] ?? '');
+    $new_position = intval($_POST['new_position'] ?? 0);
+    
+    if (!$joint_group_id || !$new_position) {
+        json_response(false, 'Joint group ID and new position are required');
+    }
+    
+    if ($new_position < 1) {
+        json_response(false, 'Position must be 1 or greater');
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Check if joint group exists
+        $stmt = $pdo->prepare("
+            SELECT jmg.id, jmg.equb_settings_id, es.duration_months 
+            FROM joint_membership_groups jmg
+            JOIN equb_settings es ON jmg.equb_settings_id = es.id
+            WHERE jmg.joint_group_id = ? AND jmg.is_active = 1
+        ");
+        $stmt->execute([$joint_group_id]);
+        $group_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$group_data) {
+            $pdo->rollBack();
+            json_response(false, 'Joint group not found');
+        }
+        
+        // Validate position is within EQUB duration
+        if ($new_position > $group_data['duration_months']) {
+            $pdo->rollBack();
+            json_response(false, "Position cannot exceed EQUB duration ({$group_data['duration_months']} months)");
+        }
+        
+        // Update joint group position
+        $stmt = $pdo->prepare("
+            UPDATE joint_membership_groups 
+            SET payout_position = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE joint_group_id = ?
+        ");
+        $stmt->execute([$new_position, $joint_group_id]);
+        
+        // Update all joint members to have the same position
+        $stmt = $pdo->prepare("
+            UPDATE members 
+            SET payout_position = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE joint_group_id = ? AND membership_type = 'joint' AND is_active = 1
+        ");
+        $stmt->execute([$new_position, $joint_group_id]);
+        
+        $pdo->commit();
+        json_response(true, 'Joint group position updated successfully');
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error updating group position: " . $e->getMessage());
+        json_response(false, 'Failed to update group position');
     }
 }
 

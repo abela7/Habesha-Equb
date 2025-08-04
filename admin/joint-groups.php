@@ -180,6 +180,104 @@ $csrf_token = generate_csrf_token();
             color: var(--border-light);
             margin-bottom: 20px;
         }
+        
+        /* ========================================= */
+        /* MOBILE RESPONSIVENESS */
+        /* ========================================= */
+        
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 20px;
+            }
+            
+            .page-header .row {
+                flex-direction: column;
+            }
+            
+            .page-header .col-md-4 {
+                text-align: left !important;
+                margin-top: 20px;
+            }
+            
+            .page-header .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .stat-card {
+                margin-bottom: 15px;
+            }
+            
+            .joint-group-card {
+                padding: 20px;
+            }
+            
+            .group-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 15px;
+            }
+            
+            .group-header .text-end {
+                text-align: left !important;
+                width: 100%;
+            }
+            
+            .group-header .btn {
+                margin: 5px 5px 5px 0;
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+            
+            .joint-group-card .row {
+                flex-direction: column;
+            }
+            
+            .member-list {
+                margin-bottom: 15px;
+            }
+            
+            .payout-info {
+                text-align: left !important;
+            }
+            
+            .group-id {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+            
+            .split-method-badge {
+                font-size: 0.7rem;
+                padding: 3px 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .admin-container {
+                padding: 10px;
+            }
+            
+            .joint-group-card {
+                padding: 15px;
+            }
+            
+            .group-header .btn {
+                font-size: 0.75rem;
+                padding: 5px 8px;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .empty-state {
+                padding: 40px 15px;
+            }
+            
+            .empty-state i {
+                font-size: 3rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -305,6 +403,9 @@ $csrf_token = generate_csrf_token();
                                         </button>
                                         <button class="btn btn-outline-warning btn-sm ms-1" onclick="editGroup('<?php echo $group['joint_group_id']; ?>')" title="Edit Group">
                                             <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm ms-1" onclick="managePosition('<?php echo $group['joint_group_id']; ?>', <?php echo $group['payout_position']; ?>, <?php echo $group['equb_settings_id']; ?>)" title="Manage Position">
+                                            <i class="fas fa-sort-numeric-down"></i>
                                         </button>
                                         <button class="btn btn-outline-success btn-sm ms-1" onclick="calculateGroupPayout('<?php echo $group['joint_group_id']; ?>')" title="Calculate Payout">
                                             <i class="fas fa-calculator"></i>
@@ -500,6 +601,57 @@ $csrf_token = generate_csrf_token();
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-success" onclick="refreshMemberAssignments()">
                         <i class="fas fa-sync me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Position Management Modal -->
+    <div class="modal fade" id="positionManagementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sort-numeric-down text-secondary me-2"></i>
+                        Manage Joint Group Position
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="positionManagementForm">
+                        <input type="hidden" id="positionJointGroupId">
+                        <input type="hidden" id="positionEqubId">
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> Changing the position will affect when this joint group receives their payout.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Current Position</label>
+                            <input type="number" class="form-control" id="currentPosition" readonly>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">New Position *</label>
+                            <input type="number" class="form-control" id="newPosition" min="1" required>
+                            <div class="form-text">Position must be between 1 and the EQUB duration (in months)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Available Positions</label>
+                            <div id="availablePositions" class="small text-muted">
+                                Loading available positions...
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="savePositionChange()">
+                        <i class="fas fa-save me-1"></i>
+                        Update Position
                     </button>
                 </div>
             </div>
@@ -1032,6 +1184,108 @@ $csrf_token = generate_csrf_token();
             loadAssignedMembers();
             // Refresh the page to update the joint group listing
             setTimeout(() => location.reload(), 1000);
+        }
+        
+        // ========================================
+        // POSITION MANAGEMENT FUNCTIONS
+        // ========================================
+        
+        function managePosition(jointGroupId, currentPosition, equbId) {
+            document.getElementById('positionJointGroupId').value = jointGroupId;
+            document.getElementById('positionEqubId').value = equbId;
+            document.getElementById('currentPosition').value = currentPosition;
+            document.getElementById('newPosition').value = currentPosition;
+            
+            // Load available positions
+            loadAvailablePositions(equbId, currentPosition);
+            
+            const modal = new bootstrap.Modal(document.getElementById('positionManagementModal'));
+            modal.show();
+        }
+        
+        function loadAvailablePositions(equbId, currentPosition) {
+            document.getElementById('availablePositions').innerHTML = 'Loading available positions...';
+            
+            fetch('api/payout-positions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=get_positions&equb_id=${equbId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.members) {
+                    const positions = data.data.members;
+                    const occupiedPositions = positions.map(p => p.payout_position).filter(p => p > 0 && p !== parseInt(currentPosition));
+                    
+                    // Get EQUB duration
+                    fetch('api/joint-membership.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=get_equb_info&equb_id=${equbId}`
+                    })
+                    .then(response => response.json())
+                    .then(equbData => {
+                        if (equbData.success) {
+                            const duration = equbData.data.duration_months;
+                            const availablePositions = [];
+                            
+                            for (let i = 1; i <= duration; i++) {
+                                if (!occupiedPositions.includes(i)) {
+                                    availablePositions.push(i);
+                                }
+                            }
+                            
+                            let html = `<strong>Duration:</strong> ${duration} months<br>`;
+                            html += `<strong>Occupied positions:</strong> ${occupiedPositions.length > 0 ? occupiedPositions.join(', ') : 'None'}<br>`;
+                            html += `<strong>Available positions:</strong> ${availablePositions.length > 0 ? availablePositions.join(', ') : 'All positions occupied'}`;
+                            
+                            document.getElementById('availablePositions').innerHTML = html;
+                            
+                            // Update input constraints
+                            const newPositionInput = document.getElementById('newPosition');
+                            newPositionInput.max = duration;
+                        }
+                    });
+                } else {
+                    document.getElementById('availablePositions').innerHTML = 'Error loading position data';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('availablePositions').innerHTML = 'Error loading position data';
+            });
+        }
+        
+        function savePositionChange() {
+            const jointGroupId = document.getElementById('positionJointGroupId').value;
+            const newPosition = document.getElementById('newPosition').value;
+            
+            if (!newPosition || parseInt(newPosition) < 1) {
+                alert('Please enter a valid position number');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to change this joint group's position to ${newPosition}?`)) {
+                fetch('api/joint-membership.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=update_group_position&joint_group_id=${jointGroupId}&new_position=${newPosition}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ Position updated successfully!');
+                        bootstrap.Modal.getInstance(document.getElementById('positionManagementModal')).hide();
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Network error. Please try again.');
+                });
+            }
         }
     </script>
 </body>

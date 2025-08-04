@@ -101,9 +101,10 @@ function getPositions() {
     }
     
     try {
-        // Get EQUB info - using exact schema fields
+        // Get EQUB info with start date and payout day
         $stmt = $pdo->prepare("
-            SELECT duration_months, admin_fee, current_members, max_members
+            SELECT duration_months, admin_fee, current_members, max_members,
+                   start_date, payout_day
             FROM equb_settings 
             WHERE id = ?
         ");
@@ -170,7 +171,12 @@ function getPositions() {
         
         foreach ($position_data as $position) {
             $position['duration_months'] = $equb_info['duration_months'];
-            $position['estimated_payout_date'] = calculatePayoutDate($position['actual_payout_position'], $equb_info['duration_months']);
+            $position['estimated_payout_date'] = calculatePayoutDate(
+                $position['actual_payout_position'], 
+                $equb_info['duration_months'],
+                $equb_info['start_date'],
+                $equb_info['payout_day']
+            );
             
             // Convert to position-based structure for frontend compatibility
             $position_entry = [
@@ -282,18 +288,26 @@ function updatePayoutMonths($equb_id) {
     $stmt->execute([$start_date, $equb_id]);
 }
 
-function calculatePayoutDate($position, $duration_months) {
+function calculatePayoutDate($position, $duration_months, $equb_start_date = null, $payout_day = 5) {
     if (!$position || $position > $duration_months) {
         return 'TBD';
     }
     
-    // For display purposes, assume start date is current month
-    $start_date = new DateTime();
-    $start_date->modify('first day of this month');
+    // Use actual EQUB start date if provided
+    if ($equb_start_date) {
+        $start_date = new DateTime($equb_start_date);
+    } else {
+        // Fallback to current month for backward compatibility
+        $start_date = new DateTime();
+        $start_date->modify('first day of this month');
+    }
+    
+    // Calculate payout date: start_date + (position-1) months + payout_day
     $payout_date = clone $start_date;
     $payout_date->modify('+' . ($position - 1) . ' months');
+    $payout_date->setDate($payout_date->format('Y'), $payout_date->format('n'), $payout_day);
     
-    return $payout_date->format('M Y');
+    return $payout_date->format('M d, Y');
 }
 
 /**

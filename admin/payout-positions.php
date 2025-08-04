@@ -175,6 +175,111 @@ $csrf_token = generate_csrf_token();
             margin-bottom: 20px;
             border: 1px solid var(--border-light);
         }
+        
+        /* ========================================= */
+        /* MOBILE RESPONSIVENESS */
+        /* ========================================= */
+        
+        @media (max-width: 768px) {
+            .position-card {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+            
+            .position-card .d-flex {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .position-number {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+                margin-right: 0;
+                align-self: flex-start;
+            }
+            
+            .member-info {
+                order: 1;
+            }
+            
+            .payout-info {
+                order: 2;
+                text-align: left;
+                min-width: auto;
+                background: linear-gradient(135deg, var(--light-gold) 0%, #FFF9E6 100%);
+                padding: 10px;
+                border-radius: 8px;
+            }
+            
+            .member-details {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .joint-badge {
+                margin-left: 0;
+                margin-top: 5px;
+                display: inline-block;
+                width: fit-content;
+            }
+            
+            .equb-selector {
+                padding: 20px;
+            }
+            
+            .positions-container {
+                padding: 20px;
+            }
+            
+            .auto-sort-buttons {
+                flex-direction: column;
+            }
+            
+            .auto-sort-buttons .btn {
+                width: 100%;
+            }
+            
+            .page-header .col-md-4 {
+                text-align: left !important;
+                margin-top: 15px;
+            }
+            
+            .page-header .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .drag-instructions {
+                padding: 15px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .position-number {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+            
+            .member-name {
+                font-size: 1rem;
+            }
+            
+            .member-details {
+                font-size: 0.8rem;
+            }
+            
+            .payout-amount {
+                font-size: 1.1rem;
+            }
+            
+            .admin-container {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
