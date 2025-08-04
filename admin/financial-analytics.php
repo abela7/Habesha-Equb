@@ -227,6 +227,15 @@ $csrf_token = generate_csrf_token();
     <style>
         /* ===== TOP-TIER FINANCIAL DASHBOARD STYLES ===== */
         
+        body {
+            overflow-x: hidden;
+        }
+        
+        .admin-container {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
         .analytics-header {
             background: linear-gradient(135deg, 
                 var(--color-purple) 0%, 
@@ -606,6 +615,7 @@ $csrf_token = generate_csrf_token();
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 40px;
+            overflow: hidden;
         }
         
         .chart-card {
@@ -614,6 +624,14 @@ $csrf_token = generate_csrf_token();
             padding: 30px;
             box-shadow: 0 15px 45px rgba(48, 25, 67, 0.1);
             border: 1px solid var(--border-light);
+            height: 400px;
+            position: relative;
+        }
+        
+        .chart-card canvas {
+            max-height: 300px !important;
+            width: 100% !important;
+            height: auto !important;
         }
         
         .chart-title {
@@ -840,7 +858,7 @@ $csrf_token = generate_csrf_token();
                         <i class="fas fa-chart-pie text-purple me-2"></i>
                         Payout Distribution
                     </h3>
-                    <canvas id="payoutChart" height="300"></canvas>
+                    <canvas id="payoutChart"></canvas>
                 </div>
 
                 <!-- Monthly Timeline Chart -->
@@ -849,7 +867,7 @@ $csrf_token = generate_csrf_token();
                         <i class="fas fa-chart-bar text-gold me-2"></i>
                         Monthly Payout Timeline
                     </h3>
-                    <canvas id="timelineChart" height="300"></canvas>
+                    <canvas id="timelineChart"></canvas>
                 </div>
             </div>
 
@@ -1071,14 +1089,16 @@ $csrf_token = generate_csrf_token();
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 1.5,
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 20,
+                            padding: 15,
                             usePointStyle: true,
-                            pointStyle: 'circle'
+                            pointStyle: 'circle',
+                            boxHeight: 15
                         }
                     },
                     tooltip: {
@@ -1119,7 +1139,8 @@ $csrf_token = generate_csrf_token();
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
                 scales: {
                     x: {
                         grid: {
@@ -1140,7 +1161,8 @@ $csrf_token = generate_csrf_token();
                         position: 'top',
                         labels: {
                             usePointStyle: true,
-                            pointStyle: 'circle'
+                            pointStyle: 'circle',
+                            boxHeight: 15
                         }
                     },
                     tooltip: {
