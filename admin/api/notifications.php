@@ -13,15 +13,24 @@ header('Cache-Control: no-cache, must-revalidate');
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Don't display errors in JSON response
+ini_set('display_errors', 1); // TEMPORARILY SHOW ERRORS FOR DEBUGGING
 
 // Start output buffering to prevent any unwanted output
 ob_start();
 
 // Secure admin authentication check
-require_once '../includes/admin_auth_guard.php';
-$admin_id = get_current_admin_id();
-$admin_username = get_current_admin_username();
+try {
+    require_once '../includes/admin_auth_guard.php';
+    $admin_id = get_current_admin_id();
+    $admin_username = get_current_admin_username();
+    
+    // Check if admin is authenticated
+    if (!$admin_id) {
+        json_response(false, 'Admin authentication required');
+    }
+} catch (Exception $e) {
+    json_response(false, 'Authentication error: ' . $e->getMessage());
+}
 
 // Helper function for JSON responses
 function json_response($success, $message, $data = null) {
