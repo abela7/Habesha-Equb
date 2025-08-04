@@ -849,18 +849,7 @@ $csrf_token = generate_csrf_token();
                  </svg>
                  <span class="nav-text"><?php echo t('member_nav.equb_members'); ?></span>
              </a>
-             <a href="notifications.php" class="nav-item nav-item-with-badge <?php echo ($current_page === 'notifications.php') ? 'active' : ''; ?>">
-                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                 </svg>
-                 <span class="nav-text">Notifications</span>
-                 <?php if ($unread_notifications > 0): ?>
-                     <span class="notification-badge <?php echo $unread_notifications == 0 ? 'zero' : ''; ?>">
-                         <?php echo $unread_notifications > 99 ? '99+' : $unread_notifications; ?>
-                     </span>
-                 <?php endif; ?>
-             </a>
+             
              <a href="profile.php" class="nav-item <?php echo ($current_page === 'profile.php') ? 'active' : ''; ?>">
                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
