@@ -100,6 +100,43 @@ $total_pages = ceil($total_notifications / $limit);
     <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
+        /* FORCE PROPER COLORS - FIX BLACK/WHITE ISSUE */
+        body {
+            background: #FEFDF8 !important;
+            color: #1F2937 !important;
+        }
+        
+        /* FORCE VISIBLE TEXT COLORS */
+        .notification-card {
+            background: white !important;
+            color: #1F2937 !important;
+            border: 1px solid #E5E7EB !important;
+        }
+        
+        .notification-title {
+            color: #301943 !important;
+        }
+        
+        .notification-content {
+            color: #4B5563 !important;
+        }
+        
+        .stat-card {
+            background: white !important;
+            color: #1F2937 !important;
+            border: 1px solid #E5E7EB !important;
+        }
+        
+        .notifications-header {
+            background: linear-gradient(135deg, #301943, #51258F) !important;
+            color: white !important;
+        }
+        
+        .btn-modern {
+            background: #301943 !important;
+            color: white !important;
+            border: none !important;
+        }
         /* ======================================= */
         /* ULTRA-MODERN NOTIFICATION CENTER STYLES */
         /* ======================================= */

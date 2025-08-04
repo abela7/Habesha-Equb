@@ -61,10 +61,10 @@ function generateNotificationId() {
     global $pdo;
     
     $year = date('Y');
-    $prefix = "NOTIF-{$year}-";
+    $prefix = "MSG-{$year}-";
     
-    // Get the highest number for this year
-    $stmt = $pdo->prepare("SELECT notification_id FROM notifications WHERE notification_id LIKE ? ORDER BY id DESC LIMIT 1");
+    // Get the highest number for this year - FIXED: Use member_messages table
+    $stmt = $pdo->prepare("SELECT message_id FROM member_messages WHERE message_id LIKE ? ORDER BY id DESC LIMIT 1");
     $stmt->execute([$prefix . '%']);
     $lastId = $stmt->fetchColumn();
     
@@ -127,8 +127,8 @@ function createNotification() {
     try {
         $pdo->beginTransaction();
         
-        // Generate unique notification ID
-        $notification_id = generateNotificationId();
+        // Generate unique message ID
+        $message_id = generateNotificationId();
         
         // Sanitize inputs
         $title_en = sanitize_input($_POST['title_en']);
@@ -177,7 +177,7 @@ function createNotification() {
         ");
         
         $stmt->execute([
-            $notification_id, $title_en, $title_am, $content_en, $content_am,
+            $message_id, $title_en, $title_am, $content_en, $content_am,
             $message_type, $priority, $target_audience, $equb_settings_id, $target_member_id,
             $admin_id, $admin_username
         ]);
@@ -191,7 +191,7 @@ function createNotification() {
         $pdo->commit();
         
         json_response(true, 'Notification created and sent successfully!', [
-            'notification_id' => $notification_id,
+            'notification_id' => $message_id,
             'created_at' => date('Y-m-d H:i:s')
         ]);
         
