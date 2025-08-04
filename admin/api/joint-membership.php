@@ -170,16 +170,18 @@ function createJointGroup() {
         return;
     }
     
-    // Check if position is available
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) FROM members 
-        WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
-        UNION ALL
-        SELECT COUNT(*) FROM joint_membership_groups 
-        WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
-    ");
-    $stmt->execute([$equb_settings_id, $payout_position, $equb_settings_id, $payout_position]);
-    $existing_count = array_sum($stmt->fetchAll(PDO::FETCH_COLUMN));
+            // Check if position is available - check both individual members and joint groups
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count FROM (
+                SELECT payout_position FROM members 
+                WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
+                UNION ALL
+                SELECT payout_position FROM joint_membership_groups 
+                WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1
+            ) as positions
+        ");
+        $stmt->execute([$equb_settings_id, $payout_position, $equb_settings_id, $payout_position]);
+        $existing_count = $stmt->fetchColumn();
     
     if ($existing_count > 0) {
         echo json_encode(['success' => false, 'message' => 'Payout position is already occupied']);
@@ -208,12 +210,13 @@ function createJointGroup() {
         $next_number = str_pad($stmt->fetchColumn(), 3, '0', STR_PAD_LEFT);
         $joint_group_id = "JNT-{$equb_data['equb_id']}-{$next_number}";
         
-        // Create joint group
+        // Create joint group - using correct field names from database
         $stmt = $pdo->prepare("
             INSERT INTO joint_membership_groups (
                 joint_group_id, equb_settings_id, group_name, total_monthly_payment,
-                payout_position, payout_split_method, member_count
-            ) VALUES (?, ?, ?, ?, ?, ?, 0)
+                payout_position, payout_split_method, member_count, is_active,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 0, 1, NOW(), NOW())
         ");
         $stmt->execute([
             $joint_group_id, $equb_settings_id, $group_name, $total_monthly_payment,

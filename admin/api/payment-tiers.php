@@ -4,14 +4,27 @@
  * Professional API for managing payment tiers with validation
  */
 
+// Define skip auth check to prevent automatic redirect
+define('SKIP_ADMIN_AUTH_CHECK', true);
+
+// Start session first
+session_start();
+
+// Include required files
 require_once '../../includes/db.php';
-require_once '../includes/admin_auth_guard.php';
+require_once '../../includes/functions.php';
 
 // Security headers
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('X-XSS-Protection: 1; mode=block');
+
+// Check admin authentication manually
+if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    exit;
+}
 
 function json_response($success, $message, $data = null) {
     echo json_encode([
@@ -28,17 +41,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $action = $_POST['action'] ?? '';
 
-switch ($action) {
-    case 'update_tiers':
-        updatePaymentTiers();
-        break;
-    
-    case 'get_tiers':
-        getPaymentTiers();
-        break;
-    
-    default:
-        json_response(false, 'Invalid action');
+try {
+    switch ($action) {
+        case 'update_tiers':
+            updatePaymentTiers();
+            break;
+        
+        case 'get_tiers':
+            getPaymentTiers();
+            break;
+        
+        default:
+            json_response(false, 'Invalid action');
+    }
+} catch (Exception $e) {
+    error_log("Payment Tiers API Error: " . $e->getMessage());
+    json_response(false, 'An error occurred: ' . $e->getMessage());
 }
 
 function updatePaymentTiers() {
