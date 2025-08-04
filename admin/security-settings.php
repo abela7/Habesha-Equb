@@ -17,22 +17,24 @@ try {
     // Debug: Check database connection and basic counts
     error_log("🔒 Security Settings: Starting database queries...");
     
-    // SIMPLE MEMBER LOGIN TRACKING
+    // First, let's check what columns actually exist in the members table
+    $columns_check = $pdo->query("DESCRIBE members")->fetchAll();
+    error_log("🔍 Members table columns: " . json_encode(array_column($columns_check, 'Field')));
+    
+    // BASIC MEMBER QUERY - Test step by step
     $member_activities = $pdo->query("
         SELECT 
-            m.id,
-            m.member_id,
-            m.first_name,
-            m.last_name,
-            m.email,
-            m.last_login,
-            m.created_at,
-            m.is_active,
-            m.is_approved,
-            es.equb_name
-        FROM members m
-        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
-        ORDER BY m.last_login DESC, m.created_at DESC
+            id,
+            member_id,
+            first_name,
+            last_name,
+            email,
+            last_login,
+            created_at,
+            is_active,
+            is_approved
+        FROM members
+        ORDER BY created_at DESC
         LIMIT 50
     ")->fetchAll();
     
@@ -72,52 +74,44 @@ try {
         'active_7d' => $members_with_login
     ];
     
-    // SIMPLE OTP ACTIVITIES
-    $recent_otp_activities = $pdo->query("
-        SELECT 
-            uo.email,
-            uo.otp_type,
-            uo.created_at,
-            uo.is_used,
-            uo.attempt_count,
-            m.first_name,
-            m.last_name,
-            m.member_id
-        FROM user_otps uo
-        LEFT JOIN members m ON uo.email = m.email
-        ORDER BY uo.created_at DESC
-        LIMIT 30
-    ")->fetchAll();
+    // SIMPLE OTP ACTIVITIES (separate query to avoid JOIN issues)
+    try {
+        $recent_otp_activities = $pdo->query("
+            SELECT email, otp_type, created_at, is_used, attempt_count
+            FROM user_otps
+            ORDER BY created_at DESC
+            LIMIT 30
+        ")->fetchAll();
+    } catch (Exception $e) {
+        error_log("OTP query failed: " . $e->getMessage());
+        $recent_otp_activities = [];
+    }
     
-    // SIMPLE DEVICE TRACKING
-    $device_activities = $pdo->query("
-        SELECT 
-            dt.email,
-            dt.user_agent,
-            dt.ip_address,
-            dt.is_approved,
-            dt.created_at,
-            dt.last_seen,
-            m.first_name,
-            m.last_name,
-            m.member_id
-        FROM device_tracking dt
-        LEFT JOIN members m ON dt.email = m.email
-        ORDER BY dt.created_at DESC
-        LIMIT 20
-    ")->fetchAll();
+    // SIMPLE DEVICE TRACKING (separate query to avoid JOIN issues)
+    try {
+        $device_activities = $pdo->query("
+            SELECT email, user_agent, ip_address, is_approved, created_at, last_seen
+            FROM device_tracking
+            ORDER BY created_at DESC
+            LIMIT 20
+        ")->fetchAll();
+    } catch (Exception $e) {
+        error_log("Device query failed: " . $e->getMessage());
+        $device_activities = [];
+    }
     
     // SIMPLE ADMIN ACTIVITIES
-    $admin_activities = $pdo->query("
-        SELECT 
-            username,
-            last_login,
-            is_active,
-            created_at
-        FROM admins
-        WHERE is_active = 1
-        ORDER BY last_login DESC
-    ")->fetchAll();
+    try {
+        $admin_activities = $pdo->query("
+            SELECT username, last_login, is_active, created_at
+            FROM admins
+            WHERE is_active = 1
+            ORDER BY created_at DESC
+        ")->fetchAll();
+    } catch (Exception $e) {
+        error_log("Admin query failed: " . $e->getMessage());
+        $admin_activities = [];
+    }
     
     error_log("🔒 Security data loaded: {$total_members} members, {$total_otps} OTPs, {$total_devices} devices");
     
@@ -664,7 +658,8 @@ $debug_info = [
                                                 <small>Expected to find <?php echo $security_stats['total_members'] ?? 0; ?> members in database</small><br>
                                                 <?php if (isset($database_error)): ?>
                                                     <div class="alert alert-danger mt-2" style="display: inline-block; padding: 8px 12px;">
-                                                        Database Error: <?php echo htmlspecialchars($database_error); ?>
+                                                        <strong>Database Error:</strong> <?php echo htmlspecialchars($database_error); ?>
+                                                        <br><small>Check browser console and server error logs for details</small>
                                                     </div>
                                                 <?php endif; ?>
                                             </td>
@@ -710,7 +705,7 @@ $debug_info = [
                                                     </div>
                                                 </td>
                                                 <td><?php echo htmlspecialchars($activity['email']); ?></td>
-                                                <td><?php echo htmlspecialchars($activity['equb_name'] ?: 'No EQUB'); ?></td>
+                                                <td>EQUB Member</td>
                                                 <td>
                                                     <?php if ($activity['last_login']): ?>
                                                         <?php echo date('M j, Y g:i A', strtotime($activity['last_login'])); ?>
@@ -787,19 +782,7 @@ $debug_info = [
                                             ?>
                                             <tr>
                                                 <td>
-                                                    <?php if ($otp['first_name']): ?>
-                                                        <div class="member-info">
-                                                            <div class="member-avatar" style="width: 28px; height: 28px; font-size: 12px;">
-                                                                <?php echo strtoupper(substr($otp['first_name'], 0, 1) . substr($otp['last_name'], 0, 1)); ?>
-                                                            </div>
-                                                            <div class="member-details">
-                                                                <h6 style="font-size: 12px;"><?php echo htmlspecialchars($otp['first_name'] . ' ' . $otp['last_name']); ?></h6>
-                                                                <p style="font-size: 10px;"><?php echo htmlspecialchars($otp['email']); ?></p>
-                                                            </div>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <small class="text-muted"><?php echo htmlspecialchars($otp['email']); ?></small>
-                                                    <?php endif; ?>
+                                                    <small class="text-muted"><?php echo htmlspecialchars($otp['email']); ?></small>
                                                 </td>
                                                 <td>
                                                     <small class="text-uppercase"><?php echo str_replace('_', ' ', $otp['otp_type']); ?></small>
@@ -858,19 +841,7 @@ $debug_info = [
                                             ?>
                                             <tr>
                                                 <td>
-                                                    <?php if ($device['first_name']): ?>
-                                                        <div class="member-info">
-                                                            <div class="member-avatar" style="width: 28px; height: 28px; font-size: 12px;">
-                                                                <?php echo strtoupper(substr($device['first_name'], 0, 1) . substr($device['last_name'], 0, 1)); ?>
-                                                            </div>
-                                                            <div class="member-details">
-                                                                <h6 style="font-size: 12px;"><?php echo htmlspecialchars($device['first_name'] . ' ' . $device['last_name']); ?></h6>
-                                                                <p style="font-size: 10px;"><?php echo htmlspecialchars($device['email']); ?></p>
-                                                            </div>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <small class="text-muted"><?php echo htmlspecialchars($device['email']); ?></small>
-                                                    <?php endif; ?>
+                                                    <small class="text-muted"><?php echo htmlspecialchars($device['email']); ?></small>
                                                 </td>
                                                 <td>
                                                     <small>
