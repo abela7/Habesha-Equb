@@ -917,9 +917,9 @@ $csrf_token = generate_csrf_token();
                                             <i class="fas fa-exclamation-circle me-1"></i>
                                             <?php echo ucfirst($notification['priority']); ?>
                                         </span>
-                                        <span class="info-badge type-<?php echo $notification['notification_type']; ?>">
+                                        <span class="info-badge type-<?php echo $notification['message_type']; ?>">
                                             <i class="fas fa-tag me-1"></i>
-                                            <?php echo str_replace('_', ' ', ucfirst($notification['notification_type'])); ?>
+                                            <?php echo str_replace('_', ' ', ucfirst($notification['message_type'])); ?>
                                         </span>
                                         <small class="text-muted">
                                             <i class="fas fa-clock me-1"></i>
@@ -1101,13 +1101,171 @@ $csrf_token = generate_csrf_token();
         }
 
         function viewNotification(id) {
-            // Implement view functionality
-            window.open(`notification-details.php?id=${id}`, '_blank');
+            // Create view modal
+            showNotificationModal(id, 'view');
         }
 
         function editNotification(id) {
-            // Implement edit functionality
-            console.log('Edit notification:', id);
+            // Create edit modal
+            showNotificationModal(id, 'edit');
+        }
+
+        async function showNotificationModal(id, mode) {
+            try {
+                const response = await fetch(`api/notifications.php?action=list&id=${id}`);
+                const result = await response.json();
+                
+                if (!result.success || !result.data || result.data.length === 0) {
+                    showMessage('Notification not found', 'error');
+                    return;
+                }
+                
+                const notification = result.data[0];
+                const isEdit = mode === 'edit';
+                
+                // Create modal HTML - Part 1
+                const modalHTML = createNotificationModalHTML(notification, isEdit);
+                
+                // Remove existing modal if any
+                const existingModal = document.getElementById('notificationModal');
+                if (existingModal) existingModal.remove();
+                
+                // Add modal to page
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+                modal.show();
+                
+            } catch (error) {
+                showMessage('Error loading notification details', 'error');
+            }
+        }
+
+        function createNotificationModalHTML(notification, isEdit) {
+            return `
+                <div class="modal fade" id="notificationModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content" style="border-radius: 15px; border: none;">
+                            <div class="modal-header" style="background: linear-gradient(135deg, #301943, #51258F); color: white; border-radius: 15px 15px 0 0;">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-${isEdit ? 'edit' : 'eye'} me-2"></i>
+                                    ${isEdit ? 'Edit' : 'View'} Notification
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" style="padding: 30px;">
+                                <form id="modalNotificationForm">
+                                    <input type="hidden" name="action" value="${isEdit ? 'update' : 'view'}">
+                                    <input type="hidden" name="id" value="${notification.id}">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">English Title</label>
+                                                <input type="text" class="form-control" name="title_en" value="${notification.title_en}" ${!isEdit ? 'readonly' : ''} required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Amharic Title</label>
+                                                <input type="text" class="form-control" name="title_am" value="${notification.title_am}" ${!isEdit ? 'readonly' : ''} required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">English Content</label>
+                                                <textarea class="form-control" name="content_en" rows="4" ${!isEdit ? 'readonly' : ''} required>${notification.content_en}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Amharic Content</label>
+                                                <textarea class="form-control" name="content_am" rows="4" ${!isEdit ? 'readonly' : ''} required>${notification.content_am}</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Type</label>
+                                                <select class="form-select" name="message_type" ${!isEdit ? 'disabled' : ''} required>
+                                                    <option value="general" ${notification.message_type === 'general' ? 'selected' : ''}>General</option>
+                                                    <option value="payment_reminder" ${notification.message_type === 'payment_reminder' ? 'selected' : ''}>Payment Reminder</option>
+                                                    <option value="payout_announcement" ${notification.message_type === 'payout_announcement' ? 'selected' : ''}>Payout Announcement</option>
+                                                    <option value="system_update" ${notification.message_type === 'system_update' ? 'selected' : ''}>System Update</option>
+                                                    <option value="announcement" ${notification.message_type === 'announcement' ? 'selected' : ''}>Announcement</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Priority</label>
+                                                <select class="form-select" name="priority" ${!isEdit ? 'disabled' : ''} required>
+                                                    <option value="low" ${notification.priority === 'low' ? 'selected' : ''}>Low</option>
+                                                    <option value="medium" ${notification.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                                                    <option value="high" ${notification.priority === 'high' ? 'selected' : ''}>High</option>
+                                                    <option value="urgent" ${notification.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Target Audience</label>
+                                                <select class="form-select" name="target_audience" ${!isEdit ? 'disabled' : ''} required>
+                                                    <option value="all_members" ${notification.target_audience === 'all_members' ? 'selected' : ''}>All Members</option>
+                                                    <option value="active_members" ${notification.target_audience === 'active_members' ? 'selected' : ''}>Active Members</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-info">
+                                        <strong>Statistics:</strong> 
+                                        Delivered: ${notification.total_delivered || 0} | 
+                                        Read: ${notification.total_read || 0} | 
+                                        Unread: ${notification.total_unread || 0} | 
+                                        Read Rate: ${notification.read_percentage || 0}%
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                ${isEdit ? '<button type="button" class="btn btn-primary" onclick="saveNotificationChanges()">Save Changes</button>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveNotificationChanges() {
+            const form = document.getElementById('modalNotificationForm');
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch('api/notifications.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Notification updated successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('notificationModal')).hide();
+                    refreshNotifications();
+                } else {
+                    showMessage('Error: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            }
         }
 
         async function deleteNotification(id) {

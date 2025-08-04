@@ -84,6 +84,9 @@ try {
         case 'create':
             createNotification();
             break;
+        case 'update':
+            updateNotification();
+            break;
         case 'delete':
             deleteNotification();
             break;
@@ -200,6 +203,90 @@ function createNotification() {
 }
 
 /**
+ * Update a notification
+ */
+function updateNotification() {
+    global $pdo, $admin_id, $admin_username;
+    
+    validateCSRF();
+    
+    $id = intval($_POST['id'] ?? 0);
+    if (!$id) {
+        json_response(false, 'Notification ID is required');
+    }
+    
+    // Validate required fields
+    $required_fields = ['title_en', 'title_am', 'content_en', 'content_am', 'message_type', 'priority', 'target_audience'];
+    foreach ($required_fields as $field) {
+        if (!isset($_POST[$field]) || empty(trim($_POST[$field]))) {
+            json_response(false, "Missing required field: $field");
+        }
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Check if notification exists
+        $stmt = $pdo->prepare("SELECT id FROM member_messages WHERE id = ? AND status != 'deleted'");
+        $stmt->execute([$id]);
+        if (!$stmt->fetchColumn()) {
+            json_response(false, 'Notification not found');
+        }
+        
+        // Sanitize inputs
+        $title_en = sanitize_input($_POST['title_en']);
+        $title_am = sanitize_input($_POST['title_am']);
+        $content_en = $_POST['content_en']; // Rich text, don't strip HTML
+        $content_am = $_POST['content_am']; // Rich text, don't strip HTML
+        $message_type = sanitize_input($_POST['message_type']);
+        $priority = sanitize_input($_POST['priority']);
+        $target_audience = sanitize_input($_POST['target_audience']);
+        
+        // Validate enums
+        $valid_types = ['general', 'payment_reminder', 'payout_announcement', 'system_update', 'announcement'];
+        $valid_priorities = ['low', 'medium', 'high', 'urgent'];
+        $valid_audiences = ['all_members', 'active_members', 'specific_equb', 'individual'];
+        
+        if (!in_array($message_type, $valid_types)) {
+            json_response(false, 'Invalid message type');
+        }
+        
+        if (!in_array($priority, $valid_priorities)) {
+            json_response(false, 'Invalid priority level');
+        }
+        
+        if (!in_array($target_audience, $valid_audiences)) {
+            json_response(false, 'Invalid target audience');
+        }
+        
+        // Update notification
+        $stmt = $pdo->prepare("
+            UPDATE member_messages 
+            SET title_en = ?, title_am = ?, content_en = ?, content_am = ?,
+                message_type = ?, priority = ?, target_audience = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        
+        $stmt->execute([
+            $title_en, $title_am, $content_en, $content_am,
+            $message_type, $priority, $target_audience, $id
+        ]);
+        
+        $pdo->commit();
+        
+        json_response(true, 'Notification updated successfully!', [
+            'id' => $id
+        ]);
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error updating notification: " . $e->getMessage());
+        json_response(false, 'Failed to update notification: ' . $e->getMessage());
+    }
+}
+
+/**
  * Delete a notification
  */
 function deleteNotification() {
@@ -283,28 +370,46 @@ function getStats() {
 function getNotifications() {
     global $pdo;
     
+    $id = intval($_GET['id'] ?? 0);
     $limit = intval($_GET['limit'] ?? 50);
     $offset = intval($_GET['offset'] ?? 0);
     
     try {
-        $stmt = $pdo->prepare("
-            SELECT mm.*, 
-                   COUNT(mmr.id) as total_delivered,
-                   SUM(CASE WHEN mmr.is_read = 1 THEN 1 ELSE 0 END) as total_read,
-                   SUM(CASE WHEN mmr.is_read = 0 THEN 1 ELSE 0 END) as total_unread,
-                   ROUND((SUM(CASE WHEN mmr.is_read = 1 THEN 1 ELSE 0 END) / COUNT(mmr.id)) * 100, 2) as read_percentage
-            FROM member_messages mm
-            LEFT JOIN member_message_reads mmr ON mm.id = mmr.message_id
-            WHERE mm.status != 'deleted'
-            GROUP BY mm.id
-            ORDER BY mm.created_at DESC
-            LIMIT ? OFFSET ?
-        ");
+        if ($id) {
+            // Get specific notification by ID
+            $stmt = $pdo->prepare("
+                SELECT mm.*, 
+                       COUNT(mmr.id) as total_delivered,
+                       SUM(CASE WHEN mmr.is_read = 1 THEN 1 ELSE 0 END) as total_read,
+                       SUM(CASE WHEN mmr.is_read = 0 THEN 1 ELSE 0 END) as total_unread,
+                       ROUND((SUM(CASE WHEN mmr.is_read = 1 THEN 1 ELSE 0 END) / COUNT(mmr.id)) * 100, 2) as read_percentage
+                FROM member_messages mm
+                LEFT JOIN member_message_reads mmr ON mm.id = mmr.message_id
+                WHERE mm.id = ? AND mm.status != 'deleted'
+                GROUP BY mm.id
+            ");
+            $stmt->execute([$id]);
+        } else {
+            // Get all notifications
+            $stmt = $pdo->prepare("
+                SELECT mm.*, 
+                       COUNT(mmr.id) as total_delivered,
+                       SUM(CASE WHEN mmr.is_read = 1 THEN 1 ELSE 0 END) as total_read,
+                       SUM(CASE WHEN mmr.is_read = 0 THEN 1 ELSE 0 END) as total_unread,
+                       ROUND((SUM(CASE WHEN mmr.is_read = 1 THEN 1 ELSE 0 END) / COUNT(mmr.id)) * 100, 2) as read_percentage
+                FROM member_messages mm
+                LEFT JOIN member_message_reads mmr ON mm.id = mmr.message_id
+                WHERE mm.status != 'deleted'
+                GROUP BY mm.id
+                ORDER BY mm.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$limit, $offset]);
+        }
         
-        $stmt->execute([$limit, $offset]);
         $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        json_response(true, 'Notifications retrieved successfully', $notifications);
+        json_response(true, 'Notifications retrieved successfully', ['data' => $notifications]);
         
     } catch (Exception $e) {
         error_log("Error getting notifications: " . $e->getMessage());
