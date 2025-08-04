@@ -268,6 +268,9 @@ $csrf_token = generate_csrf_token();
                             <button class="btn btn-outline-secondary btn-sm" onclick="resetPositions()">
                                 <i class="fas fa-undo me-1"></i>Reset
                             </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="factoryReset()">
+                                <i class="fas fa-trash me-1"></i>Factory Reset
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -463,6 +466,40 @@ $csrf_token = generate_csrf_token();
             if (confirm('Reset all positions to original order?')) {
                 loadPositions(currentEqubId);
             }
+        }
+
+        function factoryReset() {
+            if (!currentEqubId) {
+                alert('Please select an EQUB term first.');
+                return;
+            }
+            
+            if (confirm('⚠️ FACTORY RESET WARNING ⚠️\n\nThis will:\n• Clear ALL payout positions (set to 0)\n• Remove all position assignments\n• Cannot be undone\n\nAre you absolutely sure?')) {
+                if (confirm('Final confirmation: Clear all positions and start from zero?')) {
+                    performFactoryReset();
+                }
+            }
+        }
+        
+        function performFactoryReset() {
+            fetch('api/payout-positions.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=factory_reset&equb_id=${currentEqubId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Factory reset completed!\nAll positions have been cleared.');
+                    loadPositions(currentEqubId); // Reload to show updated data
+                } else {
+                    alert('❌ Error during factory reset: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error during factory reset. Please try again.');
+            });
         }
 
         function savePositions() {

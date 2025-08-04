@@ -78,6 +78,10 @@ try {
         case 'save_positions':
             savePositions();
             break;
+            
+        case 'factory_reset':
+            factoryResetPositions();
+            break;
         
         default:
             json_response(false, 'Invalid action');
@@ -223,5 +227,43 @@ function calculatePayoutDate($position, $duration_months) {
     $payout_date->modify('+' . ($position - 1) . ' months');
     
     return $payout_date->format('M Y');
+}
+
+/**
+ * Factory reset - Clear all payout positions (set to 0)
+ */
+function factoryResetPositions() {
+    global $pdo;
+    
+    $equb_id = intval($_POST['equb_id'] ?? 0);
+    
+    if (!$equb_id) {
+        json_response(false, 'EQUB ID is required');
+    }
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Reset all payout positions to 0 and clear payout months
+        $stmt = $pdo->prepare("
+            UPDATE members 
+            SET payout_position = 0, payout_month = NULL
+            WHERE equb_settings_id = ? AND is_active = 1
+        ");
+        $stmt->execute([$equb_id]);
+        
+        $affected_rows = $stmt->rowCount();
+        
+        $pdo->commit();
+        
+        json_response(true, "Factory reset completed successfully. {$affected_rows} members' positions have been cleared.", [
+            'affected_members' => $affected_rows
+        ]);
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error during factory reset: " . $e->getMessage());
+        json_response(false, 'Database error during factory reset');
+    }
 }
 ?>
