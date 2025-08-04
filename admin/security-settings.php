@@ -14,8 +14,11 @@ $admin_username = get_current_admin_username() ?? 'Admin';
 
 // Get comprehensive security statistics
 try {
-    // Member Login Activities
-    $member_activities = $pdo->query("
+    // Debug: Check database connection and basic counts
+    error_log("🔒 Security Settings: Starting database queries...");
+    
+    // Member Login Activities - UPDATED FOR REAL DATABASE
+    $member_activities_query = "
         SELECT 
             m.id,
             m.member_id,
@@ -34,28 +37,42 @@ try {
                 WHEN m.last_login >= DATE_SUB(NOW(), INTERVAL 30 DAYS) THEN 'Inactive (30d)'
                 ELSE 'Dormant (30d+)'
             END as activity_status,
-            TIMESTAMPDIFF(DAY, m.last_login, NOW()) as days_since_login
+            CASE 
+                WHEN m.last_login IS NULL THEN NULL
+                ELSE TIMESTAMPDIFF(DAY, m.last_login, NOW())
+            END as days_since_login
         FROM members m
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
-        ORDER BY m.last_login DESC NULLS LAST
+        ORDER BY 
+            CASE WHEN m.last_login IS NULL THEN 1 ELSE 0 END,
+            m.last_login DESC
         LIMIT 50
-    ")->fetchAll();
+    ";
     
-    // Security Statistics
-    $security_stats = $pdo->query("
+    $member_activities = $pdo->query($member_activities_query)->fetchAll();
+    error_log("🔒 Found " . count($member_activities) . " member activities");
+    
+    // Security Statistics - FIXED QUERIES
+    $security_stats_query = "
         SELECT 
-            (SELECT COUNT(*) FROM members WHERE last_login >= DATE_SUB(NOW(), INTERVAL 24 HOURS)) as active_24h,
+            (SELECT COUNT(*) FROM members WHERE last_login >= DATE_SUB(NOW(), INTERVAL 1 DAY)) as active_24h,
             (SELECT COUNT(*) FROM members WHERE last_login >= DATE_SUB(NOW(), INTERVAL 7 DAYS)) as active_7d,
             (SELECT COUNT(*) FROM members WHERE last_login IS NULL) as never_logged_in,
-            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOURS)) as otp_requests_24h,
-            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOURS) AND is_used = 1) as successful_logins_24h,
-            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOURS) AND attempt_count > 3) as failed_attempts_24h,
+            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)) as otp_requests_24h,
+            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) AND is_used = 1) as successful_logins_24h,
+            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) AND attempt_count > 1) as failed_attempts_24h,
             (SELECT COUNT(*) FROM device_tracking WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAYS)) as new_devices_7d,
-            (SELECT COUNT(*) FROM device_tracking WHERE is_approved = 0) as unapproved_devices
-    ")->fetch();
+            (SELECT COUNT(*) FROM device_tracking WHERE is_approved = 0) as unapproved_devices,
+            (SELECT COUNT(*) FROM members) as total_members,
+            (SELECT COUNT(*) FROM user_otps) as total_otps,
+            (SELECT COUNT(*) FROM device_tracking) as total_devices
+    ";
     
-    // Recent OTP Activities
-    $recent_otp_activities = $pdo->query("
+    $security_stats = $pdo->query($security_stats_query)->fetch();
+    error_log("🔒 Security stats: Active 24h: {$security_stats['active_24h']}, Never logged: {$security_stats['never_logged_in']}, Total members: {$security_stats['total_members']}");
+    
+    // Recent OTP Activities - IMPROVED QUERY
+    $recent_otp_query = "
         SELECT 
             uo.id,
             uo.email,
@@ -70,17 +87,20 @@ try {
             CASE 
                 WHEN uo.is_used = 1 THEN 'Success'
                 WHEN uo.expires_at < NOW() THEN 'Expired'
-                WHEN uo.attempt_count > 3 THEN 'Failed'
+                WHEN uo.attempt_count > 1 THEN 'Failed'
                 ELSE 'Pending'
             END as status
         FROM user_otps uo
         LEFT JOIN members m ON uo.email = m.email
         ORDER BY uo.created_at DESC
         LIMIT 30
-    ")->fetchAll();
+    ";
     
-    // Device Tracking
-    $device_activities = $pdo->query("
+    $recent_otp_activities = $pdo->query($recent_otp_query)->fetchAll();
+    error_log("🔒 Found " . count($recent_otp_activities) . " OTP activities");
+    
+    // Device Tracking - IMPROVED QUERY
+    $device_query = "
         SELECT 
             dt.id,
             dt.email,
@@ -95,18 +115,24 @@ try {
             m.last_name,
             m.member_id,
             CASE 
-                WHEN dt.expires_at < NOW() THEN 'Expired'
+                WHEN dt.expires_at IS NOT NULL AND dt.expires_at < NOW() THEN 'Expired'
                 WHEN dt.is_approved = 1 THEN 'Trusted'
                 ELSE 'Pending Approval'
             END as device_status
         FROM device_tracking dt
         LEFT JOIN members m ON dt.email = m.email
-        ORDER BY dt.last_seen DESC NULLS LAST, dt.created_at DESC
+        ORDER BY 
+            CASE WHEN dt.last_seen IS NULL THEN 1 ELSE 0 END,
+            dt.last_seen DESC,
+            dt.created_at DESC
         LIMIT 20
-    ")->fetchAll();
+    ";
     
-    // Admin Activities (if available)
-    $admin_activities = $pdo->query("
+    $device_activities = $pdo->query($device_query)->fetchAll();
+    error_log("🔒 Found " . count($device_activities) . " device activities");
+    
+    // Admin Activities - SAFER QUERY
+    $admin_query = "
         SELECT 
             a.id,
             a.username,
@@ -114,29 +140,51 @@ try {
             a.is_active,
             a.created_at,
             CASE 
+                WHEN a.last_login IS NULL THEN 'Never logged in'
                 WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 1 HOUR) THEN 'Currently Active'
-                WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 24 HOURS) THEN 'Active Today'
+                WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'Active Today'
                 WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 7 DAYS) THEN 'Active This Week'
                 ELSE 'Inactive'
             END as admin_status
         FROM admins a
         WHERE a.is_active = 1
-        ORDER BY a.last_login DESC NULLS LAST
-    ")->fetchAll();
+        ORDER BY 
+            CASE WHEN a.last_login IS NULL THEN 1 ELSE 0 END,
+            a.last_login DESC
+    ";
+    
+    $admin_activities = $pdo->query($admin_query)->fetchAll();
+    error_log("🔒 Found " . count($admin_activities) . " admin activities");
     
 } catch (Exception $e) {
-    error_log("Security Settings error: " . $e->getMessage());
-    // Set default values
+    error_log("🚨 Security Settings CRITICAL ERROR: " . $e->getMessage());
+    error_log("🚨 SQL Error Details: " . $e->getTraceAsString());
+    
+    // Set default values but with error info
+    $database_error = $e->getMessage();
     $member_activities = [];
     $security_stats = [
         'active_24h' => 0, 'active_7d' => 0, 'never_logged_in' => 0,
         'otp_requests_24h' => 0, 'successful_logins_24h' => 0, 'failed_attempts_24h' => 0,
-        'new_devices_7d' => 0, 'unapproved_devices' => 0
+        'new_devices_7d' => 0, 'unapproved_devices' => 0, 'total_members' => 0,
+        'total_otps' => 0, 'total_devices' => 0
     ];
     $recent_otp_activities = [];
     $device_activities = [];
     $admin_activities = [];
 }
+
+// Debug Information
+$debug_mode = true; // Set to false in production
+$debug_info = [
+    'member_count' => count($member_activities),
+    'otp_count' => count($recent_otp_activities), 
+    'device_count' => count($device_activities),
+    'admin_count' => count($admin_activities),
+    'has_error' => isset($database_error),
+    'error_message' => $database_error ?? null,
+    'stats' => $security_stats
+];
 ?>
 
 <!DOCTYPE html>
@@ -522,6 +570,36 @@ try {
                 </div>
             </div>
 
+            <!-- Debug Information Panel (Remove in production) -->
+            <?php if ($debug_mode): ?>
+            <div class="alert alert-info" style="background: #E0F2FE; border: 1px solid #0284C7; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                <h5 style="color: #0284C7; margin-bottom: 16px;">
+                    <i class="fas fa-bug"></i> Debug Information
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Data Counts:</strong><br>
+                        • Members: <?php echo $debug_info['member_count']; ?><br>
+                        • OTP Activities: <?php echo $debug_info['otp_count']; ?><br>
+                        • Device Activities: <?php echo $debug_info['device_count']; ?><br>
+                        • Admin Activities: <?php echo $debug_info['admin_count']; ?>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Statistics:</strong><br>
+                        • Total Members: <?php echo $debug_info['stats']['total_members']; ?><br>
+                        • Active (24h): <?php echo $debug_info['stats']['active_24h']; ?><br>
+                        • Never Logged In: <?php echo $debug_info['stats']['never_logged_in']; ?><br>
+                        • Total OTPs: <?php echo $debug_info['stats']['total_otps']; ?>
+                    </div>
+                </div>
+                <?php if ($debug_info['has_error']): ?>
+                <div class="alert alert-danger" style="margin-top: 15px; padding: 12px; background: #FEE2E2; border: 1px solid #DC2626; border-radius: 8px;">
+                    <strong>Database Error:</strong> <?php echo htmlspecialchars($debug_info['error_message']); ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
             <!-- Security Statistics -->
             <div class="row security-stats">
                 <div class="col-lg-3 col-md-6 mb-4">
@@ -616,8 +694,14 @@ try {
                                     <?php if (empty($member_activities)): ?>
                                         <tr>
                                             <td colspan="6" class="text-center text-muted py-4">
-                                                <i class="fas fa-inbox fa-2x mb-3"></i><br>
-                                                No member activities found
+                                                <i class="fas fa-exclamation-circle fa-2x mb-3" style="color: #DC2626;"></i><br>
+                                                <strong>No member activities loaded!</strong><br>
+                                                <small>Expected to find <?php echo $security_stats['total_members'] ?? 0; ?> members in database</small><br>
+                                                <?php if (isset($database_error)): ?>
+                                                    <div class="alert alert-danger mt-2" style="display: inline-block; padding: 8px 12px;">
+                                                        Database Error: <?php echo htmlspecialchars($database_error); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php else: ?>
@@ -1075,8 +1159,24 @@ try {
             active24h: <?php echo $security_stats['active_24h']; ?>,
             successfulLogins: <?php echo $security_stats['successful_logins_24h']; ?>,
             failedAttempts: failedAttempts,
-            neverLoggedIn: neverLoggedIn
+            neverLoggedIn: neverLoggedIn,
+            totalMembers: <?php echo $security_stats['total_members']; ?>,
+            totalOTPs: <?php echo $security_stats['total_otps']; ?>,
+            totalDevices: <?php echo $security_stats['total_devices']; ?>
         });
+        
+        // Debug information
+        console.log('🔍 Debug Info:', <?php echo json_encode($debug_info); ?>);
+        
+        <?php if (isset($database_error)): ?>
+        console.error('🚨 Database Error:', <?php echo json_encode($database_error); ?>);
+        <?php endif; ?>
+        
+        <?php if (count($member_activities) > 0): ?>
+        console.log('✅ Successfully loaded member activities:', <?php echo count($member_activities); ?>);
+        <?php else: ?>
+        console.warn('⚠️ No member activities loaded - check database connection');
+        <?php endif; ?>
     });
     </script>
 </body>
