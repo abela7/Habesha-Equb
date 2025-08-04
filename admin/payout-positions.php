@@ -431,9 +431,9 @@ $csrf_token = generate_csrf_token();
 
         function updateStats(stats) {
             document.getElementById('statDuration').textContent = stats.duration + ' months';
-            document.getElementById('statMembers').textContent = stats.total_members;
-            document.getElementById('statIndividual').textContent = stats.individual_members;
-            document.getElementById('statJoint').textContent = stats.joint_groups;
+            document.getElementById('statMembers').textContent = stats.total_positions + ' positions (' + stats.total_people + ' people)';
+            document.getElementById('statIndividual').textContent = stats.individual_positions;
+            document.getElementById('statJoint').textContent = stats.joint_positions;
         }
 
         function markAsChanged() {

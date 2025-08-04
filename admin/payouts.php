@@ -32,25 +32,47 @@ try {
 // Get members for dropdown
 try {
     $stmt = $pdo->query("
-        SELECT m.id, m.member_id, m.first_name, m.last_name, 
-               CASE 
-                   WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
-                   ELSE m.monthly_payment
-               END as effective_monthly_payment,
-               CASE 
-                   WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                   ELSE m.payout_position
-               END as actual_payout_position,
-               m.membership_type, m.joint_group_id, jmg.group_name,
-               m.has_received_payout
+        SELECT 
+            CASE 
+                WHEN m.membership_type = 'joint' THEN CONCAT('JOINT_', m.joint_group_id)
+                ELSE CONCAT('IND_', m.id)
+            END as payout_entity_id,
+            CASE 
+                WHEN m.membership_type = 'joint' THEN COALESCE(jmg.group_name, 'Joint Group')
+                ELSE CONCAT(m.first_name, ' ', m.last_name)
+            END as display_name,
+            CASE 
+                WHEN m.membership_type = 'joint' THEN m.joint_group_id
+                ELSE m.member_id
+            END as entity_identifier,
+            CASE 
+                WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                ELSE m.monthly_payment
+            END as monthly_payment,
+            CASE 
+                WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                ELSE m.payout_position
+            END as payout_position,
+            m.membership_type, 
+            CASE 
+                WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ' & ')
+                ELSE CONCAT(m.first_name, ' ', m.last_name)
+            END as member_names,
+            MAX(m.has_received_payout) as has_received_payout,
+            MIN(m.id) as primary_member_id
         FROM members m
         LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         WHERE m.is_active = 1 
+        GROUP BY 
+            CASE 
+                WHEN m.membership_type = 'joint' THEN m.joint_group_id
+                ELSE m.id
+            END
         ORDER BY 
             CASE 
                 WHEN m.membership_type = 'joint' THEN jmg.payout_position
                 ELSE m.payout_position
-            END ASC, m.first_name ASC
+            END ASC, MIN(m.first_name) ASC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

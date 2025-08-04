@@ -67,22 +67,45 @@ if ($selected_equb_id) {
         $stmt->execute([$selected_equb_id]);
         $joint_groups_summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get all members for payout calculations with correct joint positions
+        // Get POSITION-BASED calculations (joint groups as single entities)
         $stmt = $pdo->prepare("
-            SELECT m.id, m.first_name, m.last_name, m.member_id, m.membership_type,
-                   CASE 
-                       WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
-                       ELSE m.monthly_payment
-                   END as monthly_payment,
-                   CASE 
-                       WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                       ELSE m.payout_position
-                   END as payout_position,
-                   m.joint_group_id, jmg.group_name,
-                   m.total_contributed, m.has_received_payout
+            SELECT 
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN CONCAT('JOINT_', m.joint_group_id)
+                    ELSE CONCAT('IND_', m.id)
+                END as position_id,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN COALESCE(jmg.group_name, 'Joint Group')
+                    ELSE CONCAT(m.first_name, ' ', m.last_name)
+                END as display_name,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN m.joint_group_id
+                    ELSE CONCAT('IND_', m.member_id)
+                END as identifier,
+                m.membership_type,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                    ELSE m.monthly_payment
+                END as monthly_payment,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                    ELSE m.payout_position
+                END as payout_position,
+                m.joint_group_id, jmg.group_name,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN SUM(m.total_contributed)
+                    ELSE m.total_contributed
+                END as total_contributed,
+                MAX(m.has_received_payout) as has_received_payout,
+                MIN(m.id) as primary_member_id
             FROM members m
             LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
             WHERE m.equb_settings_id = ? AND m.is_active = 1
+            GROUP BY 
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN m.joint_group_id
+                    ELSE m.id
+                END
             ORDER BY 
                 CASE 
                     WHEN m.membership_type = 'joint' THEN jmg.payout_position
@@ -90,25 +113,32 @@ if ($selected_equb_id) {
                 END ASC
         ");
         $stmt->execute([$selected_equb_id]);
-        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Calculate payouts for each member
-        foreach ($members as $member) {
-            $calculation = $calculator->calculateMemberPayoutAmount($member['id']);
+        // Calculate payouts for each POSITION (individual or joint group)
+        foreach ($positions as $position) {
+            if ($position['membership_type'] === 'joint') {
+                // For joint groups, calculate based on the joint group
+                $calculation = $calculator->calculateJointGroupPayout($position['joint_group_id']);
+            } else {
+                // For individuals, calculate normally
+                $calculation = $calculator->calculateMemberPayoutAmount($position['primary_member_id']);
+            }
+            
             if ($calculation['success']) {
-                $member_calculations[] = array_merge($member, [
+                $member_calculations[] = array_merge($position, [
                     'calculated_payout' => $calculation['net_payout'],
                     'gross_payout' => $calculation['gross_payout'],
                     'admin_fee' => $calculation['admin_fee'],
                     'calculation_verified' => true
                 ]);
             } else {
-                $member_calculations[] = array_merge($member, [
+                $member_calculations[] = array_merge($position, [
                     'calculated_payout' => 0,
                     'gross_payout' => 0,
                     'admin_fee' => 0,
                     'calculation_verified' => false,
-                    'error' => $calculation['error']
+                    'error' => $calculation['error'] ?? 'Calculation failed'
                 ]);
             }
         }
@@ -371,32 +401,35 @@ $csrf_token = generate_csrf_token();
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($member_calculations as $member): ?>
+                                    <?php foreach ($member_calculations as $position): ?>
                                     <tr>
                                         <td>
-                                            <strong><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></strong><br>
-                                            <small class="text-muted"><?php echo htmlspecialchars($member['member_id']); ?></small>
+                                            <strong><?php echo htmlspecialchars($position['display_name']); ?></strong><br>
+                                            <small class="text-muted"><?php echo htmlspecialchars($position['identifier']); ?></small>
                                         </td>
-                                        <td><span class="badge bg-info"><?php echo $member['payout_position']; ?></span></td>
+                                        <td><span class="badge bg-info"><?php echo $position['payout_position']; ?></span></td>
                                         <td>
-                                            <?php if ($member['membership_type'] === 'joint'): ?>
-                                                <span class="badge bg-purple">Joint</span><br>
-                                                <small class="text-muted"><?php echo htmlspecialchars($member['joint_group_id']); ?></small>
+                                            <?php if ($position['membership_type'] === 'joint'): ?>
+                                                <span class="badge bg-purple">Joint Position</span><br>
+                                                <small class="text-muted"><?php echo htmlspecialchars($position['joint_group_id']); ?></small>
                                             <?php else: ?>
-                                                <span class="badge bg-secondary">Individual</span>
+                                                <span class="badge bg-secondary">Individual Position</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td>£<?php echo number_format($member['monthly_payment'], 2); ?></td>
+                                        <td>£<?php echo number_format($position['monthly_payment'], 2); ?></td>
                                         <td>
-                                            <strong>£<?php echo number_format($member['calculated_payout'], 2); ?></strong><br>
-                                            <small class="text-muted">Gross: £<?php echo number_format($member['gross_payout'], 2); ?></small>
+                                            <strong>£<?php echo number_format($position['calculated_payout'], 2); ?></strong><br>
+                                            <small class="text-muted">Gross: £<?php echo number_format($position['gross_payout'], 2); ?></small>
                                         </td>
-                                        <td>£<?php echo number_format($member['admin_fee'], 2); ?></td>
+                                        <td>£<?php echo number_format($position['admin_fee'], 2); ?></td>
                                         <td>
-                                            <?php if ($member['calculation_verified']): ?>
-                                                <span class="status-verified"><i class="fas fa-check-circle"></i> <?php echo t('enhanced_calculations.validation_passed'); ?></span>
+                                            <?php if ($position['calculation_verified']): ?>
+                                                <span class="status-verified"><i class="fas fa-check-circle"></i> Verified</span>
                                             <?php else: ?>
                                                 <span class="status-error"><i class="fas fa-exclamation-triangle"></i> Error</span>
+                                                <?php if (isset($position['error'])): ?>
+                                                    <br><small class="text-muted"><?php echo htmlspecialchars($position['error']); ?></small>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                     </tr>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 04, 2025 at 03:05 AM
+-- Generation Time: Aug 04, 2025 at 05:47 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -81,7 +81,8 @@ INSERT INTO `device_tracking` (`id`, `email`, `device_fingerprint`, `device_toke
 (15, 'haderaeldaba@gmail.com', 'dv_d52b74bd7763d5be', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '38.114.120.160', '2025-08-03 20:57:37', '2025-08-03 20:57:37', 0),
 (16, 'haderaeldana@gmail.com', 'dv_d52b74bd7763d5be', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '38.114.120.160', '2025-08-03 21:01:16', '2025-08-03 21:01:16', 0),
 (17, 'eliasfriew616@gmail.com', 'dv_c3b9db2b1191d5d7', NULL, NULL, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36', '92.29.197.246', '2025-08-03 22:58:18', '2025-08-03 22:58:18', 0),
-(18, 'hagosmahleit@gmail.com', 'dv_7ddeda88d0c599cc', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-08-04 01:14:28', '2025-08-04 01:14:28', 0);
+(18, 'hagosmahleit@gmail.com', 'dv_7ddeda88d0c599cc', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-08-04 01:14:28', '2025-08-04 01:14:28', 0),
+(19, 'samyshafi01@gmail.com', 'dv_ea039d75b1a1fe89', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.62.225', '2025-08-04 16:36:28', '2025-08-04 16:36:28', 0);
 
 -- --------------------------------------------------------
 
@@ -121,7 +122,7 @@ INSERT INTO `email_rate_limits` (`id`, `email_address`, `email_type`, `sent_coun
 (1, 'abelgtm77@gmail.com', 'account_approved', 4, '2025-08-02 08:53:48', '2025-08-03 07:53:35'),
 (2, 'abeldemessie77@gmail.com', 'account_approved', 2, '2025-08-02 09:14:56', '2025-08-03 07:56:36'),
 (3, 'abelgoytom77@gmail.com', 'account_approved', 6, '2025-08-02 11:38:24', '2025-08-03 08:27:16'),
-(11, 'abelgoytom77@gmail.com', 'otp_login', 33, '2025-08-03 12:53:52', '2025-08-02 10:30:05'),
+(11, 'abelgoytom77@gmail.com', 'otp_login', 34, '2025-08-04 16:36:57', '2025-08-02 10:30:05'),
 (16, 'abeldemessie77@gmail.com', 'otp_login', 1, '2025-08-02 09:46:53', '2025-08-02 10:46:53');
 
 -- --------------------------------------------------------
@@ -277,6 +278,13 @@ CREATE TABLE `joint_membership_groups` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `joint_membership_groups`
+--
+
+INSERT INTO `joint_membership_groups` (`id`, `joint_group_id`, `equb_settings_id`, `group_name`, `total_monthly_payment`, `member_count`, `payout_position`, `payout_split_method`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'JNT-2025-002-902', 2, 'Eldana & Sosina', 1000.00, 2, 9, 'equal', 1, '2025-08-04 13:57:00', '2025-08-04 13:57:00');
+
 -- --------------------------------------------------------
 
 --
@@ -354,17 +362,18 @@ CREATE TABLE `members` (
 --
 
 INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`, `membership_type`, `joint_group_id`, `joint_member_count`, `individual_contribution`, `joint_position_share`, `primary_joint_member`, `payout_split_method`) VALUES
-(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-03 12:43:57', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-03 13:27:34', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 8, '2026-02-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-03 14:00:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, '2025-10-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-03 13:57:49', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 6, '2025-12-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-04 01:43:09', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 3, '2025-09-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-03 13:57:29', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, '2025-08-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-03 13:57:04', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 7, '2026-01-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-04 01:42:45', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 9, '2026-03-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-04 01:18:40', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 5, '2025-11-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 22:58:18', '2025-08-04 01:19:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 10, '2026-04-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-04 01:19:39', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(19, 2, 'HEM-SG1', 'abeldemessie77', 'Samuel', 'Girma', 'Samuel Girma', 'abeldemessie77@gmail.com', '07543152618', 'active', 1000.00, 11, '2026-05-05', 0.00, 0, '', '', '', '', '', 1, 1, 0, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:38:40', '2025-08-04 01:38:40', 1, 1, 0, 'individual', NULL, 1, 0.00, 0.0000, 1, 'equal');
+(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-04 16:37:12', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-04 16:45:32', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 11, '2026-05-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, '2025-10-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 9, '2026-03-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 7, '2026-01-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, '2025-08-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 10, '2026-04-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 5, '2025-11-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-04 16:44:06', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
+(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 8, '2026-02-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 22:58:18', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 6, '2025-12-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-04 16:44:06', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
+(19, 2, 'HEM-SG1', 'abeldemessie77', 'Samuel', 'Girma', 'Samuel Girma', 'abeldemessie77@gmail.com', '07543152618', 'active', 1000.00, 3, '2025-09-01', 0.00, 0, '', '', '', '', '', 1, 1, 0, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:38:40', '2025-08-04 16:44:06', 1, 1, 0, 'individual', NULL, 1, 0.00, 0.0000, 1, 'equal'),
+(20, NULL, 'HEM-SS384', 'samyshafi01', 'Samson', 'Shafi', 'Samson Shafi', 'samyshafi01@gmail.com', '07543445583', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, NULL, '2025-08-04 16:36:28', '2025-08-04 16:36:28', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal');
 
 -- --------------------------------------------------------
 
@@ -548,7 +557,7 @@ CREATE TABLE `user_otps` (
 --
 
 INSERT INTO `user_otps` (`id`, `user_id`, `email`, `otp_code`, `otp_type`, `expires_at`, `is_used`, `attempt_count`, `created_at`) VALUES
-(50, 7, 'abelgoytom77@gmail.com', '4032', 'otp_login', '2025-08-03 13:03:51', 0, 0, '2025-08-03 12:53:51');
+(51, 7, 'abelgoytom77@gmail.com', '3873', 'otp_login', '2025-08-04 16:46:57', 1, 0, '2025-08-04 16:36:57');
 
 --
 -- Indexes for dumped tables
@@ -744,7 +753,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `device_tracking`
 --
 ALTER TABLE `device_tracking`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `email_preferences`
@@ -756,7 +765,7 @@ ALTER TABLE `email_preferences`
 -- AUTO_INCREMENT for table `email_rate_limits`
 --
 ALTER TABLE `email_rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `equb_financial_summary`
@@ -786,7 +795,7 @@ ALTER TABLE `financial_audit_trail`
 -- AUTO_INCREMENT for table `joint_membership_groups`
 --
 ALTER TABLE `joint_membership_groups`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `joint_payout_splits`
@@ -798,7 +807,7 @@ ALTER TABLE `joint_payout_splits`
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -828,7 +837,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `user_otps`
 --
 ALTER TABLE `user_otps`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
 
 --
 -- Constraints for dumped tables

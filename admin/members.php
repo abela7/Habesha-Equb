@@ -15,16 +15,30 @@ $admin_username = get_current_admin_username() ?? 'Admin';
 // Generate CSRF token for form security
 $csrf_token = generate_csrf_token();
 
-// Get members data
+// Get members data with CORRECT joint group logic
 try {
     $stmt = $pdo->query("
         SELECT m.*, 
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                   ELSE m.payout_position
+               END as actual_payout_position,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                   ELSE m.monthly_payment
+               END as effective_monthly_payment,
+               jmg.group_name, jmg.payout_split_method,
                COUNT(p.id) as total_payments,
                COALESCE(SUM(p.amount), 0) as total_paid
         FROM members m 
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         LEFT JOIN payments p ON m.id = p.member_id AND p.status = 'completed'
         GROUP BY m.id 
-        ORDER BY m.payout_position ASC, m.created_at DESC
+        ORDER BY 
+            CASE 
+                WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                ELSE m.payout_position
+            END ASC, m.created_at DESC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -32,7 +46,11 @@ try {
     $members = [];
 }
 
-$total_members = count($members);
+// CORRECT member counting logic
+$total_individual_members = count(array_filter($members, fn($m) => $m['membership_type'] === 'individual'));
+$total_joint_members = count(array_filter($members, fn($m) => $m['membership_type'] === 'joint'));
+$unique_joint_groups = count(array_unique(array_filter(array_column($members, 'joint_group_id'))));
+$total_positions = $total_individual_members + $unique_joint_groups;
 $active_members = count(array_filter($members, fn($m) => $m['is_active']));
 $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_payout']));
 ?>

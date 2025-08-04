@@ -114,18 +114,21 @@ function getPositions() {
             json_response(false, 'EQUB term not found');
         }
         
-        // Get positions with proper joint member handling
+        // Get CORRECT positions - joint groups as single entities
         $stmt = $pdo->prepare("
             SELECT 
                 CASE 
                     WHEN m.membership_type = 'joint' THEN CONCAT('joint_', m.joint_group_id)
                     ELSE CONCAT('individual_', m.id)
                 END as position_key,
-                m.payout_position,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                    ELSE m.payout_position
+                END as actual_payout_position,
                 m.membership_type,
                 m.joint_group_id,
                 CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.group_name
+                    WHEN m.membership_type = 'joint' THEN COALESCE(jmg.group_name, 'Joint Group')
                     ELSE CONCAT(m.first_name, ' ', m.last_name)
                 END as display_name,
                 CASE 
@@ -133,7 +136,7 @@ function getPositions() {
                     ELSE m.monthly_payment
                 END as position_payment,
                 CASE 
-                    WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ', ')
+                    WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ' & ')
                     ELSE CONCAT(m.first_name, ' ', m.last_name)
                 END as member_names,
                 CASE 
@@ -149,32 +152,35 @@ function getPositions() {
                 CASE 
                     WHEN m.membership_type = 'joint' THEN m.joint_group_id
                     ELSE m.id
-                END,
-                m.payout_position
-            ORDER BY m.payout_position ASC, MIN(m.id) ASC
+                END
+            ORDER BY 
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                    ELSE m.payout_position
+                END ASC, MIN(m.id) ASC
         ");
         $stmt->execute([$equb_id]);
         $position_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Add calculated fields and convert to member-like structure for compatibility
-        $members = [];
-        $individual_count = 0;
-        $joint_count = 0;
-        $total_member_count = 0;
+        // CORRECT: Convert to position-based structure (joint groups = 1 position each)
+        $positions = [];
+        $individual_positions = 0;
+        $joint_positions = 0;
+        $total_people_count = 0;
         
         foreach ($position_data as $position) {
             $position['duration_months'] = $equb_info['duration_months'];
-            $position['estimated_payout_date'] = calculatePayoutDate($position['payout_position'], $equb_info['duration_months']);
+            $position['estimated_payout_date'] = calculatePayoutDate($position['actual_payout_position'], $equb_info['duration_months']);
             
-            // Convert to member-like structure for frontend compatibility
-            $member = [
+            // Convert to position-based structure for frontend compatibility
+            $position_entry = [
                 'id' => $position['primary_id'],
                 'member_id' => $position['position_key'],
                 'first_name' => $position['display_name'],
                 'last_name' => ($position['membership_type'] === 'joint' ? '(Joint Group)' : ''),
                 'email' => '',
                 'monthly_payment' => $position['position_payment'],
-                'payout_position' => $position['payout_position'],
+                'payout_position' => $position['actual_payout_position'],
                 'membership_type' => $position['membership_type'],
                 'joint_group_id' => $position['joint_group_id'],
                 'member_names' => $position['member_names'],
@@ -183,28 +189,29 @@ function getPositions() {
                 'estimated_payout_date' => $position['estimated_payout_date']
             ];
             
-            $members[] = $member;
+            $positions[] = $position_entry;
             
+            // CORRECT counting: Each entry = 1 position (whether individual or joint)
             if ($position['membership_type'] === 'joint') {
-                $joint_count++;
-                $total_member_count += $position['member_count'];
+                $joint_positions++;
+                $total_people_count += $position['member_count']; // People in this position
             } else {
-                $individual_count++;
-                $total_member_count++;
+                $individual_positions++;
+                $total_people_count++; // One person in this position
             }
         }
         
-        // Get statistics - using actual data
+        // CORRECT statistics - positions vs people
         $stats = [
-            'total_members' => $total_member_count,
-            'individual_members' => $individual_count,
-            'joint_groups' => $joint_count,
-            'total_positions' => count($position_data),
+            'total_positions' => count($position_data), // Number of payout positions
+            'total_people' => $total_people_count,      // Number of actual people
+            'individual_positions' => $individual_positions,
+            'joint_positions' => $joint_positions,
             'duration' => $equb_info['duration_months']
         ];
         
         json_response(true, 'Positions loaded successfully', [
-            'members' => $members,
+            'members' => $positions,  // Actually positions, not individual members
             'stats' => $stats
         ]);
         
