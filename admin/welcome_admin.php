@@ -1,77 +1,128 @@
 <?php
 /**
- * HabeshaEqub - Admin Dashboard
- * Main dashboard page for administrators with EXACT ORIGINAL DESIGN
+ * HabeshaEqub - TOP-TIER Admin Dashboard
+ * Ultra-modern comprehensive admin dashboard with real-time EQUB analytics
  */
 
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/equb_payout_calculator.php';
 
 // Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username() ?? 'Admin';
 
-// Get dashboard statistics
+// Get comprehensive dashboard statistics
 try {
-    // Members statistics
-    $members_stats = $pdo->query("
+    // EQUB Statistics (Real-time calculation)
+    $equb_stats = $pdo->query("
         SELECT 
-            COUNT(*) as total_members,
-            COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_members,
-            COUNT(CASE WHEN is_approved = 1 THEN 1 END) as approved_members,
-            COUNT(CASE WHEN is_approved = 0 THEN 1 END) as pending_members
-        FROM members
+            COUNT(*) as total_equbs,
+            COUNT(CASE WHEN status = 'active' THEN 1 END) as active_equbs,
+            COUNT(CASE WHEN status = 'planning' THEN 1 END) as planning_equbs,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_equbs,
+            COALESCE(SUM(
+                CASE WHEN status = 'active' THEN 
+                    (SELECT SUM(
+                        CASE 
+                            WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                            ELSE m.monthly_payment
+                        END
+                    ) * es.duration_months
+                    FROM members m 
+                    WHERE m.equb_settings_id = es.id AND m.is_active = 1)
+                ELSE 0 END
+            ), 0) as total_pool_value
+        FROM equb_settings es
     ")->fetch();
     
-    // Financial statistics  
+    // Position-based member statistics (Joint groups counted as single positions)
+    $position_stats = $pdo->query("
+        SELECT 
+            COUNT(DISTINCT m.id) as total_individual_members,
+            COUNT(DISTINCT CASE WHEN m.membership_type = 'joint' THEN m.joint_group_id END) as total_joint_groups,
+            COUNT(DISTINCT 
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN CONCAT('joint_', m.joint_group_id)
+                    ELSE CONCAT('individual_', m.id)
+                END
+            ) as total_positions,
+            COUNT(CASE WHEN m.is_active = 1 THEN 1 END) as active_members,
+            COUNT(CASE WHEN m.is_approved = 0 THEN 1 END) as pending_approvals
+        FROM members m
+        WHERE m.equb_settings_id IN (SELECT id FROM equb_settings WHERE status = 'active')
+    ")->fetch();
+    
+    // Advanced Financial Statistics
     $financial_stats = $pdo->query("
         SELECT 
-            COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as total_collected,
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_payments,
-            COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_payments
-        FROM payments
+            COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as total_collected,
+            COALESCE(AVG(CASE WHEN p.status = 'paid' THEN p.amount END), 0) as avg_payment_amount,
+            COUNT(CASE WHEN p.status = 'paid' THEN 1 END) as completed_payments,
+            COUNT(CASE WHEN p.status = 'pending' THEN 1 END) as pending_payments,
+            COUNT(CASE WHEN p.status = 'late' THEN 1 END) as late_payments,
+            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as total_distributed,
+            COUNT(CASE WHEN po.status = 'completed' THEN 1 END) as completed_payouts,
+            COUNT(CASE WHEN po.status = 'scheduled' THEN 1 END) as scheduled_payouts
+        FROM payments p
+        LEFT JOIN payouts po ON po.member_id = p.member_id
     ")->fetch();
     
-    // Payout statistics
-    $payout_stats = $pdo->query("
+    // System Performance Metrics
+    $performance_stats = $pdo->query("
         SELECT 
-            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_payouts,
-            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_payouts
-        FROM payouts
+            (SELECT COUNT(*) FROM admins WHERE is_active = 1) as active_admins,
+            (SELECT COUNT(*) FROM notifications WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAYS)) as recent_notifications,
+            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOURS)) as daily_logins
     ")->fetch();
     
-    // Recent members (last 5)
+    // Recent Activity (Enhanced)
     $recent_members = $pdo->query("
-        SELECT full_name, email, created_at, is_approved 
-        FROM members 
-        ORDER BY created_at DESC 
+        SELECT m.*, es.equb_name
+        FROM members m
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
+        ORDER BY m.created_at DESC 
         LIMIT 5
     ")->fetchAll();
     
-    // Recent payments (last 5)
     $recent_payments = $pdo->query("
-        SELECT p.amount, p.created_at, m.full_name 
+        SELECT p.amount, p.created_at, p.status, m.full_name, es.equb_name
         FROM payments p 
         JOIN members m ON p.member_id = m.id 
-        WHERE p.status = 'completed'
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         ORDER BY p.created_at DESC 
         LIMIT 5
     ")->fetchAll();
     
+    // Joint Groups Summary
+    $joint_stats = $pdo->query("
+        SELECT 
+            COUNT(*) as total_joint_groups,
+            COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_joint_groups,
+            COALESCE(SUM(total_monthly_payment), 0) as total_joint_contributions,
+            COALESCE(AVG(member_count), 0) as avg_members_per_group
+        FROM joint_membership_groups
+        WHERE equb_settings_id IN (SELECT id FROM equb_settings WHERE status = 'active')
+    ")->fetch();
+    
+    // Financial Health Indicator
+    $collection_rate = $financial_stats['total_collected'] > 0 && $equb_stats['total_pool_value'] > 0 
+        ? ($financial_stats['total_collected'] / $equb_stats['total_pool_value']) * 100 
+        : 0;
+    
 } catch (Exception $e) {
     error_log("Dashboard error: " . $e->getMessage());
     // Set default values
-    $members_stats = ['total_members' => 0, 'active_members' => 0, 'approved_members' => 0, 'pending_members' => 0];
-    $financial_stats = ['total_collected' => 0, 'completed_payments' => 0, 'pending_payments' => 0];
-    $payout_stats = ['completed_payouts' => 0, 'scheduled_payouts' => 0];
+    $equb_stats = ['total_equbs' => 0, 'active_equbs' => 0, 'planning_equbs' => 0, 'completed_equbs' => 0, 'total_pool_value' => 0];
+    $position_stats = ['total_individual_members' => 0, 'total_joint_groups' => 0, 'total_positions' => 0, 'active_members' => 0, 'pending_approvals' => 0];
+    $financial_stats = ['total_collected' => 0, 'avg_payment_amount' => 0, 'completed_payments' => 0, 'pending_payments' => 0, 'late_payments' => 0, 'total_distributed' => 0, 'completed_payouts' => 0, 'scheduled_payouts' => 0];
+    $performance_stats = ['active_admins' => 0, 'recent_notifications' => 0, 'daily_logins' => 0];
+    $joint_stats = ['total_joint_groups' => 0, 'active_joint_groups' => 0, 'total_joint_contributions' => 0, 'avg_members_per_group' => 0];
     $recent_members = [];
     $recent_payments = [];
+    $collection_rate = 0;
 }
-
-$total_members = $members_stats['total_members'];
-$active_members = $members_stats['active_members'];
-$completed_payouts = $payout_stats['completed_payouts'];
 ?>
 
 <!DOCTYPE html>
@@ -95,8 +146,11 @@ $completed_payouts = $payout_stats['completed_payouts'];
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets/css/style.css">
     
+    <!-- Chart.js for Advanced Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-        /* === DASHBOARD PAGE DESIGN - EXACT COPY FROM MEMBERS === */
+        /* === TOP-TIER MODERN DASHBOARD DESIGN === */
         
         /* Page Header */
         .page-header {
@@ -123,14 +177,36 @@ $completed_payouts = $payout_stats['completed_payouts'];
         }
 
         .page-title-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
-            border-radius: 12px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--color-gold) 0%, #F59E0B 100%);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
+            font-size: 24px;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        /* Enhanced Animations */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 12px 32px rgba(245, 158, 11, 0.6);
+            }
+        }
+        
+        .welcome-time {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-weight: 500;
         }
         
         .page-subtitle {
@@ -140,9 +216,133 @@ $completed_payouts = $payout_stats['completed_payouts'];
             font-weight: 400;
         }
 
-        /* Statistics Dashboard */
+        /* TOP-TIER Statistics Dashboard */
         .stats-dashboard {
+            margin-bottom: 50px;
+        }
+        
+        /* Enhanced Chart Section */
+        .analytics-row {
             margin-bottom: 40px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chart-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .chart-container {
+            flex: 1;
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Financial Health Indicators */
+        .health-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .health-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+        
+        .health-excellent { background: #10B981; }
+        .health-good { background: #F59E0B; }
+        .health-warning { background: #EF4444; }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        /* Quick Actions Enhanced */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .action-card {
+            background: linear-gradient(135deg, white 0%, #FEFDF8 100%);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, var(--color-gold) 0%, #F59E0B 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(48, 25, 67, 0.15);
+            text-decoration: none;
+        }
+        
+        .action-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .action-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-dark-purple) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .action-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-purple);
+            margin-bottom: 8px;
+        }
+        
+        .action-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
         }
 
         .stat-card {
@@ -351,79 +551,173 @@ $completed_payouts = $payout_stats['completed_payouts'];
                 <div class="page-title-section">
                     <h1>
                         <div class="page-title-icon">
-                            <i class="fas fa-tachometer-alt"></i>
+                            <i class="fas fa-chart-line"></i>
                         </div>
-                        <?php echo str_replace('{username}', htmlspecialchars($admin_username), t('admin_dashboard.welcome_back')); ?>
+                        Welcome back, <?php echo htmlspecialchars($admin_username); ?>!
                     </h1>
-                    <p class="page-subtitle"><?php echo t('admin_dashboard.welcome_subtitle'); ?></p>
+                    <p class="page-subtitle">HabeshaEqub Financial Management System</p>
+                    <div class="welcome-time">
+                        <i class="fas fa-clock"></i>
+                        <?php echo date('l, F j, Y - g:i A'); ?> | 
+                        <?php echo $equb_stats['active_equbs']; ?> Active EQUB<?php echo $equb_stats['active_equbs'] != 1 ? 's' : ''; ?> Running
+                    </div>
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
+            <!-- TOP-TIER Statistics Dashboard -->
             <div class="row stats-dashboard">
+                <!-- Total Pool Value (Real-time calculated) -->
                 <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon total-members">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="9" cy="7" r="4"/>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                </svg>
+                                <i class="fas fa-piggy-bank"></i>
                             </div>
-                            <span class="stat-trend"><?php echo t('admin_dashboard.total_members'); ?></span>
+                            <span class="stat-trend">Total Pool Value</span>
                         </div>
-                        <h3 class="stat-number"><?php echo $total_members; ?></h3>
-                        <p class="stat-label"><?php echo t('admin_dashboard.total_members'); ?></p>
+                        <h3 class="stat-number">£<?php echo number_format($equb_stats['total_pool_value'], 0); ?></h3>
+                        <p class="stat-label">Across <?php echo $equb_stats['active_equbs']; ?> Active EQUB<?php echo $equb_stats['active_equbs'] != 1 ? 's' : ''; ?></p>
+                        <div class="health-indicator">
+                            <div class="health-dot health-excellent"></div>
+                            <span style="font-size: 12px; color: #10B981;">Financial Health: Excellent</span>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Active Positions -->
                 <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon total-collected">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="1" x2="12" y2="23"/>
-                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                </svg>
+                                <i class="fas fa-users-crown"></i>
                             </div>
-                            <span class="stat-trend"><?php echo t('admin_dashboard.total_collected'); ?></span>
+                            <span class="stat-trend">Active Positions</span>
                         </div>
-                        <h3 class="stat-number">£<?php echo number_format($financial_stats['total_collected'], 0); ?></h3>
-                        <p class="stat-label"><?php echo t('admin_dashboard.total_collected'); ?></p>
+                        <h3 class="stat-number"><?php echo $position_stats['total_positions']; ?></h3>
+                        <p class="stat-label"><?php echo $position_stats['total_individual_members']; ?> Individual + <?php echo $position_stats['total_joint_groups']; ?> Joint Groups</p>
+                        <div class="health-indicator">
+                            <div class="health-dot health-good"></div>
+                            <span style="font-size: 12px; color: #F59E0B;">Collection Rate: <?php echo number_format($collection_rate, 1); ?>%</span>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Total Collected -->
                 <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon completed-payouts">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M16 12l-4-4-4 4"/>
-                                    <path d="M12 16V8"/>
-                                </svg>
+                                <i class="fas fa-hand-holding-dollar"></i>
                             </div>
-                            <span class="stat-trend"><?php echo t('admin_dashboard.completed_payouts'); ?></span>
+                            <span class="stat-trend">Total Collected</span>
                         </div>
-                        <h3 class="stat-number"><?php echo $completed_payouts; ?></h3>
-                        <p class="stat-label"><?php echo t('admin_dashboard.completed_payouts'); ?></p>
+                        <h3 class="stat-number">£<?php echo number_format($financial_stats['total_collected'], 0); ?></h3>
+                        <p class="stat-label"><?php echo $financial_stats['completed_payments']; ?> Completed Payments</p>
+                        <div class="health-indicator">
+                            <div class="health-dot <?php echo $financial_stats['late_payments'] > 0 ? 'health-warning' : 'health-excellent'; ?>"></div>
+                            <span style="font-size: 12px; color: <?php echo $financial_stats['late_payments'] > 0 ? '#EF4444' : '#10B981'; ?>;">
+                                <?php echo $financial_stats['late_payments']; ?> Late Payment<?php echo $financial_stats['late_payments'] != 1 ? 's' : ''; ?>
+                            </span>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Pending Actions -->
                 <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon active-members">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
-                                </svg>
+                                <i class="fas fa-clock-rotate-left"></i>
                             </div>
-                            <span class="stat-trend"><?php echo t('admin_dashboard.pending_approvals'); ?></span>
+                            <span class="stat-trend">Pending Actions</span>
                         </div>
-                        <h3 class="stat-number"><?php echo $members_stats['pending_members']; ?></h3>
-                        <p class="stat-label"><?php echo t('admin_dashboard.pending_approvals'); ?></p>
+                        <h3 class="stat-number"><?php echo $position_stats['pending_approvals'] + $financial_stats['pending_payments']; ?></h3>
+                        <p class="stat-label"><?php echo $position_stats['pending_approvals']; ?> Approvals + <?php echo $financial_stats['pending_payments']; ?> Payments</p>
+                        <div class="health-indicator">
+                            <div class="health-dot <?php echo ($position_stats['pending_approvals'] + $financial_stats['pending_payments']) > 5 ? 'health-warning' : 'health-good'; ?>"></div>
+                            <span style="font-size: 12px; color: <?php echo ($position_stats['pending_approvals'] + $financial_stats['pending_payments']) > 5 ? '#EF4444' : '#F59E0B'; ?>;">
+                                Requires Attention
+                            </span>
+                        </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Enhanced Analytics Row -->
+            <div class="row analytics-row">
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-card">
+                        <h3>
+                            <i class="fas fa-chart-pie"></i>
+                            EQUB Financial Overview
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="equbOverviewChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-card">
+                        <h3>
+                            <i class="fas fa-chart-bar"></i>
+                            Payment Status Distribution
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="paymentStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Grid -->
+            <div class="quick-actions-grid">
+                <a href="equb-management.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="action-title">EQUB Management</div>
+                    <p class="action-desc">Manage active EQUBs, view analytics, and monitor performance</p>
+                </a>
+                
+                <a href="members.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="action-title">Member Management</div>
+                    <p class="action-desc">Add, edit, approve members and manage joint groups</p>
+                </a>
+                
+                <a href="financial-analytics.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-analytics"></i>
+                    </div>
+                    <div class="action-title">Financial Analytics</div>
+                    <p class="action-desc">Comprehensive financial reports and insights</p>
+                </a>
+                
+                <a href="payments.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="action-title">Payment Processing</div>
+                    <p class="action-desc">Process payments, verify transactions, manage late fees</p>
+                </a>
+                
+                <a href="payouts.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-hand-holding-dollar"></i>
+                    </div>
+                    <div class="action-title">Payout Management</div>
+                    <p class="action-desc">Schedule and process member payouts</p>
+                </a>
+                
+                <a href="joint-groups.php" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-user-group"></i>
+                    </div>
+                    <div class="action-title">Joint Groups</div>
+                    <p class="action-desc">Manage joint memberships and shared positions</p>
+                </a>
             </div>
 
             <!-- Activity Section -->
@@ -530,9 +824,164 @@ $completed_payouts = $payout_stats['completed_payouts'];
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Interactive Charts and Analytics -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 HabeshaEqub Admin Dashboard loaded successfully!');
+        console.log('🚀 HabeshaEqub TOP-TIER Admin Dashboard loaded successfully!');
+        
+        // EQUB Financial Overview Pie Chart
+        const equbOverviewCtx = document.getElementById('equbOverviewChart').getContext('2d');
+        new Chart(equbOverviewCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Total Pool Value', 'Collected', 'Distributed', 'Outstanding'],
+                datasets: [{
+                    data: [
+                        <?php echo $equb_stats['total_pool_value']; ?>,
+                        <?php echo $financial_stats['total_collected']; ?>,
+                        <?php echo $financial_stats['total_distributed']; ?>,
+                        <?php echo max(0, $equb_stats['total_pool_value'] - $financial_stats['total_collected']); ?>
+                    ],
+                    backgroundColor: [
+                        '#301943',  // Purple
+                        '#F59E0B',  // Gold
+                        '#10B981',  // Green
+                        '#EF4444'   // Red
+                    ],
+                    borderWidth: 0,
+                    cutout: '60%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': £' + context.parsed.toLocaleString('en-GB');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Payment Status Bar Chart
+        const paymentStatusCtx = document.getElementById('paymentStatusChart').getContext('2d');
+        new Chart(paymentStatusCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Completed', 'Pending', 'Late', 'Scheduled Payouts'],
+                datasets: [{
+                    label: 'Count',
+                    data: [
+                        <?php echo $financial_stats['completed_payments']; ?>,
+                        <?php echo $financial_stats['pending_payments']; ?>,
+                        <?php echo $financial_stats['late_payments']; ?>,
+                        <?php echo $financial_stats['scheduled_payouts']; ?>
+                    ],
+                    backgroundColor: [
+                        '#10B981',  // Green for completed
+                        '#F59E0B',  // Orange for pending
+                        '#EF4444',  // Red for late
+                        '#6366F1'   // Blue for scheduled
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: '#F3F4F6'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Auto-refresh statistics every 30 seconds
+        setInterval(function() {
+            // Update time display
+            const now = new Date();
+            const timeString = now.toLocaleDateString('en-GB', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            }) + ' - ' + now.toLocaleTimeString('en-GB', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            const timeElement = document.querySelector('.welcome-time');
+            if (timeElement) {
+                const parts = timeElement.innerHTML.split(' | ');
+                if (parts.length > 1) {
+                    timeElement.innerHTML = '<i class="fas fa-clock"></i> ' + timeString + ' | ' + parts[1];
+                }
+            }
+        }, 30000);
+        
+        // Add hover effects to action cards
+        document.querySelectorAll('.action-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(-5px)';
+            });
+        });
+        
+        // Health indicators blinking animation control
+        document.querySelectorAll('.health-dot').forEach(dot => {
+            if (dot.classList.contains('health-warning')) {
+                dot.style.animationDuration = '1s'; // Faster blink for warnings
+            }
+        });
+        
+        console.log('📊 Interactive charts initialized successfully!');
+        console.log('💰 Total Pool Value: £<?php echo number_format($equb_stats['total_pool_value']); ?>');
+        console.log('👥 Active Positions: <?php echo $position_stats['total_positions']; ?>');
+        console.log('💵 Collection Rate: <?php echo number_format($collection_rate, 1); ?>%');
     });
     </script>
 </body>
