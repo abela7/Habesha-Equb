@@ -1,7 +1,8 @@
 <?php
 /**
- * HabeshaEqub - Advanced Financial Analytics Dashboard
- * Top-tier financial monitoring and analytics for EQUB management
+ * HabeshaEqub - TOP-TIER FINANCIAL ANALYTICS DASHBOARD
+ * Ultra-modern, responsive financial analytics for professional EQUB management
+ * Built for top financial firms with comprehensive member payout analysis
  */
 
 require_once '../includes/db.php';
@@ -19,7 +20,9 @@ $selected_equb_id = intval($_GET['equb_id'] ?? 0);
 // Get all equbs for selection
 try {
     $stmt = $pdo->query("
-        SELECT id, equb_id, equb_name, status, start_date, end_date, total_pool_amount
+        SELECT id, equb_id, equb_name, status, start_date, end_date, 
+               duration_months, admin_fee, max_members, current_members,
+               total_pool_amount, payout_day
         FROM equb_settings 
         ORDER BY 
             CASE WHEN status = 'active' THEN 1 WHEN status = 'planning' THEN 2 ELSE 3 END,
@@ -35,120 +38,164 @@ try {
     error_log("Error fetching equbs: " . $e->getMessage());
 }
 
-// Get comprehensive financial data for selected equb
-$financial_data = [];
-$joint_groups_summary = [];
-$member_calculations = [];
+// Initialize variables
+$equb_data = null;
+$financial_summary = [];
+$member_payouts = [];
+$position_timeline = [];
+$admin_revenue = 0;
 
 if ($selected_equb_id) {
     try {
-        // Initialize calculator
-        $calculator = getEqubPayoutCalculator();
-        
-        // Get equb financial summary
-        $equb_summary = $calculator->getEqubPoolSummary($selected_equb_id);
-        
-        // Get joint groups summary
+        // Get selected EQUB data
         $stmt = $pdo->prepare("
-            SELECT 
-                jmg.*,
-                COUNT(m.id) as current_members,
-                GROUP_CONCAT(
-                    CONCAT(m.first_name, ' ', m.last_name,
-                           CASE WHEN m.primary_joint_member = 1 THEN ' (Primary)' ELSE '' END)
-                    SEPARATOR ', '
-                ) as member_names
-            FROM joint_membership_groups jmg
-            LEFT JOIN members m ON jmg.joint_group_id = m.joint_group_id AND m.is_active = 1
-            WHERE jmg.equb_settings_id = ? AND jmg.is_active = 1
-            GROUP BY jmg.id
-            ORDER BY jmg.payout_position ASC
+            SELECT * FROM equb_settings WHERE id = ?
         ");
         $stmt->execute([$selected_equb_id]);
-        $joint_groups_summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $equb_data = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Get POSITION-BASED calculations (joint groups as single entities)
-        $stmt = $pdo->prepare("
-            SELECT 
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN CONCAT('JOINT_', m.joint_group_id)
-                    ELSE CONCAT('IND_', m.id)
-                END as position_id,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN COALESCE(jmg.group_name, 'Joint Group')
-                    ELSE CONCAT(m.first_name, ' ', m.last_name)
-                END as display_name,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN m.joint_group_id
-                    ELSE CONCAT('IND_', m.member_id)
-                END as identifier,
-                m.membership_type,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
-                    ELSE m.monthly_payment
-                END as monthly_payment,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                    ELSE m.payout_position
-                END as payout_position,
-                m.joint_group_id, jmg.group_name,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN SUM(m.total_contributed)
-                    ELSE m.total_contributed
-                END as total_contributed,
-                MAX(m.has_received_payout) as has_received_payout,
-                MIN(m.id) as primary_member_id
-            FROM members m
-            LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
-            WHERE m.equb_settings_id = ? AND m.is_active = 1
-            GROUP BY 
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN m.joint_group_id
-                    ELSE m.id
-                END
-            ORDER BY 
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                    ELSE m.payout_position
-                END ASC
-        ");
-        $stmt->execute([$selected_equb_id]);
-        $positions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Calculate payouts for each POSITION (individual or joint group)
-        foreach ($positions as $position) {
-            if ($position['membership_type'] === 'joint') {
-                // For joint groups, calculate based on the joint group
-                $calculation = $calculator->calculateJointGroupPayout($position['joint_group_id']);
-            } else {
-                // For individuals, calculate normally
-                $calculation = $calculator->calculateMemberPayoutAmount($position['primary_member_id']);
+        if ($equb_data) {
+            // Initialize calculator
+            $calculator = getEqubPayoutCalculator();
+            
+            // Get POSITION-BASED member data (joint groups as single entities)
+            $stmt = $pdo->prepare("
+                SELECT 
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN CONCAT('joint_', m.joint_group_id)
+                        ELSE CONCAT('individual_', m.id)
+                    END as position_key,
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN jmg.group_name
+                        ELSE CONCAT(m.first_name, ' ', m.last_name)
+                    END as display_name,
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN jmg.payout_position
+                        ELSE m.payout_position
+                    END as payout_position,
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN 'joint'
+                        ELSE 'individual'
+                    END as membership_type,
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                        ELSE m.monthly_payment
+                    END as monthly_payment,
+                    GROUP_CONCAT(
+                        CONCAT(m.first_name, ' ', m.last_name, 
+                               CASE WHEN m.primary_joint_member = 1 THEN ' (Primary)' ELSE '' END)
+                        ORDER BY m.primary_joint_member DESC, m.created_at ASC
+                        SEPARATOR ', '
+                    ) as member_names,
+                    COUNT(m.id) as member_count,
+                    MIN(m.id) as primary_member_id,
+                    SUM(COALESCE(p.amount, 0)) as total_contributed,
+                    MIN(m.has_received_payout) as has_received_payout,
+                    MIN(m.join_date) as join_date
+                FROM members m
+                LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
+                LEFT JOIN payments p ON m.id = p.member_id AND p.status IN ('paid', 'completed')
+                WHERE m.equb_settings_id = ? AND m.is_active = 1
+                GROUP BY position_key, payout_position, display_name, membership_type, monthly_payment
+                ORDER BY payout_position ASC, MIN(m.id) ASC
+            ");
+            $stmt->execute([$selected_equb_id]);
+            $position_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Calculate detailed payouts for each position
+            foreach ($position_data as $position) {
+                if ($position['payout_position'] > 0) {
+                    $calculation = $calculator->calculateMemberPayoutAmount($position['primary_member_id']);
+                    
+                    if ($calculation['success']) {
+                        // Calculate payout date
+                        $payout_date = null;
+                        if ($equb_data['start_date'] && $position['payout_position']) {
+                            $start_date = new DateTime($equb_data['start_date']);
+                            $payout_date = clone $start_date;
+                            $payout_date->modify('+' . ($position['payout_position'] - 1) . ' months');
+                            $payout_date->setDate(
+                                $payout_date->format('Y'),
+                                $payout_date->format('n'),
+                                $equb_data['payout_day'] ?: 5
+                            );
+                        }
+                        
+                        $member_payouts[] = [
+                            'position_key' => $position['position_key'],
+                            'display_name' => $position['display_name'],
+                            'membership_type' => $position['membership_type'],
+                            'member_names' => $position['member_names'],
+                            'member_count' => $position['member_count'],
+                            'payout_position' => $position['payout_position'],
+                            'monthly_payment' => $position['monthly_payment'],
+                            'total_contributions' => $position['monthly_payment'] * $equb_data['duration_months'],
+                            'gross_payout' => $calculation['gross_payout'],
+                            'admin_fee' => $calculation['admin_fee'],
+                            'net_payout' => $calculation['net_payout'],
+                            'total_contributed' => $position['total_contributed'],
+                            'has_received_payout' => $position['has_received_payout'],
+                            'payout_date' => $payout_date ? $payout_date->format('M d, Y') : 'TBD',
+                            'payout_month' => $payout_date ? $payout_date->format('M Y') : 'TBD',
+                            'join_date' => $position['join_date']
+                        ];
+                        
+                        $admin_revenue += $calculation['admin_fee'];
+                    }
+                }
             }
             
-            if ($calculation['success']) {
-                $member_calculations[] = array_merge($position, [
-                    'calculated_payout' => $calculation['net_payout'],
-                    'gross_payout' => $calculation['gross_payout'],
-                    'admin_fee' => $calculation['admin_fee'],
-                    'calculation_verified' => true
-                ]);
-            } else {
-                $member_calculations[] = array_merge($position, [
-                    'calculated_payout' => 0,
-                    'gross_payout' => 0,
-                    'admin_fee' => 0,
-                    'calculation_verified' => false,
-                    'error' => $calculation['error'] ?? 'Calculation failed'
-                ]);
+            // Calculate financial summary
+            $total_expected_contributions = array_sum(array_column($member_payouts, 'total_contributions'));
+            $total_paid_contributions = array_sum(array_column($member_payouts, 'total_contributed'));
+            $total_net_payouts = array_sum(array_column($member_payouts, 'net_payout'));
+            $total_positions = count($member_payouts);
+            $completed_payouts = count(array_filter($member_payouts, fn($p) => $p['has_received_payout']));
+            
+            $financial_summary = [
+                'total_positions' => $total_positions,
+                'individual_positions' => count(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'individual')),
+                'joint_positions' => count(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'joint')),
+                'total_expected_contributions' => $total_expected_contributions,
+                'total_paid_contributions' => $total_paid_contributions,
+                'collection_percentage' => $total_expected_contributions > 0 ? ($total_paid_contributions / $total_expected_contributions) * 100 : 0,
+                'total_net_payouts' => $total_net_payouts,
+                'admin_revenue' => $admin_revenue,
+                'completed_payouts' => $completed_payouts,
+                'remaining_payouts' => $total_positions - $completed_payouts
+            ];
+            
+            // Create position timeline
+            for ($month = 1; $month <= $equb_data['duration_months']; $month++) {
+                $position_members = array_filter($member_payouts, fn($p) => $p['payout_position'] == $month);
+                $month_date = null;
+                
+                if ($equb_data['start_date']) {
+                    $start_date = new DateTime($equb_data['start_date']);
+                    $month_date = clone $start_date;
+                    $month_date->modify('+' . ($month - 1) . ' months');
+                    $month_date->setDate(
+                        $month_date->format('Y'),
+                        $month_date->format('n'),
+                        $equb_data['payout_day'] ?: 5
+                    );
+                }
+                
+                $position_timeline[] = [
+                    'month' => $month,
+                    'date' => $month_date ? $month_date->format('M d, Y') : 'TBD',
+                    'month_year' => $month_date ? $month_date->format('M Y') : "Month $month",
+                    'members' => $position_members,
+                    'total_payout' => array_sum(array_column($position_members, 'net_payout')),
+                    'admin_fee' => array_sum(array_column($position_members, 'admin_fee')),
+                    'is_current' => $month_date ? ($month_date->format('Y-m') === date('Y-m')) : false,
+                    'is_past' => $month_date ? ($month_date < new DateTime()) : false
+                ];
             }
         }
         
-        // Generate comprehensive financial audit
-        $financial_audit = $calculator->generateFinancialAudit($selected_equb_id);
-        
     } catch (Exception $e) {
         error_log("Error in financial analytics: " . $e->getMessage());
-        $equb_summary = ['success' => false, 'error' => $e->getMessage()];
     }
 }
 
@@ -160,12 +207,10 @@ $csrf_token = generate_csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo t('financial_audit.comprehensive_audit'); ?> - HabeshaEqub Admin</title>
+    <title>Financial Analytics - HabeshaEqub Admin</title>
     
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="../Pictures/Icon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="../Pictures/Icon/favicon-16x16.png">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -180,84 +225,488 @@ $csrf_token = generate_csrf_token();
     <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
+        /* ===== TOP-TIER FINANCIAL DASHBOARD STYLES ===== */
+        
         .analytics-header {
-            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+            background: linear-gradient(135deg, 
+                var(--color-purple) 0%, 
+                var(--darker-purple) 50%, 
+                var(--color-purple) 100%);
+            color: var(--white);
             border-radius: 20px;
-            padding: 30px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(48, 25, 67, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .analytics-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+        
+        .analytics-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .analytics-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
             margin-bottom: 30px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-lg);
         }
         
-        .analytics-card {
-            background: var(--white);
-            border-radius: 16px;
+        .equb-selector-card {
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
             padding: 25px;
-            margin-bottom: 25px;
-            border: 1px solid var(--border-light);
-            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
-            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
         
-        .analytics-card:hover {
-            box-shadow: 0 12px 48px rgba(48, 25, 67, 0.12);
-            transform: translateY(-2px);
+        .equb-select {
+            background: var(--white);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--darker-purple);
+            min-width: 300px;
+        }
+        
+        /* Financial Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
         }
         
         .metric-card {
-            background: linear-gradient(135deg, var(--gold) 0%, var(--light-gold) 100%);
-            color: var(--white);
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(218, 165, 32, 0.2);
+            background: var(--white);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 45px rgba(48, 25, 67, 0.1);
+            border: 1px solid var(--border-light);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold), var(--light-gold));
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 60px rgba(48, 25, 67, 0.2);
+        }
+        
+        .metric-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
         }
         
         .metric-value {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 5px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--darker-purple);
+            margin-bottom: 8px;
+            line-height: 1;
         }
         
         .metric-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        .joint-group-card {
-            background: linear-gradient(135deg, var(--light-purple) 0%, #F8F6FF 100%);
-            border-radius: 12px;
-            padding: 20px;
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 500;
             margin-bottom: 15px;
-            border-left: 4px solid var(--purple);
         }
         
-        .member-row {
-            background: var(--white);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid var(--gold);
-            box-shadow: 0 2px 8px rgba(48, 25, 67, 0.05);
-        }
-        
-        .status-verified {
-            color: var(--success);
+        .metric-change {
+            font-size: 0.9rem;
             font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
         }
         
-        .status-error {
-            color: var(--danger);
-            font-weight: 600;
+        .change-positive {
+            background: linear-gradient(135deg, #10B981, #34D399);
+            color: white;
         }
         
-        .chart-container {
+        .change-negative {
+            background: linear-gradient(135deg, #EF4444, #F87171);
+            color: white;
+        }
+        
+        .change-neutral {
+            background: linear-gradient(135deg, #6B7280, #9CA3AF);
+            color: white;
+        }
+        
+        /* Member Payout Table */
+        .payout-table-container {
             background: var(--white);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 25px;
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 45px rgba(48, 25, 67, 0.1);
+            margin-bottom: 40px;
             border: 1px solid var(--border-light);
-            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-light);
+        }
+        
+        .table-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--darker-purple);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .modern-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(48, 25, 67, 0.1);
+        }
+        
+        .modern-table thead th {
+            background: linear-gradient(135deg, var(--color-purple), var(--darker-purple));
+            color: var(--white);
+            padding: 18px 20px;
+            font-weight: 600;
+            text-align: left;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+        
+        .modern-table tbody tr {
+            background: var(--white);
+            transition: all 0.3s ease;
+        }
+        
+        .modern-table tbody tr:nth-child(even) {
+            background: rgba(248, 250, 252, 0.8);
+        }
+        
+        .modern-table tbody tr:hover {
+            background: linear-gradient(135deg, rgba(216, 180, 254, 0.1), rgba(196, 181, 253, 0.1));
+            transform: scale(1.01);
+            box-shadow: 0 8px 25px rgba(48, 25, 67, 0.15);
+        }
+        
+        .modern-table tbody td {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+        
+        .position-badge {
+            background: linear-gradient(135deg, var(--gold), var(--light-gold));
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 50px;
+            display: inline-block;
+        }
+        
+        .member-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .member-name {
+            font-weight: 600;
+            color: var(--darker-purple);
+            font-size: 1.05rem;
+        }
+        
+        .member-type {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            display: inline-block;
+            width: fit-content;
+        }
+        
+        .type-individual {
+            background: linear-gradient(135deg, #3B82F6, #60A5FA);
+            color: white;
+        }
+        
+        .type-joint {
+            background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+            color: white;
+        }
+        
+        .amount-display {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .amount-positive {
+            color: #059669;
+        }
+        
+        .amount-neutral {
+            color: var(--darker-purple);
+        }
+        
+        .amount-fee {
+            color: #DC2626;
+        }
+        
+        .payout-date {
+            background: linear-gradient(135deg, var(--color-cream), #FAF8F5);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: var(--darker-purple);
+            border: 1px solid var(--border-light);
+        }
+        
+        /* Timeline Section */
+        .timeline-container {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 45px rgba(48, 25, 67, 0.1);
+            margin-bottom: 40px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .timeline-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .timeline-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--darker-purple);
+            margin-bottom: 10px;
+        }
+        
+        .timeline-subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .timeline-month {
+            background: var(--white);
+            border: 2px solid var(--border-light);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .timeline-month.current {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1));
+            transform: scale(1.05);
+        }
+        
+        .timeline-month.past {
+            opacity: 0.7;
+            background: rgba(248, 250, 252, 0.8);
+        }
+        
+        .timeline-month:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(48, 25, 67, 0.15);
+        }
+        
+        .month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .month-number {
+            background: linear-gradient(135deg, var(--color-purple), var(--darker-purple));
+            color: var(--white);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        
+        .month-date {
+            font-weight: 600;
+            color: var(--darker-purple);
+        }
+        
+        /* Charts Container */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 45px rgba(48, 25, 67, 0.1);
+            border: 1px solid var(--border-light);
+        }
+        
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--darker-purple);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 1200px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .analytics-header {
+                padding: 25px;
+                text-align: center;
+            }
+            
+            .analytics-title {
+                font-size: 2rem;
+            }
+            
+            .equb-selector-card {
+                padding: 20px;
+            }
+            
+            .equb-select {
+                min-width: 100%;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .metric-card {
+                padding: 25px;
+            }
+            
+            .metric-value {
+                font-size: 1.8rem;
+            }
+            
+            .payout-table-container {
+                padding: 20px;
+                overflow-x: auto;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .table-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .modern-table {
+                min-width: 800px;
+            }
+            
+            .timeline-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .analytics-header {
+                padding: 20px;
+            }
+            
+            .analytics-title {
+                font-size: 1.7rem;
+            }
+            
+            .metric-card {
+                padding: 20px;
+            }
+            
+            .payout-table-container {
+                padding: 15px;
+            }
+            
+            .timeline-container {
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -266,193 +715,321 @@ $csrf_token = generate_csrf_token();
     <?php require_once 'includes/navigation.php'; ?>
     
     <div class="admin-container">
+        <!-- Analytics Header -->
         <div class="analytics-header">
             <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1><i class="fas fa-chart-line text-gold me-3"></i><?php echo t('financial_audit.comprehensive_audit'); ?></h1>
-                    <p class="mb-0 text-muted">Real-time financial monitoring and analytics</p>
+                <div class="col-lg-8">
+                    <h1 class="analytics-title">
+                        <i class="fas fa-chart-line me-3"></i>
+                        Financial Analytics Dashboard
+                    </h1>
+                    <p class="analytics-subtitle">
+                        Comprehensive financial insights and member payout analysis for professional EQUB management
+                    </p>
                 </div>
-                <div class="col-md-4">
-                    <select class="form-select" id="equbSelector" onchange="window.location.href='financial-analytics.php?equb_id='+this.value">
-                        <option value="">Select EQUB Term...</option>
-                        <?php foreach ($all_equbs as $equb): ?>
-                            <option value="<?php echo $equb['id']; ?>" <?php echo $equb['id'] == $selected_equb_id ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($equb['equb_name'] . ' (' . $equb['equb_id'] . ')'); ?>
-                                - <?php echo ucfirst($equb['status']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                <div class="col-lg-4">
+                    <div class="equb-selector-card">
+                        <label class="form-label text-white mb-3">
+                            <i class="fas fa-filter me-2"></i>Select EQUB Term
+                        </label>
+                        <select class="form-select equb-select" onchange="window.location.href='?equb_id=' + this.value">
+                            <option value="">Choose EQUB Term...</option>
+                            <?php foreach ($all_equbs as $equb): ?>
+                                <option value="<?php echo $equb['id']; ?>" <?php echo ($equb['id'] == $selected_equb_id) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($equb['equb_name']); ?> 
+                                    (<?php echo ucfirst($equb['status']); ?>)
+                                    <?php if ($equb['start_date']): ?>
+                                        - <?php echo date('M Y', strtotime($equb['start_date'])); ?>
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <?php if ($selected_equb_id && isset($equb_summary) && $equb_summary['success']): ?>
-            <!-- Financial Overview Cards -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="metric-card">
-                        <div class="metric-value">£<?php echo number_format($equb_summary['financial_projections']['projected_total_collection'], 0); ?></div>
-                        <div class="metric-label"><?php echo t('financial_audit.projected_collections'); ?></div>
+        <?php if ($equb_data && !empty($member_payouts)): ?>
+            <!-- Financial Metrics Grid -->
+            <div class="metrics-grid">
+                <!-- Total Positions -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="metric-value"><?php echo $financial_summary['total_positions']; ?></div>
+                    <div class="metric-label">Total Positions</div>
+                    <div class="metric-change change-neutral">
+                        <i class="fas fa-user me-1"></i>
+                        <?php echo $financial_summary['individual_positions']; ?> Individual + 
+                        <?php echo $financial_summary['joint_positions']; ?> Joint
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="metric-card">
-                        <div class="metric-value">£<?php echo number_format($equb_summary['financial_projections']['projected_net_distribution'], 0); ?></div>
-                        <div class="metric-label"><?php echo t('financial_audit.projected_distributions'); ?></div>
+
+                <!-- Expected Pool -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #10B981, #34D399); color: white;">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="metric-value">£<?php echo number_format($financial_summary['total_expected_contributions'], 0); ?></div>
+                    <div class="metric-label">Expected Total Pool</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-calendar me-1"></i>
+                        <?php echo $equb_data['duration_months']; ?> months
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="metric-card">
-                        <div class="metric-value"><?php echo $equb_summary['member_statistics']['total_active_members']; ?></div>
-                        <div class="metric-label">Total Members</div>
+
+                <!-- Collection Rate -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['collection_percentage'], 1); ?>%</div>
+                    <div class="metric-label">Collection Rate</div>
+                    <div class="metric-change <?php echo $financial_summary['collection_percentage'] >= 80 ? 'change-positive' : 'change-negative'; ?>">
+                        <i class="fas fa-pound-sign me-1"></i>
+                        £<?php echo number_format($financial_summary['total_paid_contributions'], 0); ?> collected
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="metric-card">
-                        <div class="metric-value"><?php echo count($joint_groups_summary); ?></div>
-                        <div class="metric-label"><?php echo t('joint_membership.title'); ?> Groups</div>
+
+                <!-- Admin Revenue -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #F59E0B, #FCD34D); color: white;">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="metric-value">£<?php echo number_format($financial_summary['admin_revenue'], 0); ?></div>
+                    <div class="metric-label">Total Admin Revenue</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-calculator me-1"></i>
+                        <?php echo number_format($equb_data['admin_fee'], 1); ?>% fee rate
+                    </div>
+                </div>
+
+                <!-- Payout Progress -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #EF4444, #F87171); color: white;">
+                        <i class="fas fa-money-bill-transfer"></i>
+                    </div>
+                    <div class="metric-value"><?php echo $financial_summary['completed_payouts']; ?>/<?php echo $financial_summary['total_positions']; ?></div>
+                    <div class="metric-label">Payouts Completed</div>
+                    <div class="metric-change change-neutral">
+                        <i class="fas fa-clock me-1"></i>
+                        <?php echo $financial_summary['remaining_payouts']; ?> remaining
+                    </div>
+                </div>
+
+                <!-- Net Payouts -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #059669, #10B981); color: white;">
+                        <i class="fas fa-hand-holding-dollar"></i>
+                    </div>
+                    <div class="metric-value">£<?php echo number_format($financial_summary['total_net_payouts'], 0); ?></div>
+                    <div class="metric-label">Total Net Payouts</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-minus me-1"></i>
+                        After admin fees
                     </div>
                 </div>
             </div>
 
-            <!-- Financial Health Chart -->
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <div class="chart-container">
-                        <h4><i class="fas fa-chart-pie text-primary me-2"></i><?php echo t('financial_audit.financial_health'); ?></h4>
-                        <canvas id="financialHealthChart" width="400" height="200"></canvas>
-                    </div>
+            <!-- Charts Section -->
+            <div class="charts-container">
+                <!-- Payout Distribution Chart -->
+                <div class="chart-card">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-pie text-purple me-2"></i>
+                        Payout Distribution
+                    </h3>
+                    <canvas id="payoutChart" height="300"></canvas>
                 </div>
-                <div class="col-md-4">
-                    <div class="analytics-card">
-                        <h5><i class="fas fa-heartbeat text-success me-2"></i>Health Indicators</h5>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span><?php echo t('financial_audit.collection_rate'); ?>:</span>
-                                <strong class="text-success"><?php echo $equb_summary['financial_health']['collected_percentage']; ?>%</strong>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span><?php echo t('financial_audit.distribution_rate'); ?>:</span>
-                                <strong class="text-info"><?php echo $equb_summary['financial_health']['distribution_percentage']; ?>%</strong>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between">
-                                <span><?php echo t('financial_audit.outstanding_balance'); ?>:</span>
-                                <strong class="text-warning">£<?php echo number_format($equb_summary['financial_health']['outstanding_balance'], 0); ?></strong>
-                            </div>
-                        </div>
-                    </div>
+
+                <!-- Monthly Timeline Chart -->
+                <div class="chart-card">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-bar text-gold me-2"></i>
+                        Monthly Payout Timeline
+                    </h3>
+                    <canvas id="timelineChart" height="300"></canvas>
                 </div>
             </div>
 
-            <!-- Joint Groups Summary -->
-            <?php if (!empty($joint_groups_summary)): ?>
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="analytics-card">
-                        <h4><i class="fas fa-users text-purple me-2"></i><?php echo t('joint_membership.joint_group_summary'); ?></h4>
-                        <div class="row">
-                            <?php foreach ($joint_groups_summary as $group): ?>
-                            <div class="col-md-6 mb-3">
-                                <div class="joint-group-card">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 class="mb-0"><?php echo htmlspecialchars($group['group_name'] ?: $group['joint_group_id']); ?></h6>
-                                        <span class="badge bg-primary">Position <?php echo $group['payout_position']; ?></span>
+            <!-- Member Payout Analysis Table -->
+            <div class="payout-table-container">
+                <div class="table-header">
+                    <h2 class="table-title">
+                        <i class="fas fa-table text-purple"></i>
+                        Detailed Member Payout Analysis
+                    </h2>
+                    <div class="table-actions">
+                        <button class="btn btn-outline-primary" onclick="exportToCSV()">
+                            <i class="fas fa-download me-1"></i>Export CSV
+                        </button>
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="fas fa-print me-1"></i>Print Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Member/Group</th>
+                                <th>Type</th>
+                                <th>Monthly Payment</th>
+                                <th>Total Contributions</th>
+                                <th>Gross Payout</th>
+                                <th>Admin Fee</th>
+                                <th>Net Payout</th>
+                                <th>Payout Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($member_payouts as $payout): ?>
+                                <tr>
+                                    <td>
+                                        <span class="position-badge"><?php echo $payout['payout_position']; ?></span>
+                                    </td>
+                                    <td>
+                                        <div class="member-info">
+                                            <div class="member-name"><?php echo htmlspecialchars($payout['display_name']); ?></div>
+                                            <?php if ($payout['membership_type'] === 'joint'): ?>
+                                                <small class="text-muted"><?php echo htmlspecialchars($payout['member_names']); ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="member-type <?php echo $payout['membership_type'] === 'joint' ? 'type-joint' : 'type-individual'; ?>">
+                                            <?php if ($payout['membership_type'] === 'joint'): ?>
+                                                <i class="fas fa-users me-1"></i>Joint (<?php echo $payout['member_count']; ?>)
+                                            <?php else: ?>
+                                                <i class="fas fa-user me-1"></i>Individual
+                                            <?php endif; ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="amount-display amount-neutral">
+                                            £<?php echo number_format($payout['monthly_payment'], 2); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="amount-display amount-positive">
+                                            £<?php echo number_format($payout['total_contributions'], 2); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="amount-display amount-positive">
+                                            £<?php echo number_format($payout['gross_payout'], 2); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="amount-display amount-fee">
+                                            -£<?php echo number_format($payout['admin_fee'], 2); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="amount-display amount-positive">
+                                            <strong>£<?php echo number_format($payout['net_payout'], 2); ?></strong>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="payout-date">
+                                            <?php echo $payout['payout_date']; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php if ($payout['has_received_payout']): ?>
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Completed
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payout Timeline -->
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <h2 class="timeline-title">
+                        <i class="fas fa-calendar-alt text-purple me-3"></i>
+                        Payout Schedule Timeline
+                    </h2>
+                    <p class="timeline-subtitle">
+                        Monthly payout schedule for <?php echo htmlspecialchars($equb_data['equb_name']); ?>
+                    </p>
+                </div>
+
+                <div class="timeline-grid">
+                    <?php foreach ($position_timeline as $month): ?>
+                        <div class="timeline-month <?php echo $month['is_current'] ? 'current' : ($month['is_past'] ? 'past' : ''); ?>">
+                            <div class="month-header">
+                                <div class="month-number"><?php echo $month['month']; ?></div>
+                                <div class="month-date"><?php echo $month['date']; ?></div>
+                            </div>
+                            
+                            <?php if (!empty($month['members'])): ?>
+                                <div class="mb-3">
+                                    <strong class="text-purple">Recipients:</strong>
+                                    <?php foreach ($month['members'] as $member): ?>
+                                        <div class="small mt-1">
+                                            <i class="fas fa-<?php echo $member['membership_type'] === 'joint' ? 'users' : 'user'; ?> me-1"></i>
+                                            <?php echo htmlspecialchars($member['display_name']); ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="small text-muted">Total Payout</div>
+                                        <div class="fw-bold text-success">£<?php echo number_format($month['total_payout'], 0); ?></div>
                                     </div>
-                                    <p class="mb-2"><strong>Members:</strong> <?php echo htmlspecialchars($group['member_names']); ?></p>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Monthly Payment:</small><br>
-                                            <strong>£<?php echo number_format($group['total_monthly_payment'], 2); ?></strong>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Split Method:</small><br>
-                                            <strong><?php echo ucfirst($group['payout_split_method']); ?></strong>
-                                        </div>
+                                    <div class="col-6">
+                                        <div class="small text-muted">Admin Fee</div>
+                                        <div class="fw-bold text-danger">£<?php echo number_format($month['admin_fee'], 0); ?></div>
                                     </div>
                                 </div>
-                            </div>
-                            <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                    <div>No payouts scheduled</div>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Member Calculations -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="analytics-card">
-                        <h4><i class="fas fa-calculator text-gold me-2"></i><?php echo t('financial_audit.member_calculations'); ?></h4>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Member</th>
-                                        <th>Position</th>
-                                        <th>Type</th>
-                                        <th>Monthly Payment</th>
-                                        <th>Calculated Payout</th>
-                                        <th>Admin Fee</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($member_calculations as $position): ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?php echo htmlspecialchars($position['display_name']); ?></strong><br>
-                                            <small class="text-muted"><?php echo htmlspecialchars($position['identifier']); ?></small>
-                                        </td>
-                                        <td><span class="badge bg-info"><?php echo $position['payout_position']; ?></span></td>
-                                        <td>
-                                            <?php if ($position['membership_type'] === 'joint'): ?>
-                                                <span class="badge bg-purple">Joint Position</span><br>
-                                                <small class="text-muted"><?php echo htmlspecialchars($position['joint_group_id']); ?></small>
-                                            <?php else: ?>
-                                                <span class="badge bg-secondary">Individual Position</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>£<?php echo number_format($position['monthly_payment'], 2); ?></td>
-                                        <td>
-                                            <strong>£<?php echo number_format($position['calculated_payout'], 2); ?></strong><br>
-                                            <small class="text-muted">Gross: £<?php echo number_format($position['gross_payout'], 2); ?></small>
-                                        </td>
-                                        <td>£<?php echo number_format($position['admin_fee'], 2); ?></td>
-                                        <td>
-                                            <?php if ($position['calculation_verified']): ?>
-                                                <span class="status-verified"><i class="fas fa-check-circle"></i> Verified</span>
-                                            <?php else: ?>
-                                                <span class="status-error"><i class="fas fa-exclamation-triangle"></i> Error</span>
-                                                <?php if (isset($position['error'])): ?>
-                                                    <br><small class="text-muted"><?php echo htmlspecialchars($position['error']); ?></small>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
 
-        <?php elseif ($selected_equb_id): ?>
-            <div class="alert alert-warning">
-                <h5><i class="fas fa-exclamation-triangle me-2"></i>Analysis Error</h5>
-                <p class="mb-0">Unable to generate financial analysis for selected EQUB. Please check the EQUB configuration.</p>
-                <?php if (isset($equb_summary['error'])): ?>
-                    <small class="text-muted">Error: <?php echo htmlspecialchars($equb_summary['error']); ?></small>
-                <?php endif; ?>
-            </div>
         <?php else: ?>
-            <div class="alert alert-info">
-                <h5><i class="fas fa-info-circle me-2"></i>No EQUB Selected</h5>
-                <p class="mb-0">Please select an EQUB term from the dropdown above to view financial analytics.</p>
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <div class="empty-state">
+                    <i class="fas fa-chart-line fa-5x text-muted mb-4"></i>
+                    <h3 class="text-muted">No Financial Data Available</h3>
+                    <p class="text-muted mb-4">
+                        <?php if (empty($all_equbs)): ?>
+                            No EQUB terms have been created yet.
+                        <?php elseif (!$selected_equb_id): ?>
+                            Please select an EQUB term to view financial analytics.
+                        <?php else: ?>
+                            No members found for the selected EQUB term.
+                        <?php endif; ?>
+                    </p>
+                    <?php if (empty($all_equbs)): ?>
+                        <a href="equb-management.php" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create EQUB Term
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php endif; ?>
     </div>
@@ -460,39 +1037,153 @@ $csrf_token = generate_csrf_token();
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+    <?php if ($equb_data && !empty($member_payouts)): ?>
     <script>
-        // Financial Health Chart
-        <?php if ($selected_equb_id && isset($equb_summary) && $equb_summary['success']): ?>
-        const ctx = document.getElementById('financialHealthChart').getContext('2d');
-        new Chart(ctx, {
+        // Chart.js Configuration
+        Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+        Chart.defaults.color = '#6B7280';
+
+        // Payout Distribution Pie Chart
+        const payoutCtx = document.getElementById('payoutChart').getContext('2d');
+        new Chart(payoutCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Collected', 'Outstanding', 'Distributed'],
+                labels: [
+                    'Individual Members', 
+                    'Joint Groups', 
+                    'Admin Revenue'
+                ],
                 datasets: [{
                     data: [
-                        <?php echo $equb_summary['equb_info']['collected_amount']; ?>,
-                        <?php echo $equb_summary['financial_health']['outstanding_balance']; ?>,
-                        <?php echo $equb_summary['equb_info']['distributed_amount']; ?>
+                        <?php echo array_sum(array_column(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'individual'), 'net_payout')); ?>,
+                        <?php echo array_sum(array_column(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'joint'), 'net_payout')); ?>,
+                        <?php echo $financial_summary['admin_revenue']; ?>
                     ],
                     backgroundColor: [
-                        'var(--success)',
-                        'var(--warning)', 
-                        'var(--info)'
+                        '#3B82F6',
+                        '#8B5CF6',
+                        '#F59E0B'
                     ],
-                    borderWidth: 2,
-                    borderColor: '#fff'
+                    borderWidth: 0,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': £' + context.parsed.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+
+        // Monthly Timeline Bar Chart
+        const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+        new Chart(timelineCtx, {
+            type: 'bar',
+            data: {
+                labels: [<?php echo '"' . implode('", "', array_column($position_timeline, 'month_year')) . '"'; ?>],
+                datasets: [{
+                    label: 'Net Payouts',
+                    data: [<?php echo implode(', ', array_column($position_timeline, 'total_payout')); ?>],
+                    backgroundColor: '#10B981',
+                    borderColor: '#059669',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }, {
+                    label: 'Admin Fees',
+                    data: [<?php echo implode(', ', array_column($position_timeline, 'admin_fee')); ?>],
+                    backgroundColor: '#EF4444',
+                    borderColor: '#DC2626',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '£' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': £' + context.parsed.y.toLocaleString();
+                            }
+                        }
                     }
                 }
             }
         });
-        <?php endif; ?>
+
+        // Export to CSV functionality
+        function exportToCSV() {
+            const table = document.querySelector('.modern-table');
+            const rows = Array.from(table.querySelectorAll('tr'));
+            
+            const csvContent = rows.map(row => {
+                const cols = Array.from(row.querySelectorAll('th, td'));
+                return cols.map(col => {
+                    let text = col.textContent.trim();
+                    // Remove special characters and clean up
+                    text = text.replace(/[\n\r\t]/g, ' ').replace(/\s+/g, ' ');
+                    return '"' + text.replace(/"/g, '""') + '"';
+                }).join(',');
+            }).join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'financial-analytics-<?php echo date('Y-m-d'); ?>.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Real-time updates (optional)
+        setInterval(() => {
+            // Add any real-time update logic here
+        }, 30000); // Update every 30 seconds
     </script>
+    <?php endif; ?>
+
 </body>
 </html>
