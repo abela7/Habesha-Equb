@@ -46,13 +46,27 @@ try {
     $members = [];
 }
 
-// CORRECT member counting logic
+// ENHANCED member counting logic with validation
 $total_individual_members = count(array_filter($members, fn($m) => $m['membership_type'] === 'individual'));
 $total_joint_members = count(array_filter($members, fn($m) => $m['membership_type'] === 'joint'));
 $unique_joint_groups = count(array_unique(array_filter(array_column($members, 'joint_group_id'))));
 $total_positions = $total_individual_members + $unique_joint_groups;
 $active_members = count(array_filter($members, fn($m) => $m['is_active']));
+$inactive_members = count(array_filter($members, fn($m) => !$m['is_active']));
+$approved_members = count(array_filter($members, fn($m) => $m['is_approved']));
+$pending_approval = count(array_filter($members, fn($m) => !$m['is_approved']));
 $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_payout']));
+$pending_payouts = count($members) - $completed_payouts;
+$total_members = count($members);
+
+// Calculate financial metrics
+$total_monthly_contributions = array_sum(array_column($members, 'effective_monthly_payment'));
+$total_contributions_received = array_sum(array_column($members, 'total_paid'));
+$average_payment = $total_members > 0 ? $total_contributions_received / $total_members : 0;
+
+// Member activity metrics
+$recent_joiners = count(array_filter($members, fn($m) => strtotime($m['created_at']) > strtotime('-30 days')));
+$never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) == 0));
 ?>
 
 <!DOCTYPE html>
@@ -525,12 +539,314 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
             color: #B91C1C;
         }
 
+        /* Enhanced Stat Cards */
+        .stat-card-secondary {
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.02) 0%, rgba(160, 82, 45, 0.02) 100%);
+            border: 1px solid rgba(139, 69, 19, 0.1);
+        }
+        
+        .stat-card-secondary .stat-icon {
+            background: rgba(139, 69, 19, 0.1);
+            color: var(--color-dark-purple);
+        }
+        
+        .stat-breakdown {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-breakdown small {
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 12px 0 8px 0;
+            background: linear-gradient(135deg, var(--color-purple), var(--color-dark-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-card-secondary .stat-number {
+            font-size: 24px;
+            color: var(--color-dark-purple);
+            background: none;
+            -webkit-background-clip: unset;
+            -webkit-text-fill-color: unset;
+            background-clip: unset;
+        }
+        
+        /* Enhanced Filter Section */
+        .search-filter-section {
+            background: linear-gradient(135deg, #FFFFFF 0%, var(--color-cream) 100%);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+        }
+        
+        .advanced-filters {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+            display: none;
+        }
+        
+        .advanced-filters.active {
+            display: block;
+        }
+        
+        .filter-toggle {
+            background: none;
+            border: none;
+            color: var(--color-purple);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-toggle:hover {
+            color: var(--color-dark-purple);
+        }
+        
+        .filter-toggle i {
+            transition: transform 0.3s ease;
+        }
+        
+        .filter-toggle.active i {
+            transform: rotate(180deg);
+        }
+        
+        /* Bulk Actions */
+        .bulk-actions {
+            background: var(--color-cream);
+            border: 1px solid var(--color-gold);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .bulk-actions.active {
+            display: flex;
+        }
+        
+        .bulk-actions-text {
+            color: var(--color-dark-purple);
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .bulk-action-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .bulk-action-btn.activate {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #059669;
+        }
+        
+        .bulk-action-btn.deactivate {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #DC2626;
+        }
+        
+        .bulk-action-btn.export {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #2563EB;
+        }
+        
+        /* Enhanced Table */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .table-controls-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .table-controls-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .select-all-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .member-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+        
+        /* Member Status Indicators */
+        .member-status-indicators {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-indicator.online {
+            background: #10B981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        
+        .status-indicator.recent {
+            background: #F59E0B;
+        }
+        
+        .status-indicator.never-logged {
+            background: #EF4444;
+        }
+        
+        .status-indicator.joint {
+            background: #8B5CF6;
+        }
+        
+        /* Badge Styles */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 8px;
+        }
+        
+        .badge-joint {
+            background: rgba(139, 92, 246, 0.1);
+            color: #7C3AED;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        /* Sortable Headers */
+        .sortable {
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sortable:hover {
+            background: rgba(139, 69, 19, 0.05);
+        }
+        
+        .sort-icon {
+            font-size: 12px;
+            margin-left: 8px;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+        
+        .sortable:hover .sort-icon {
+            opacity: 1;
+        }
+        
+        .sortable.asc .sort-icon::before {
+            content: "\f0de";
+        }
+        
+        .sortable.desc .sort-icon::before {
+            content: "\f0dd";
+        }
+        
+        /* Table View Options */
+        .table-view-options {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .table-view-options .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+        
+        .table-view-options .btn.active {
+            background: var(--color-purple);
+            border-color: var(--color-purple);
+            color: white;
+        }
+        
+        /* Joint Group Info */
+        .joint-group-info {
+            margin-top: 4px;
+        }
+        
+        .joint-group-info small {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
         /* Responsive Design */
         @media (max-width: 1200px) {
             .page-header {
                 flex-direction: column;
                 text-align: center;
                 gap: 20px;
+            }
+            
+            .stats-dashboard {
+                margin-bottom: 30px;
             }
         }
 
@@ -627,9 +943,10 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
+            <!-- Enhanced Statistics Dashboard -->
             <div class="row stats-dashboard">
-                <div class="col-lg-4 col-md-6 mb-4">
+                <!-- Row 1: Primary Metrics -->
+                <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon total-members">
@@ -640,13 +957,16 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                                 </svg>
                             </div>
-                            <span class="stat-trend"><?php echo t('members.total_members'); ?></span>
+                            <span class="stat-trend">+<?php echo $recent_joiners; ?> this month</span>
                         </div>
                         <h3 class="stat-number"><?php echo $total_members; ?></h3>
                         <p class="stat-label"><?php echo t('members.total_members'); ?></p>
+                        <div class="stat-breakdown">
+                            <small class="text-muted"><?php echo $total_individual_members; ?> Individual + <?php echo $total_joint_members; ?> Joint</small>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon active-members">
@@ -654,34 +974,104 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                                 </svg>
                             </div>
-                            <span class="stat-trend"><?php echo t('members.active_members'); ?></span>
+                            <span class="stat-trend"><?php echo round(($active_members/$total_members)*100, 1); ?>% active</span>
                         </div>
                         <h3 class="stat-number"><?php echo $active_members; ?></h3>
                         <p class="stat-label"><?php echo t('members.active_members'); ?></p>
+                        <div class="stat-breakdown">
+                            <small class="text-muted"><?php echo $inactive_members; ?> inactive</small>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-header">
-                            <div class="stat-icon completed-payouts">
+                            <div class="stat-icon financial-stats">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"/>
                                     <path d="M16 12l-4-4-4 4"/>
                                     <path d="M12 16V8"/>
                                 </svg>
                             </div>
-                            <span class="stat-trend"><?php echo t('members.completed_payouts'); ?></span>
+                            <span class="stat-trend">£<?php echo number_format($average_payment, 0); ?> avg</span>
+                        </div>
+                        <h3 class="stat-number">£<?php echo number_format($total_contributions_received, 0); ?></h3>
+                        <p class="stat-label">Total Contributed</p>
+                        <div class="stat-breakdown">
+                            <small class="text-muted">£<?php echo number_format($total_monthly_contributions, 0); ?>/month expected</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon completed-payouts">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9 12l2 2 4-4"/>
+                                </svg>
+                            </div>
+                            <span class="stat-trend"><?php echo $pending_payouts; ?> pending</span>
                         </div>
                         <h3 class="stat-number"><?php echo $completed_payouts; ?></h3>
                         <p class="stat-label"><?php echo t('members.completed_payouts'); ?></p>
+                        <div class="stat-breakdown">
+                            <small class="text-muted"><?php echo round(($completed_payouts/$total_members)*100, 1); ?>% complete</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Row 2: Secondary Metrics -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card stat-card-secondary">
+                        <div class="stat-header">
+                            <div class="stat-icon joint-groups">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number"><?php echo $unique_joint_groups; ?></h3>
+                        <p class="stat-label">Joint Groups</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card stat-card-secondary">
+                        <div class="stat-header">
+                            <div class="stat-icon total-positions">
+                                <i class="fas fa-sort-numeric-up"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number"><?php echo $total_positions; ?></h3>
+                        <p class="stat-label">Total Positions</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card stat-card-secondary">
+                        <div class="stat-header">
+                            <div class="stat-icon pending-approval">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number"><?php echo $pending_approval; ?></h3>
+                        <p class="stat-label">Pending Approval</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card stat-card-secondary">
+                        <div class="stat-header">
+                            <div class="stat-icon never-paid">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number"><?php echo $never_paid; ?></h3>
+                        <p class="stat-label">Never Paid</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Members Management Section -->
+            <!-- Enhanced Members Management Section -->
             <div class="search-filter-section">
                 <div class="row align-items-center">
-                    <div class="col-lg-6">
+                    <div class="col-lg-8">
                         <div class="search-bar">
                             <input type="text" class="search-input" id="memberSearch" placeholder="<?php echo t('members.search_placeholder'); ?>" oninput="searchMembers()">
                             <span class="search-icon">
@@ -692,43 +1082,170 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                             </span>
                         </div>
                     </div>
-                    <div class="col-lg-6">
+                    <div class="col-lg-4">
                         <div class="filter-group">
                             <select id="statusFilter" class="filter-select" onchange="filterMembers()">
                                 <option value=""><?php echo t('members.all_status'); ?></option>
                                 <option value="active"><?php echo t('members.active'); ?></option>
                                 <option value="inactive"><?php echo t('members.inactive'); ?></option>
+                                <option value="pending_approval">Pending Approval</option>
                             </select>
+                            <button class="filter-toggle" onclick="toggleAdvancedFilters()">
+                                <i class="fas fa-filter"></i>
+                                Advanced Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Filters -->
+                <div class="advanced-filters" id="advancedFilters">
+                    <div class="row">
+                        <div class="col-lg-3">
+                            <label for="payoutFilter" class="form-label">Payout Status</label>
                             <select id="payoutFilter" class="filter-select" onchange="filterMembers()">
                                 <option value=""><?php echo t('members.all_payouts'); ?></option>
                                 <option value="completed"><?php echo t('members.received_payout'); ?></option>
                                 <option value="pending"><?php echo t('members.pending_payout'); ?></option>
                             </select>
                         </div>
+                        <div class="col-lg-3">
+                            <label for="membershipTypeFilter" class="form-label">Membership Type</label>
+                            <select id="membershipTypeFilter" class="filter-select" onchange="filterMembers()">
+                                <option value="">All Types</option>
+                                <option value="individual">Individual</option>
+                                <option value="joint">Joint</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-3">
+                            <label for="equbTermFilter" class="form-label">EQUB Term</label>
+                            <select id="equbTermFilter" class="filter-select" onchange="filterMembers()">
+                                <option value="">All EQUB Terms</option>
+                                <?php
+                                try {
+                                    $equb_terms = $pdo->query("SELECT id, equb_name FROM equb_settings ORDER BY equb_name");
+                                    while ($term = $equb_terms->fetch()) {
+                                        echo "<option value='{$term['id']}'>{$term['equb_name']}</option>";
+                                    }
+                                } catch (Exception $e) {
+                                    echo "<option value=''>Error loading terms</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-lg-3">
+                            <label for="paymentRangeFilter" class="form-label">Payment Range</label>
+                            <select id="paymentRangeFilter" class="filter-select" onchange="filterMembers()">
+                                <option value="">All Amounts</option>
+                                <option value="0-500">£0 - £500</option>
+                                <option value="500-1000">£500 - £1,000</option>
+                                <option value="1000-1500">£1,000 - £1,500</option>
+                                <option value="1500+">£1,500+</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <!-- Bulk Actions Bar -->
+            <div class="bulk-actions" id="bulkActions">
+                <p class="bulk-actions-text">
+                    <span id="selectedCount">0</span> members selected
+                </p>
+                <div class="bulk-action-buttons">
+                    <button class="bulk-action-btn activate" onclick="bulkActivateMembers()">
+                        <i class="fas fa-check"></i> Activate
+                    </button>
+                    <button class="bulk-action-btn deactivate" onclick="bulkDeactivateMembers()">
+                        <i class="fas fa-times"></i> Deactivate
+                    </button>
+                    <button class="bulk-action-btn export" onclick="exportSelectedMembers()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
 
-                <!-- Members Table -->
+                <!-- Enhanced Members Table -->
                 <div class="members-table-container">
-                    <div class="table-header">
-                        <h3 class="table-title"><?php echo t('members.all_members'); ?></h3>
+                    <div class="table-controls">
+                        <div class="table-controls-left">
+                            <h3 class="table-title"><?php echo t('members.all_members'); ?></h3>
+                            <div class="select-all-wrapper">
+                                <input type="checkbox" id="selectAll" class="member-checkbox" onchange="toggleSelectAll()">
+                                <label for="selectAll" class="form-label mb-0">Select All</label>
+                            </div>
+                        </div>
+                        <div class="table-controls-right">
+                            <button class="export-btn" onclick="exportMembers()">
+                                <i class="fas fa-download"></i>
+                                Export All
+                            </button>
+                            <div class="table-view-options">
+                                <button class="btn btn-sm btn-outline-primary" onclick="toggleTableView('compact')" id="compactViewBtn">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary active" onclick="toggleTableView('detailed')" id="detailedViewBtn">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="members-table">
+                        <table class="members-table" id="membersTable">
                             <thead>
                                 <tr>
-                                    <th><?php echo t('members.member'); ?></th>
-                                    <th><?php echo t('members.contact'); ?></th>
-                                    <th><?php echo t('members.payment_details'); ?></th>
-                                    <th><?php echo t('members.payout_status'); ?></th>
-                                    <th><?php echo t('members.status'); ?></th>
+                                    <th width="40"><input type="checkbox" id="selectAllHeader" class="member-checkbox" onchange="toggleSelectAll()"></th>
+                                    <th onclick="sortTable('member')" class="sortable">
+                                        <?php echo t('members.member'); ?>
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th onclick="sortTable('contact')" class="sortable">
+                                        <?php echo t('members.contact'); ?>
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th onclick="sortTable('payment')" class="sortable">
+                                        <?php echo t('members.payment_details'); ?>
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th onclick="sortTable('payout')" class="sortable">
+                                        <?php echo t('members.payout_status'); ?>
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th onclick="sortTable('status')" class="sortable">
+                                        <?php echo t('members.status'); ?>
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
                                     <th><?php echo t('members.actions'); ?></th>
                                 </tr>
                             </thead>
                             <tbody id="membersTableBody">
-                                <?php foreach ($members as $member): ?>
-                                    <tr>
+                                <?php foreach ($members as $member): 
+                                    // Calculate member activity status
+                                    $last_login = $member['last_login'];
+                                    $activity_status = 'never-logged';
+                                    $activity_text = 'Never logged in';
+                                    
+                                    if ($last_login) {
+                                        $login_time = strtotime($last_login);
+                                        $now = time();
+                                        $hours_diff = ($now - $login_time) / 3600;
+                                        
+                                        if ($hours_diff <= 24) {
+                                            $activity_status = 'online';
+                                            $activity_text = 'Active (24h)';
+                                        } elseif ($hours_diff <= 168) { // 7 days
+                                            $activity_status = 'recent';
+                                            $activity_text = 'Recent (7d)';
+                                        } else {
+                                            $activity_status = 'never-logged';
+                                            $activity_text = 'Inactive';
+                                        }
+                                    }
+                                ?>
+                                    <tr data-member-id="<?php echo $member['id']; ?>" data-status="<?php echo $member['is_active'] ? 'active' : 'inactive'; ?>" data-payout="<?php echo $member['has_received_payout'] ? 'completed' : 'pending'; ?>" data-membership-type="<?php echo $member['membership_type']; ?>" data-equb-id="<?php echo $member['equb_settings_id']; ?>" data-payment-amount="<?php echo $member['monthly_payment']; ?>">
+                                        <td>
+                                            <input type="checkbox" class="member-checkbox member-select" value="<?php echo $member['id']; ?>" onchange="updateBulkActions()">
+                                        </td>
                                         <td>
                                             <div class="member-info">
                                                 <div class="member-avatar">
@@ -739,8 +1256,20 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                                                         <a href="member-profile.php?id=<?php echo $member['id']; ?>" class="member-name-link">
                                                             <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
                                                         </a>
+                                                        <?php if ($member['membership_type'] === 'joint'): ?>
+                                                            <span class="badge badge-joint">Joint</span>
+                                                        <?php endif; ?>
                                                     </div>
                                                     <div class="member-id"><?php echo htmlspecialchars($member['member_id']); ?></div>
+                                                    <div class="member-status-indicators">
+                                                        <span class="status-indicator <?php echo $activity_status; ?>" title="<?php echo $activity_text; ?>"></span>
+                                                        <?php if ($member['membership_type'] === 'joint'): ?>
+                                                            <span class="status-indicator joint" title="Joint Membership"></span>
+                                                        <?php endif; ?>
+                                                        <?php if (!$member['is_approved']): ?>
+                                                            <span class="status-indicator" style="background: #F59E0B;" title="Pending Approval"></span>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -752,8 +1281,27 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
                                         </td>
                                         <td>
                                             <div class="payment-info">
-                                                <div class="payment-amount">£<?php echo number_format($member['monthly_payment'], 0); ?>/<?php echo t('members.month'); ?></div>
-                                                <div class="payment-status"><?php echo t('members.paid'); ?>: £<?php echo number_format($member['total_paid'], 0); ?></div>
+                                                <div class="payment-amount">
+                                                    £<?php echo number_format($member['effective_monthly_payment'] ?: $member['monthly_payment'], 0); ?>/<?php echo t('members.month'); ?>
+                                                    <?php if ($member['membership_type'] === 'joint' && $member['individual_contribution']): ?>
+                                                        <small class="text-muted">(£<?php echo number_format($member['individual_contribution'], 0); ?> individual)</small>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="payment-status">
+                                                    <?php echo t('members.paid'); ?>: £<?php echo number_format($member['total_paid'], 0); ?>
+                                                    <?php 
+                                                    $expected = ($member['effective_monthly_payment'] ?: $member['monthly_payment']) * 12; // Assuming 12 months for calculation
+                                                    if ($expected > 0) {
+                                                        $percentage = ($member['total_paid'] / $expected) * 100;
+                                                        echo '<small class="text-muted">(' . round($percentage, 1) . '%)</small>';
+                                                    }
+                                                    ?>
+                                                </div>
+                                                <?php if ($member['membership_type'] === 'joint' && $member['group_name']): ?>
+                                                    <div class="joint-group-info">
+                                                        <small class="text-info"><i class="fas fa-users"></i> <?php echo htmlspecialchars($member['group_name']); ?></small>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                         <td>
@@ -1154,15 +1702,303 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
             }
         }
 
-        // Search functionality
-        document.getElementById('memberSearch').addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
+        // Enhanced search and filter functionality
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc';
+        let filteredMembers = [];
+        
+        function searchMembers() {
+            const searchTerm = document.getElementById('memberSearch').value.toLowerCase();
+            filterAndDisplayMembers();
+        }
+        
+        function filterMembers() {
+            filterAndDisplayMembers();
+        }
+        
+        function filterAndDisplayMembers() {
+            const searchTerm = document.getElementById('memberSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const payoutFilter = document.getElementById('payoutFilter').value;
+            const membershipTypeFilter = document.getElementById('membershipTypeFilter')?.value || '';
+            const equbTermFilter = document.getElementById('equbTermFilter')?.value || '';
+            const paymentRangeFilter = document.getElementById('paymentRangeFilter')?.value || '';
+            
             const rows = document.querySelectorAll('#membersTableBody tr');
+            let visibleCount = 0;
             
             rows.forEach(row => {
                 const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? '' : 'none';
+                const rowStatus = row.getAttribute('data-status');
+                const rowPayout = row.getAttribute('data-payout');
+                const rowMembershipType = row.getAttribute('data-membership-type');
+                const rowEqubId = row.getAttribute('data-equb-id');
+                const rowPaymentAmount = parseFloat(row.getAttribute('data-payment-amount'));
+                
+                let show = true;
+                
+                // Search filter
+                if (searchTerm && !text.includes(searchTerm)) {
+                    show = false;
+                }
+                
+                // Status filter
+                if (statusFilter) {
+                    if (statusFilter === 'pending_approval') {
+                        // Check if row has pending approval indicator
+                        if (!row.querySelector('.status-indicator[title="Pending Approval"]')) {
+                            show = false;
+                        }
+                    } else if (statusFilter !== rowStatus) {
+                        show = false;
+                    }
+                }
+                
+                // Payout filter
+                if (payoutFilter && payoutFilter !== rowPayout) {
+                    show = false;
+                }
+                
+                // Membership type filter
+                if (membershipTypeFilter && membershipTypeFilter !== rowMembershipType) {
+                    show = false;
+                }
+                
+                // EQUB term filter
+                if (equbTermFilter && equbTermFilter !== rowEqubId) {
+                    show = false;
+                }
+                
+                // Payment range filter
+                if (paymentRangeFilter && rowPaymentAmount) {
+                    const [min, max] = paymentRangeFilter.split('-').map(val => {
+                        if (val.includes('+')) return [parseFloat(val), Infinity];
+                        return parseFloat(val);
+                    });
+                    
+                    if (paymentRangeFilter.includes('-')) {
+                        const [minVal, maxVal] = paymentRangeFilter.split('-').map(parseFloat);
+                        if (rowPaymentAmount < minVal || rowPaymentAmount > maxVal) {
+                            show = false;
+                        }
+                    } else if (paymentRangeFilter.includes('+')) {
+                        const minVal = parseFloat(paymentRangeFilter);
+                        if (rowPaymentAmount < minVal) {
+                            show = false;
+                        }
+                    }
+                }
+                
+                row.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
             });
+            
+            // Update visible count
+            updateTableInfo(visibleCount, rows.length);
+        }
+        
+        function updateTableInfo(visible, total) {
+            const info = document.getElementById('tableInfo');
+            if (info) {
+                info.textContent = `Showing ${visible} of ${total} members`;
+            }
+        }
+        
+        // Advanced filter toggle
+        function toggleAdvancedFilters() {
+            const filters = document.getElementById('advancedFilters');
+            const toggle = document.querySelector('.filter-toggle');
+            
+            filters.classList.toggle('active');
+            toggle.classList.toggle('active');
+        }
+        
+        // Bulk selection functionality
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll') || document.getElementById('selectAllHeader');
+            const memberCheckboxes = document.querySelectorAll('.member-select:not([style*="display: none"])');
+            
+            memberCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            // Sync both select all checkboxes
+            document.getElementById('selectAll').checked = selectAll.checked;
+            document.getElementById('selectAllHeader').checked = selectAll.checked;
+            
+            updateBulkActions();
+        }
+        
+        function updateBulkActions() {
+            const selectedCheckboxes = document.querySelectorAll('.member-select:checked');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedCheckboxes.length > 0) {
+                bulkActions.classList.add('active');
+                selectedCount.textContent = selectedCheckboxes.length;
+            } else {
+                bulkActions.classList.remove('active');
+            }
+        }
+        
+        // Bulk actions
+        function bulkActivateMembers() {
+            const selectedMembers = Array.from(document.querySelectorAll('.member-select:checked')).map(cb => cb.value);
+            if (selectedMembers.length === 0) return;
+            
+            if (confirm(`Activate ${selectedMembers.length} selected members?`)) {
+                bulkUpdateMemberStatus(selectedMembers, 1);
+            }
+        }
+        
+        function bulkDeactivateMembers() {
+            const selectedMembers = Array.from(document.querySelectorAll('.member-select:checked')).map(cb => cb.value);
+            if (selectedMembers.length === 0) return;
+            
+            if (confirm(`Deactivate ${selectedMembers.length} selected members?`)) {
+                bulkUpdateMemberStatus(selectedMembers, 0);
+            }
+        }
+        
+        function bulkUpdateMemberStatus(memberIds, status) {
+            // Show loading state
+            const bulkActions = document.getElementById('bulkActions');
+            bulkActions.style.opacity = '0.6';
+            
+            Promise.all(memberIds.map(id => 
+                fetch('api/members.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=toggle_status&member_id=${id}&status=${status}&csrf_token=${document.querySelector('[name="csrf_token"]').value}`
+                })
+            )).then(() => {
+                location.reload(); // Refresh to show updated data
+            }).catch(error => {
+                alert('Error updating member status');
+                bulkActions.style.opacity = '1';
+            });
+        }
+        
+        function exportSelectedMembers() {
+            const selectedMembers = Array.from(document.querySelectorAll('.member-select:checked')).map(cb => cb.value);
+            if (selectedMembers.length === 0) {
+                alert('Please select members to export');
+                return;
+            }
+            
+            // Create form to submit selected member IDs
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'export-members.php';
+            
+            selectedMembers.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'member_ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+        
+        function exportMembers() {
+            window.open('export-members.php?all=1', '_blank');
+        }
+        
+        // Table sorting
+        function sortTable(column) {
+            const table = document.getElementById('membersTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Update sort direction
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortDirection = 'asc';
+                currentSortColumn = column;
+            }
+            
+            // Update header classes
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.classList.remove('asc', 'desc');
+            });
+            document.querySelector(`[onclick="sortTable('${column}')"]`).classList.add(currentSortDirection);
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 'member':
+                        aVal = a.querySelector('.member-name-link').textContent;
+                        bVal = b.querySelector('.member-name-link').textContent;
+                        break;
+                    case 'contact':
+                        aVal = a.querySelector('.contact-email').textContent;
+                        bVal = b.querySelector('.contact-email').textContent;
+                        break;
+                    case 'payment':
+                        aVal = parseFloat(a.getAttribute('data-payment-amount'));
+                        bVal = parseFloat(b.getAttribute('data-payment-amount'));
+                        break;
+                    case 'payout':
+                        aVal = a.getAttribute('data-payout');
+                        bVal = b.getAttribute('data-payout');
+                        break;
+                    case 'status':
+                        aVal = a.getAttribute('data-status');
+                        bVal = b.getAttribute('data-status');
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (currentSortDirection === 'asc') {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                }
+            });
+            
+            // Reorder rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        // Table view toggle
+        function toggleTableView(view) {
+            const table = document.getElementById('membersTable');
+            const compactBtn = document.getElementById('compactViewBtn');
+            const detailedBtn = document.getElementById('detailedViewBtn');
+            
+            if (view === 'compact') {
+                table.classList.add('compact-view');
+                compactBtn.classList.add('active');
+                detailedBtn.classList.remove('active');
+            } else {
+                table.classList.remove('compact-view');
+                detailedBtn.classList.add('active');
+                compactBtn.classList.remove('active');
+            }
+        }
+        
+        // Initialize filters
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up search listener
+            document.getElementById('memberSearch').addEventListener('input', searchMembers);
+            
+            // Initialize table info
+            const totalRows = document.querySelectorAll('#membersTableBody tr').length;
+            updateTableInfo(totalRows, totalRows);
         });
 
         // Member management functions

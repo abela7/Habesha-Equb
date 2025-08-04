@@ -189,26 +189,25 @@ $t = Translator::getInstance();
             </div>
 
             <!-- Security Settings -->
-            <div class="settings-category">
-                <div class="category-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <circle cx="12" cy="16" r="1"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
+            <div class="settings-category active-module">
+                <div class="module-header">
+                    <div class="module-icon danger">
+                        <i class="fas fa-shield-alt" style="font-size: 24px;"></i>
+                    </div>
+                    <div class="module-status">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
                 </div>
                 <h3>Security Settings</h3>
-                <p>Manage security policies, password requirements, and access controls</p>
+                <p>Monitor member login activities, OTP events, device tracking, and admin security</p>
                 <div class="category-features">
-                    <span class="feature-tag">Password Policy</span>
-                    <span class="feature-tag">Access Control</span>
-                    <span class="feature-tag">Session Security</span>
+                    <span class="feature-tag">Login Tracking</span>
+                    <span class="feature-tag">OTP Monitoring</span>
+                    <span class="feature-tag">Device Security</span>
                 </div>
-                <a href="#" class="btn btn-secondary" onclick="showComingSoon('Security Settings')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                    Security Config
+                <a href="security-settings.php" class="btn btn-primary">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Security Dashboard
                 </a>
             </div>
 
