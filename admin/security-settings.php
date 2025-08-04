@@ -17,8 +17,8 @@ try {
     // Debug: Check database connection and basic counts
     error_log("🔒 Security Settings: Starting database queries...");
     
-    // Member Login Activities - UPDATED FOR REAL DATABASE
-    $member_activities_query = "
+    // SIMPLE MEMBER LOGIN TRACKING
+    $member_activities = $pdo->query("
         SELECT 
             m.id,
             m.member_id,
@@ -29,132 +29,97 @@ try {
             m.created_at,
             m.is_active,
             m.is_approved,
-            es.equb_name,
-            CASE 
-                WHEN m.last_login IS NULL THEN 'Never logged in'
-                WHEN m.last_login >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'Active (24h)'
-                WHEN m.last_login >= DATE_SUB(NOW(), INTERVAL 7 DAYS) THEN 'Recent (7d)'
-                WHEN m.last_login >= DATE_SUB(NOW(), INTERVAL 30 DAYS) THEN 'Inactive (30d)'
-                ELSE 'Dormant (30d+)'
-            END as activity_status,
-            CASE 
-                WHEN m.last_login IS NULL THEN NULL
-                ELSE TIMESTAMPDIFF(DAY, m.last_login, NOW())
-            END as days_since_login
+            es.equb_name
         FROM members m
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
-        ORDER BY 
-            CASE WHEN m.last_login IS NULL THEN 1 ELSE 0 END,
-            m.last_login DESC
+        ORDER BY m.last_login DESC, m.created_at DESC
         LIMIT 50
-    ";
+    ")->fetchAll();
     
-    $member_activities = $pdo->query($member_activities_query)->fetchAll();
-    error_log("🔒 Found " . count($member_activities) . " member activities");
+    // SIMPLE SECURITY STATISTICS
+    $total_members = $pdo->query("SELECT COUNT(*) as count FROM members")->fetch()['count'];
+    $members_with_login = $pdo->query("SELECT COUNT(*) as count FROM members WHERE last_login IS NOT NULL")->fetch()['count'];
+    $members_never_logged = $pdo->query("SELECT COUNT(*) as count FROM members WHERE last_login IS NULL")->fetch()['count'];
+    $total_otps = $pdo->query("SELECT COUNT(*) as count FROM user_otps")->fetch()['count'];
+    $total_devices = $pdo->query("SELECT COUNT(*) as count FROM device_tracking")->fetch()['count'];
     
-    // Security Statistics - FIXED QUERIES
-    $security_stats_query = "
+    // Recent active members (24 hours)
+    $active_24h = $pdo->query("
+        SELECT COUNT(*) as count 
+        FROM members 
+        WHERE last_login > DATE_ADD(NOW(), INTERVAL -24 HOUR)
+    ")->fetch()['count'];
+    
+    // Recent OTP activities
+    $otp_24h = $pdo->query("
+        SELECT COUNT(*) as count 
+        FROM user_otps 
+        WHERE created_at > DATE_ADD(NOW(), INTERVAL -24 HOUR)
+    ")->fetch()['count'];
+    
+    $security_stats = [
+        'total_members' => $total_members,
+        'members_with_login' => $members_with_login,
+        'never_logged_in' => $members_never_logged,
+        'active_24h' => $active_24h,
+        'total_otps' => $total_otps,
+        'otp_requests_24h' => $otp_24h,
+        'total_devices' => $total_devices,
+        'successful_logins_24h' => 0,
+        'failed_attempts_24h' => 0,
+        'new_devices_7d' => 0,
+        'unapproved_devices' => 0,
+        'active_7d' => $members_with_login
+    ];
+    
+    // SIMPLE OTP ACTIVITIES
+    $recent_otp_activities = $pdo->query("
         SELECT 
-            (SELECT COUNT(*) FROM members WHERE last_login >= DATE_SUB(NOW(), INTERVAL 1 DAY)) as active_24h,
-            (SELECT COUNT(*) FROM members WHERE last_login >= DATE_SUB(NOW(), INTERVAL 7 DAYS)) as active_7d,
-            (SELECT COUNT(*) FROM members WHERE last_login IS NULL) as never_logged_in,
-            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)) as otp_requests_24h,
-            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) AND is_used = 1) as successful_logins_24h,
-            (SELECT COUNT(*) FROM user_otps WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) AND attempt_count > 1) as failed_attempts_24h,
-            (SELECT COUNT(*) FROM device_tracking WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAYS)) as new_devices_7d,
-            (SELECT COUNT(*) FROM device_tracking WHERE is_approved = 0) as unapproved_devices,
-            (SELECT COUNT(*) FROM members) as total_members,
-            (SELECT COUNT(*) FROM user_otps) as total_otps,
-            (SELECT COUNT(*) FROM device_tracking) as total_devices
-    ";
-    
-    $security_stats = $pdo->query($security_stats_query)->fetch();
-    error_log("🔒 Security stats: Active 24h: {$security_stats['active_24h']}, Never logged: {$security_stats['never_logged_in']}, Total members: {$security_stats['total_members']}");
-    
-    // Recent OTP Activities - IMPROVED QUERY
-    $recent_otp_query = "
-        SELECT 
-            uo.id,
             uo.email,
             uo.otp_type,
             uo.created_at,
-            uo.expires_at,
             uo.is_used,
             uo.attempt_count,
             m.first_name,
             m.last_name,
-            m.member_id,
-            CASE 
-                WHEN uo.is_used = 1 THEN 'Success'
-                WHEN uo.expires_at < NOW() THEN 'Expired'
-                WHEN uo.attempt_count > 1 THEN 'Failed'
-                ELSE 'Pending'
-            END as status
+            m.member_id
         FROM user_otps uo
         LEFT JOIN members m ON uo.email = m.email
         ORDER BY uo.created_at DESC
         LIMIT 30
-    ";
+    ")->fetchAll();
     
-    $recent_otp_activities = $pdo->query($recent_otp_query)->fetchAll();
-    error_log("🔒 Found " . count($recent_otp_activities) . " OTP activities");
-    
-    // Device Tracking - IMPROVED QUERY
-    $device_query = "
+    // SIMPLE DEVICE TRACKING
+    $device_activities = $pdo->query("
         SELECT 
-            dt.id,
             dt.email,
-            dt.device_fingerprint,
             dt.user_agent,
             dt.ip_address,
             dt.is_approved,
             dt.created_at,
             dt.last_seen,
-            dt.expires_at,
             m.first_name,
             m.last_name,
-            m.member_id,
-            CASE 
-                WHEN dt.expires_at IS NOT NULL AND dt.expires_at < NOW() THEN 'Expired'
-                WHEN dt.is_approved = 1 THEN 'Trusted'
-                ELSE 'Pending Approval'
-            END as device_status
+            m.member_id
         FROM device_tracking dt
         LEFT JOIN members m ON dt.email = m.email
-        ORDER BY 
-            CASE WHEN dt.last_seen IS NULL THEN 1 ELSE 0 END,
-            dt.last_seen DESC,
-            dt.created_at DESC
+        ORDER BY dt.created_at DESC
         LIMIT 20
-    ";
+    ")->fetchAll();
     
-    $device_activities = $pdo->query($device_query)->fetchAll();
-    error_log("🔒 Found " . count($device_activities) . " device activities");
-    
-    // Admin Activities - SAFER QUERY
-    $admin_query = "
+    // SIMPLE ADMIN ACTIVITIES
+    $admin_activities = $pdo->query("
         SELECT 
-            a.id,
-            a.username,
-            a.last_login,
-            a.is_active,
-            a.created_at,
-            CASE 
-                WHEN a.last_login IS NULL THEN 'Never logged in'
-                WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 1 HOUR) THEN 'Currently Active'
-                WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 'Active Today'
-                WHEN a.last_login >= DATE_SUB(NOW(), INTERVAL 7 DAYS) THEN 'Active This Week'
-                ELSE 'Inactive'
-            END as admin_status
-        FROM admins a
-        WHERE a.is_active = 1
-        ORDER BY 
-            CASE WHEN a.last_login IS NULL THEN 1 ELSE 0 END,
-            a.last_login DESC
-    ";
+            username,
+            last_login,
+            is_active,
+            created_at
+        FROM admins
+        WHERE is_active = 1
+        ORDER BY last_login DESC
+    ")->fetchAll();
     
-    $admin_activities = $pdo->query($admin_query)->fetchAll();
-    error_log("🔒 Found " . count($admin_activities) . " admin activities");
+    error_log("🔒 Security data loaded: {$total_members} members, {$total_otps} OTPs, {$total_devices} devices");
     
 } catch (Exception $e) {
     error_log("🚨 Security Settings CRITICAL ERROR: " . $e->getMessage());
@@ -706,6 +671,32 @@ $debug_info = [
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($member_activities as $activity): ?>
+                                            <?php 
+                                            // Calculate activity status
+                                            $activity_status = 'Never logged in';
+                                            $status_class = 'status-warning';
+                                            
+                                            if ($activity['last_login']) {
+                                                $login_time = strtotime($activity['last_login']);
+                                                $hours_ago = (time() - $login_time) / 3600;
+                                                
+                                                if ($hours_ago < 24) {
+                                                    $activity_status = 'Active (24h)';
+                                                    $status_class = 'status-success';
+                                                } elseif ($hours_ago < 168) { // 7 days
+                                                    $activity_status = 'Recent (7d)';
+                                                    $status_class = 'status-info';
+                                                } elseif ($hours_ago < 720) { // 30 days
+                                                    $activity_status = 'Inactive (30d)';
+                                                    $status_class = 'status-neutral';
+                                                } else {
+                                                    $activity_status = 'Dormant (30d+)';
+                                                    $status_class = 'status-neutral';
+                                                }
+                                            }
+                                            
+                                            $days_since_login = $activity['last_login'] ? floor((time() - strtotime($activity['last_login'])) / 86400) : null;
+                                            ?>
                                             <tr>
                                                 <td>
                                                     <div class="member-info">
@@ -723,18 +714,16 @@ $debug_info = [
                                                 <td>
                                                     <?php if ($activity['last_login']): ?>
                                                         <?php echo date('M j, Y g:i A', strtotime($activity['last_login'])); ?>
-                                                        <br><small class="text-muted"><?php echo $activity['days_since_login']; ?> days ago</small>
+                                                        <?php if ($days_since_login !== null): ?>
+                                                            <br><small class="text-muted"><?php echo $days_since_login; ?> days ago</small>
+                                                        <?php endif; ?>
                                                     <?php else: ?>
                                                         <span class="text-muted">Never</span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <span class="status-badge <?php 
-                                                        echo $activity['activity_status'] === 'Active (24h)' ? 'status-success' : 
-                                                            ($activity['activity_status'] === 'Recent (7d)' ? 'status-info' : 
-                                                            ($activity['activity_status'] === 'Never logged in' ? 'status-warning' : 'status-neutral'));
-                                                    ?>">
-                                                        <?php echo $activity['activity_status']; ?>
+                                                    <span class="status-badge <?php echo $status_class; ?>">
+                                                        <?php echo $activity_status; ?>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -783,6 +772,19 @@ $debug_info = [
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach (array_slice($recent_otp_activities, 0, 10) as $otp): ?>
+                                            <?php 
+                                            // Simple status calculation
+                                            if ($otp['is_used'] == 1) {
+                                                $status = 'Success';
+                                                $status_class = 'status-success';
+                                            } elseif ($otp['attempt_count'] > 3) {
+                                                $status = 'Failed';
+                                                $status_class = 'status-danger';
+                                            } else {
+                                                $status = 'Pending';
+                                                $status_class = 'status-info';
+                                            }
+                                            ?>
                                             <tr>
                                                 <td>
                                                     <?php if ($otp['first_name']): ?>
@@ -806,12 +808,8 @@ $debug_info = [
                                                     <small><?php echo date('M j, g:i A', strtotime($otp['created_at'])); ?></small>
                                                 </td>
                                                 <td>
-                                                    <span class="status-badge <?php 
-                                                        echo $otp['status'] === 'Success' ? 'status-success' : 
-                                                            ($otp['status'] === 'Failed' ? 'status-danger' : 
-                                                            ($otp['status'] === 'Expired' ? 'status-warning' : 'status-info'));
-                                                    ?>" style="font-size: 10px; padding: 3px 8px;">
-                                                        <?php echo $otp['status']; ?>
+                                                    <span class="status-badge <?php echo $status_class; ?>" style="font-size: 10px; padding: 3px 8px;">
+                                                        <?php echo $status; ?>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -853,6 +851,11 @@ $debug_info = [
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach (array_slice($device_activities, 0, 8) as $device): ?>
+                                            <?php 
+                                            // Simple device status
+                                            $device_status = $device['is_approved'] ? 'Trusted' : 'Pending';
+                                            $status_class = $device['is_approved'] ? 'status-success' : 'status-info';
+                                            ?>
                                             <tr>
                                                 <td>
                                                     <?php if ($device['first_name']): ?>
@@ -873,7 +876,7 @@ $debug_info = [
                                                     <small>
                                                         <?php 
                                                         // Extract browser from user agent
-                                                        $userAgent = $device['user_agent'];
+                                                        $userAgent = $device['user_agent'] ?? '';
                                                         if (strpos($userAgent, 'Chrome') !== false) {
                                                             echo '<i class="fab fa-chrome"></i> Chrome';
                                                         } elseif (strpos($userAgent, 'Firefox') !== false) {
@@ -885,7 +888,7 @@ $debug_info = [
                                                         }
                                                         ?>
                                                         <br>
-                                                        <span class="text-muted"><?php echo htmlspecialchars($device['ip_address']); ?></span>
+                                                        <span class="text-muted"><?php echo htmlspecialchars($device['ip_address'] ?? 'Unknown IP'); ?></span>
                                                     </small>
                                                 </td>
                                                 <td>
@@ -900,11 +903,8 @@ $debug_info = [
                                                     </small>
                                                 </td>
                                                 <td>
-                                                    <span class="status-badge <?php 
-                                                        echo $device['device_status'] === 'Trusted' ? 'status-success' : 
-                                                            ($device['device_status'] === 'Expired' ? 'status-warning' : 'status-info');
-                                                    ?>" style="font-size: 10px; padding: 3px 8px;">
-                                                        <?php echo $device['device_status']; ?>
+                                                    <span class="status-badge <?php echo $status_class; ?>" style="font-size: 10px; padding: 3px 8px;">
+                                                        <?php echo $device_status; ?>
                                                     </span>
                                                 </td>
                                             </tr>
@@ -946,6 +946,30 @@ $debug_info = [
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($admin_activities as $admin): ?>
+                                            <?php 
+                                            // Simple admin status calculation
+                                            $admin_status = 'Never logged in';
+                                            $status_class = 'status-neutral';
+                                            
+                                            if ($admin['last_login']) {
+                                                $login_time = strtotime($admin['last_login']);
+                                                $hours_ago = (time() - $login_time) / 3600;
+                                                
+                                                if ($hours_ago < 1) {
+                                                    $admin_status = 'Currently Active';
+                                                    $status_class = 'status-success';
+                                                } elseif ($hours_ago < 24) {
+                                                    $admin_status = 'Active Today';
+                                                    $status_class = 'status-info';
+                                                } elseif ($hours_ago < 168) {
+                                                    $admin_status = 'Active This Week';
+                                                    $status_class = 'status-warning';
+                                                } else {
+                                                    $admin_status = 'Inactive';
+                                                    $status_class = 'status-neutral';
+                                                }
+                                            }
+                                            ?>
                                             <tr>
                                                 <td>
                                                     <div class="member-info">
@@ -954,7 +978,7 @@ $debug_info = [
                                                         </div>
                                                         <div class="member-details">
                                                             <h6><?php echo htmlspecialchars($admin['username']); ?></h6>
-                                                            <p>Admin ID: <?php echo $admin['id']; ?></p>
+                                                            <p>Administrator</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -967,12 +991,8 @@ $debug_info = [
                                                 </td>
                                                 <td><?php echo date('M j, Y', strtotime($admin['created_at'])); ?></td>
                                                 <td>
-                                                    <span class="status-badge <?php 
-                                                        echo $admin['admin_status'] === 'Currently Active' ? 'status-success' : 
-                                                            ($admin['admin_status'] === 'Active Today' ? 'status-info' : 
-                                                            ($admin['admin_status'] === 'Active This Week' ? 'status-warning' : 'status-neutral'));
-                                                    ?>">
-                                                        <?php echo $admin['admin_status']; ?>
+                                                    <span class="status-badge <?php echo $status_class; ?>">
+                                                        <?php echo $admin_status; ?>
                                                     </span>
                                                 </td>
                                                 <td>
