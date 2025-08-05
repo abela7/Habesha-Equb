@@ -6,6 +6,7 @@
 
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/enhanced_equb_calculator.php';
 
 // Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
@@ -44,6 +45,23 @@ try {
         ORDER BY m.membership_type DESC, m.primary_joint_member DESC, m.first_name ASC, m.last_name ASC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculate expected payouts for each member using enhanced calculator
+    $calculator = getEnhancedEqubCalculator();
+    foreach ($members as &$member) {
+        try {
+            $payout_result = $calculator->calculateMemberFriendlyPayout($member['id']);
+            if ($payout_result['success']) {
+                $member['expected_payout'] = $payout_result['calculation']['display_payout_amount'];
+            } else {
+                $member['expected_payout'] = 0;
+            }
+        } catch (Exception $e) {
+            error_log("Error calculating payout for member {$member['id']}: " . $e->getMessage());
+            $member['expected_payout'] = 0;
+        }
+    }
+    unset($member); // Break reference
 } catch (PDOException $e) {
     error_log("Error fetching members: " . $e->getMessage());
     $members = [];
@@ -929,11 +947,19 @@ $csrf_token = generate_csrf_token();
                                     <select class="form-select" id="memberId" name="member_id" required>
                                         <option value=""><?php echo t('payments.select_member'); ?></option>
                                         <?php foreach ($members as $member): ?>
-                                            <option value="<?php echo $member['id']; ?>" data-payment="<?php echo $member['monthly_payment']; ?>">
+                                            <option value="<?php echo $member['id']; ?>" 
+                                                    data-payment="<?php echo $member['monthly_payment']; ?>" 
+                                                    data-expected-payout="<?php echo number_format($member['expected_payout'], 2); ?>">
                                                 <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['member_id'] . ')'); ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <div id="memberPayoutInfo" class="mt-2" style="display: none;">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> 
+                                            <strong>Expected Payout:</strong> £<span id="expectedPayoutAmount">0</span>
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1294,12 +1320,25 @@ $csrf_token = generate_csrf_token();
             });
         });
 
-        // Auto-fill amount when member is selected
+        // Auto-fill amount when member is selected and show expected payout
         document.getElementById('memberId').addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const monthlyPayment = selectedOption.getAttribute('data-payment');
+            const expectedPayout = selectedOption.getAttribute('data-expected-payout');
+            
             if (monthlyPayment && !isEditMode) {
                 document.getElementById('amount').value = monthlyPayment;
+            }
+            
+            // Show/hide expected payout info
+            const payoutInfo = document.getElementById('memberPayoutInfo');
+            const payoutAmount = document.getElementById('expectedPayoutAmount');
+            
+            if (expectedPayout && parseFloat(expectedPayout) > 0) {
+                payoutAmount.textContent = expectedPayout;
+                payoutInfo.style.display = 'block';
+            } else {
+                payoutInfo.style.display = 'none';
             }
         });
 

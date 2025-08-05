@@ -6,7 +6,7 @@
 
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
-require_once '../includes/equb_payout_calculator.php';
+require_once '../includes/enhanced_equb_calculator.php';
 
 // Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
