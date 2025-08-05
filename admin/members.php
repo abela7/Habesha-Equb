@@ -470,89 +470,68 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
             color: #D97706;
         }
 
-        /* Action Buttons */
+        /* Enhanced Action Buttons */
         .action-buttons {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
+            justify-content: flex-start;
         }
 
         .btn-action {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
             cursor: pointer;
             position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: white;
         }
 
         .btn-action i {
-            font-size: 14px;
+            font-size: 16px;
             transition: all 0.3s ease;
         }
 
         .btn-edit {
-            background: rgba(59, 130, 246, 0.1);
-            color: #2563EB;
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-color: var(--color-teal);
+            color: var(--color-teal);
         }
 
         .btn-edit:hover {
-            background: rgba(59, 130, 246, 0.2);
-            transform: scale(1.1);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-edit i {
-            color: #2563EB;
-        }
-
-        .btn-edit:hover i {
-            color: #1D4ED8;
+            background: var(--color-teal);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(15, 81, 71, 0.3);
         }
 
         .btn-toggle {
-            background: rgba(251, 191, 36, 0.1);
-            color: #D97706;
-            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-color: var(--color-gold);
+            color: var(--color-gold);
         }
 
         .btn-toggle:hover {
-            background: rgba(251, 191, 36, 0.2);
-            transform: scale(1.1);
-            border-color: rgba(251, 191, 36, 0.3);
-        }
-
-        .btn-toggle i {
-            color: #D97706;
-        }
-
-        .btn-toggle:hover i {
-            color: #B45309;
+            background: var(--color-gold);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .btn-delete {
-            background: rgba(239, 68, 68, 0.1);
-            color: #DC2626;
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-color: var(--color-coral);
+            color: var(--color-coral);
         }
 
         .btn-delete:hover {
-            background: rgba(239, 68, 68, 0.2);
-            transform: scale(1.1);
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-
-        .btn-delete i {
-            color: #DC2626;
-        }
-
-        .btn-delete:hover i {
-            color: #B91C1C;
+            background: var(--color-coral);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
         }
 
         /* Enhanced Stat Cards */
@@ -665,31 +644,54 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         }
         
         .bulk-action-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 2px solid;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: white;
+            margin-right: 12px;
+        }
+        
+        .bulk-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         
         .bulk-action-btn.activate {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.3);
-            color: #059669;
+            border-color: #10B981;
+            color: #10B981;
+        }
+        
+        .bulk-action-btn.activate:hover {
+            background: #10B981;
+            color: white;
         }
         
         .bulk-action-btn.deactivate {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.3);
-            color: #DC2626;
+            border-color: var(--color-coral);
+            color: var(--color-coral);
+        }
+        
+        .bulk-action-btn.deactivate:hover {
+            background: var(--color-coral);
+            color: white;
         }
         
         .bulk-action-btn.export {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: rgba(59, 130, 246, 0.3);
-            color: #2563EB;
+            border-color: var(--color-teal);
+            color: var(--color-teal);
+        }
+        
+        .bulk-action-btn.export:hover {
+            background: var(--color-teal);
+            color: white;
         }
         
         /* Enhanced Table */
@@ -1899,10 +1901,25 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                 return;
             }
             
-            // Create form to submit selected member IDs
+            // Create form to submit selected member IDs to export.php
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = 'export-members.php';
+            form.action = 'export.php';
+            form.target = '_blank'; // Open in new tab
+            
+            // Add action type
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'export_type';
+            actionInput.value = 'members';
+            form.appendChild(actionInput);
+            
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = document.querySelector('[name="csrf_token"]').value;
+            form.appendChild(csrfInput);
             
             selectedMembers.forEach(id => {
                 const input = document.createElement('input');
@@ -2145,7 +2162,7 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                 fetch('api/members.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=toggle_status&member_id=${id}&status=${status}`
+                    body: `action=toggle_status&member_id=${id}&status=${status}&csrf_token=${document.querySelector('[name="csrf_token"]').value}`
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -2284,6 +2301,9 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                 const row = `
                     <tr>
                         <td>
+                            <input type="checkbox" class="member-checkbox member-select" value="${member.id}" onchange="updateBulkActions()">
+                        </td>
+                        <td>
                             <div class="member-info">
                                 <div class="member-avatar">${initials}</div>
                                 <div class="member-details">
@@ -2340,16 +2360,53 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
 
         // Show toast notifications
         function showToast(message, type = 'info') {
-            // Simple toast implementation
+            // Create toast element
             const toast = document.createElement('div');
-            toast.className = `alert alert-${type === 'success' ? 'success' : 'info'} position-fixed`;
-            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-            toast.textContent = message;
+            toast.className = `toast-notification toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;margin-left:10px;cursor:pointer;">×</button>
+            `;
+            
+            // Add toast styles if not already added
+            if (!document.getElementById('toast-styles')) {
+                const style = document.createElement('style');
+                style.id = 'toast-styles';
+                style.textContent = `
+                    .toast-notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        padding: 15px 20px;
+                        border-radius: 8px;
+                        color: white;
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        animation: slideIn 0.3s ease;
+                    }
+                    .toast-success { background: #10B981; }
+                    .toast-error { background: #EF4444; }
+                    .toast-info { background: #3B82F6; }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
             document.body.appendChild(toast);
             
+            // Auto remove after 5 seconds
             setTimeout(() => {
-                toast.remove();
-            }, 3000);
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
         }
 
         // Filter event listeners
