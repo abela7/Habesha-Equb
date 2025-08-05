@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 03, 2025 at 02:08 PM
+-- Generation Time: Aug 05, 2025 at 02:19 AM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -76,7 +76,13 @@ INSERT INTO `device_tracking` (`id`, `email`, `device_fingerprint`, `device_toke
 (10, 'barnabasdagnachew25@gmail.com', 'dv_ea039d75b1a1fe89', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.34.4', '2025-08-02 13:24:34', '2025-08-02 13:24:34', 0),
 (11, 'koketabebe17@gmail.com', 'dv_74f5298ecd624920', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1', '109.151.51.153', '2025-08-02 14:23:22', '2025-08-02 14:23:22', 0),
 (12, 'biniamtsegay77@gmail.com', 'dv_c3b9db2b1191d5d7', NULL, NULL, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36', '148.252.141.193', '2025-08-03 11:27:46', '2025-08-03 11:27:46', 0),
-(13, 'marufnasirrrr@gmail.com', 'dv_31a88f4f3f387ee7', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', '31.94.34.102', '2025-08-03 12:12:17', '2025-08-03 12:12:17', 0);
+(13, 'marufnasirrrr@gmail.com', 'dv_31a88f4f3f387ee7', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', '31.94.34.102', '2025-08-03 12:12:17', '2025-08-03 12:12:17', 0),
+(14, 'kagnew_s@yahoo.com', 'dv_c3b9db2b1191d5d7', NULL, NULL, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36', '193.237.166.126', '2025-08-03 14:47:16', '2025-08-03 14:47:16', 0),
+(15, 'haderaeldaba@gmail.com', 'dv_d52b74bd7763d5be', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '38.114.120.160', '2025-08-03 20:57:37', '2025-08-03 20:57:37', 0),
+(16, 'haderaeldana@gmail.com', 'dv_d52b74bd7763d5be', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', '38.114.120.160', '2025-08-03 21:01:16', '2025-08-03 21:01:16', 0),
+(17, 'eliasfriew616@gmail.com', 'dv_c3b9db2b1191d5d7', NULL, NULL, 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36', '92.29.197.246', '2025-08-03 22:58:18', '2025-08-03 22:58:18', 0),
+(18, 'hagosmahleit@gmail.com', 'dv_7ddeda88d0c599cc', NULL, NULL, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', '193.237.166.126', '2025-08-04 01:14:28', '2025-08-04 01:14:28', 0),
+(19, 'samyshafi01@gmail.com', 'dv_ea039d75b1a1fe89', NULL, NULL, 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Mobile/15E148 Safari/604.1', '31.94.62.225', '2025-08-04 16:36:28', '2025-08-04 16:36:28', 0);
 
 -- --------------------------------------------------------
 
@@ -116,8 +122,39 @@ INSERT INTO `email_rate_limits` (`id`, `email_address`, `email_type`, `sent_coun
 (1, 'abelgtm77@gmail.com', 'account_approved', 4, '2025-08-02 08:53:48', '2025-08-03 07:53:35'),
 (2, 'abeldemessie77@gmail.com', 'account_approved', 2, '2025-08-02 09:14:56', '2025-08-03 07:56:36'),
 (3, 'abelgoytom77@gmail.com', 'account_approved', 6, '2025-08-02 11:38:24', '2025-08-03 08:27:16'),
-(11, 'abelgoytom77@gmail.com', 'otp_login', 33, '2025-08-03 12:53:52', '2025-08-02 10:30:05'),
+(11, 'abelgoytom77@gmail.com', 'otp_login', 39, '2025-08-04 23:22:03', '2025-08-02 10:30:05'),
 (16, 'abeldemessie77@gmail.com', 'otp_login', 1, '2025-08-02 09:46:53', '2025-08-02 10:46:53');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `equb_financial_summary`
+--
+
+CREATE TABLE `equb_financial_summary` (
+  `id` int(11) NOT NULL,
+  `equb_settings_id` int(11) NOT NULL,
+  `calculation_date` date NOT NULL,
+  `total_members` int(3) NOT NULL,
+  `individual_members` int(3) NOT NULL,
+  `joint_groups` int(3) NOT NULL,
+  `total_monthly_pool` decimal(15,2) NOT NULL,
+  `total_pool_duration` decimal(15,2) NOT NULL,
+  `total_collected` decimal(15,2) DEFAULT 0.00,
+  `total_distributed` decimal(15,2) DEFAULT 0.00,
+  `outstanding_balance` decimal(15,2) DEFAULT 0.00,
+  `admin_fees_collected` decimal(12,2) DEFAULT 0.00,
+  `late_fees_collected` decimal(12,2) DEFAULT 0.00,
+  `financial_status` enum('balanced','surplus','deficit') DEFAULT 'balanced',
+  `last_updated` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `equb_financial_summary`
+--
+
+INSERT INTO `equb_financial_summary` (`id`, `equb_settings_id`, `calculation_date`, `total_members`, `individual_members`, `joint_groups`, `total_monthly_pool`, `total_pool_duration`, `total_collected`, `total_distributed`, `outstanding_balance`, `admin_fees_collected`, `late_fees_collected`, `financial_status`, `last_updated`) VALUES
+(1, 2, '2025-08-03', 1, 1, 0, 1000.00, 9000.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'balanced', '2025-08-03 13:24:09');
 
 -- --------------------------------------------------------
 
@@ -187,15 +224,88 @@ CREATE TABLE `equb_settings` (
   `distributed_amount` decimal(15,2) DEFAULT 0.00 COMMENT 'Total distributed so far',
   `notes` text DEFAULT NULL COMMENT 'Admin notes about this equb term',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `supports_joint_membership` tinyint(1) DEFAULT 1 COMMENT 'Whether this equb allows joint memberships',
+  `max_joint_members_per_group` tinyint(2) DEFAULT 3 COMMENT 'Maximum members allowed in a joint group',
+  `financial_status` enum('balanced','surplus','deficit','under_review') DEFAULT 'balanced',
+  `last_financial_audit` timestamp NULL DEFAULT NULL COMMENT 'Last time financial audit was performed'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `equb_settings`
 --
 
-INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`) VALUES
-(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 10, 1, 9, '2025-07-01', '2026-04-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 90000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-08-03 12:04:00');
+INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`, `supports_joint_membership`, `max_joint_members_per_group`, `financial_status`, `last_financial_audit`) VALUES
+(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 11, 11, 10, '2025-07-01', '2026-05-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 110000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-08-04 22:30:04', 1, 3, 'balanced', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `financial_audit_trail`
+--
+
+CREATE TABLE `financial_audit_trail` (
+  `id` int(11) NOT NULL,
+  `equb_settings_id` int(11) NOT NULL,
+  `member_id` int(11) DEFAULT NULL,
+  `action_type` enum('payment_added','payment_verified','payout_calculated','payout_processed','joint_split_processed','financial_adjustment') NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `description` text NOT NULL,
+  `performed_by_admin_id` int(11) NOT NULL,
+  `reference_id` int(11) DEFAULT NULL COMMENT 'Reference to payment/payout ID',
+  `before_balance` decimal(12,2) DEFAULT NULL,
+  `after_balance` decimal(12,2) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `joint_membership_groups`
+--
+
+CREATE TABLE `joint_membership_groups` (
+  `id` int(11) NOT NULL,
+  `joint_group_id` varchar(20) NOT NULL COMMENT 'Unique identifier: JNT-EQB001-001',
+  `equb_settings_id` int(11) NOT NULL,
+  `group_name` varchar(100) DEFAULT NULL COMMENT 'Optional name for the joint group',
+  `total_monthly_payment` decimal(10,2) NOT NULL COMMENT 'Combined monthly payment for the group',
+  `member_count` tinyint(2) NOT NULL DEFAULT 2 COMMENT 'Number of members in the joint group',
+  `payout_position` int(3) NOT NULL COMMENT 'Shared payout position',
+  `payout_split_method` enum('equal','proportional','custom') DEFAULT 'equal',
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `joint_membership_groups`
+--
+
+INSERT INTO `joint_membership_groups` (`id`, `joint_group_id`, `equb_settings_id`, `group_name`, `total_monthly_payment`, `member_count`, `payout_position`, `payout_split_method`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'JNT-2025-002-902', 2, 'Eldana & Sosina', 1000.00, 2, 9, 'equal', 1, '2025-08-04 13:57:00', '2025-08-04 17:40:05'),
+(2, 'JNT-2025-002-115', 2, 'Miki & Koki', 2000.00, 2, 6, 'proportional', 1, '2025-08-04 17:20:46', '2025-08-04 17:39:28');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `joint_payout_splits`
+--
+
+CREATE TABLE `joint_payout_splits` (
+  `id` int(11) NOT NULL,
+  `joint_group_id` varchar(20) NOT NULL,
+  `member_id` int(11) NOT NULL,
+  `payout_id` int(11) NOT NULL COMMENT 'Reference to main payout record',
+  `split_amount` decimal(12,2) NOT NULL COMMENT 'Individual share of the payout',
+  `split_percentage` decimal(5,4) NOT NULL COMMENT 'Percentage of total payout (0.5000 = 50%)',
+  `payment_method` enum('cash','bank_transfer','mobile_money') DEFAULT 'bank_transfer',
+  `transaction_reference` varchar(100) DEFAULT NULL,
+  `is_paid` tinyint(1) DEFAULT 0,
+  `paid_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -238,20 +348,32 @@ CREATE TABLE `members` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `email_notifications` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Enable/disable email notifications (0=No, 1=Yes)',
   `payment_reminders` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Enable/disable payment reminder notifications (0=No, 1=Yes)',
-  `swap_terms_allowed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow swapping payout terms with other members (0=No, 1=Yes)'
+  `swap_terms_allowed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow swapping payout terms with other members (0=No, 1=Yes)',
+  `membership_type` enum('individual','joint') NOT NULL DEFAULT 'individual' COMMENT 'Type of membership - individual or joint',
+  `joint_group_id` varchar(20) DEFAULT NULL COMMENT 'Unique identifier for joint membership group',
+  `joint_member_count` tinyint(2) DEFAULT 1 COMMENT 'Number of people in joint membership (1 for individual)',
+  `individual_contribution` decimal(10,2) DEFAULT NULL COMMENT 'Individual contribution amount for joint members',
+  `joint_position_share` decimal(5,4) DEFAULT 1.0000 COMMENT 'Share of the joint position (0.5 for 50/50 split)',
+  `primary_joint_member` tinyint(1) DEFAULT 1 COMMENT '1 if primary contact for joint membership',
+  `payout_split_method` enum('equal','proportional','custom') DEFAULT 'equal' COMMENT 'How to split payouts in joint membership'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`) VALUES
-(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-03 12:43:57', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-03 12:44:07', 1, 1, 0),
-(8, NULL, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, NULL, '2025-08-02 12:16:00', '2025-08-03 11:49:18', 1, 1, 0),
-(10, NULL, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, NULL, '2025-08-02 13:24:34', '2025-08-03 11:49:29', 1, 1, 0),
-(11, NULL, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, NULL, '2025-08-02 14:23:22', '2025-08-03 11:49:32', 1, 1, 0),
-(12, NULL, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, NULL, '2025-08-03 11:27:46', '2025-08-03 11:49:36', 1, 1, 0),
-(13, NULL, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 0.00, 0, NULL, 0.00, 0, 'Pending', 'Pending', 'Pending', NULL, NULL, 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, NULL, '2025-08-03 12:12:17', '2025-08-03 12:12:17', 1, 1, 0);
+INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`, `membership_type`, `joint_group_id`, `joint_member_count`, `individual_contribution`, `joint_position_share`, `primary_joint_member`, `payout_split_method`) VALUES
+(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-04 23:22:16', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-04 23:22:16', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 8, '2026-02-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, '2025-10-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 6, '2025-12-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-04 17:43:17', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 500.00, 0.5000, 1, 'equal'),
+(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 7, '2026-01-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, '2025-08-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 6, '2025-12-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-04 17:43:17', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 1500.00, 0.5000, 1, 'equal'),
+(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 9, '2026-03-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-04 20:16:15', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
+(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 5, '2025-11-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 22:58:18', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 9, '2026-03-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-04 20:16:15', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
+(20, 2, 'HEM-SS384', 'samyshafi01', 'Samson', 'Shafi', 'Samson Shafi', 'samyshafi01@gmail.com', '07543445583', 'active', 1000.00, 3, '2025-09-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 16:36:28', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal');
 
 -- --------------------------------------------------------
 
@@ -313,6 +435,21 @@ INSERT INTO `notifications` (`id`, `notification_id`, `recipient_type`, `recipie
 (19, 'NOT-202508-871', 'member', 2, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 09:14:56', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 09:14:56', '2025-08-02 09:14:56'),
 (20, 'NOT-202508-860', 'member', 6, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 10:45:38', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 10:45:38', '2025-08-02 10:45:38'),
 (21, 'NOT-202508-670', 'member', 7, NULL, NULL, 'approval', 'email', 'Account Approved', 'Welcome to HabeshaEqub!', 'en', 'sent', '2025-08-02 11:38:24', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 'normal', 'User approved. Email sent', '2025-08-02 11:38:24', '2025-08-02 11:38:24');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notification_reads`
+--
+
+CREATE TABLE `notification_reads` (
+  `id` int(11) NOT NULL,
+  `notification_id` int(11) NOT NULL,
+  `member_id` int(11) NOT NULL,
+  `is_read` tinyint(1) DEFAULT 0 COMMENT '0 = unread, 1 = read',
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -435,7 +572,7 @@ CREATE TABLE `user_otps` (
 --
 
 INSERT INTO `user_otps` (`id`, `user_id`, `email`, `otp_code`, `otp_type`, `expires_at`, `is_used`, `attempt_count`, `created_at`) VALUES
-(50, 7, 'abelgoytom77@gmail.com', '4032', 'otp_login', '2025-08-03 13:03:51', 0, 0, '2025-08-03 12:53:51');
+(56, 7, 'abelgoytom77@gmail.com', '1283', 'otp_login', '2025-08-04 23:32:03', 1, 0, '2025-08-04 23:22:03');
 
 --
 -- Indexes for dumped tables
@@ -479,6 +616,14 @@ ALTER TABLE `email_rate_limits`
   ADD KEY `idx_reset_at` (`reset_at`);
 
 --
+-- Indexes for table `equb_financial_summary`
+--
+ALTER TABLE `equb_financial_summary`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_equb_date` (`equb_settings_id`,`calculation_date`),
+  ADD KEY `idx_calculation_date` (`calculation_date`);
+
+--
 -- Indexes for table `equb_rules`
 --
 ALTER TABLE `equb_rules`
@@ -503,6 +648,35 @@ ALTER TABLE `equb_settings`
   ADD KEY `idx_featured` (`is_featured`);
 
 --
+-- Indexes for table `financial_audit_trail`
+--
+ALTER TABLE `financial_audit_trail`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_equb` (`equb_settings_id`),
+  ADD KEY `idx_member` (`member_id`),
+  ADD KEY `idx_action_type` (`action_type`),
+  ADD KEY `idx_admin` (`performed_by_admin_id`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
+-- Indexes for table `joint_membership_groups`
+--
+ALTER TABLE `joint_membership_groups`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `joint_group_id` (`joint_group_id`),
+  ADD KEY `idx_equb_settings` (`equb_settings_id`),
+  ADD KEY `idx_active` (`is_active`);
+
+--
+-- Indexes for table `joint_payout_splits`
+--
+ALTER TABLE `joint_payout_splits`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_joint_group` (`joint_group_id`),
+  ADD KEY `idx_member` (`member_id`),
+  ADD KEY `idx_payout` (`payout_id`);
+
+--
 -- Indexes for table `members`
 --
 ALTER TABLE `members`
@@ -515,7 +689,10 @@ ALTER TABLE `members`
   ADD KEY `idx_active` (`is_active`),
   ADD KEY `idx_approved` (`is_approved`),
   ADD KEY `idx_payout_position` (`payout_position`),
-  ADD KEY `idx_equb_settings` (`equb_settings_id`);
+  ADD KEY `idx_equb_settings` (`equb_settings_id`),
+  ADD KEY `idx_membership_type` (`membership_type`),
+  ADD KEY `idx_joint_group` (`joint_group_id`),
+  ADD KEY `idx_primary_joint` (`primary_joint_member`);
 
 --
 -- Indexes for table `notifications`
@@ -531,6 +708,16 @@ ALTER TABLE `notifications`
   ADD KEY `idx_sent_at` (`sent_at`),
   ADD KEY `idx_scheduled` (`scheduled_for`),
   ADD KEY `sent_by_admin_id` (`sent_by_admin_id`);
+
+--
+-- Indexes for table `notification_reads`
+--
+ALTER TABLE `notification_reads`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_notification_member` (`notification_id`,`member_id`),
+  ADD KEY `idx_notification` (`notification_id`),
+  ADD KEY `idx_member` (`member_id`),
+  ADD KEY `idx_is_read` (`is_read`);
 
 --
 -- Indexes for table `payments`
@@ -591,7 +778,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `device_tracking`
 --
 ALTER TABLE `device_tracking`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `email_preferences`
@@ -603,7 +790,13 @@ ALTER TABLE `email_preferences`
 -- AUTO_INCREMENT for table `email_rate_limits`
 --
 ALTER TABLE `email_rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+
+--
+-- AUTO_INCREMENT for table `equb_financial_summary`
+--
+ALTER TABLE `equb_financial_summary`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `equb_rules`
@@ -618,16 +811,40 @@ ALTER TABLE `equb_settings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `financial_audit_trail`
+--
+ALTER TABLE `financial_audit_trail`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `joint_membership_groups`
+--
+ALTER TABLE `joint_membership_groups`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `joint_payout_splits`
+--
+ALTER TABLE `joint_payout_splits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `members`
 --
 ALTER TABLE `members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+
+--
+-- AUTO_INCREMENT for table `notification_reads`
+--
+ALTER TABLE `notification_reads`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payments`
@@ -651,7 +868,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `user_otps`
 --
 ALTER TABLE `user_otps`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- Constraints for dumped tables
@@ -664,11 +881,38 @@ ALTER TABLE `email_preferences`
   ADD CONSTRAINT `email_preferences_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `members` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `equb_financial_summary`
+--
+ALTER TABLE `equb_financial_summary`
+  ADD CONSTRAINT `financial_summary_equb_fk` FOREIGN KEY (`equb_settings_id`) REFERENCES `equb_settings` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `equb_settings`
 --
 ALTER TABLE `equb_settings`
   ADD CONSTRAINT `equb_settings_ibfk_1` FOREIGN KEY (`created_by_admin_id`) REFERENCES `admins` (`id`),
   ADD CONSTRAINT `equb_settings_ibfk_2` FOREIGN KEY (`managed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `financial_audit_trail`
+--
+ALTER TABLE `financial_audit_trail`
+  ADD CONSTRAINT `audit_admin_fk` FOREIGN KEY (`performed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `audit_equb_fk` FOREIGN KEY (`equb_settings_id`) REFERENCES `equb_settings` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `audit_member_fk` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `joint_membership_groups`
+--
+ALTER TABLE `joint_membership_groups`
+  ADD CONSTRAINT `joint_groups_equb_fk` FOREIGN KEY (`equb_settings_id`) REFERENCES `equb_settings` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `joint_payout_splits`
+--
+ALTER TABLE `joint_payout_splits`
+  ADD CONSTRAINT `joint_splits_member_fk` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `joint_splits_payout_fk` FOREIGN KEY (`payout_id`) REFERENCES `payouts` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `members`
@@ -681,6 +925,13 @@ ALTER TABLE `members`
 --
 ALTER TABLE `notifications`
   ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`sent_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `notification_reads`
+--
+ALTER TABLE `notification_reads`
+  ADD CONSTRAINT `notification_reads_ibfk_1` FOREIGN KEY (`notification_id`) REFERENCES `notifications` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `notification_reads_ibfk_2` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `payments`

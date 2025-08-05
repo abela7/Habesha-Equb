@@ -726,6 +726,14 @@ try {
                     <div class="action-title">Security Settings</div>
                     <p class="action-desc">Monitor member activities, login tracking, and security events</p>
                 </a>
+                
+                <a href="equb-diagnostics.php" class="action-card" style="background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%); color: white;">
+                    <div class="action-icon">
+                        <i class="fas fa-diagnoses"></i>
+                    </div>
+                    <div class="action-title">EQUB Diagnostics</div>
+                    <p class="action-desc">Analyze and fix EQUB position calculations and logical issues</p>
+                </a>
             </div>
 
             <!-- Activity Section -->

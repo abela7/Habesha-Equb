@@ -944,6 +944,16 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Security Settings</span>
             </a>
+            <a href="equb-diagnostics.php" class="nav-item <?php echo ($current_page === 'equb-diagnostics.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <path d="M21 12c.552 0 1-.448 1-1s-.448-1-1-1h-1c-.552 0-1 .448-1 1s.448 1 1 1h1z"/>
+                    <path d="M3 12c.552 0 1-.448 1-1s-.448-1-1-1H2c-.552 0-1 .448-1 1s.448 1 1 1h1z"/>
+                    <path d="M12 3c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
+                    <path d="M12 21c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z"/>
+                </svg>
+                <span class="nav-text">EQUB Diagnostics</span>
+            </a>
             
             <!-- Language Selector -->
             <div class="language-dropdown sidebar-language" data-csrf-token="<?php echo htmlspecialchars($csrf_token); ?>">
