@@ -204,7 +204,8 @@ class EnhancedEqubCalculator {
                     'display_payout' => $display_payout, // What member sees
                     'real_net_payout' => $real_net_payout, // What member actually gets
                     'position_coefficient' => $position_coefficient,
-                    'total_monthly_pool' => $total_monthly_pool
+                    'total_monthly_pool' => $total_monthly_pool,
+                    'gross_payout_per_position' => $gross_payout_per_position // For debugging
                 ],
                 'payout_date' => $this->calculatePayoutDate($member)
             ];

@@ -49,6 +49,13 @@ function calculateMemberPayout() {
     $result = $calculator->calculateMemberFriendlyPayout($member_id);
     
     if ($result['success']) {
+        // Add debugging information
+        error_log("PAYOUT DEBUG for Member ID $member_id:");
+        error_log("- Monthly Pool: " . $result['calculation']['total_monthly_pool']);
+        error_log("- Gross Payout Per Position: " . $result['calculation']['gross_payout_per_position'] ?? 'N/A');
+        error_log("- Individual Gross: " . $result['calculation']['gross_payout']);
+        error_log("- Position Coefficient: " . $result['calculation']['position_coefficient']);
+        
         // Format response for compatibility with existing frontend
         $response = [
             'success' => true,
@@ -61,7 +68,14 @@ function calculateMemberPayout() {
             'net_payout' => $result['calculation']['real_net_payout'], // Real amount member gets
             'display_payout' => $result['calculation']['display_payout'], // Member-friendly amount
             'share_ratio' => $result['calculation']['position_coefficient'],
-            'total_pool' => $result['calculation']['total_monthly_pool'] * 9 // Assuming 9 months duration
+            'total_pool' => $result['calculation']['total_monthly_pool'] * 9, // Assuming 9 months duration
+            
+            // Add debug info to response
+            'debug' => [
+                'gross_payout_per_position' => $result['calculation']['gross_payout_per_position'] ?? 'N/A',
+                'individual_contribution' => $result['member_info']['monthly_payment'],
+                'calculation_method' => $result['member_info']['position_coefficient'] > 1 ? 'joint_group' : 'individual'
+            ]
         ];
         echo json_encode($response);
     } else {

@@ -1290,16 +1290,24 @@ $csrf_token = generate_csrf_token();
                     document.getElementById('totalAmount').value = data.net_payout.toFixed(2);
                     
                     // Show calculation details for admin reference
-                    console.info('Equb Payout Calculation:');
+                    console.info('🔍 Equb Payout Calculation DEBUG:');
                     console.info('├─ Member:', data.member_name);
                     console.info('├─ Monthly Payment: £' + data.monthly_payment);
                     console.info('├─ Position Coefficient:', data.position_coefficient);
                     console.info('├─ Monthly Pool: £' + data.total_monthly_pool);
+                    console.info('├─ Gross Per Position: £' + (data.debug?.gross_payout_per_position || 'N/A'));
                     console.info('├─ Total Pool: £' + data.total_pool);
-                    console.info('├─ Gross Payout: £' + data.gross_payout.toFixed(2));
+                    console.info('├─ Individual Gross: £' + data.gross_payout.toFixed(2));
                     console.info('├─ Admin Fee: £' + data.admin_fee.toFixed(2));
                     console.info('├─ Net Payout (Real): £' + data.net_payout.toFixed(2));
-                    console.info('└─ Display Payout: £' + data.display_payout.toFixed(2));
+                    console.info('├─ Display Payout: £' + data.display_payout.toFixed(2));
+                    console.info('└─ Calculation Method:', data.debug?.calculation_method || 'N/A');
+                    
+                    // Check if calculation seems wrong
+                    if (data.total_monthly_pool > 8000 && data.gross_payout < 8000) {
+                        console.warn('🚨 POTENTIAL CALCULATION ERROR: Monthly pool is £' + data.total_monthly_pool + ' but individual gross is only £' + data.gross_payout.toFixed(2));
+                        console.warn('Expected: Individual gross should be around £' + data.total_monthly_pool + ' for position coefficient ' + data.position_coefficient);
+                    }
                     
                     if (membershipType === 'joint') {
                         console.info('🔄 JOINT GROUP: Will create individual payouts for all group members');
