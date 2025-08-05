@@ -955,6 +955,13 @@ body.no-scroll {
                 <span class="nav-text">EQUB Diagnostics</span>
             </a>
             
+            <a href="smart-equb-diagnostics.php" class="nav-item <?php echo ($current_page === 'smart-equb-diagnostics.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                </svg>
+                <span class="nav-text">🚨 Smart Fix</span>
+            </a>
+            
             <!-- Language Selector -->
             <div class="language-dropdown sidebar-language" data-csrf-token="<?php echo htmlspecialchars($csrf_token); ?>">
                 <button class="nav-item language-btn" id="languageBtn" title="Switch Language">

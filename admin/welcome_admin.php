@@ -734,6 +734,17 @@ try {
                     <div class="action-title">EQUB Diagnostics</div>
                     <p class="action-desc">Analyze and fix EQUB position calculations and logical issues</p>
                 </a>
+                
+                <a href="smart-equb-diagnostics.php" class="action-card" style="background: linear-gradient(135deg, #FF6B35 0%, #FF4500 100%); color: white; border: 3px solid #FFD700; position: relative; overflow: hidden;">
+                    <div class="action-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="action-title">🚨 SMART FIX</div>
+                    <p class="action-desc">CRITICAL: Fix fundamental EQUB duration & payout logic errors</p>
+                    <div style="position: absolute; top: 5px; right: 5px; background: #FFD700; color: #FF4500; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;">
+                        URGENT
+                    </div>
+                </a>
             </div>
 
             <!-- Activity Section -->
