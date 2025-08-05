@@ -650,11 +650,11 @@ $csrf_token = generate_csrf_token();
                         </select>
                         <select class="filter-select" id="memberFilter">
                             <option value=""><?php echo t('payouts.all_members'); ?></option>
-                            <?php foreach ($members as $member): ?>
-                                <option value="<?php echo $member['id']; ?>">
-                                    <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
-                                </option>
-                            <?php endforeach; ?>
+                                            <?php foreach ($members as $member): ?>
+                    <option value="<?php echo $member['primary_member_id']; ?>">
+                        <?php echo htmlspecialchars($member['member_names']); ?>
+                    </option>
+                <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -779,11 +779,11 @@ $csrf_token = generate_csrf_token();
                                 <select class="form-select" id="memberId" name="member_id" required>
                                     <option value="">Select Member</option>
                                     <?php foreach ($members as $member): ?>
-                                        <option value="<?php echo $member['id']; ?>" 
+                                        <option value="<?php echo $member['primary_member_id']; ?>" 
                                                 data-payment="<?php echo $member['monthly_payment']; ?>"
                                                 data-position="<?php echo $member['payout_position']; ?>"
                                                 data-received="<?php echo $member['has_received_payout']; ?>">
-                                            <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name'] . ' (' . $member['member_id'] . ')'); ?>
+                                            <?php echo htmlspecialchars($member['member_names'] . ' (' . $member['entity_identifier'] . ')'); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>

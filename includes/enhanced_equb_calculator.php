@@ -386,4 +386,15 @@ class EnhancedEqubCalculator {
         }
     }
 }
+
+// Helper function to get the enhanced calculator
+function getEnhancedEqubCalculator() {
+    global $pdo;
+    
+    if (!isset($pdo)) {
+        require_once __DIR__ . '/db.php';
+    }
+    
+    return new EnhancedEqubCalculator($pdo);
+}
 ?>
