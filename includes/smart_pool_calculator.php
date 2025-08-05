@@ -17,7 +17,7 @@ class SmartPoolCalculator {
     }
     
     /**
-     * Calculate CORRECT EQUB duration and pool amounts
+     * Calculate CORRECT EQUB metrics (duration is FIXED by admin!)
      */
     public function calculateCorrectEqubMetrics($equb_id) {
         try {
@@ -37,15 +37,16 @@ class SmartPoolCalculator {
                 return ['success' => false, 'message' => 'Regular payment tier not set'];
             }
             
-            // Calculate TOTAL MONTHLY POOL (not individual contributions!)
+            // DURATION IS FIXED (set by admin) - NOT calculated!
+            $fixed_duration = intval($equb['duration_months']);
+            
+            // Calculate TOTAL MONTHLY POOL
             $stmt = $this->db->prepare("
                 SELECT 
-                    SUM(
-                        CASE 
-                            WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
-                            ELSE m.monthly_payment
-                        END
-                    ) as total_monthly_pool
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                        ELSE m.monthly_payment
+                    END as contribution
                 FROM members m
                 LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
                 WHERE m.equb_settings_id = ? AND m.is_active = 1
@@ -56,23 +57,39 @@ class SmartPoolCalculator {
                     END
             ");
             $stmt->execute([$equb_id]);
-            $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            $total_monthly_pool = array_sum($results);
+            $contributions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $total_monthly_pool = array_sum($contributions);
             
-            // CORRECT DURATION = Total Pool ÷ Regular Tier
-            $correct_duration = ceil($total_monthly_pool / $regular_tier);
+            // Count actual positions (individuals + joint groups)
+            $stmt = $this->db->prepare("
+                SELECT COUNT(DISTINCT 
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN CONCAT('joint_', m.joint_group_id)
+                        ELSE CONCAT('individual_', m.id)
+                    END
+                ) as actual_positions
+                FROM members m
+                WHERE m.equb_settings_id = ? AND m.is_active = 1
+            ");
+            $stmt->execute([$equb_id]);
+            $actual_positions = intval($stmt->fetchColumn());
             
-            // GROSS PAYOUT = Monthly Pool Amount (SAME for all individuals!)
+            // GROSS PAYOUT = Monthly Pool Amount (SAME for all positions!)
             $gross_payout_per_position = $total_monthly_pool;
+            
+            // Check if positions match duration (should be equal)
+            $positions_duration_match = ($actual_positions == $fixed_duration);
             
             return [
                 'success' => true,
                 'total_monthly_pool' => $total_monthly_pool,
-                'correct_duration' => $correct_duration,
+                'fixed_duration' => $fixed_duration,
+                'actual_positions' => $actual_positions,
                 'gross_payout_per_position' => $gross_payout_per_position,
                 'regular_tier' => $regular_tier,
-                'current_duration' => $equb['duration_months'],
-                'needs_correction' => ($correct_duration != $equb['duration_months'])
+                'positions_duration_match' => $positions_duration_match,
+                'needs_correction' => !$positions_duration_match,
+                'error_type' => $positions_duration_match ? 'none' : 'positions_duration_mismatch'
             ];
             
         } catch (Exception $e) {
@@ -169,9 +186,9 @@ class SmartPoolCalculator {
     }
     
     /**
-     * Fix EQUB duration and recalculate everything
+     * Fix EQUB payout calculations (duration stays FIXED!)
      */
-    public function fixEqubDurationAndCalculations($equb_id) {
+    public function fixEqubPayoutCalculations($equb_id) {
         try {
             $this->db->beginTransaction();
             
@@ -181,35 +198,34 @@ class SmartPoolCalculator {
                 throw new Exception($pool_metrics['message']);
             }
             
-            // Update EQUB duration to correct value
+            // Update EQUB calculated positions and pool amount (NOT duration!)
             $stmt = $this->db->prepare("
                 UPDATE equb_settings 
                 SET 
-                    duration_months = ?,
                     calculated_positions = ?,
                     total_pool_amount = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ");
             $stmt->execute([
-                $pool_metrics['correct_duration'],
-                $pool_metrics['correct_duration'], 
-                $pool_metrics['total_monthly_pool'] * $pool_metrics['correct_duration'],
+                $pool_metrics['actual_positions'], 
+                $pool_metrics['total_monthly_pool'] * $pool_metrics['fixed_duration'],
                 $equb_id
             ]);
             
-            // Update all member payout amounts
+            // Update all member payout amounts with correct calculations
             $this->recalculateAllMemberPayouts($equb_id);
             
             $this->db->commit();
             
             return [
                 'success' => true,
-                'message' => 'EQUB duration and calculations fixed successfully',
-                'old_duration' => $pool_metrics['current_duration'],
-                'new_duration' => $pool_metrics['correct_duration'],
+                'message' => 'EQUB payout calculations fixed successfully (duration remains ' . $pool_metrics['fixed_duration'] . ' months)',
+                'fixed_duration' => $pool_metrics['fixed_duration'],
+                'actual_positions' => $pool_metrics['actual_positions'],
                 'total_monthly_pool' => $pool_metrics['total_monthly_pool'],
-                'gross_payout_per_position' => $pool_metrics['gross_payout_per_position']
+                'gross_payout_per_position' => $pool_metrics['gross_payout_per_position'],
+                'positions_duration_match' => $pool_metrics['positions_duration_match']
             ];
             
         } catch (Exception $e) {

@@ -107,8 +107,8 @@ function fixEqub() {
     try {
         $calculator = getSmartPoolCalculator();
         
-        // Fix the EQUB calculations
-        $fix_result = $calculator->fixEqubDurationAndCalculations($equb_id);
+        // Fix the EQUB payout calculations (duration stays fixed!)
+        $fix_result = $calculator->fixEqubPayoutCalculations($equb_id);
         
         if (!$fix_result['success']) {
             echo json_encode(['success' => false, 'message' => $fix_result['message']]);
@@ -124,18 +124,19 @@ function fixEqub() {
         $stmt->execute([
             $equb_id,
             $fix_result['total_monthly_pool'],
-            "SMART FIX: Duration corrected from {$fix_result['old_duration']} to {$fix_result['new_duration']} months. Pool-based calculations applied.",
+            "SMART FIX: Payout calculations corrected. Duration remains {$fix_result['fixed_duration']} months. Positions: {$fix_result['actual_positions']}. Pool-based calculations applied.",
             $admin_id
         ]);
         
-        error_log("Smart EQUB Fix applied by admin $admin_id for EQUB $equb_id: Duration {$fix_result['old_duration']} -> {$fix_result['new_duration']}");
+        error_log("Smart EQUB Fix applied by admin $admin_id for EQUB $equb_id: Payout calculations fixed, Duration: {$fix_result['fixed_duration']} months, Positions: {$fix_result['actual_positions']}");
         
         echo json_encode([
             'success' => true,
-            'message' => 'EQUB calculations fixed successfully',
-            'old_duration' => $fix_result['old_duration'],
-            'new_duration' => $fix_result['new_duration'],
-            'total_monthly_pool' => $fix_result['total_monthly_pool']
+            'message' => 'EQUB payout calculations fixed successfully',
+            'fixed_duration' => $fix_result['fixed_duration'],
+            'actual_positions' => $fix_result['actual_positions'],
+            'total_monthly_pool' => $fix_result['total_monthly_pool'],
+            'positions_duration_match' => $fix_result['positions_duration_match']
         ]);
         
     } catch (Exception $e) {

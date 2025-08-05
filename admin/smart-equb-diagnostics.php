@@ -261,7 +261,7 @@ $csrf_token = generate_csrf_token();
                 </p>
                 <div style="margin-top: 15px; font-size: 14px; opacity: 0.8;">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Issue:</strong> System incorrectly calculates duration as member count instead of pool-based positions
+                    <strong>Issue:</strong> System may incorrectly calculate payouts. Duration is FIXED (9 months), positions should match duration
                 </div>
             </div>
         </div>
@@ -362,11 +362,11 @@ $csrf_token = generate_csrf_token();
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3>
                             <i class="fas fa-${hasErrors ? 'exclamation-triangle' : 'check-circle'}"></i>
-                            Analysis Results: ${analysis.pool_metrics.needs_correction ? 'CRITICAL ERRORS FOUND' : 'CALCULATIONS CORRECT'}
+                            Analysis Results: ${analysis.pool_metrics.needs_correction ? 'PAYOUT CALCULATION ERRORS FOUND' : 'CALCULATIONS CORRECT'}
                         </h3>
                         ${hasErrors ? `
                             <button class="btn fix-button" onclick="fixEqubCalculations()">
-                                <i class="fas fa-magic"></i> SMART FIX ALL ERRORS
+                                <i class="fas fa-magic"></i> SMART FIX PAYOUTS
                             </button>
                         ` : ''}
                     </div>
@@ -376,47 +376,42 @@ $csrf_token = generate_csrf_token();
                             <thead>
                                 <tr>
                                     <th>Metric</th>
-                                    <th>Current (Wrong)</th>
-                                    <th>Correct Value</th>
+                                    <th>Current Value</th>
+                                    <th>Analysis</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
+                                    <td><strong>EQUB Duration</strong></td>
+                                    <td><span class="correct-value">${analysis.pool_metrics.fixed_duration} months</span></td>
+                                    <td>FIXED by admin (correct)</td>
+                                    <td><i class="fas fa-check-circle text-success"></i> CORRECT</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Positions</strong></td>
+                                    <td><span class="${analysis.pool_metrics.positions_duration_match ? 'correct' : 'error'}-value">${analysis.pool_metrics.actual_positions} positions</span></td>
+                                    <td>7 individuals + 2 joint groups</td>
+                                    <td>
+                                        ${analysis.pool_metrics.positions_duration_match ? 
+                                            '<i class="fas fa-check-circle text-success"></i> MATCHES DURATION' : 
+                                            '<i class="fas fa-exclamation-triangle text-warning"></i> MISMATCH'
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td><strong>Total Monthly Pool</strong></td>
-                                    <td>-</td>
                                     <td><span class="correct-value">£${analysis.pool_metrics.total_monthly_pool.toLocaleString()}</span></td>
+                                    <td>Sum of all contributions</td>
                                     <td><i class="fas fa-info-circle text-info"></i> Pool Amount</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>EQUB Duration</strong></td>
-                                    <td><span class="error-value">${analysis.pool_metrics.current_duration} months</span></td>
-                                    <td><span class="correct-value">${analysis.pool_metrics.correct_duration} months</span></td>
-                                    <td>
-                                        ${analysis.pool_metrics.needs_correction ? 
-                                            '<i class="fas fa-times-circle text-danger"></i> WRONG' : 
-                                            '<i class="fas fa-check-circle text-success"></i> CORRECT'
-                                        }
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Gross Payout (Individual)</strong></td>
-                                    <td><span class="error-value">Varies by member</span></td>
+                                    <td><strong>Gross Payout per Position</strong></td>
                                     <td><span class="correct-value">£${analysis.pool_metrics.gross_payout_per_position.toLocaleString()}</span></td>
+                                    <td>Monthly pool amount (SAME for all)</td>
                                     <td>
                                         ${hasErrors ? 
-                                            '<i class="fas fa-times-circle text-danger"></i> WRONG' : 
-                                            '<i class="fas fa-check-circle text-success"></i> CORRECT'
-                                        }
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Calculation Method</strong></td>
-                                    <td><span class="error-value">Member count based</span></td>
-                                    <td><span class="correct-value">Pool based</span></td>
-                                    <td>
-                                        ${hasErrors ? 
-                                            '<i class="fas fa-times-circle text-danger"></i> WRONG' : 
+                                            '<i class="fas fa-times-circle text-danger"></i> NEEDS FIX' : 
                                             '<i class="fas fa-check-circle text-success"></i> CORRECT'
                                         }
                                     </td>
@@ -427,18 +422,18 @@ $csrf_token = generate_csrf_token();
                     
                     ${hasErrors ? `
                         <div class="alert alert-danger mt-4">
-                            <h5><i class="fas fa-exclamation-triangle"></i> Critical Issues Detected:</h5>
+                            <h5><i class="fas fa-exclamation-triangle"></i> Payout Calculation Issues:</h5>
                             <ul class="mb-0">
-                                <li>Duration calculated as member count (${analysis.pool_metrics.current_duration}) instead of pool positions (${analysis.pool_metrics.correct_duration})</li>
-                                <li>Gross payouts incorrectly calculated as individual × duration instead of pool amount</li>
-                                <li>Joint groups receiving wrong amounts due to incorrect base calculation</li>
-                                <li>Financial projections and member expectations are incorrect</li>
+                                <li>Current system may be calculating payouts incorrectly</li>
+                                <li>Should be £${analysis.pool_metrics.gross_payout_per_position.toLocaleString()} gross for each position</li>
+                                <li>Joint groups get multiple position coefficients but same gross base</li>
+                                <li>Duration is FIXED at ${analysis.pool_metrics.fixed_duration} months (${analysis.pool_metrics.actual_positions} positions)</li>
                             </ul>
                         </div>
                     ` : `
                         <div class="alert alert-success mt-4">
                             <h5><i class="fas fa-check-circle"></i> All Calculations Correct!</h5>
-                            <p class="mb-0">This EQUB is using the correct pool-based calculation method. Duration and payouts are accurate.</p>
+                            <p class="mb-0">Duration: ${analysis.pool_metrics.fixed_duration} months | Positions: ${analysis.pool_metrics.actual_positions} | Pool: £${analysis.pool_metrics.total_monthly_pool.toLocaleString()}</p>
                         </div>
                     `}
                     
@@ -505,8 +500,8 @@ $csrf_token = generate_csrf_token();
                         <div class="impact-label">Monthly Pool</div>
                     </div>
                     <div class="impact-metric">
-                        <div class="impact-value">${analysis.pool_metrics.correct_duration}</div>
-                        <div class="impact-label">Correct Duration</div>
+                        <div class="impact-value">${analysis.pool_metrics.fixed_duration}</div>
+                        <div class="impact-label">Fixed Duration (Months)</div>
                     </div>
                     <div class="impact-metric">
                         <div class="impact-value">£${analysis.pool_metrics.gross_payout_per_position.toLocaleString()}</div>
@@ -538,8 +533,8 @@ $csrf_token = generate_csrf_token();
                 const data = await response.json();
                 
                 if (data.success) {
-                    showSuccess('EQUB calculations fixed successfully! Duration updated from ' + 
-                               data.old_duration + ' to ' + data.new_duration + ' months.');
+                    showSuccess('EQUB payout calculations fixed successfully! Duration remains ' + 
+                               data.fixed_duration + ' months with ' + data.actual_positions + ' positions.');
                     // Re-analyze to show updated results
                     setTimeout(analyzeEqub, 1000);
                 } else {

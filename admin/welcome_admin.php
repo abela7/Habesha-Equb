@@ -740,7 +740,7 @@ try {
                          <i class="fas fa-exclamation-triangle"></i>
                      </div>
                      <div class="action-title">🚨 SMART FIX</div>
-                     <p class="action-desc">CRITICAL: Fix fundamental EQUB duration & payout logic errors</p>
+                     <p class="action-desc">CRITICAL: Fix fundamental EQUB payout calculation errors (Duration=9mo FIXED)</p>
                      <div style="position: absolute; top: 5px; right: 5px; background: #FFD700; color: #FF4500; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;">
                          URGENT
                      </div>
