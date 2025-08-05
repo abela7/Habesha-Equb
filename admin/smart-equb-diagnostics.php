@@ -1,7 +1,7 @@
 <?php
 /**
  * HabeshaEqub - SMART EQUB DIAGNOSTICS
- * Critical tool to fix fundamental EQUB duration and payout logic errors
+ * Fix the Selam EQUB payout calculation errors
  */
 
 require_once '../includes/db.php';
@@ -13,23 +13,43 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username();
 
-// Get all EQUBs for analysis
+// Get the active EQUB (Selam equb term)
 try {
     $stmt = $pdo->query("
-        SELECT 
-            id, equb_id, equb_name, status, 
-            duration_months, regular_payment_tier,
-            max_members, current_members
-        FROM equb_settings 
-        ORDER BY status DESC, created_at DESC
+        SELECT * FROM equb_settings 
+        WHERE status = 'active' AND equb_name LIKE '%Selam%'
+        ORDER BY created_at DESC 
+        LIMIT 1
     ");
-    $equbs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $active_equb = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$active_equb) {
+        // Fallback to any active EQUB
+        $stmt = $pdo->query("
+            SELECT * FROM equb_settings 
+            WHERE status = 'active'
+            ORDER BY created_at DESC 
+            LIMIT 1
+        ");
+        $active_equb = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 } catch (PDOException $e) {
-    $equbs = [];
-    error_log("Error fetching EQUBs: " . $e->getMessage());
+    $active_equb = null;
+    error_log("Error fetching active EQUB: " . $e->getMessage());
 }
 
 $csrf_token = generate_csrf_token();
+
+// Auto-analyze the active EQUB
+$analysis_result = null;
+if ($active_equb) {
+    try {
+        $calculator = getSmartPoolCalculator();
+        $analysis_result = $calculator->generateEqubBreakdown($active_equb['id']);
+    } catch (Exception $e) {
+        error_log("Auto-analysis error: " . $e->getMessage());
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -266,110 +286,39 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
         
-        <!-- EQUB Selection and Analysis -->
-        <div class="diagnostic-card">
-            <h3><i class="fas fa-search"></i> Select EQUB for Smart Analysis</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <select id="equbSelector" class="form-select form-select-lg">
-                        <option value="">Choose EQUB to analyze...</option>
-                        <?php foreach ($equbs as $equb): ?>
-                            <option value="<?php echo $equb['id']; ?>" 
-                                    data-equb='<?php echo htmlspecialchars(json_encode($equb)); ?>'>
-                                <?php echo htmlspecialchars($equb['equb_name']); ?> 
-                                (<?php echo $equb['equb_id']; ?>) - 
-                                <?php echo $equb['current_members']; ?> members, 
-                                <?php echo $equb['duration_months']; ?> months
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <button id="analyzeBtn" class="btn danger-button btn-lg w-100" disabled>
-                        <i class="fas fa-diagnoses"></i> ANALYZE & DETECT ERRORS
-                    </button>
+        <!-- Current Active EQUB Analysis -->
+        <?php if (!$active_equb): ?>
+            <div class="diagnostic-card">
+                <div class="alert alert-warning">
+                    <h4><i class="fas fa-exclamation-triangle"></i> No Active EQUB Found</h4>
+                    <p>Please create and activate an EQUB first.</p>
                 </div>
             </div>
-        </div>
-        
-        <!-- Analysis Results -->
-        <div id="analysisResults" style="display: none;">
-            <!-- Comparison will be loaded here -->
-        </div>
-        
-        <!-- Impact Summary -->
-        <div id="impactSummary" style="display: none;" class="impact-summary">
-            <!-- Impact metrics will be loaded here -->
-        </div>
-    </div>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        let selectedEqubId = null;
-        const csrfToken = '<?php echo $csrf_token; ?>';
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('equbSelector').addEventListener('change', function() {
-                selectedEqubId = this.value;
-                document.getElementById('analyzeBtn').disabled = !selectedEqubId;
-                
-                if (!selectedEqubId) {
-                    hideResults();
-                }
-            });
-            
-            document.getElementById('analyzeBtn').addEventListener('click', analyzeEqub);
-        });
-        
-        // Analyze EQUB for errors
-        async function analyzeEqub() {
-            if (!selectedEqubId) return;
-            
-            showLoading();
-            
-            try {
-                const response = await fetch('api/smart-equb-diagnostics.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=analyze_equb&equb_id=${selectedEqubId}&csrf_token=${csrfToken}`
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayAnalysisResults(data.analysis);
-                    displayImpactSummary(data.analysis);
-                } else {
-                    showError(data.message);
-                }
-            } catch (error) {
-                showError('Failed to analyze EQUB: ' + error.message);
-            }
-        }
-        
-        // Display analysis results
-        function displayAnalysisResults(analysis) {
-            const resultsDiv = document.getElementById('analysisResults');
-            const hasErrors = analysis.pool_metrics.needs_correction;
-            
-            resultsDiv.innerHTML = `
-                <div class="diagnostic-card equb-analysis ${hasErrors ? 'error' : 'correct'}">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3>
-                            <i class="fas fa-${hasErrors ? 'exclamation-triangle' : 'check-circle'}"></i>
-                            Analysis Results: ${analysis.pool_metrics.needs_correction ? 'PAYOUT CALCULATION ERRORS FOUND' : 'CALCULATIONS CORRECT'}
-                        </h3>
-                        ${hasErrors ? `
-                            <button class="btn fix-button" onclick="fixEqubCalculations()">
-                                <i class="fas fa-magic"></i> SMART FIX PAYOUTS
-                            </button>
-                        ` : ''}
+        <?php else: ?>
+            <div class="diagnostic-card">
+                <h3><i class="fas fa-chart-line"></i> Analyzing: <?php echo htmlspecialchars($active_equb['equb_name']); ?></h3>
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <p><strong>EQUB ID:</strong> <?php echo htmlspecialchars($active_equb['equb_id']); ?></p>
+                        <p><strong>Duration:</strong> <?php echo $active_equb['duration_months']; ?> months</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success"><?php echo ucfirst($active_equb['status']); ?></span></p>
                     </div>
+                    <div class="col-md-4 text-end">
+                        <button id="fixBtn" class="btn fix-button btn-lg">
+                            <i class="fas fa-magic"></i> FIX PAYOUT CALCULATIONS
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Results -->
+            <?php if ($analysis_result && $analysis_result['success']): ?>
+                <?php $analysis = $analysis_result['breakdown']; ?>
+                <div class="diagnostic-card equb-analysis <?php echo $analysis['pool_metrics']['needs_correction'] ? 'error' : 'correct'; ?>">
+                    <h3>
+                        <i class="fas fa-<?php echo $analysis['pool_metrics']['needs_correction'] ? 'exclamation-triangle' : 'check-circle'; ?>"></i>
+                        Analysis Results: <?php echo $analysis['pool_metrics']['needs_correction'] ? 'PAYOUT ERRORS FOUND' : 'CALCULATIONS CORRECT'; ?>
+                    </h3>
                     
                     <div class="comparison-table">
                         <table class="table table-borderless mb-0">
@@ -384,142 +333,110 @@ $csrf_token = generate_csrf_token();
                             <tbody>
                                 <tr>
                                     <td><strong>EQUB Duration</strong></td>
-                                    <td><span class="correct-value">${analysis.pool_metrics.fixed_duration} months</span></td>
+                                    <td><span class="correct-value"><?php echo $analysis['pool_metrics']['fixed_duration']; ?> months</span></td>
                                     <td>FIXED by admin (correct)</td>
                                     <td><i class="fas fa-check-circle text-success"></i> CORRECT</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Total Positions</strong></td>
-                                    <td><span class="${analysis.pool_metrics.positions_duration_match ? 'correct' : 'error'}-value">${analysis.pool_metrics.actual_positions} positions</span></td>
-                                    <td>7 individuals + 2 joint groups</td>
+                                    <td><span class="<?php echo $analysis['pool_metrics']['positions_duration_match'] ? 'correct' : 'error'; ?>-value"><?php echo $analysis['pool_metrics']['actual_positions']; ?> positions</span></td>
+                                    <td>Individuals + Joint groups</td>
                                     <td>
-                                        ${analysis.pool_metrics.positions_duration_match ? 
-                                            '<i class="fas fa-check-circle text-success"></i> MATCHES DURATION' : 
-                                            '<i class="fas fa-exclamation-triangle text-warning"></i> MISMATCH'
-                                        }
+                                        <?php if ($analysis['pool_metrics']['positions_duration_match']): ?>
+                                            <i class="fas fa-check-circle text-success"></i> MATCHES DURATION
+                                        <?php else: ?>
+                                            <i class="fas fa-exclamation-triangle text-warning"></i> MISMATCH
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td><strong>Total Monthly Pool</strong></td>
-                                    <td><span class="correct-value">£${analysis.pool_metrics.total_monthly_pool.toLocaleString()}</span></td>
+                                    <td><span class="correct-value">£<?php echo number_format($analysis['pool_metrics']['total_monthly_pool']); ?></span></td>
                                     <td>Sum of all contributions</td>
                                     <td><i class="fas fa-info-circle text-info"></i> Pool Amount</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Gross Payout per Position</strong></td>
-                                    <td><span class="correct-value">£${analysis.pool_metrics.gross_payout_per_position.toLocaleString()}</span></td>
+                                    <td><span class="correct-value">£<?php echo number_format($analysis['pool_metrics']['gross_payout_per_position']); ?></span></td>
                                     <td>Monthly pool amount (SAME for all)</td>
                                     <td>
-                                        ${hasErrors ? 
-                                            '<i class="fas fa-times-circle text-danger"></i> NEEDS FIX' : 
-                                            '<i class="fas fa-check-circle text-success"></i> CORRECT'
-                                        }
+                                        <?php if ($analysis['pool_metrics']['needs_correction']): ?>
+                                            <i class="fas fa-times-circle text-danger"></i> NEEDS FIX
+                                        <?php else: ?>
+                                            <i class="fas fa-check-circle text-success"></i> CORRECT
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     
-                    ${hasErrors ? `
-                        <div class="alert alert-danger mt-4">
-                            <h5><i class="fas fa-exclamation-triangle"></i> Payout Calculation Issues:</h5>
-                            <ul class="mb-0">
-                                <li>Current system may be calculating payouts incorrectly</li>
-                                <li>Should be £${analysis.pool_metrics.gross_payout_per_position.toLocaleString()} gross for each position</li>
-                                <li>Joint groups get multiple position coefficients but same gross base</li>
-                                <li>Duration is FIXED at ${analysis.pool_metrics.fixed_duration} months (${analysis.pool_metrics.actual_positions} positions)</li>
-                            </ul>
-                        </div>
-                    ` : `
-                        <div class="alert alert-success mt-4">
-                            <h5><i class="fas fa-check-circle"></i> All Calculations Correct!</h5>
-                            <p class="mb-0">Duration: ${analysis.pool_metrics.fixed_duration} months | Positions: ${analysis.pool_metrics.actual_positions} | Pool: £${analysis.pool_metrics.total_monthly_pool.toLocaleString()}</p>
-                        </div>
-                    `}
-                    
+                    <!-- Member Breakdown -->
                     <div class="member-breakdown">
                         <h5><i class="fas fa-users"></i> Member Breakdown</h5>
-                        ${generateMemberBreakdown(analysis.breakdown.members)}
-                    </div>
-                </div>
-            `;
-            
-            resultsDiv.style.display = 'block';
-        }
-        
-        // Generate member breakdown HTML
-        function generateMemberBreakdown(members) {
-            return members.map(member => {
-                const info = member.member_info;
-                const calc = member.payout_calculation;
-                const isJoint = info.membership_type === 'joint';
-                
-                return `
-                    <div class="member-item ${isJoint ? 'joint' : ''}">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>${info.first_name} ${info.last_name}</strong>
-                                ${isJoint ? `<span class="badge bg-warning ms-2">Joint: ${info.group_name}</span>` : ''}
-                                <div class="small text-muted">
-                                    Monthly: £${parseFloat(isJoint ? info.individual_contribution : info.monthly_payment).toFixed(2)}
-                                    ${isJoint ? ` (Group: £${parseFloat(info.joint_payment).toFixed(2)})` : ''}
+                        <?php foreach ($analysis['members'] as $member): ?>
+                            <?php $info = $member['member_info']; ?>
+                            <?php $calc = $member['payout_calculation']; ?>
+                            <?php $isJoint = $info['membership_type'] === 'joint'; ?>
+                            <div class="member-item <?php echo $isJoint ? 'joint' : ''; ?>">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong><?php echo htmlspecialchars($info['first_name'] . ' ' . $info['last_name']); ?></strong>
+                                        <?php if ($isJoint): ?>
+                                            <span class="badge bg-warning ms-2">Joint: <?php echo htmlspecialchars($info['group_name']); ?></span>
+                                        <?php endif; ?>
+                                        <div class="small text-muted">
+                                            Monthly: £<?php echo number_format($isJoint ? $info['individual_contribution'] : $info['monthly_payment'], 2); ?>
+                                            <?php if ($isJoint): ?>
+                                                (Group: £<?php echo number_format($info['joint_payment'], 2); ?>)
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">£<?php echo $calc['success'] ? number_format($calc['gross_payout'], 2) : 'Error'; ?></div>
+                                        <div class="small text-muted">Gross Payout</div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="text-end">
-                                <div class="fw-bold">£${calc.success ? parseFloat(calc.gross_payout).toFixed(2) : 'Error'}</div>
-                                <div class="small text-muted">Gross Payout</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Display impact summary
-        function displayImpactSummary(analysis) {
-            const summaryDiv = document.getElementById('impactSummary');
-            const summary = analysis.breakdown.summary;
-            
-            summaryDiv.innerHTML = `
-                <h4><i class="fas fa-chart-line"></i> Financial Impact Summary</h4>
-                <div class="impact-grid">
-                    <div class="impact-metric">
-                        <div class="impact-value">${summary.total_individual_members}</div>
-                        <div class="impact-label">Individual Members</div>
-                    </div>
-                    <div class="impact-metric">
-                        <div class="impact-value">${summary.total_joint_groups}</div>
-                        <div class="impact-label">Joint Groups</div>
-                    </div>
-                    <div class="impact-metric">
-                        <div class="impact-value">${summary.total_positions}</div>
-                        <div class="impact-label">Total Positions</div>
-                    </div>
-                    <div class="impact-metric">
-                        <div class="impact-value">£${analysis.pool_metrics.total_monthly_pool.toLocaleString()}</div>
-                        <div class="impact-label">Monthly Pool</div>
-                    </div>
-                    <div class="impact-metric">
-                        <div class="impact-value">${analysis.pool_metrics.fixed_duration}</div>
-                        <div class="impact-label">Fixed Duration (Months)</div>
-                    </div>
-                    <div class="impact-metric">
-                        <div class="impact-value">£${analysis.pool_metrics.gross_payout_per_position.toLocaleString()}</div>
-                        <div class="impact-label">Gross per Position</div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-            `;
-            
-            summaryDiv.style.display = 'block';
-        }
+            <?php else: ?>
+                <div class="diagnostic-card">
+                    <div class="alert alert-danger">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Analysis Failed</h4>
+                        <p>Unable to analyze the EQUB. Please check the data.</p>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const activeEqubId = <?php echo $active_equb ? $active_equb['id'] : 'null'; ?>;
+        const csrfToken = '<?php echo $csrf_token; ?>';
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const fixBtn = document.getElementById('fixBtn');
+            if (fixBtn && activeEqubId) {
+                fixBtn.addEventListener('click', fixEqubCalculations);
+            }
+        });
         
         // Fix EQUB calculations
         async function fixEqubCalculations() {
-            if (!confirm('⚠️ This will permanently fix the EQUB duration and recalculate all member payouts. Continue?')) {
+            if (!activeEqubId) {
+                alert('No active EQUB found');
                 return;
             }
             
-            showLoading();
+            if (!confirm('⚠️ This will fix the payout calculations for the active EQUB. Continue?')) {
+                return;
+            }
             
             try {
                 const response = await fetch('api/smart-equb-diagnostics.php', {
@@ -527,59 +444,21 @@ $csrf_token = generate_csrf_token();
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: `action=fix_equb&equb_id=${selectedEqubId}&csrf_token=${csrfToken}`
+                    body: `action=fix_equb&equb_id=${activeEqubId}&csrf_token=${csrfToken}`
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    showSuccess('EQUB payout calculations fixed successfully! Duration remains ' + 
-                               data.fixed_duration + ' months with ' + data.actual_positions + ' positions.');
-                    // Re-analyze to show updated results
-                    setTimeout(analyzeEqub, 1000);
+                    alert('✅ EQUB payout calculations fixed successfully! Duration: ' + 
+                          data.fixed_duration + ' months, Positions: ' + data.actual_positions);
+                    location.reload(); // Refresh to show updated results
                 } else {
-                    showError(data.message);
+                    alert('❌ Error: ' + data.message);
                 }
             } catch (error) {
-                showError('Failed to fix EQUB: ' + error.message);
+                alert('❌ Failed to fix EQUB: ' + error.message);
             }
-        }
-        
-        // Utility functions
-        function showLoading() {
-            document.getElementById('analysisResults').innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-3">Analyzing EQUB calculations...</p>
-                </div>
-            `;
-            document.getElementById('analysisResults').style.display = 'block';
-        }
-        
-        function hideResults() {
-            document.getElementById('analysisResults').style.display = 'none';
-            document.getElementById('impactSummary').style.display = 'none';
-        }
-        
-        function showError(message) {
-            document.getElementById('analysisResults').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i> Error: ${message}
-                </div>
-            `;
-        }
-        
-        function showSuccess(message) {
-            const alertHtml = `
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle"></i> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            
-            document.querySelector('.diagnostics-container').insertAdjacentHTML('afterbegin', alertHtml);
         }
     </script>
 </body>

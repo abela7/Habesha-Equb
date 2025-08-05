@@ -106,9 +106,12 @@ class EnhancedEqubCalculator {
                     es.duration_months,
                     es.admin_fee,
                     es.regular_payment_tier,
-                    es.payout_day
+                    es.payout_day,
+                    jmg.total_monthly_payment as joint_payment,
+                    jmg.position_coefficient as joint_coefficient
                 FROM members m
                 JOIN equb_settings es ON m.equb_settings_id = es.id
+                LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
                 WHERE m.id = ? AND m.is_active = 1
             ");
             $stmt->execute([$member_id]);
@@ -118,30 +121,72 @@ class EnhancedEqubCalculator {
                 throw new Exception("Member not found");
             }
             
-            $monthly_payment = (float)$member['monthly_payment'];
-            $duration = (int)$member['duration_months'];
+            $duration = (int)$member['duration_months']; // FIXED duration
             $admin_fee = (float)$member['admin_fee'];
-            $position_coefficient = (float)$member['position_coefficient'] ?: 1.0;
             
-            // TRADITIONAL EQUB CALCULATION
-            $gross_payout = $monthly_payment * $duration;
+            // Calculate TOTAL MONTHLY POOL (all contributions combined)
+            $stmt = $this->db->prepare("
+                SELECT 
+                    CASE 
+                        WHEN m2.membership_type = 'joint' THEN jmg2.total_monthly_payment
+                        ELSE m2.monthly_payment
+                    END as contribution
+                FROM members m2
+                LEFT JOIN joint_membership_groups jmg2 ON m2.joint_group_id = jmg2.joint_group_id
+                WHERE m2.equb_settings_id = ? AND m2.is_active = 1
+                GROUP BY 
+                    CASE 
+                        WHEN m2.membership_type = 'joint' THEN m2.joint_group_id
+                        ELSE m2.id
+                    END
+            ");
+            $stmt->execute([$member['equb_settings_id']]);
+            $contributions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $total_monthly_pool = array_sum($contributions);
+            
+            // GROSS PAYOUT = MONTHLY POOL AMOUNT (SAME for all positions!)
+            $gross_payout_per_position = $total_monthly_pool;
+            
+            if ($member['membership_type'] === 'joint') {
+                // Joint membership calculation
+                $individual_contribution = (float)$member['individual_contribution'];
+                $joint_coefficient = (float)$member['joint_coefficient'] ?: 1.0;
+                
+                // Joint group gets coefficient × gross (e.g., 2.0 × £10,000 = £20,000)
+                $joint_total_gross = $gross_payout_per_position * $joint_coefficient;
+                
+                // Calculate individual share within the joint group
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        individual_contribution,
+                        SUM(individual_contribution) OVER() as total_joint_contribution
+                    FROM members 
+                    WHERE joint_group_id = ? AND is_active = 1
+                ");
+                $stmt->execute([$member['joint_group_id']]);
+                $joint_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $total_joint_contribution = (float)$joint_members[0]['total_joint_contribution'];
+                $individual_share = $total_joint_contribution > 0 ? 
+                    ($individual_contribution / $total_joint_contribution) : 0.5;
+                
+                $gross_payout = $joint_total_gross * $individual_share;
+                $position_coefficient = $joint_coefficient;
+                $monthly_payment = $individual_contribution;
+            } else {
+                // Individual membership - gets full position gross
+                $position_coefficient = (float)$member['position_coefficient'] ?: 1.0;
+                $monthly_payment = (float)$member['monthly_payment'];
+                
+                // Individual gets coefficient × gross (usually 1.0 × £10,000 = £10,000)
+                $gross_payout = $gross_payout_per_position * $position_coefficient;
+            }
             
             // REAL calculation (what actually happens)
             $real_net_payout = $gross_payout - $monthly_payment - $admin_fee;
             
-            // MEMBER-FRIENDLY calculation (what we show them)
+            // MEMBER-FRIENDLY calculation (what we show them - gross minus admin fee only)
             $display_payout = $gross_payout - $admin_fee;
-            
-            // Handle joint memberships
-            $joint_split_info = null;
-            if ($member['membership_type'] === 'joint') {
-                $joint_split_info = $this->calculateJointSplit($member['joint_group_id'], $member_id);
-                
-                if ($joint_split_info['success']) {
-                    $display_payout = $joint_split_info['member_display_amount'];
-                    $real_net_payout = $joint_split_info['member_real_amount'];
-                }
-            }
             
             return [
                 'success' => true,
@@ -158,9 +203,9 @@ class EnhancedEqubCalculator {
                     'monthly_deduction' => $monthly_payment, // Hidden from member display
                     'display_payout' => $display_payout, // What member sees
                     'real_net_payout' => $real_net_payout, // What member actually gets
-                    'position_coefficient' => $position_coefficient
+                    'position_coefficient' => $position_coefficient,
+                    'total_monthly_pool' => $total_monthly_pool
                 ],
-                'joint_split_info' => $joint_split_info,
                 'payout_date' => $this->calculatePayoutDate($member)
             ];
             
