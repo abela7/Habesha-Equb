@@ -153,7 +153,7 @@ function approveUser($db, $user_id, $user, $admin_id) {
                 'last_name' => $user['last_name'],
                 'member_id' => $user['member_id'],
                 'email' => $user['email'],
-                'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/email-redirect.php?to=' . urlencode('https://' . $_SERVER['HTTP_HOST'] . '/user/login.php')
+                'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/redirect-simple.php'
             ];
             
             $result = $emailService->send(
