@@ -5,7 +5,7 @@
  */
 
 require_once '../includes/db.php';
-require_once '../includes/equb_payout_calculator.php';
+require_once '../includes/enhanced_equb_calculator.php';
 require_once '../languages/translator.php';
 
 // Secure admin authentication check
@@ -18,7 +18,8 @@ try {
     $stmt = $pdo->query("
         SELECT 
             jmg.*,
-            es.equb_name, es.equb_id, es.status as equb_status,
+            es.equb_name, es.equb_id, es.status as equb_status, 
+            es.regular_payment_tier, es.admin_fee, es.duration_months,
             COUNT(m.id) as current_members,
             GROUP_CONCAT(
                 CONCAT(m.first_name, ' ', m.last_name,
@@ -26,7 +27,8 @@ try {
                 ORDER BY m.primary_joint_member DESC, m.created_at ASC
                 SEPARATOR ', '
             ) as member_names,
-            SUM(m.individual_contribution) as total_individual_contributions
+            SUM(m.individual_contribution) as total_individual_contributions,
+            COALESCE(jmg.position_coefficient, 1.0) as position_coefficient
         FROM joint_membership_groups jmg
         JOIN equb_settings es ON jmg.equb_settings_id = es.id
         LEFT JOIN members m ON jmg.joint_group_id = m.joint_group_id AND m.is_active = 1
@@ -383,6 +385,7 @@ $csrf_token = generate_csrf_token();
                                             <span class="group-id me-3"><?php echo htmlspecialchars($group['joint_group_id']); ?></span>
                                             <span class="split-method-badge"><?php echo ucfirst($group['payout_split_method']); ?> Split</span>
                                             <span class="badge bg-secondary ms-2">Position <?php echo $group['payout_position']; ?></span>
+                                            <span class="badge" style="background: var(--color-gold); color: white;"><?php echo number_format($group['position_coefficient'], 2); ?> Positions</span>
                                         </div>
                                         <h5 class="mb-1">
                                             <?php echo htmlspecialchars($group['group_name'] ?: 'Unnamed Group'); ?>
@@ -428,12 +431,21 @@ $csrf_token = generate_csrf_token();
                                     </div>
                                     <div class="col-md-4">
                                         <div class="payout-info">
-                                            <h6 class="mb-1">Monthly Payment</h6>
-                                            <div style="font-size: 1.2rem; font-weight: 600;">
-                                                £<?php echo number_format($group['total_monthly_payment'], 2); ?>
+                                            <h6 class="mb-1">Financial Overview</h6>
+                                            <div style="font-size: 1.1rem; font-weight: 600;">
+                                                <div>Monthly: £<?php echo number_format($group['total_monthly_payment'], 2); ?></div>
+                                                <?php if ($group['duration_months']): ?>
+                                                    <div style="font-size: 0.9rem;">
+                                                        <?php 
+                                                        $gross_payout = $group['total_monthly_payment'] * $group['duration_months'];
+                                                        $net_payout = $gross_payout - ($group['admin_fee'] ?? 20);
+                                                        ?>
+                                                        Group Payout: £<?php echo number_format($net_payout, 2); ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                             <?php if ($group['total_individual_contributions'] > 0): ?>
-                                                <small>Individual: £<?php echo number_format($group['total_individual_contributions'], 2); ?></small>
+                                                <small class="text-muted">Individual Total: £<?php echo number_format($group['total_individual_contributions'], 2); ?></small>
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -944,10 +956,11 @@ $csrf_token = generate_csrf_token();
                             <p><strong>Net Payout:</strong> £${parseFloat(data.net_payout || 0).toLocaleString()}</p>
                         </div>
                         <div class="col-md-6">
-                            <h6>Details</h6>
+                            <h6>Position Details</h6>
                             <p><strong>Monthly Payment:</strong> £${parseFloat(group.total_monthly_payment || 0).toLocaleString()}</p>
-                            <p><strong>Shared Position:</strong> ${group.payout_position || 'N/A'}</p>
-                            <p><strong>Split Method:</strong> ${group.payout_split_method || 'equal'}</p>
+                            <p><strong>Position Number:</strong> ${group.payout_position || 'N/A'}</p>
+                            <p><strong>Position Coefficient:</strong> ${parseFloat(group.position_coefficient || 1).toFixed(2)} positions</p>
+                            <p><strong>Split Method:</strong> <span class="badge bg-info">${(group.payout_split_method || 'equal').toUpperCase()}</span></p>
                         </div>
                     </div>
                     
@@ -958,16 +971,21 @@ $csrf_token = generate_csrf_token();
                                 <thead>
                                     <tr>
                                         <th>Member</th>
-                                        <th>Share</th>
-                                        <th>Payout Amount</th>
+                                        <th>Monthly Contribution</th>
+                                        <th>Share %</th>
+                                        <th>Individual Payout</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${members.map(member => `
                                         <tr>
-                                            <td>${member.first_name} ${member.last_name}</td>
+                                            <td>
+                                                ${member.first_name} ${member.last_name}
+                                                ${member.primary_joint_member == 1 ? '<span class="badge bg-primary ms-1">Primary</span>' : ''}
+                                            </td>
+                                            <td>£${parseFloat(member.individual_contribution || 0).toFixed(2)}</td>
                                             <td>${parseFloat(member.payout_amount / data.net_payout * 100).toFixed(1)}%</td>
-                                            <td>£${parseFloat(member.payout_amount || 0).toFixed(2)}</td>
+                                            <td><strong>£${parseFloat(member.payout_amount || 0).toFixed(2)}</strong></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>

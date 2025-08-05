@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 05, 2025 at 02:19 AM
+-- Generation Time: Aug 05, 2025 at 12:28 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -44,7 +44,7 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`) VALUES
-(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 1, '2025-07-29 15:13:13', '2025-08-02 10:59:39');
+(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-08-05 10:44:50');
 
 -- --------------------------------------------------------
 
@@ -202,6 +202,8 @@ CREATE TABLE `equb_settings` (
   `start_date` date NOT NULL COMMENT 'Equb term start date',
   `end_date` date NOT NULL COMMENT 'Calculated end date based on duration',
   `payment_tiers` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'JSON: [{"amount":1000,"tag":"full","description":"Full Member"},{"amount":500,"tag":"half","description":"Half Member"}]' CHECK (json_valid(`payment_tiers`)),
+  `regular_payment_tier` decimal(10,2) NOT NULL DEFAULT 1000.00 COMMENT 'Base payment amount that determines position count',
+  `calculated_positions` int(3) NOT NULL DEFAULT 0 COMMENT 'Auto-calculated based on contributions and regular tier',
   `currency` varchar(5) DEFAULT '£' COMMENT 'Currency symbol',
   `payout_day` int(2) DEFAULT 5 COMMENT 'Day of month for payouts (default: 5th)',
   `admin_fee` decimal(8,2) DEFAULT 10.00 COMMENT 'Admin service fee per payout',
@@ -235,8 +237,8 @@ CREATE TABLE `equb_settings` (
 -- Dumping data for table `equb_settings`
 --
 
-INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`, `supports_joint_membership`, `max_joint_members_per_group`, `financial_status`, `last_financial_audit`) VALUES
-(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 11, 11, 10, '2025-07-01', '2026-05-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 110000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-08-04 22:30:04', 1, 3, 'balanced', NULL);
+INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `regular_payment_tier`, `calculated_positions`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`, `supports_joint_membership`, `max_joint_members_per_group`, `financial_status`, `last_financial_audit`) VALUES
+(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 11, 11, 10, '2025-07-01', '2026-05-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', 1000.00, 10, '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 100000.00, 0.00, 0.00, '', '2025-07-31 14:18:24', '2025-08-05 11:15:53', 1, 3, 'balanced', NULL);
 
 -- --------------------------------------------------------
 
@@ -272,6 +274,7 @@ CREATE TABLE `joint_membership_groups` (
   `total_monthly_payment` decimal(10,2) NOT NULL COMMENT 'Combined monthly payment for the group',
   `member_count` tinyint(2) NOT NULL DEFAULT 2 COMMENT 'Number of members in the joint group',
   `payout_position` int(3) NOT NULL COMMENT 'Shared payout position',
+  `position_coefficient` decimal(4,2) DEFAULT 1.00 COMMENT 'How many positions this joint group represents',
   `payout_split_method` enum('equal','proportional','custom') DEFAULT 'equal',
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -282,9 +285,9 @@ CREATE TABLE `joint_membership_groups` (
 -- Dumping data for table `joint_membership_groups`
 --
 
-INSERT INTO `joint_membership_groups` (`id`, `joint_group_id`, `equb_settings_id`, `group_name`, `total_monthly_payment`, `member_count`, `payout_position`, `payout_split_method`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'JNT-2025-002-902', 2, 'Eldana & Sosina', 1000.00, 2, 9, 'equal', 1, '2025-08-04 13:57:00', '2025-08-04 17:40:05'),
-(2, 'JNT-2025-002-115', 2, 'Miki & Koki', 2000.00, 2, 6, 'proportional', 1, '2025-08-04 17:20:46', '2025-08-04 17:39:28');
+INSERT INTO `joint_membership_groups` (`id`, `joint_group_id`, `equb_settings_id`, `group_name`, `total_monthly_payment`, `member_count`, `payout_position`, `position_coefficient`, `payout_split_method`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'JNT-2025-002-902', 2, 'Eldana & Sosina', 1000.00, 2, 9, 1.00, 'equal', 1, '2025-08-04 13:57:00', '2025-08-04 17:40:05'),
+(2, 'JNT-2025-002-115', 2, 'Miki & Koki', 2000.00, 2, 6, 2.00, 'proportional', 1, '2025-08-04 17:20:46', '2025-08-05 11:14:14');
 
 -- --------------------------------------------------------
 
@@ -326,8 +329,10 @@ CREATE TABLE `members` (
   `status` varchar(20) DEFAULT 'active',
   `monthly_payment` decimal(10,2) NOT NULL COMMENT 'Monthly contribution amount',
   `payout_position` int(3) NOT NULL COMMENT 'Position in payout rotation (1,2,3...)',
+  `position_coefficient` decimal(4,2) DEFAULT 1.00 COMMENT 'How many positions this member represents (0.5, 1.0, 1.5, 2.0, etc.)',
   `payout_month` date DEFAULT NULL COMMENT 'Month when member receives payout',
   `total_contributed` decimal(10,2) DEFAULT 0.00 COMMENT 'Total amount contributed so far',
+  `display_payout_amount` decimal(12,2) DEFAULT NULL COMMENT 'Member-friendly payout amount (hides monthly deduction)',
   `has_received_payout` tinyint(1) DEFAULT 0 COMMENT '1 if already received payout',
   `guarantor_first_name` varchar(50) NOT NULL,
   `guarantor_last_name` varchar(50) NOT NULL,
@@ -362,18 +367,18 @@ CREATE TABLE `members` (
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `payout_month`, `total_contributed`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`, `membership_type`, `joint_group_id`, `joint_member_count`, `individual_contribution`, `joint_position_share`, `primary_joint_member`, `payout_split_method`) VALUES
-(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, '2025-07-05', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-04 23:22:16', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-04 23:22:16', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 8, '2026-02-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, '2025-10-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 6, '2025-12-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-04 17:43:17', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 500.00, 0.5000, 1, 'equal'),
-(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 7, '2026-01-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, '2025-08-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 6, '2025-12-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-04 17:43:17', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 1500.00, 0.5000, 1, 'equal'),
-(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 9, '2026-03-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-04 20:16:15', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
-(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 5, '2025-11-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 22:58:18', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 9, '2026-03-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-04 20:16:15', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
-(20, 2, 'HEM-SS384', 'samyshafi01', 'Samson', 'Shafi', 'Samson Shafi', 'samyshafi01@gmail.com', '07543445583', 'active', 1000.00, 3, '2025-09-01', 0.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 16:36:28', '2025-08-04 17:43:17', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal');
+INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `position_coefficient`, `payout_month`, `total_contributed`, `display_payout_amount`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`, `membership_type`, `joint_group_id`, `joint_member_count`, `individual_contribution`, `joint_position_share`, `primary_joint_member`, `payout_split_method`) VALUES
+(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, 1.00, '2025-07-05', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-04 23:22:16', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 8, 1.00, '2026-02-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, 1.00, '2025-10-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 6, 0.50, '2025-12-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-05 11:15:53', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 500.00, 0.5000, 1, 'equal'),
+(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 7, 1.00, '2026-01-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, 1.00, '2025-08-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 6, 1.50, '2025-12-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-05 11:15:53', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 1500.00, 0.5000, 1, 'equal'),
+(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 9, 0.50, '2026-03-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-05 11:15:53', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
+(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 5, 1.00, '2025-11-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 22:58:18', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
+(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 9, 0.50, '2026-03-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-05 11:15:53', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
+(20, 2, 'HEM-SS384', 'samyshafi01', 'Samson', 'Shafi', 'Samson Shafi', 'samyshafi01@gmail.com', '07543445583', 'active', 1000.00, 3, 1.00, '2025-09-01', 0.00, NULL, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 16:36:28', '2025-08-05 11:15:53', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal');
 
 -- --------------------------------------------------------
 

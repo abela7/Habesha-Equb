@@ -508,9 +508,11 @@ $csrf_token = generate_csrf_token();
                                     <div><i class="fas fa-users me-1"></i>${member.member_names}</div>
                                     <div><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month (shared)</div>
                                     <div><i class="fas fa-info-circle me-1"></i>${member.member_count} members sharing position ${position}</div>
+                                    <div><i class="fas fa-calculator me-1"></i><span class="badge" style="background: var(--color-gold); color: white;">${parseFloat(member.position_coefficient || 1).toFixed(2)} positions</span></div>
                                 ` : `
                                     <i class="fas fa-id-card me-1"></i>${member.member_id}
                                     <span class="ms-3"><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month</span>
+                                    <span class="ms-3"><i class="fas fa-calculator me-1"></i><span class="badge" style="background: var(--color-gold); color: white;">${parseFloat(member.position_coefficient || 1).toFixed(2)} positions</span></span>
                                 `}
                             </div>
                         </div>

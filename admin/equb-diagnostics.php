@@ -58,12 +58,44 @@ $csrf_token = generate_csrf_token();
         }
         
         .page-header {
-            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
             border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title-section h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--color-coral) 0%, #D44638 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .page-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 400;
         }
         
         .diagnostic-card {
@@ -94,7 +126,7 @@ $csrf_token = generate_csrf_token();
         }
         
         .fix-button {
-            background: linear-gradient(135deg, #28a745, #20c997);
+            background: linear-gradient(135deg, var(--color-teal), var(--btn-primary-hover));
             color: white;
             border: none;
             border-radius: 8px;
@@ -105,7 +137,7 @@ $csrf_token = generate_csrf_token();
         
         .fix-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 12px rgba(19, 102, 92, 0.3);
             color: white;
         }
         
@@ -126,7 +158,7 @@ $csrf_token = generate_csrf_token();
         }
         
         .position-coefficient {
-            background: #007bff;
+            background: var(--color-teal);
             color: white;
             border-radius: 20px;
             padding: 4px 12px;
@@ -140,7 +172,7 @@ $csrf_token = generate_csrf_token();
         }
         
         .spinner-border {
-            color: #007bff;
+            color: var(--color-teal);
         }
     </style>
 </head>
@@ -150,8 +182,15 @@ $csrf_token = generate_csrf_token();
     <div class="diagnostics-container">
         <!-- Page Header -->
         <div class="page-header">
-            <h1><i class="fas fa-diagnoses"></i> EQUB Diagnostics & Position Fixer</h1>
-            <p class="mb-0">Advanced tool to analyze and fix EQUB logical issues, position calculations, and member assignments</p>
+            <div class="page-title-section">
+                <h1>
+                    <div class="page-title-icon">
+                        <i class="fas fa-diagnoses"></i>
+                    </div>
+                    EQUB Diagnostics & Position Fixer
+                </h1>
+                <p class="page-subtitle">Advanced tool to analyze and fix EQUB logical issues, position calculations, and member assignments</p>
+            </div>
         </div>
         
         <!-- EQUB Selection -->
@@ -253,12 +292,14 @@ $csrf_token = generate_csrf_token();
             hideResults();
             
             try {
+                const formData = new FormData();
+                formData.append('action', 'get_equb_analysis');
+                formData.append('equb_id', currentEqubId);
+                formData.append('csrf_token', csrfToken);
+                
                 const response = await fetch('api/equb-position-fixer.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=get_equb_analysis&equb_id=${currentEqubId}&csrf_token=${csrfToken}`
+                    body: formData
                 });
                 
                 const data = await response.json();
@@ -286,12 +327,14 @@ $csrf_token = generate_csrf_token();
             showLoading(true);
             
             try {
+                const formData = new FormData();
+                formData.append('action', 'auto_fix_positions');
+                formData.append('equb_id', currentEqubId);
+                formData.append('csrf_token', csrfToken);
+                
                 const response = await fetch('api/equb-position-fixer.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=auto_fix_positions&equb_id=${currentEqubId}&csrf_token=${csrfToken}`
+                    body: formData
                 });
                 
                 const data = await response.json();

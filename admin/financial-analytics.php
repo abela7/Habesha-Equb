@@ -6,7 +6,7 @@
  */
 
 require_once '../includes/db.php';
-require_once '../includes/equb_payout_calculator.php';
+require_once '../includes/enhanced_equb_calculator.php';
 require_once '../languages/translator.php';
 
 // Secure admin authentication check
@@ -55,8 +55,8 @@ if ($selected_equb_id) {
         $equb_data = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($equb_data) {
-            // Initialize calculator
-            $calculator = getEqubPayoutCalculator();
+            // Initialize enhanced calculator
+            $calculator = new EnhancedEqubCalculator($pdo);
             
             // Get POSITION-BASED member data (joint groups as single entities)
             $stmt = $pdo->prepare("
@@ -81,6 +81,10 @@ if ($selected_equb_id) {
                         WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
                         ELSE m.monthly_payment
                     END as monthly_payment,
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN jmg.position_coefficient
+                        ELSE m.position_coefficient
+                    END as position_coefficient,
                     GROUP_CONCAT(
                         CONCAT(m.first_name, ' ', m.last_name, 
                                CASE WHEN m.primary_joint_member = 1 THEN ' (Primary)' ELSE '' END)
@@ -96,7 +100,7 @@ if ($selected_equb_id) {
                 LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
                 LEFT JOIN payments p ON m.id = p.member_id AND p.status IN ('paid', 'completed')
                 WHERE m.equb_settings_id = ? AND m.is_active = 1
-                GROUP BY position_key, payout_position, display_name, membership_type, monthly_payment
+                GROUP BY position_key, payout_position, display_name, membership_type, monthly_payment, position_coefficient
                 ORDER BY payout_position ASC, MIN(m.id) ASC
             ");
             $stmt->execute([$selected_equb_id]);
@@ -105,7 +109,7 @@ if ($selected_equb_id) {
             // Calculate detailed payouts for each position
             foreach ($position_data as $position) {
                 if ($position['payout_position'] > 0) {
-                    $calculation = $calculator->calculateMemberPayoutAmount($position['primary_member_id']);
+                    $calculation = $calculator->calculateMemberFriendlyPayout($position['primary_member_id']);
                     
                     if ($calculation['success']) {
                         // Calculate payout date
@@ -128,11 +132,12 @@ if ($selected_equb_id) {
                             'member_names' => $position['member_names'],
                             'member_count' => $position['member_count'],
                             'payout_position' => $position['payout_position'],
+                            'position_coefficient' => $position['position_coefficient'],
                             'monthly_payment' => $position['monthly_payment'],
                             'total_contributions' => $position['monthly_payment'] * $equb_data['duration_months'],
-                            'gross_payout' => $calculation['gross_payout'],
-                            'admin_fee' => $calculation['admin_fee'],
-                            'net_payout' => $calculation['net_payout'],
+                            'gross_payout' => $calculation['calculation']['gross_payout'],
+                            'admin_fee' => $calculation['calculation']['admin_fee'],
+                            'net_payout' => $calculation['calculation']['display_payout'],
                             'total_contributed' => $position['total_contributed'],
                             'has_received_payout' => $position['has_received_payout'],
                             'payout_date' => $payout_date ? $payout_date->format('M d, Y') : 'TBD',
@@ -140,7 +145,7 @@ if ($selected_equb_id) {
                             'join_date' => $position['join_date']
                         ];
                         
-                        $admin_revenue += $calculation['admin_fee'];
+                        $admin_revenue += $calculation['calculation']['admin_fee'];
                     }
                 }
             }

@@ -104,7 +104,7 @@ function getPositions() {
         // Get EQUB info with start date and payout day
         $stmt = $pdo->prepare("
             SELECT duration_months, admin_fee, current_members, max_members,
-                   start_date, payout_day
+                   start_date, payout_day, regular_payment_tier, calculated_positions
             FROM equb_settings 
             WHERE id = ?
         ");
@@ -136,6 +136,10 @@ function getPositions() {
                     WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
                     ELSE m.monthly_payment
                 END as position_payment,
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN COALESCE(jmg.position_coefficient, 1.0)
+                    ELSE COALESCE(m.position_coefficient, 1.0)
+                END as position_coefficient,
                 CASE 
                     WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ' & ')
                     ELSE CONCAT(m.first_name, ' ', m.last_name)
