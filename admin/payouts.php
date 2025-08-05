@@ -1296,7 +1296,7 @@ $csrf_token = generate_csrf_token();
                     console.info('├─ Monthly Payment: £' + data.monthly_payment);
                     console.info('├─ Position Coefficient:', data.position_coefficient);
                     console.info('├─ Monthly Pool: £' + data.total_monthly_pool);
-                    console.info('├─ Gross Per Position: £' + (data.debug?.gross_payout_per_position || 'N/A'));
+                    console.info('├─ Regular Payment Tier: £' + (data.debug?.regular_payment_tier || 'N/A'));
                     console.info('├─ Total Pool: £' + data.total_pool);
                     console.info('├─ Individual Gross: £' + data.gross_payout.toFixed(2));
                     console.info('├─ Admin Fee: £' + data.admin_fee.toFixed(2));
