@@ -5,6 +5,7 @@
  */
 
 require_once '../../includes/db.php';
+require_once '../../includes/enhanced_equb_calculator.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -97,6 +98,115 @@ try {
 }
 
 /**
+ * Create individual payouts for all members in a joint group
+ * This ensures each member gets their own payout record and receipt
+ */
+function createJointGroupPayouts($joint_group_id, $total_group_amount, $scheduled_date, $actual_payout_date, $status, $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes) {
+    global $pdo;
+    
+    try {
+        // Get enhanced calculator
+        $calculator = getEnhancedEqubCalculator();
+        
+        // Get all members in the joint group
+        $stmt = $pdo->prepare("
+            SELECT m.id, m.member_id, m.first_name, m.last_name, m.individual_contribution
+            FROM members m 
+            WHERE m.joint_group_id = ? AND m.is_active = 1
+            ORDER BY m.primary_joint_member DESC, m.first_name
+        ");
+        $stmt->execute([$joint_group_id]);
+        $joint_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($joint_members)) {
+            return ['success' => false, 'error' => 'No active members found in joint group'];
+        }
+        
+        $created_payouts = [];
+        $payout_ids = [];
+        
+        // Create individual payout for each member
+        foreach ($joint_members as $joint_member) {
+            // Calculate individual payout amount using enhanced calculator
+            $payout_result = $calculator->calculateMemberFriendlyPayout($joint_member['id']);
+            
+            if (!$payout_result['success']) {
+                throw new Exception("Failed to calculate payout for member {$joint_member['first_name']} {$joint_member['last_name']}");
+            }
+            
+            $individual_gross = $payout_result['calculation']['display_payout_amount'];
+            $individual_admin_fee = $payout_result['calculation']['admin_fee'];
+            $individual_net = $payout_result['calculation']['real_net_payout'];
+            
+            // Generate unique payout ID for this member
+            $member_payout_id = generatePayoutId($joint_member['member_id'], $scheduled_date);
+            
+            // Ensure payout ID is unique
+            $stmt = $pdo->prepare("SELECT id FROM payouts WHERE payout_id = ?");
+            $stmt->execute([$member_payout_id]);
+            if ($stmt->fetch()) {
+                $counter = 1;
+                do {
+                    $counter++;
+                    $temp_id = $member_payout_id . '-' . $counter;
+                    $stmt->execute([$temp_id]);
+                } while ($stmt->fetch());
+                $member_payout_id = $temp_id;
+            }
+            
+            // Insert individual payout
+            $stmt = $pdo->prepare("
+                INSERT INTO payouts 
+                (payout_id, member_id, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
+                 admin_fee, net_amount, processed_by_admin_id, payout_notes, created_at, updated_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ");
+            
+            $stmt->execute([
+                $member_payout_id, 
+                $joint_member['id'], 
+                $individual_gross, 
+                $scheduled_date, 
+                $actual_payout_date, 
+                $status, 
+                $payout_method, 
+                $individual_admin_fee, 
+                $individual_net, 
+                $processed_by_admin_id, 
+                $payout_notes . " (Joint Group Member)"
+            ]);
+            
+            // Sync member payout flag
+            syncMemberPayoutFlag($joint_member['id']);
+            
+            $created_payouts[] = [
+                'member_id' => $joint_member['id'],
+                'member_name' => $joint_member['first_name'] . ' ' . $joint_member['last_name'],
+                'member_code' => $joint_member['member_id'],
+                'payout_id' => $member_payout_id,
+                'individual_contribution' => $joint_member['individual_contribution'],
+                'gross_amount' => $individual_gross,
+                'admin_fee' => $individual_admin_fee,
+                'net_amount' => $individual_net
+            ];
+            
+            $payout_ids[] = $member_payout_id;
+        }
+        
+        return [
+            'success' => true,
+            'count' => count($created_payouts),
+            'payout_ids' => $payout_ids,
+            'individual_payouts' => $created_payouts
+        ];
+        
+    } catch (Exception $e) {
+        error_log("Joint Group Payout Creation Error: " . $e->getMessage());
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
+/**
  * Add new payout
  */
 function addPayout() {
@@ -129,8 +239,12 @@ function addPayout() {
         return;
     }
     
-    // Validate member exists and is active
-    $stmt = $pdo->prepare("SELECT id, member_id, first_name, last_name FROM members WHERE id = ? AND is_active = 1");
+    // Validate member exists and is active, get membership type and joint group info
+    $stmt = $pdo->prepare("
+        SELECT m.id, m.member_id, m.first_name, m.last_name, m.membership_type, m.joint_group_id 
+        FROM members m 
+        WHERE m.id = ? AND m.is_active = 1
+    ");
     $stmt->execute([$member_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$member) {
@@ -138,12 +252,29 @@ function addPayout() {
         return;
     }
     
-    // Check if member already has a payout for the same scheduled date
-    $stmt = $pdo->prepare("SELECT id FROM payouts WHERE member_id = ? AND scheduled_date = ?");
-    $stmt->execute([$member_id, $scheduled_date]);
-    if ($stmt->fetch()) {
-        echo json_encode(['success' => false, 'message' => 'Payout for this member and date already exists']);
-        return;
+    // Check if member/group already has a payout for the same scheduled date
+    if ($member['membership_type'] === 'joint') {
+        // For joint members, check if any member in the group already has a payout for this date
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as existing_payouts 
+            FROM payouts p 
+            JOIN members m ON p.member_id = m.id 
+            WHERE m.joint_group_id = ? AND p.scheduled_date = ?
+        ");
+        $stmt->execute([$member['joint_group_id'], $scheduled_date]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($existing['existing_payouts'] > 0) {
+            echo json_encode(['success' => false, 'message' => 'Payout for this joint group and date already exists']);
+            return;
+        }
+    } else {
+        // For individual members, check normal way
+        $stmt = $pdo->prepare("SELECT id FROM payouts WHERE member_id = ? AND scheduled_date = ?");
+        $stmt->execute([$member_id, $scheduled_date]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Payout for this member and date already exists']);
+            return;
+        }
     }
     
     // Optional fields with validation
@@ -201,45 +332,80 @@ function addPayout() {
         $processed_by_admin_id = $admin_id;
     }
     
-    // Generate payout ID: PAYOUT-MEMBERINITIALS-MMYYYY (e.g., PAYOUT-MW-012024)
-    $payout_id = generatePayoutId($member['member_id'], $scheduled_date);
-    
-    // Ensure payout ID is unique
-    $stmt = $pdo->prepare("SELECT id FROM payouts WHERE payout_id = ?");
-    $stmt->execute([$payout_id]);
-    if ($stmt->fetch()) {
-        // Add counter if duplicate
-        $counter = 1;
-        do {
-            $counter++;
-            $temp_id = $payout_id . '-' . $counter;
-            $stmt->execute([$temp_id]);
-        } while ($stmt->fetch());
-        $payout_id = $temp_id;
+    // Handle joint group vs individual payout creation
+    if ($member['membership_type'] === 'joint') {
+        // JOINT GROUP PAYOUT - Create individual payouts for each member
+        $created_payouts = createJointGroupPayouts(
+            $member['joint_group_id'], 
+            $total_amount, 
+            $scheduled_date, 
+            $actual_payout_date, 
+            $status, 
+            $payout_method, 
+            $admin_fee, 
+            $net_amount, 
+            $processed_by_admin_id, 
+            $payout_notes
+        );
+        
+        if ($created_payouts['success']) {
+            echo json_encode([
+                'success' => true, 
+                'message' => "Joint group payouts created successfully for {$created_payouts['count']} members",
+                'payout_ids' => $created_payouts['payout_ids'],
+                'individual_payouts' => $created_payouts['individual_payouts'],
+                'is_joint_group' => true
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false, 
+                'message' => $created_payouts['error']
+            ]);
+        }
+    } else {
+        // INDIVIDUAL PAYOUT - Standard single payout creation
+        
+        // Generate payout ID: PAYOUT-MEMBERINITIALS-MMYYYY (e.g., PAYOUT-MW-012024)
+        $payout_id = generatePayoutId($member['member_id'], $scheduled_date);
+        
+        // Ensure payout ID is unique
+        $stmt = $pdo->prepare("SELECT id FROM payouts WHERE payout_id = ?");
+        $stmt->execute([$payout_id]);
+        if ($stmt->fetch()) {
+            // Add counter if duplicate
+            $counter = 1;
+            do {
+                $counter++;
+                $temp_id = $payout_id . '-' . $counter;
+                $stmt->execute([$temp_id]);
+            } while ($stmt->fetch());
+            $payout_id = $temp_id;
+        }
+        
+        // Insert payout
+        $stmt = $pdo->prepare("
+            INSERT INTO payouts 
+            (payout_id, member_id, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
+             admin_fee, net_amount, processed_by_admin_id, payout_notes, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+        
+        $stmt->execute([
+            $payout_id, $member_id, $total_amount, $scheduled_date, $actual_payout_date, $status, 
+            $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
+        ]);
+        
+        // MASTER-LEVEL: Auto-sync the member's payout flag
+        syncMemberPayoutFlag($member_id);
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Individual payout scheduled successfully',
+            'payout_id' => $payout_id,
+            'member_payout_flag_synced' => true,
+            'is_joint_group' => false
+        ]);
     }
-    
-    // Insert payout
-    $stmt = $pdo->prepare("
-        INSERT INTO payouts 
-        (payout_id, member_id, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
-         admin_fee, net_amount, processed_by_admin_id, payout_notes, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    ");
-    
-    $stmt->execute([
-        $payout_id, $member_id, $total_amount, $scheduled_date, $actual_payout_date, $status, 
-        $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
-    ]);
-    
-    // MASTER-LEVEL: Auto-sync the member's payout flag
-    syncMemberPayoutFlag($member_id);
-    
-    echo json_encode([
-        'success' => true, 
-        'message' => 'Payout scheduled successfully',
-        'payout_id' => $payout_id,
-        'member_payout_flag_synced' => true
-    ]);
 }
 
 /**

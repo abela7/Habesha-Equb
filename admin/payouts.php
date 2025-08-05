@@ -1218,11 +1218,24 @@ $csrf_token = generate_csrf_token();
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('payoutModal')).hide();
                 
-                // Show success modal with payout ID
-                document.getElementById('successMessage').textContent = 
-                    isEditMode ? 'Payout updated successfully!' : 'Payout scheduled successfully!';
-                document.getElementById('successDetails').textContent = 
-                    isEditMode ? '' : `Payout ID: ${data.payout_id}`;
+                // Show success modal with payout ID(s)
+                if (data.is_joint_group) {
+                    document.getElementById('successMessage').textContent = 
+                        `Joint group payouts created successfully for ${data.individual_payouts.length} members!`;
+                    
+                    // Create detailed breakdown for joint group
+                    const breakdown = data.individual_payouts.map(payout => 
+                        `• ${payout.member_name} (${payout.member_code}): £${parseFloat(payout.net_amount).toFixed(2)} - ID: ${payout.payout_id}`
+                    ).join('\n');
+                    
+                    document.getElementById('successDetails').textContent = 
+                        `Individual Payouts Created:\n${breakdown}`;
+                } else {
+                    document.getElementById('successMessage').textContent = 
+                        isEditMode ? 'Payout updated successfully!' : 'Individual payout scheduled successfully!';
+                    document.getElementById('successDetails').textContent = 
+                        isEditMode ? '' : `Payout ID: ${data.payout_id}`;
+                }
                 
                 new bootstrap.Modal(document.getElementById('successModal')).show();
                 
@@ -1267,12 +1280,13 @@ $csrf_token = generate_csrf_token();
                     console.info('Equb Payout Calculation:');
                     console.info('├─ Member:', data.member_name);
                     console.info('├─ Monthly Payment: £' + data.monthly_payment);
-                    console.info('├─ Share Ratio:', data.share_ratio);
+                    console.info('├─ Position Coefficient:', data.position_coefficient);
                     console.info('├─ Monthly Pool: £' + data.total_monthly_pool);
                     console.info('├─ Total Pool: £' + data.total_pool);
                     console.info('├─ Gross Payout: £' + data.gross_payout.toFixed(2));
                     console.info('├─ Admin Fee: £' + data.admin_fee.toFixed(2));
-                    console.info('└─ Net Payout: £' + data.net_payout.toFixed(2));
+                    console.info('├─ Net Payout (Real): £' + data.net_payout.toFixed(2));
+                    console.info('└─ Display Payout: £' + data.display_payout.toFixed(2));
                 } else {
                     console.error('Calculation error:', data.error);
                     // Fallback to simple calculation
