@@ -30,50 +30,40 @@ try {
     $payouts = [];
 }
 
-// Get members for dropdown
+// Get members for dropdown - showing INDIVIDUAL members, not groups
 try {
     $stmt = $pdo->query("
         SELECT 
+            m.id as member_id,
+            m.member_id as member_code,
+            m.first_name,
+            m.last_name,
+            m.monthly_payment,
+            m.individual_contribution,
+            m.membership_type,
+            m.joint_group_id,
+            m.payout_position,
+            m.has_received_payout,
             CASE 
-                WHEN m.membership_type = 'joint' THEN CONCAT('JOINT_', m.joint_group_id)
-                ELSE CONCAT('IND_', m.id)
-            END as payout_entity_id,
-            CASE 
-                WHEN m.membership_type = 'joint' THEN COALESCE(jmg.group_name, 'Joint Group')
-                ELSE CONCAT(m.first_name, ' ', m.last_name)
+                WHEN m.membership_type = 'joint' THEN CONCAT(m.first_name, ' ', m.last_name, ' (Joint with ', 
+                    (SELECT GROUP_CONCAT(CONCAT(m2.first_name, ' ', m2.last_name) SEPARATOR ' & ') 
+                     FROM members m2 
+                     WHERE m2.joint_group_id = m.joint_group_id AND m2.id != m.id AND m2.is_active = 1), ')')
+                ELSE CONCAT(m.first_name, ' ', m.last_name, ' (Individual)')
             END as display_name,
-            CASE 
-                WHEN m.membership_type = 'joint' THEN m.joint_group_id
-                ELSE m.member_id
-            END as entity_identifier,
-            CASE 
-                WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
-                ELSE m.monthly_payment
-            END as monthly_payment,
-            CASE 
-                WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                ELSE m.payout_position
-            END as payout_position,
-            m.membership_type, 
-            CASE 
-                WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ' & ')
-                ELSE CONCAT(m.first_name, ' ', m.last_name)
-            END as member_names,
-            MAX(m.has_received_payout) as has_received_payout,
-            MIN(m.id) as primary_member_id
+            jmg.group_name,
+            jmg.total_monthly_payment as group_total_payment
         FROM members m
         LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         WHERE m.is_active = 1 
-        GROUP BY 
-            CASE 
-                WHEN m.membership_type = 'joint' THEN m.joint_group_id
-                ELSE m.id
-            END
         ORDER BY 
             CASE 
                 WHEN m.membership_type = 'joint' THEN jmg.payout_position
                 ELSE m.payout_position
-            END ASC, MIN(m.first_name) ASC
+            END ASC, 
+            m.membership_type DESC,
+            m.primary_joint_member DESC,
+            m.first_name ASC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -652,10 +642,10 @@ $csrf_token = generate_csrf_token();
                         <select class="filter-select" id="memberFilter">
                             <option value=""><?php echo t('payouts.all_members'); ?></option>
                                             <?php foreach ($members as $member): ?>
-                    <option value="<?php echo $member['primary_member_id']; ?>">
-                        <?php echo htmlspecialchars($member['member_names']); ?>
-                    </option>
-                <?php endforeach; ?>
+                                <option value="<?php echo $member['member_id']; ?>">
+                                    <?php echo htmlspecialchars($member['display_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -780,11 +770,13 @@ $csrf_token = generate_csrf_token();
                                 <select class="form-select" id="memberId" name="member_id" required>
                                     <option value="">Select Member</option>
                                     <?php foreach ($members as $member): ?>
-                                        <option value="<?php echo $member['primary_member_id']; ?>" 
-                                                data-payment="<?php echo $member['monthly_payment']; ?>"
+                                        <option value="<?php echo $member['member_id']; ?>" 
+                                                data-payment="<?php echo $member['membership_type'] === 'joint' ? $member['individual_contribution'] : $member['monthly_payment']; ?>"
                                                 data-position="<?php echo $member['payout_position']; ?>"
-                                                data-received="<?php echo $member['has_received_payout']; ?>">
-                                            <?php echo htmlspecialchars($member['member_names'] . ' (' . $member['entity_identifier'] . ')'); ?>
+                                                data-received="<?php echo $member['has_received_payout']; ?>"
+                                                data-membership-type="<?php echo $member['membership_type']; ?>"
+                                                data-joint-group="<?php echo $member['joint_group_id']; ?>">
+                                            <?php echo htmlspecialchars($member['display_name'] . ' (' . $member['member_code'] . ')'); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -1262,6 +1254,27 @@ $csrf_token = generate_csrf_token();
         const selectedOption = this.options[this.selectedIndex];
         if (selectedOption.value && !isEditMode) {
             const memberId = selectedOption.value;
+            const membershipType = selectedOption.dataset.membershipType;
+            const jointGroup = selectedOption.dataset.jointGroup;
+            
+            // Show joint group warning
+            const warningDiv = document.getElementById('jointGroupWarning');
+            if (membershipType === 'joint') {
+                if (!warningDiv) {
+                    const warning = document.createElement('div');
+                    warning.id = 'jointGroupWarning';
+                    warning.className = 'alert alert-info mt-2';
+                    warning.innerHTML = `
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Joint Group Member Selected:</strong> This will create individual payouts for ALL members in this joint group, each with their respective amounts and separate receipts.
+                    `;
+                    document.getElementById('memberId').parentElement.appendChild(warning);
+                }
+            } else {
+                if (warningDiv) {
+                    warningDiv.remove();
+                }
+            }
             
             // Fetch correct payout calculation from server
             fetch('api/calculate-payout.php', {
@@ -1287,6 +1300,10 @@ $csrf_token = generate_csrf_token();
                     console.info('├─ Admin Fee: £' + data.admin_fee.toFixed(2));
                     console.info('├─ Net Payout (Real): £' + data.net_payout.toFixed(2));
                     console.info('└─ Display Payout: £' + data.display_payout.toFixed(2));
+                    
+                    if (membershipType === 'joint') {
+                        console.info('🔄 JOINT GROUP: Will create individual payouts for all group members');
+                    }
                 } else {
                     console.error('Calculation error:', data.error);
                     // Fallback to simple calculation
