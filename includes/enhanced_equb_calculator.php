@@ -144,42 +144,21 @@ class EnhancedEqubCalculator {
             $contributions = $stmt->fetchAll(PDO::FETCH_COLUMN);
             $total_monthly_pool = array_sum($contributions);
             
-            // GROSS PAYOUT = MONTHLY POOL AMOUNT (SAME for all positions!)
+            // FIXED: Each position gets the TOTAL MONTHLY POOL as gross payout
             $gross_payout_per_position = $total_monthly_pool;
             
+            // CORE LOGIC: Every member (individual or joint) gets the SAME gross amount = monthly pool
+            // This is what you specified: each position gets £10,000 gross
+            $gross_payout = $gross_payout_per_position;
+            
             if ($member['membership_type'] === 'joint') {
-                // Joint membership calculation
                 $individual_contribution = (float)$member['individual_contribution'];
-                $joint_coefficient = (float)$member['joint_coefficient'] ?: 1.0;
-                
-                // Joint group gets coefficient × gross (e.g., 2.0 × £10,000 = £20,000)
-                $joint_total_gross = $gross_payout_per_position * $joint_coefficient;
-                
-                // Calculate individual share within the joint group
-                $stmt = $this->db->prepare("
-                    SELECT 
-                        individual_contribution,
-                        SUM(individual_contribution) OVER() as total_joint_contribution
-                    FROM members 
-                    WHERE joint_group_id = ? AND is_active = 1
-                ");
-                $stmt->execute([$member['joint_group_id']]);
-                $joint_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                $total_joint_contribution = (float)$joint_members[0]['total_joint_contribution'];
-                $individual_share = $total_joint_contribution > 0 ? 
-                    ($individual_contribution / $total_joint_contribution) : 0.5;
-                
-                $gross_payout = $joint_total_gross * $individual_share;
-                $position_coefficient = $joint_coefficient;
+                $position_coefficient = $individual_contribution / 1000.0; // Based on regular tier  
                 $monthly_payment = $individual_contribution;
             } else {
-                // Individual membership - gets full position gross
+                // Individual membership
                 $position_coefficient = (float)$member['position_coefficient'] ?: 1.0;
                 $monthly_payment = (float)$member['monthly_payment'];
-                
-                // Individual gets coefficient × gross (usually 1.0 × £10,000 = £10,000)
-                $gross_payout = $gross_payout_per_position * $position_coefficient;
             }
             
             // REAL calculation (what actually happens)
