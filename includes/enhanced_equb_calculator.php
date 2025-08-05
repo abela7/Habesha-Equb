@@ -144,21 +144,23 @@ class EnhancedEqubCalculator {
             $contributions = $stmt->fetchAll(PDO::FETCH_COLUMN);
             $total_monthly_pool = array_sum($contributions);
             
-            // FIXED: Each position gets the TOTAL MONTHLY POOL as gross payout
-            $gross_payout_per_position = $total_monthly_pool;
-            
-            // CORE LOGIC: Every member (individual or joint) gets the SAME gross amount = monthly pool
-            // This is what you specified: each position gets £10,000 gross
-            $gross_payout = $gross_payout_per_position;
+            // CORRECT LOGIC: Each member gets payout based on their contribution amount
+            // The total pool is distributed based on what each member contributes
             
             if ($member['membership_type'] === 'joint') {
                 $individual_contribution = (float)$member['individual_contribution'];
-                $position_coefficient = $individual_contribution / 1000.0; // Based on regular tier  
                 $monthly_payment = $individual_contribution;
+                
+                // Joint member gets their contribution amount × duration as gross
+                $gross_payout = $individual_contribution * $duration;
+                $position_coefficient = $individual_contribution / 1000.0; // Based on regular tier
             } else {
                 // Individual membership
-                $position_coefficient = (float)$member['position_coefficient'] ?: 1.0;
                 $monthly_payment = (float)$member['monthly_payment'];
+                $position_coefficient = (float)$member['position_coefficient'] ?: 1.0;
+                
+                // Individual gets their contribution amount × duration as gross  
+                $gross_payout = $monthly_payment * $duration;
             }
             
             // REAL calculation (what actually happens)
