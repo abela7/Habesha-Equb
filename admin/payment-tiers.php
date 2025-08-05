@@ -20,7 +20,7 @@ try {
             id, equb_id, equb_name, status, 
             payment_tiers, regular_payment_tier, calculated_positions, duration_months,
             max_members, current_members
-        FROM equb_settings 
+        FROM equb_settings
         ORDER BY status DESC, created_at DESC
     ");
     $equbs = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -418,17 +418,17 @@ $csrf_token = generate_csrf_token();
                 <h1>
                     <div class="page-title-icon">
                         <i class="fas fa-layer-group"></i>
-                    </div>
+                </div>
                     Payment Tiers Management
                 </h1>
                 <p class="page-subtitle">Configure payment tiers and set regular tier for position calculations</p>
             </div>
         </div>
-        
+
         <!-- EQUB Selection -->
         <div class="tier-management-card">
             <h3><i class="fas fa-list-alt"></i> Select EQUB to Manage Tiers</h3>
-            <div class="equb-selector">
+        <div class="equb-selector">
                 <?php if (empty($equbs)): ?>
                     <div class="no-equb-selected">
                         <div class="no-equb-icon">
@@ -451,13 +451,13 @@ $csrf_token = generate_csrf_token();
                                         <?php if ($equb['regular_payment_tier']): ?>
                                             <span class="ms-3"><i class="fas fa-star text-warning"></i> Regular Tier: £<?php echo number_format($equb['regular_payment_tier']); ?></span>
                                         <?php endif; ?>
-                                    </div>
-                                </div>
+                </div>
+                            </div>
                                 <div class="equb-status">
                                     <span class="status-badge status-<?php echo $equb['status']; ?>">
                                         <?php echo ucfirst($equb['status']); ?>
                                     </span>
-                                </div>
+                            </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -489,27 +489,27 @@ $csrf_token = generate_csrf_token();
                             <br>• Member paying £500 = 0.5 positions
                             <br>• Member paying £1000 = 1.0 position  
                             <br>• Member paying £1500 = 1.5 positions
-                        </div>
-                    </div>
+            </div>
+        </div>
                     <div class="col-md-6">
                         <div id="regularTierImpact" class="mt-3"></div>
-                    </div>
-                </div>
             </div>
-            
+        </div>
+    </div>
+
             <!-- Payment Tiers -->
             <div class="tier-management-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3><i class="fas fa-layer-group"></i> Payment Tiers</h3>
                     <button class="btn btn-primary" id="addTierBtn">
                         <i class="fas fa-plus"></i> Add New Tier
-                    </button>
-                </div>
-                
+                </button>
+            </div>
+            
                 <div id="tiersGrid" class="tier-grid">
                     <!-- Tiers will be loaded here -->
                 </div>
-            </div>
+                </div>
             
             <!-- Impact Summary -->
             <div class="impact-summary">
@@ -541,12 +541,12 @@ $csrf_token = generate_csrf_token();
                         <div class="mb-3">
                             <label for="tierTag" class="form-label">Tag</label>
                             <input type="text" class="form-control" id="tierTag" placeholder="e.g., Full, Half, Premium" required>
-                        </div>
+                    </div>
                         
                         <div class="mb-3">
                             <label for="tierDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="tierDescription" rows="2" placeholder="Describe this payment tier..."></textarea>
-                        </div>
+                            </div>
                         
                         <div class="mb-3" id="positionCoefficientInfo">
                             <label class="form-label">Position Coefficient</label>
@@ -555,7 +555,7 @@ $csrf_token = generate_csrf_token();
                             </div>
                         </div>
                     </form>
-                </div>
+                    </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveTierBtn">Save Tier</button>
@@ -563,10 +563,10 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
     </div>
-    
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
         let selectedEqub = null;
         let currentTiers = [];
@@ -667,10 +667,10 @@ $csrf_token = generate_csrf_token();
                     <div class="alert alert-warning">
                         <strong>No Regular Tier Selected</strong><br>
                         <small>Please select a regular tier for position calculations</small>
-                    </div>
-                `;
-            }
-            
+                </div>
+            `;
+        }
+
             // Reload tiers to show updated coefficients
             loadTiers();
             updateImpactSummary();
@@ -797,7 +797,7 @@ $csrf_token = generate_csrf_token();
                 alert('Please enter a tag');
                 return;
             }
-            
+
             const editIndex = document.getElementById('editingTierIndex').value;
             
             if (editIndex !== '') {
@@ -835,9 +835,9 @@ $csrf_token = generate_csrf_token();
                 // Check if this is the regular tier
                 if (tier.amount == currentRegularTier) {
                     alert('Cannot delete the regular tier. Please set a different regular tier first.');
-                    return;
-                }
-                
+                return;
+            }
+
                 currentTiers.splice(index, 1);
                 saveTiersToDatabase();
             }
@@ -855,7 +855,7 @@ $csrf_token = generate_csrf_token();
             
             try {
                 const response = await fetch('api/payment-tiers.php', {
-                    method: 'POST',
+                method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },

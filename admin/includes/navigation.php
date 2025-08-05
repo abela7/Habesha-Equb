@@ -904,6 +904,15 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Payouts</span>
             </a>
+            <a href="payment-tiers.php" class="nav-item <?php echo ($current_page === 'payment-tiers.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3h18v18H3V3z"/>
+                    <path d="M9 9h6v6H9V9z"/>
+                    <path d="M12 3v18"/>
+                    <path d="M3 12h18"/>
+                </svg>
+                <span class="nav-text">Payment Tiers</span>
+            </a>
         </div>
         
         <!-- Communication -->
@@ -955,11 +964,14 @@ body.no-scroll {
                 <span class="nav-text">EQUB Diagnostics</span>
             </a>
             
-            <a href="smart-equb-diagnostics.php" class="nav-item <?php echo ($current_page === 'smart-equb-diagnostics.php') ? 'active' : ''; ?>">
+            <a href="smart-equb-diagnostics.php" class="nav-item <?php echo ($current_page === 'smart-equb-diagnostics.php') ? 'active' : ''; ?>" style="background: linear-gradient(135deg, #FF4500 0%, #FF6B35 100%); color: white; border: 2px solid #FFD700; position: relative;">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
-                <span class="nav-text">🚨 Smart Fix</span>
+                <span class="nav-text">🚨 SMART FIX</span>
+                <div style="position: absolute; top: 5px; right: 5px; background: #FFD700; color: #FF4500; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;">
+                    CRITICAL
+                </div>
             </a>
             
             <!-- Language Selector -->
