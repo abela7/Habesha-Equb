@@ -5,20 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Approved</title>
     <style>
-        /* Force email clients to respect external links */
-        a[x-apple-data-detectors] {
-            color: inherit !important;
-            text-decoration: none !important;
-            font-size: inherit !important;
-            font-family: inherit !important;
-            font-weight: inherit !important;
-            line-height: inherit !important;
-        }
-        
-        /* Gmail specific fixes */
-        .gmail-blend-screen { display: none !important; }
-        .gmail-blend-difference { display: none !important; }
-        
         @media only screen and (max-width: 600px) {
             .email-container {
                 width: 100% !important;
@@ -37,13 +23,6 @@
             .footer-padding {
                 padding: 15px !important;
             }
-        }
-        
-        /* Force links to open in browser */
-        .force-browser-link {
-            mso-line-height-rule: exactly;
-            -ms-text-size-adjust: 100%;
-            -webkit-text-size-adjust: 100%;
         }
     </style>
 </head>
@@ -83,7 +62,7 @@
                             </h3>
                             
                             <p style="margin: 0 0 25px 0; color: #4D4052; font-size: 16px; line-height: 1.6;">
-                                Your HabeshaEqub account has been approved! Click the button below to access your dashboard - it will open in your browser automatically.
+                                Your HabeshaEqub account has been approved. You can now access your dashboard and start your equb journey.
                             </p>
                             
                             <!-- Member Details -->
@@ -100,37 +79,19 @@
                                 </tr>
                             </table>
                             
-                            <!-- Login Button with Browser-Force -->
+                            <!-- Login Button -->
                             <table width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td align="center" style="padding: 20px 0;">
-                                        <a href="{{login_url}}" target="_blank" rel="noopener noreferrer" class="button force-browser-link" style="display: inline-block; background: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%); color: #FFFFFF; text-decoration: none; padding: 18px 35px; border-radius: 8px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3); border: none; cursor: pointer;">
-                                            🌟 Open Dashboard in Browser
+                                        <a href="{{login_url}}" class="button" style="display: inline-block; background: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%); color: #FFFFFF; text-decoration: none; padding: 18px 35px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                                            Access Dashboard
                                         </a>
                                     </td>
                                 </tr>
                             </table>
                             
-                            <!-- Alternative Link Section -->
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px;">
-                                <tr>
-                                    <td style="background-color: #F8F6F0; border-radius: 8px; padding: 20px; border-left: 4px solid #DAA520;">
-                                        <p style="margin: 0 0 10px 0; color: #5D4225; font-size: 14px; font-weight: 600;">
-                                            📱 Can't access the button above?
-                                        </p>
-                                        <p style="margin: 0 0 12px 0; color: #4D4052; font-size: 13px; line-height: 1.5;">
-                                            Copy and paste this link into your browser:
-                                        </p>
-                                        <p style="margin: 0; background-color: #FFFFFF; padding: 8px 12px; border-radius: 4px; border: 1px solid #DAA520; font-family: 'Courier New', monospace; font-size: 12px; color: #301934; word-break: break-all;">
-                                            {{login_url}}
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                            
                             <p style="margin: 25px 0 0 0; color: #5D4225; font-size: 14px;">
-                                🔐 Login with your email - no password needed!<br>
-                                <strong>This will automatically open in your browser (Chrome, Safari, etc.)</strong>
+                                Login with your email - no password needed!
                             </p>
                             
                         </td>

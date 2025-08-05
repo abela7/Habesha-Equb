@@ -792,7 +792,7 @@ $csrf_token = generate_csrf_token();
                 alert('Please enter a valid amount');
                 return;
             }
-            
+
             if (!tierData.tag) {
                 alert('Please enter a tag');
                 return;
