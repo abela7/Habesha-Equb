@@ -5,6 +5,7 @@
  */
 
 require_once '../includes/db.php';
+require_once '../includes/enhanced_equb_calculator.php';
 require_once '../languages/translator.php';
 require_once '../languages/user_language_handler.php';
 
@@ -18,19 +19,13 @@ setAdminLanguageFromDatabase($admin_id);
 
 // Get equb statistics for dashboard
 try {
-    // Get equb settings with proper calculations
+    // Get basic equb settings
     $stmt = $pdo->query("
         SELECT 
             es.*,
             COUNT(DISTINCT m.id) as current_members,
             COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as collected_amount,
-            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as distributed_amount,
-            COALESCE(SUM(
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN m.individual_contribution
-                    ELSE m.monthly_payment
-                END
-            ) * es.duration_months, 0) as calculated_pool_amount
+            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as distributed_amount
         FROM equb_settings es
         LEFT JOIN members m ON m.equb_settings_id = es.id AND m.is_active = 1
         LEFT JOIN payments p ON p.member_id = m.id
@@ -38,7 +33,24 @@ try {
         GROUP BY es.id
         ORDER BY es.created_at DESC
     ");
-    $equbs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $equbs_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculate correct pool amounts using enhanced calculator
+    $calculator = getEnhancedEqubCalculator();
+    $equbs = [];
+    
+    foreach ($equbs_raw as $equb) {
+        $equb_calculation = $calculator->calculateEqubPositions($equb['id']);
+        
+        if ($equb_calculation['success']) {
+            $monthly_pool = $equb_calculation['total_monthly_pool'];
+            $equb['calculated_pool_amount'] = $monthly_pool * $equb['duration_months'];
+        } else {
+            $equb['calculated_pool_amount'] = 0;
+        }
+        
+        $equbs[] = $equb;
+    }
     
     // Calculate overall statistics
     $total_equbs = count($equbs);

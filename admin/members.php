@@ -5,6 +5,7 @@
  */
 
 require_once '../includes/db.php';
+require_once '../includes/enhanced_equb_calculator.php';
 require_once '../languages/translator.php';
 
 // Secure admin authentication check
@@ -41,6 +42,21 @@ try {
             END ASC, m.created_at DESC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculate expected payouts using enhanced calculator
+    $calculator = getEnhancedEqubCalculator();
+    foreach ($members as &$member) {
+        $payout_calc = $calculator->calculateMemberFriendlyPayout($member['id']);
+        if ($payout_calc['success']) {
+            $member['expected_payout'] = $payout_calc['calculation']['display_payout'];
+            $member['payout_calculation'] = $payout_calc;
+        } else {
+            $member['expected_payout'] = 0;
+            $member['payout_calculation'] = null;
+        }
+    }
+    unset($member); // Clean up reference
+    
 } catch (PDOException $e) {
     error_log("Error fetching members: " . $e->getMessage());
     $members = [];
@@ -1289,13 +1305,9 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                                                 </div>
                                                 <div class="payment-status">
                                                     <?php echo t('members.paid'); ?>: £<?php echo number_format($member['total_paid'], 0); ?>
-                                                    <?php 
-                                                    $expected = ($member['effective_monthly_payment'] ?: $member['monthly_payment']) * 12; // Assuming 12 months for calculation
-                                                    if ($expected > 0) {
-                                                        $percentage = ($member['total_paid'] / $expected) * 100;
-                                                        echo '<small class="text-muted">(' . round($percentage, 1) . '%)</small>';
-                                                    }
-                                                    ?>
+                                                    <?php if ($member['expected_payout'] > 0): ?>
+                                                        <br><small class="text-success"><strong>Expected Payout:</strong> £<?php echo number_format($member['expected_payout'], 0); ?></small>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <?php if ($member['membership_type'] === 'joint' && $member['group_name']): ?>
                                                     <div class="joint-group-info">

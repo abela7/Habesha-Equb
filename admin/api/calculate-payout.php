@@ -5,7 +5,7 @@
  */
 
 require_once '../../includes/db.php';
-require_once '../../includes/equb_payout_calculator.php';
+require_once '../../includes/enhanced_equb_calculator.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -45,10 +45,28 @@ function calculateMemberPayout() {
         return;
     }
     
-    $calculator = getEqubPayoutCalculator();
-    $result = $calculator->calculateMemberPayoutAmount($member_id);
+    $calculator = getEnhancedEqubCalculator();
+    $result = $calculator->calculateMemberFriendlyPayout($member_id);
     
-    echo json_encode($result);
+    if ($result['success']) {
+        // Format response for compatibility with existing frontend
+        $response = [
+            'success' => true,
+            'member_name' => $result['member_info']['name'],
+            'monthly_payment' => $result['member_info']['monthly_payment'],
+            'position_coefficient' => $result['calculation']['position_coefficient'],
+            'total_monthly_pool' => $result['calculation']['total_monthly_pool'],
+            'gross_payout' => $result['calculation']['gross_payout'],
+            'admin_fee' => $result['calculation']['admin_fee'],
+            'net_payout' => $result['calculation']['real_net_payout'], // Real amount member gets
+            'display_payout' => $result['calculation']['display_payout'], // Member-friendly amount
+            'share_ratio' => $result['calculation']['position_coefficient'],
+            'total_pool' => $result['calculation']['total_monthly_pool'] * 9 // Assuming 9 months duration
+        ];
+        echo json_encode($response);
+    } else {
+        echo json_encode(['success' => false, 'error' => $result['error']]);
+    }
 }
 
 /**
@@ -62,8 +80,8 @@ function getEqubSummary() {
         return;
     }
     
-    $calculator = getEqubPayoutCalculator();
-    $result = $calculator->getEqubPoolSummary($equb_id);
+    $calculator = getEnhancedEqubCalculator();
+    $result = $calculator->calculateEqubPositions($equb_id);
     
     echo json_encode(['success' => true, 'data' => $result]);
 }
