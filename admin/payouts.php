@@ -1287,7 +1287,8 @@ $csrf_token = generate_csrf_token();
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById('totalAmount').value = data.net_payout.toFixed(2);
+                    // Use display_payout (member-friendly) instead of net_payout (real amount)
+                    document.getElementById('totalAmount').value = data.display_payout.toFixed(2);
                     
                     // Show calculation details for admin reference
                     console.info('🔍 Equb Payout Calculation DEBUG:');
