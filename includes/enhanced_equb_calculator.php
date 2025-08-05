@@ -123,6 +123,7 @@ class EnhancedEqubCalculator {
             
             $duration = (int)$member['duration_months']; // FIXED duration
             $admin_fee = (float)$member['admin_fee'];
+            $regular_payment_tier = (float)$member['regular_payment_tier']; // SYSTEM-BASED regular tier
             
             // Calculate TOTAL MONTHLY POOL (all contributions combined)
             $stmt = $this->db->prepare("
@@ -153,7 +154,7 @@ class EnhancedEqubCalculator {
                 
                 // Joint member gets their contribution amount × duration as gross
                 $gross_payout = $individual_contribution * $duration;
-                $position_coefficient = $individual_contribution / 1000.0; // Based on regular tier
+                $position_coefficient = $individual_contribution / $regular_payment_tier; // Based on SYSTEM regular tier
             } else {
                 // Individual membership
                 $monthly_payment = (float)$member['monthly_payment'];
@@ -186,7 +187,9 @@ class EnhancedEqubCalculator {
                     'real_net_payout' => $real_net_payout, // What member actually gets
                     'position_coefficient' => $position_coefficient,
                     'total_monthly_pool' => $total_monthly_pool,
-                    'gross_payout_per_position' => $gross_payout_per_position // For debugging
+                    'duration_months' => $duration,
+                    'regular_payment_tier' => $regular_payment_tier, // SYSTEM-BASED regular tier
+                    'calculation_method' => ($member['membership_type'] === 'joint') ? 'individual_contribution_x_duration' : 'monthly_payment_x_duration'
                 ],
                 'payout_date' => $this->calculatePayoutDate($member)
             ];
