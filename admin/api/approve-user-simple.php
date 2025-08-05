@@ -92,7 +92,7 @@ try {
             'last_name' => $user['last_name'],
             'member_id' => $user['member_id'],
             'email' => $user['email'],
-            'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/login.php'
+            'login_url' => 'https://' . $_SERVER['HTTP_HOST'] . '/user/email-redirect.php?to=' . urlencode('https://' . $_SERVER['HTTP_HOST'] . '/user/login.php')
         ];
         
         $email_result = $emailService->send(
