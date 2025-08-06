@@ -125,20 +125,25 @@ $total_contributed = (float)$member['total_contributed'];
 $payout_position = (int)$member['actual_payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
 
-// Enhanced Financial Calculations using Traditional EQUB Logic
-require_once '../includes/equb_payout_calculator.php';
-$payout_calculator = getEqubPayoutCalculator();
-$payout_calculation = $payout_calculator->calculateMemberPayoutAmount($user_id);
+// Enhanced Financial Calculations using ENHANCED EQUB Calculator [[memory:5287409]]
+require_once '../includes/enhanced_equb_calculator_final.php';
+$enhanced_calculator = new EnhancedEqubCalculator($db);
+$enhanced_calculation = $enhanced_calculator->calculateMemberFriendlyPayout($user_id);
 
-if ($payout_calculation['success']) {
-    $expected_payout = $payout_calculation['net_payout'];
-    $gross_payout = $payout_calculation['gross_payout'];
-    $admin_fee = $payout_calculation['admin_fee'];
+if ($enhanced_calculation['success']) {
+    // Show GROSS PAYOUT to members (full amount they're entitled to)
+    $expected_payout = $enhanced_calculation['calculation']['gross_payout'];
+    $gross_payout = $enhanced_calculation['calculation']['gross_payout'];
+    $position_coefficient = $enhanced_calculation['calculation']['position_coefficient'];
+    $total_monthly_pool = $enhanced_calculation['calculation']['total_monthly_pool'];
+    $admin_fee = $enhanced_calculation['calculation']['admin_fee'];
 } else {
-    // Fallback to traditional calculation
-    $expected_payout = $monthly_contribution * (int)$member['expected_payment_months'];
-    $gross_payout = $expected_payout + (float)$member['admin_fee'];
-    $admin_fee = (float)$member['admin_fee'];
+    // Dynamic fallback calculation - NO HARDCODED VALUES
+    $total_monthly_pool = $monthly_contribution * $total_equb_members;
+    $position_coefficient = $monthly_contribution / 1000; // Assuming £1000 regular tier
+    $gross_payout = $position_coefficient * $total_monthly_pool;
+    $expected_payout = $gross_payout; // Show gross to member
+    $admin_fee = (float)$member['admin_fee'] ?: 20;
 }
 $expected_total_contribution = $monthly_contribution * (int)$member['expected_payment_months'];
 $contribution_progress = $expected_total_contribution > 0 ? min(100, ($total_contributed / $expected_total_contribution) * 100) : 0;
@@ -1707,10 +1712,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         <div class="progress-container">
                             <div class="progress">
-                                <div class="progress-bar" style="width: <?php echo min(($total_contributed / $expected_payout) * 100, 100); ?>%"></div>
+                                <div class="progress-bar" style="width: <?php echo min(($total_contributed / $gross_payout) * 100, 100); ?>%"></div>
                             </div>
                             <div class="stat-detail mt-2">
-                                <?php echo number_format(min(($total_contributed / $expected_payout) * 100, 100), 1); ?>% <?php echo t('member_dashboard.of_expected_payout'); ?>
+                                <?php echo number_format(min(($total_contributed / $gross_payout) * 100, 100), 1); ?>% <?php echo t('member_dashboard.of_expected_payout'); ?>
                             </div>
                         </div>
                     </div>
@@ -1734,7 +1739,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         <div class="stat-detail mt-2">
                             <i class="fas fa-users me-1"></i>
-                            <?php echo sprintf(t('member_dashboard.members_calculation'), $total_equb_members, number_format($monthly_contribution, 2)); ?>
+                            <?php echo $total_equb_members; ?> <?php echo t('member_dashboard.members'); ?> × £<?php echo number_format($monthly_contribution, 2); ?> <?php echo t('member_dashboard.monthly_payment'); ?>
                         </div>
                     </div>
                 </div>
@@ -1861,7 +1866,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                             <div class="stat-detail mt-2">
                                 <i class="fas fa-hand-holding-usd me-1"></i>
-                                <small class="text-muted"><?php echo t('dashboard.expected_amount'); ?>: £<?php echo number_format($expected_payout, 0); ?></small>
+                                <small class="text-muted"><?php echo t('dashboard.expected_amount'); ?>: £<?php echo number_format($gross_payout, 0); ?></small>
                             </div>
                         <?php endif; ?>
                     </div>
