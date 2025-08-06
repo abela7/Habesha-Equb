@@ -259,11 +259,11 @@ try {
     ]);
     $current_month_payment = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // DEBUG: Log what we found
+    // DEBUG: Log payment calculation details
     error_log("PAYMENT STATUS DEBUG - User ID: $user_id");
     error_log("Current Payment Month Expected: " . $current_payment_month . '-01');
     error_log("Payment Found: " . ($current_month_payment ? json_encode($current_month_payment) : 'NO PAYMENT FOUND'));
-    error_log("Current Date: $today, Payment Deadline Day: $payment_deadline_day");
+    error_log("Current Date: $today (Day $current_day), Grace Period: $grace_period_days days");
     
     // Initialize payment status
     $payment_status = [
@@ -300,19 +300,23 @@ try {
         $payment_status['has_paid'] = false;
         $payment_status['amount_paid'] = 0;
         
-        if ($current_day <= $payment_deadline_day) {
-            // Still within payment period (1st + grace period)
+        // Calculate days from the 1st of the current month
+        $first_of_month = (int)date('1'); // Always 1st day
+        $days_since_first = $current_day - $first_of_month;
+        
+        if ($days_since_first <= $grace_period_days) {
+            // Still within grace period (1st + grace days)
             $payment_status['status'] = 'pending';
             $payment_status['status_class'] = 'warning';
-            $days_left = $payment_deadline_day - $current_day + 1;
+            $days_left = $grace_period_days - $days_since_first + 1;
             $payment_status['status_text'] = "Payment Due ({$days_left} days remaining)";
         } else {
-            // Payment is overdue
+            // Payment is overdue (after 1st + grace period)
             $payment_status['status'] = 'overdue';
             $payment_status['status_class'] = 'danger';
-            $payment_status['days_overdue'] = $current_day - $payment_deadline_day;
+            $payment_status['days_overdue'] = $days_since_first - $grace_period_days;
             $payment_status['late_fee'] = $late_fee_amount;
-            $payment_status['status_text'] = "Overdue by {$payment_status['days_overdue']} days - £{$late_fee_amount} late fee applies";
+            $payment_status['status_text'] = "Overdue by {$payment_status['days_overdue']} days";
         }
     }
     
@@ -1806,13 +1810,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <div class="stat-detail text-<?php echo $payment_status['status_class']; ?> mb-2">
                             <strong><?php echo $payment_status['status_text']; ?></strong>
                         </div>
-                        
-                        <?php if ($payment_status['late_fee'] > 0): ?>
-                            <div class="stat-detail text-danger mb-2">
-                                <i class="fas fa-exclamation-circle me-1"></i>
-                                <strong>£<?php echo $payment_status['late_fee']; ?> late fee applies</strong>
-                            </div>
-                        <?php endif; ?>
                         
                         <?php if (!$payment_status['has_paid']): ?>
                             <div class="mt-3 text-center">
