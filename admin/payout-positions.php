@@ -715,70 +715,55 @@ $csrf_token = generate_csrf_token();
         function savePositions() {
             if (!hasChanges) return;
             
-            console.log('💾 SAVE TRIGGERED - Starting position save...');
+            console.log('💾 SIMPLE SAVE - Just get card order and update database');
             
             const cards = document.querySelectorAll('.position-card');
             const updates = [];
             
-            console.log('📋 Found', cards.length, 'position cards');
-            
-            // For each card in the current order, update ALL members to that position
+            // SIMPLE: For each card, get ALL members and assign them the card's NEW position
             Array.from(cards).forEach((card, index) => {
-                const newPosition = index + 1;
-                const originalPosition = parseInt(card.dataset.position);
+                const newPosition = index + 1; // Card 1 = position 1, Card 2 = position 2, etc.
                 
-                console.log(`🔄 Card ${index + 1}: Original position ${originalPosition} → New position ${newPosition}`);
+                // Get the position data stored in the card (contains members)
+                const positionNumber = parseInt(card.dataset.position);
                 
-                // Find members in this original position and move them to new position
+                // Find ALL members who belong to this position and update them
                 currentMembers.forEach(member => {
-                    if (member.payout_position === originalPosition) {
+                    if (member.payout_position === positionNumber) {
                         updates.push({
                             member_id: member.id,
                             position: newPosition
                         });
-                        console.log(`👤 Member ${member.first_name} ${member.last_name} (ID: ${member.id}): Position ${originalPosition} → ${newPosition}`);
+                        console.log(`📝 Member ${member.first_name}: Position ${positionNumber} → ${newPosition}`);
                     }
                 });
             });
             
-            console.log('📤 SENDING TO API:', {
-                action: 'update_positions',
-                equb_id: currentEqubId,
-                positions: updates
-            });
+            console.log('📤 Final updates:', updates);
             
+            // Send to API
             fetch('api/payout-positions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `action=update_positions&equb_id=${currentEqubId}&positions=${JSON.stringify(updates)}`
             })
-            .then(response => {
-                console.log('📡 HTTP Response status:', response.status);
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                console.log('📥 API RESPONSE:', data);
+                console.log('📥 Save result:', data);
                 if (data.success) {
-                    console.log('✅ Save successful!');
-                    alert('✅ Positions saved successfully!');
+                    alert('Positions saved!');
                     hasChanges = false;
                     document.getElementById('saveBtn').disabled = true;
                     document.getElementById('saveBtn').classList.remove('btn-warning');
                     document.getElementById('saveBtn').classList.add('btn-success');
-                    
-                    // Don't reload immediately - let's see what was actually saved
-                    console.log('🔄 Reloading positions to verify save...');
-                    setTimeout(() => {
-                        loadPositions(currentEqubId);
-                    }, 1000);
+                    loadPositions(currentEqubId);
                 } else {
-                    console.log('❌ Save failed:', data.message);
-                    alert('❌ Error saving: ' + data.message);
+                    alert('Save failed: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('💥 SAVE ERROR:', error);
-                alert('💥 Save failed! Check console for details.');
+                console.error('Save error:', error);
+                alert('Save failed!');
             });
         }
 

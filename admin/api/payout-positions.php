@@ -265,21 +265,15 @@ function updatePositions() {
         $updated_count = 0;
         
         foreach ($positions as $index => $position_data) {
-            error_log("📝 Processing position update #{$index}: " . json_encode($position_data));
-            
             if (isset($position_data['member_id']) && isset($position_data['position'])) {
                 $member_id = intval($position_data['member_id']);
                 $new_position = intval($position_data['position']);
                 
-                error_log("💾 Updating member {$member_id} to position {$new_position}");
-                
+                // Always update - even if position is same (to force database update)
                 $stmt->execute([$new_position, $member_id]);
-                $rows_affected = $stmt->rowCount();
-                $updated_count += $rows_affected;
+                $updated_count++;
                 
-                error_log("✅ Updated member {$member_id}: {$rows_affected} rows affected");
-            } else {
-                error_log("⚠️ Skipping invalid position data: " . json_encode($position_data));
+                error_log("✅ Member {$member_id} → Position {$new_position}");
             }
         }
         
