@@ -1778,20 +1778,20 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <div class="stat-header">
                             <div class="stat-icon <?php echo $payment_status['status_class']; ?>">
                                 <?php if ($payment_status['status'] === 'paid'): ?>
-                                    <i class="fas fa-check-circle"></i>
+                                    <i class="fas fa-check-circle" style="color: white;"></i>
                                 <?php elseif ($payment_status['status'] === 'pending'): ?>
-                                    <i class="fas fa-clock"></i>
+                                    <i class="fas fa-clock" style="color: white;"></i>
                                 <?php elseif ($payment_status['status'] === 'overdue'): ?>
-                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <i class="fas fa-exclamation-triangle" style="color: white;"></i>
                                 <?php else: ?>
-                                    <i class="fas fa-question-circle"></i>
+                                    <i class="fas fa-question-circle" style="color: white;"></i>
                                 <?php endif; ?>
                             </div>
                             <div class="stat-title-group">
                                 <h3>Payment Status</h3>
                                 <p class="stat-subtitle">
-                                    <span class="badge" style="background-color: var(--palette-gold); color: var(--palette-deep-purple);">
-                                        <?php echo $payment_status['month_name']; ?> - Month <?php echo $payment_status['equb_month']; ?>
+                                    <span class="badge badge-sm" style="background-color: var(--palette-gold); color: var(--palette-deep-purple); font-size: 10px; padding: 4px 8px;">
+                                        <?php echo date('M Y', strtotime($payment_status['month_name'])); ?> - M<?php echo $payment_status['equb_month']; ?>
                                     </span>
                                 </p>
                             </div>
@@ -1846,7 +1846,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                             <div class="stat-detail text-success">
                                 <i class="fas fa-money-bill-wave me-1"></i>
-                                <strong><?php echo t('dashboard.amount_received'); ?>: £<?php echo number_format($member['latest_payout_amount'], 0); ?></strong>
+                                <strong>Amount Received: £<?php echo number_format(($member['latest_payout_amount'] + $monthly_contribution), 0); ?></strong>
                             </div>
                             <div class="stat-detail">
                                 <i class="fas fa-receipt me-1"></i>

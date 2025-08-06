@@ -45,10 +45,10 @@ try {
             m.payout_position,
             m.has_received_payout,
             CASE 
-                WHEN m.membership_type = 'joint' THEN CONCAT(m.first_name, ' ', m.last_name, ' (Joint with ', 
-                    (SELECT GROUP_CONCAT(CONCAT(m2.first_name, ' ', m2.last_name) SEPARATOR ' & ') 
-                     FROM members m2 
-                     WHERE m2.joint_group_id = m.joint_group_id AND m2.id != m.id AND m2.is_active = 1), ')')
+                WHEN m.membership_type = 'joint' AND jmg.group_name IS NOT NULL THEN 
+                    CONCAT(m.first_name, ' ', m.last_name, ' (Joint - ', jmg.group_name, ')')
+                WHEN m.membership_type = 'joint' THEN 
+                    CONCAT(m.first_name, ' ', m.last_name, ' (Joint)')
                 ELSE CONCAT(m.first_name, ' ', m.last_name, ' (Individual)')
             END as display_name,
             jmg.group_name,
@@ -56,6 +56,10 @@ try {
         FROM members m
         LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         WHERE m.is_active = 1 
+        AND m.first_name IS NOT NULL 
+        AND m.first_name != '' 
+        AND m.last_name IS NOT NULL 
+        AND m.last_name != '' 
         ORDER BY 
             CASE 
                 WHEN m.membership_type = 'joint' THEN jmg.payout_position
