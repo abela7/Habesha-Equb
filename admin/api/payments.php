@@ -108,6 +108,15 @@ function addPayment() {
         return;
     }
     
+    // ENHANCED: Ensure payment_month is in proper YYYY-MM-DD format for database
+    if (strlen($payment_month) === 7 && preg_match('/^\d{4}-\d{2}$/', $payment_month)) {
+        // Convert YYYY-MM to YYYY-MM-01 for database storage
+        $payment_month = $payment_month . '-01';
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Payment month must be in YYYY-MM format']);
+        return;
+    }
+    
     // Check for duplicate payment (same member and month)
     $stmt = $pdo->prepare("SELECT id FROM payments WHERE member_id = ? AND payment_month = ?");
     $stmt->execute([$member_id, $payment_month]);
@@ -212,8 +221,13 @@ function updatePayment() {
     $payment_date = $_POST['payment_date'] ?? '';
     $payment_month = $_POST['payment_month'] ?? '';
     
-    // Ensure payment_month is in correct format (YYYY-MM)
-    if ($payment_month && !preg_match('/^\d{4}-\d{2}$/', $payment_month)) {
+    // ENHANCED: Ensure payment_month is in proper YYYY-MM-DD format for database
+    if (strlen($payment_month) === 7 && preg_match('/^\d{4}-\d{2}$/', $payment_month)) {
+        // Convert YYYY-MM to YYYY-MM-01 for database storage
+        $payment_month = $payment_month . '-01';
+    } elseif (strlen($payment_month) === 10 && preg_match('/^\d{4}-\d{2}-\d{2}$/', $payment_month)) {
+        // Already in YYYY-MM-DD format, keep as is
+    } else {
         echo json_encode(['success' => false, 'message' => 'Payment month must be in YYYY-MM format']);
         return;
     }

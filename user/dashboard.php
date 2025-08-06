@@ -1763,10 +1763,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <i class="fas fa-calendar text-info me-1"></i>
                             <?php echo date('M Y', strtotime($next_payout_date)); ?>
                         </div>
-                        <div class="stat-detail mt-2">
-                            <i class="fas fa-users me-1"></i>
-                            <?php echo $total_equb_members; ?> members × £<?php echo number_format($monthly_contribution, 2); ?> monthly payment
-                        </div>
+
                     </div>
                 </div>
 
@@ -1786,8 +1783,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <?php endif; ?>
                             </div>
                             <div class="stat-title-group">
-                                <h3>Payment Status</h3>
-                                <p class="stat-subtitle"><?php echo $payment_status['month_name']; ?> (Month <?php echo $payment_status['equb_month']; ?>)</p>
+                                <h3>Payment Status <small class="badge bg-secondary"><?php echo $payment_status['month_name']; ?> - Month <?php echo $payment_status['equb_month']; ?></small></h3>
                             </div>
                         </div>
                         
