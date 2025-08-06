@@ -715,14 +715,19 @@ $csrf_token = generate_csrf_token();
         function savePositions() {
             if (!hasChanges) return;
             
-            // DEAD SIMPLE: Just update every member's position based on card order
+            console.log('💾 SAVE TRIGGERED - Starting position save...');
+            
             const cards = document.querySelectorAll('.position-card');
             const updates = [];
+            
+            console.log('📋 Found', cards.length, 'position cards');
             
             // For each card in the current order, update ALL members to that position
             Array.from(cards).forEach((card, index) => {
                 const newPosition = index + 1;
                 const originalPosition = parseInt(card.dataset.position);
+                
+                console.log(`🔄 Card ${index + 1}: Original position ${originalPosition} → New position ${newPosition}`);
                 
                 // Find members in this original position and move them to new position
                 currentMembers.forEach(member => {
@@ -731,8 +736,15 @@ $csrf_token = generate_csrf_token();
                             member_id: member.id,
                             position: newPosition
                         });
+                        console.log(`👤 Member ${member.first_name} ${member.last_name} (ID: ${member.id}): Position ${originalPosition} → ${newPosition}`);
                     }
                 });
+            });
+            
+            console.log('📤 SENDING TO API:', {
+                action: 'update_positions',
+                equb_id: currentEqubId,
+                positions: updates
             });
             
             fetch('api/payout-positions.php', {
@@ -740,21 +752,33 @@ $csrf_token = generate_csrf_token();
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `action=update_positions&equb_id=${currentEqubId}&positions=${JSON.stringify(updates)}`
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('📡 HTTP Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('📥 API RESPONSE:', data);
                 if (data.success) {
-                    alert('Positions saved!');
+                    console.log('✅ Save successful!');
+                    alert('✅ Positions saved successfully!');
                     hasChanges = false;
                     document.getElementById('saveBtn').disabled = true;
                     document.getElementById('saveBtn').classList.remove('btn-warning');
                     document.getElementById('saveBtn').classList.add('btn-success');
-                    loadPositions(currentEqubId);
+                    
+                    // Don't reload immediately - let's see what was actually saved
+                    console.log('🔄 Reloading positions to verify save...');
+                    setTimeout(() => {
+                        loadPositions(currentEqubId);
+                    }, 1000);
                 } else {
-                    alert('Error: ' + data.message);
+                    console.log('❌ Save failed:', data.message);
+                    alert('❌ Error saving: ' + data.message);
                 }
             })
             .catch(error => {
-                alert('Save failed!');
+                console.error('💥 SAVE ERROR:', error);
+                alert('💥 Save failed! Check console for details.');
             });
         }
 

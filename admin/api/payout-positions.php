@@ -227,42 +227,75 @@ function getPositions() {
 function updatePositions() {
     global $pdo;
     
+    // Enhanced debugging
+    error_log("🔄 UPDATE POSITIONS API CALLED");
+    error_log("📥 POST data: " . json_encode($_POST));
+    
     $equb_id = intval($_POST['equb_id'] ?? 0);
     $positions_raw = $_POST['positions'] ?? '';
     
+    error_log("🎯 EQUB ID: " . $equb_id);
+    error_log("📦 Raw positions data: " . $positions_raw);
+    
     if (!$equb_id) {
+        error_log("❌ Missing EQUB ID");
         json_response(false, 'EQUB ID is required');
     }
     
     // Handle JSON string from frontend
     if (is_string($positions_raw)) {
         $positions = json_decode($positions_raw, true);
+        error_log("🔧 Decoded JSON positions: " . json_encode($positions));
     } else {
         $positions = $positions_raw;
+        error_log("📋 Direct array positions: " . json_encode($positions));
     }
     
     if (empty($positions) || !is_array($positions)) {
-        json_response(false, 'Positions data is required');
+        error_log("❌ Invalid positions data - empty or not array");
+        json_response(false, 'Positions data is required - received: ' . gettype($positions_raw));
     }
     
     try {
         $pdo->beginTransaction();
+        error_log("🚀 Transaction started");
         
         // SIMPLE: Just update member positions
         $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
+        $updated_count = 0;
         
-        foreach ($positions as $position_data) {
+        foreach ($positions as $index => $position_data) {
+            error_log("📝 Processing position update #{$index}: " . json_encode($position_data));
+            
             if (isset($position_data['member_id']) && isset($position_data['position'])) {
-                $stmt->execute([
-                    intval($position_data['position']), 
-                    intval($position_data['member_id'])
-                ]);
+                $member_id = intval($position_data['member_id']);
+                $new_position = intval($position_data['position']);
+                
+                error_log("💾 Updating member {$member_id} to position {$new_position}");
+                
+                $stmt->execute([$new_position, $member_id]);
+                $rows_affected = $stmt->rowCount();
+                $updated_count += $rows_affected;
+                
+                error_log("✅ Updated member {$member_id}: {$rows_affected} rows affected");
+            } else {
+                error_log("⚠️ Skipping invalid position data: " . json_encode($position_data));
             }
         }
         
         $pdo->commit();
+        error_log("🎉 Transaction committed. Total updates: {$updated_count}");
         
-        json_response(true, 'Positions updated successfully');
+        // Verify the updates worked
+        $verify_stmt = $pdo->prepare("SELECT id, first_name, last_name, payout_position FROM members WHERE id IN (" . implode(',', array_column($positions, 'member_id')) . ") ORDER BY payout_position");
+        $verify_stmt->execute();
+        $updated_members = $verify_stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log("🔍 Verification - Updated members: " . json_encode($updated_members));
+        
+        json_response(true, "Positions updated successfully! {$updated_count} members updated.", [
+            'updated_count' => $updated_count,
+            'updated_members' => $updated_members
+        ]);
         
     } catch (Exception $e) {
         $pdo->rollBack();
