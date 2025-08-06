@@ -302,10 +302,12 @@ function handle_otp_request($database) {
         $emailService = new EmailService($database);
         $otp_code = $emailService->generateOTP($user['id'], $user['email'], 'otp_login');
         
-        // Send OTP email
+        // Send OTP email with unique ID to prevent email threading
+        $unique_id = 'HE' . date('mdHis') . substr(uniqid(), -4);
         $result = $emailService->send('otp_login', $user['email'], $user['first_name'], [
             'first_name' => $user['first_name'],
-            'otp_code' => $otp_code
+            'otp_code' => $otp_code,
+            'unique_id' => $unique_id
         ]);
         
         if ($result['success']) {
