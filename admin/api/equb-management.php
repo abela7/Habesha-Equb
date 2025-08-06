@@ -112,20 +112,27 @@ function validate_equb_data($data) {
 }
 
 /**
- * Calculate total pool amount
+ * Calculate total pool amount - DYNAMIC FROM DATABASE (NO HARDCODE!)
  */
-function calculate_total_pool($payment_tiers, $max_members, $duration_months) {
-    if (is_string($payment_tiers)) {
-        $payment_tiers = json_decode($payment_tiers, true);
-    }
+function calculate_total_pool($equb_id, $duration_months) {
+    global $pdo;
     
-    if (!is_array($payment_tiers) || empty($payment_tiers)) {
-        return 0;
-    }
+    // Calculate REAL monthly pool from actual member contributions
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                ELSE m.monthly_payment
+            END
+        ), 0) as real_monthly_pool
+        FROM members m 
+        WHERE m.equb_settings_id = ? AND m.is_active = 1
+    ");
+    $stmt->execute([$equb_id]);
+    $real_monthly_pool = $stmt->fetchColumn() ?: 0;
     
-    // Use the first tier as base calculation
-    $base_amount = $payment_tiers[0]['amount'] ?? 0;
-    return $base_amount * $max_members * $duration_months;
+    // Total pool = monthly pool × duration (from database)
+    return $real_monthly_pool * $duration_months;
 }
 
 // Check authentication
@@ -214,12 +221,9 @@ try {
             $end_date = clone $start_date;
             $end_date->add(new DateInterval('P' . $data['duration_months'] . 'M'));
             
-            // Calculate total pool amount
-            $total_pool = calculate_total_pool(
-                $data['payment_tiers'] ?? '[]', 
-                $data['max_members'], 
-                $data['duration_months']
-            );
+            // Total pool will be calculated after members are added
+            // For new EQUB, set to 0 initially
+            $total_pool = 0;
             
             // Prepare data for insertion
             $insert_data = [
@@ -276,11 +280,10 @@ try {
                 $data['end_date'] = $end_date->format('Y-m-d');
             }
             
-            // Recalculate total pool if relevant fields changed
-            if (isset($data['payment_tiers']) || isset($data['max_members']) || isset($data['duration_months'])) {
+            // Recalculate total pool if duration changed (using REAL member data)
+            if (isset($data['duration_months'])) {
                 $data['total_pool_amount'] = calculate_total_pool(
-                    $data['payment_tiers'] ?? '[]', 
-                    $data['max_members'], 
+                    $data['id'], 
                     $data['duration_months']
                 );
             }

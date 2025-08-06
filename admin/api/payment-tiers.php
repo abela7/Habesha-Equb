@@ -232,11 +232,10 @@ function updateCalculatedPositions($equb_id) {
         UPDATE equb_settings 
         SET 
             calculated_positions = ?,
-            duration_months = ?,
             updated_at = NOW()
         WHERE id = ?
     ");
-    $stmt->execute([$calculated_positions, $calculated_positions, $equb_id]);
+    $stmt->execute([$calculated_positions, $equb_id]);
 }
 
 /**
