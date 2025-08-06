@@ -617,15 +617,28 @@ $csrf_token = generate_csrf_token();
                         memberPositions[member.id] = newPosition;
                         console.log(`📝 Member ${member.first_name} (ID: ${member.id}) [${member.membership_type}]: Position ${originalPosition} → ${newPosition}`);
                         
-                        // SPECIAL HANDLING FOR JOINT GROUPS:
-                        // If this is a joint member, make sure ALL members in the same joint group get the same position
+                        // SMART JOINT GROUP HANDLING:
+                        // Only move joint members together if they should share positions (coefficient < 2.0)
                         if (member.membership_type === 'joint' && member.joint_group_id) {
-                            currentMembers.forEach(otherMember => {
-                                if (otherMember.joint_group_id === member.joint_group_id && otherMember.id !== member.id) {
-                                    memberPositions[otherMember.id] = newPosition;
-                                    console.log(`🔗 Joint group member ${otherMember.first_name} (ID: ${otherMember.id}): Also moved to position ${newPosition}`);
+                            // Calculate total coefficient for this joint group
+                            let jointGroupTotalCoeff = 0;
+                            currentMembers.forEach(m => {
+                                if (m.joint_group_id === member.joint_group_id) {
+                                    jointGroupTotalCoeff += parseFloat(m.position_coefficient || 0);
                                 }
                             });
+                            
+                            // Only move together if total coefficient < 2.0 (should share positions)
+                            if (jointGroupTotalCoeff < 2.0) {
+                                currentMembers.forEach(otherMember => {
+                                    if (otherMember.joint_group_id === member.joint_group_id && otherMember.id !== member.id) {
+                                        memberPositions[otherMember.id] = newPosition;
+                                        console.log(`🔗 Joint group member ${otherMember.first_name} (ID: ${otherMember.id}): Also moved to position ${newPosition} (shared position)`);
+                                    }
+                                });
+                            } else {
+                                console.log(`🎯 ${member.first_name} (Joint group total coeff: ${jointGroupTotalCoeff}): Moving independently`);
+                            }
                         }
                     }
                 });

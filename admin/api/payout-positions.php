@@ -276,24 +276,44 @@ function updatePositions() {
             }
         }
         
-        // Update joint group positions to match their members' positions
-        $joint_update_stmt = $pdo->prepare("
-            UPDATE joint_membership_groups jmg
-            SET payout_position = (
-                SELECT MIN(m.payout_position) 
-                FROM members m 
-                WHERE m.joint_group_id = jmg.joint_group_id AND m.is_active = 1
-            )
-            WHERE jmg.equb_settings_id = ?
+        // SMART UPDATE: Only update joint group positions for groups that should share positions
+        // (coefficient < 2.0 means they share, >= 2.0 means separate positions)
+        $joint_groups_query = $pdo->prepare("
+            SELECT jmg.joint_group_id, 
+                   SUM(m.position_coefficient) as total_coefficient
+            FROM joint_membership_groups jmg
+            JOIN members m ON jmg.joint_group_id = m.joint_group_id
+            WHERE jmg.equb_settings_id = ? AND m.is_active = 1
+            GROUP BY jmg.joint_group_id
         ");
-        $joint_update_stmt->execute([$equb_id]);
-        $joint_groups_updated = $joint_update_stmt->rowCount();
+        $joint_groups_query->execute([$equb_id]);
+        $joint_groups = $joint_groups_query->fetchAll(PDO::FETCH_ASSOC);
         
-        error_log("🔗 Updated {$joint_groups_updated} joint groups");
+        $joint_groups_updated = 0;
+        foreach ($joint_groups as $group) {
+            if ($group['total_coefficient'] < 2.0) {
+                // This group should share positions - update to MIN position
+                $update_stmt = $pdo->prepare("
+                    UPDATE joint_membership_groups 
+                    SET payout_position = (
+                        SELECT MIN(m.payout_position) 
+                        FROM members m 
+                        WHERE m.joint_group_id = ? AND m.is_active = 1
+                    )
+                    WHERE joint_group_id = ?
+                ");
+                $update_stmt->execute([$group['joint_group_id'], $group['joint_group_id']]);
+                $joint_groups_updated++;
+                error_log("🔗 Updated joint group {$group['joint_group_id']} (shared position, coeff: {$group['total_coefficient']})");
+            } else {
+                // This group has separate positions - don't force them together
+                error_log("🎯 Joint group {$group['joint_group_id']} has separate positions (coeff: {$group['total_coefficient']})");
+            }
+        }
         
         $pdo->commit();
         
-        json_response(true, "All positions updated successfully! {$updated_count} members updated.");
+        json_response(true, "All positions updated successfully! {$updated_count} members updated, {$joint_groups_updated} joint groups updated.");
         
     } catch (Exception $e) {
         $pdo->rollBack();
