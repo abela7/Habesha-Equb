@@ -784,8 +784,23 @@ $csrf_token = generate_csrf_token();
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="totalAmount" class="form-label">Total Amount (£) *</label>
+                                <label for="totalAmount" class="form-label">
+                                    Net Payout Amount (£) * 
+                                    <small class="text-muted">Real amount member receives</small>
+                                </label>
                                 <input type="number" class="form-control" id="totalAmount" name="total_amount" step="0.01" min="0" required>
+                                
+                                <!-- DYNAMIC CALCULATION BREAKDOWN -->
+                                <div id="calculationBreakdown" class="mt-2" style="display: none;">
+                                    <div class="alert alert-info p-2">
+                                        <small>
+                                            <strong>📊 Calculation Breakdown (from database):</strong><br>
+                                            <span id="grossBreakdown"></span><br>
+                                            <span id="deductionsBreakdown"></span><br>
+                                            <span id="netBreakdown"></span>
+                                        </small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1251,6 +1266,8 @@ $csrf_token = generate_csrf_token();
 
     // Auto-calculate correct payout amount when member is selected
     document.getElementById('memberId').addEventListener('change', function() {
+        // Hide breakdown initially
+        document.getElementById('calculationBreakdown').style.display = 'none';
         const selectedOption = this.options[this.selectedIndex];
         if (selectedOption.value && !isEditMode) {
             const memberId = selectedOption.value;
@@ -1287,22 +1304,37 @@ $csrf_token = generate_csrf_token();
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Use display_payout (member-friendly) instead of net_payout (real amount)
-                    document.getElementById('totalAmount').value = data.display_payout.toFixed(2);
+                    // Use REAL NET PAYOUT for admin/receipt purposes (gross - admin fee - monthly payment)
+                    // This is what the member ACTUALLY receives
+                    document.getElementById('totalAmount').value = data.net_payout.toFixed(2);
                     
-                    // Show calculation details for admin reference
-                    console.info('🔍 Equb Payout Calculation DEBUG:');
+                    // Show DYNAMIC calculation breakdown in the form
+                    document.getElementById('grossBreakdown').innerHTML = 
+                        `Gross Payout: £${data.gross_payout.toFixed(2)} = ${data.position_coefficient} × £${data.total_monthly_pool}`;
+                    document.getElementById('deductionsBreakdown').innerHTML = 
+                        `Deductions: -£${data.admin_fee.toFixed(2)} (admin fee) -£${data.monthly_payment} (no payment in payout month)`;
+                    document.getElementById('netBreakdown').innerHTML = 
+                        `<strong>Net Payout: £${data.net_payout.toFixed(2)} (what member actually gets)</strong>`;
+                    
+                    // Show the breakdown
+                    document.getElementById('calculationBreakdown').style.display = 'block';
+                    
+                    // Show DYNAMIC calculation details for admin reference
+                    console.info('🔍 DYNAMIC Payout Calculation (NO HARDCODE):');
                     console.info('├─ Member:', data.member_name);
-                    console.info('├─ Monthly Payment: £' + data.monthly_payment);
-                    console.info('├─ Position Coefficient:', data.position_coefficient);
-                    console.info('├─ Monthly Pool: £' + data.total_monthly_pool);
-                    console.info('├─ Regular Payment Tier: £' + (data.debug?.regular_payment_tier || 'N/A'));
-                    console.info('├─ Total Pool: £' + data.total_pool);
-                    console.info('├─ Individual Gross: £' + data.gross_payout.toFixed(2));
-                    console.info('├─ Admin Fee: £' + data.admin_fee.toFixed(2));
-                    console.info('├─ Net Payout (Real): £' + data.net_payout.toFixed(2));
-                    console.info('├─ Display Payout: £' + data.display_payout.toFixed(2));
-                    console.info('└─ Calculation Method:', data.debug?.calculation_method || 'N/A');
+                    console.info('├─ Monthly Payment: £' + data.monthly_payment + ' (their monthly contribution)');
+                    console.info('├─ Position Coefficient:', data.position_coefficient + ' (calculated from DB)');
+                    console.info('├─ Monthly Pool: £' + data.total_monthly_pool + ' (sum of all contributions)');
+                    console.info('├─ Regular Payment Tier: £' + (data.debug?.regular_payment_tier || 'N/A') + ' (from DB)');
+                    console.info('│');
+                    console.info('├─ 📊 CALCULATION BREAKDOWN:');
+                    console.info('│  ├─ Gross Payout: £' + data.gross_payout.toFixed(2) + ' = ' + data.position_coefficient + ' × £' + data.total_monthly_pool);
+                    console.info('│  ├─ Admin Fee: -£' + data.admin_fee.toFixed(2) + ' (deducted)');
+                    console.info('│  ├─ Monthly Payment: -£' + data.monthly_payment + ' (no payment in payout month)');
+                    console.info('│  └─ Real Net Payout: £' + data.net_payout.toFixed(2) + ' (what member actually gets)');
+                    console.info('│');
+                    console.info('├─ Display Payout (member-friendly): £' + data.display_payout.toFixed(2) + ' (hides monthly deduction)');
+                    console.info('└─ Used for RECEIPT: £' + data.net_payout.toFixed(2) + ' (real amount received)');
                     
                     // Check if calculation seems wrong
                     if (data.total_monthly_pool > 8000 && data.gross_payout < 8000) {
