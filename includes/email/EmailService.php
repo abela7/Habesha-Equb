@@ -201,6 +201,11 @@ class EmailService {
             $message = "From: {$this->smtp_config['from_name']} <{$this->smtp_config['from_email']}>\r\n";
             $message .= "To: {$to_name} <{$to_email}>\r\n";
             $message .= "Subject: {$subject}\r\n";
+            
+            // Generate unique Message-ID to prevent email threading/grouping
+            $unique_id = uniqid('', true) . '.' . time() . '.habeshaequb@' . ($_SERVER['HTTP_HOST'] ?? 'habeshaequb.com');
+            $message .= "Message-ID: <{$unique_id}>\r\n";
+            
             $message .= "MIME-Version: 1.0\r\n";
             $message .= "Content-Type: multipart/alternative; boundary=\"boundary123\"\r\n";
             $message .= "List-Unsubscribe: <mailto:unsubscribe@habeshaequb.com>\r\n";
