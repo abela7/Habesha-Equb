@@ -218,8 +218,29 @@ $csrf_token = generate_csrf_token();
     <script>
         let currentEqubId = null;
         let currentMembers = [];
+        let currentEqubData = null;
         let sortableInstance = null;
         let hasChanges = false;
+        
+        // Function to calculate payout month based on position and EQUB start date
+        function calculatePayoutMonth(position) {
+            if (!currentEqubData || !currentEqubData.start_date) {
+                return `Month ${position}`;
+            }
+            
+            const startDate = new Date(currentEqubData.start_date);
+            const payoutDay = currentEqubData.payout_day || 5; // Default to 5th
+            
+            // Calculate payout date: start_date + (position - 1) months
+            const payoutDate = new Date(startDate);
+            payoutDate.setMonth(startDate.getMonth() + (position - 1));
+            payoutDate.setDate(payoutDay);
+            
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
+            return `${monthNames[payoutDate.getMonth()]} ${payoutDate.getDate()}, ${payoutDate.getFullYear()}`;
+        }
         
         function loadPositions(equbId) {
             if (!equbId) {
@@ -247,6 +268,7 @@ $csrf_token = generate_csrf_token();
                 if (data.success && data.data) {
                     const positions = data.data.positions || [];
                     currentMembers = data.data.members || [];
+                    currentEqubData = data.data.equb || {}; // Store EQUB data for payout month calculations
                     
                     displayPositions(positions);
                     updateStats(data.data.stats || {});
@@ -308,6 +330,9 @@ $csrf_token = generate_csrf_token();
             const position = positionData.position;
             const isShared = members.length > 1;
             
+            // Calculate payout month for this position
+            const payoutMonth = calculatePayoutMonth(position);
+            
             let memberDisplay = '';
             
             if (isShared) {
@@ -327,6 +352,10 @@ $csrf_token = generate_csrf_token();
                                 </div>
                             </div>
                         `).join('')}
+                        <div class="mt-2">
+                            <i class="fas fa-calendar me-1 text-warning"></i>
+                            <span class="badge bg-warning text-dark">Payout: ${payoutMonth}</span>
+                        </div>
                     </div>
                 `;
             } else {
@@ -348,6 +377,10 @@ $csrf_token = generate_csrf_token();
                                 ${parseFloat(member.calculated_coefficient || 0).toFixed(1)} coefficient
                             </span>
                         </span>
+                        <div class="mt-1">
+                            <i class="fas fa-calendar me-1 text-warning"></i>
+                            <span class="badge bg-warning text-dark">Payout: ${payoutMonth}</span>
+                        </div>
                     </div>
                 `;
             }
@@ -362,6 +395,9 @@ $csrf_token = generate_csrf_token();
                         <div class="payout-info">
                             <div class="payout-amount">£${positionData.total_payout.toFixed(2)}</div>
                             <div class="small text-muted">Total Payout</div>
+                            <div class="small text-warning mt-1">
+                                <i class="fas fa-calendar me-1"></i>${payoutMonth}
+                            </div>
                         </div>
                     </div>
                 </div>

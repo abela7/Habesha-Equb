@@ -126,6 +126,14 @@ function getPositions() {
             $gross_payout = $coefficient * $total_monthly_pool;
             $display_payout = $gross_payout - $equb['admin_fee'];
             
+            // Calculate payout month for this position
+            $start_date = new DateTime($equb['start_date']);
+            $payout_day = $equb['payout_day'];
+            $payout_date = clone $start_date;
+            $payout_date->add(new DateInterval('P' . ($position - 1) . 'M'));
+            $payout_date->setDate($payout_date->format('Y'), $payout_date->format('n'), $payout_day);
+            $payout_month_formatted = $payout_date->format('Y-m-d');
+            
             // Each member gets their own position entry
             if (!isset($positions[$position])) {
                 $positions[$position] = [
@@ -139,6 +147,7 @@ function getPositions() {
             $member['calculated_coefficient'] = $coefficient;
             $member['gross_payout'] = $gross_payout;
             $member['display_payout'] = $display_payout;
+            $member['calculated_payout_month'] = $payout_month_formatted;
             
             $positions[$position]['members'][] = $member;
             $positions[$position]['total_coefficient'] += $coefficient;
@@ -215,7 +224,19 @@ function updatePositions() {
     try {
         $pdo->beginTransaction();
         
-        // SIMPLE LOGIC: Update each member's position individually
+        // Get EQUB settings for payout month calculation
+        $stmt = $pdo->prepare("SELECT start_date, payout_day FROM equb_settings WHERE id = ?");
+        $stmt->execute([$equb_id]);
+        $equb_settings = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$equb_settings) {
+            throw new Exception('EQUB settings not found');
+        }
+        
+        $start_date = new DateTime($equb_settings['start_date']);
+        $payout_day = $equb_settings['payout_day'];
+        
+        // AUTOMATED LOGIC: Update position AND calculate payout month
         $updated_count = 0;
         
         foreach ($positions as $position_data) {
@@ -223,12 +244,19 @@ function updatePositions() {
                 $member_id = intval($position_data['member_id']);
                 $new_position = intval($position_data['position']);
                 
-                // Update this member's position - NO GROUP LOGIC HERE
-                $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
-                $stmt->execute([$new_position, $member_id]);
+                // CALCULATE PAYOUT MONTH: Position determines the month
+                // Position 1 = start_date month, Position 2 = start_date + 1 month, etc.
+                $payout_date = clone $start_date;
+                $payout_date->add(new DateInterval('P' . ($new_position - 1) . 'M'));
+                $payout_date->setDate($payout_date->format('Y'), $payout_date->format('n'), $payout_day);
+                $payout_month = $payout_date->format('Y-m-d');
+                
+                // Update BOTH position AND payout month automatically
+                $stmt = $pdo->prepare("UPDATE members SET payout_position = ?, payout_month = ? WHERE id = ?");
+                $stmt->execute([$new_position, $payout_month, $member_id]);
                 $updated_count++;
                 
-                error_log("✅ NEW: Member {$member_id} → Position {$new_position}");
+                error_log("✅ NEW: Member {$member_id} → Position {$new_position} → Payout Month {$payout_month}");
             }
         }
         
