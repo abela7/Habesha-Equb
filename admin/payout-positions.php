@@ -695,60 +695,46 @@ $csrf_token = generate_csrf_token();
         function savePositions() {
             if (!hasChanges) return;
             
-            console.log('🔄 Saving positions...');
-            
+            // DEAD SIMPLE: Just update every member's position based on card order
             const cards = document.querySelectorAll('.position-card');
-            const positions = [];
+            const updates = [];
             
-            // SIMPLIFIED: Map each card's current position to its new position
+            // For each card in the current order, update ALL members to that position
             Array.from(cards).forEach((card, index) => {
                 const newPosition = index + 1;
                 const originalPosition = parseInt(card.dataset.position);
                 
-                // Find all members who were originally in this position
-                const membersInOriginalPosition = currentMembers.filter(member => 
-                    member.payout_position === originalPosition
-                );
-                
-                console.log(`Position ${originalPosition} → ${newPosition}:`, membersInOriginalPosition.map(m => m.first_name));
-                
-                // Update all members from this original position to the new position
-                membersInOriginalPosition.forEach(member => {
-                    positions.push({
-                        member_id: member.id,
-                        position: newPosition
-                    });
+                // Find members in this original position and move them to new position
+                currentMembers.forEach(member => {
+                    if (member.payout_position === originalPosition) {
+                        updates.push({
+                            member_id: member.id,
+                            position: newPosition
+                        });
+                    }
                 });
             });
-            
-            console.log('📤 Sending positions data:', positions);
             
             fetch('api/payout-positions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=update_positions&equb_id=${currentEqubId}&positions=${JSON.stringify(positions)}`
+                body: `action=update_positions&equb_id=${currentEqubId}&positions=${JSON.stringify(updates)}`
             })
             .then(response => response.json())
             .then(data => {
-                console.log('📥 API Response:', data);
                 if (data.success) {
-                    alert('✅ Payout positions saved successfully!');
+                    alert('Positions saved!');
                     hasChanges = false;
                     document.getElementById('saveBtn').disabled = true;
                     document.getElementById('saveBtn').classList.remove('btn-warning');
                     document.getElementById('saveBtn').classList.add('btn-success');
-                    
-                    // Wait a bit before reloading to ensure database update is complete
-                    setTimeout(() => {
-                        loadPositions(currentEqubId);
-                    }, 500);
+                    loadPositions(currentEqubId);
                 } else {
-                    alert('❌ Error saving positions: ' + data.message);
+                    alert('Error: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('💥 Save Error:', error);
-                alert('💥 Network error. Please try again.');
+                alert('Save failed!');
             });
         }
 
