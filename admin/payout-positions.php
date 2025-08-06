@@ -426,9 +426,12 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.data && data.data.members) {
-                    currentMembers = data.data.members || [];
-                    displayPositions(currentMembers);
+                console.log('API Response:', data); // Debug log
+                if (data.success && data.data) {
+                    // Use positions from API (grouped by position) instead of individual members
+                    const positions = data.data.positions || [];
+                    currentMembers = data.data.members || []; // Keep for reference
+                    displayPositions(positions); // Pass positions, not members
                     updateStats(data.data.stats || {});
                     document.getElementById('equbStats').style.display = 'block';
                     document.getElementById('autoSortSection').style.display = 'block';
@@ -444,15 +447,15 @@ $csrf_token = generate_csrf_token();
             });
         }
 
-        function displayPositions(members) {
+        function displayPositions(positions) {
             const container = document.getElementById('positionsContent');
             
-            // Ensure members is an array
-            if (!members || !Array.isArray(members) || members.length === 0) {
+            // Ensure positions is an array
+            if (!positions || !Array.isArray(positions) || positions.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-5 text-muted">
                         <i class="fas fa-users fa-3x mb-3"></i>
-                        <h5>No members found</h5>
+                        <h5>No positions found</h5>
                         <p>Add members to this EQUB term to manage their payout positions.</p>
                         <a href="members.php" class="btn btn-primary">
                             <i class="fas fa-plus me-1"></i>Add Members
@@ -464,65 +467,94 @@ $csrf_token = generate_csrf_token();
 
             container.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5><i class="fas fa-list-ol text-primary me-2"></i>Payout Order (Drag to reorder)</h5>
+                    <h5><i class="fas fa-list-ol text-primary me-2"></i>Payout Positions (${positions.length} positions)</h5>
                     <div class="text-muted small">
-                        <i class="fas fa-hand-paper me-1"></i>Drag and drop to change positions
+                        <i class="fas fa-info-circle me-1"></i>Position-based view (coefficient logic)
                     </div>
                 </div>
                 <div id="sortableList">
-                    ${members.map((member, index) => createPositionCard(member, index + 1)).join('')}
+                    ${positions.map((position, index) => createPositionCard(position, position.position)).join('')}
                 </div>
             `;
 
-            // Initialize sortable
+            // Initialize sortable (disabled for now since we're showing grouped positions)
             if (sortableInstance) {
                 sortableInstance.destroy();
             }
             
-            sortableInstance = Sortable.create(document.getElementById('sortableList'), {
-                animation: 150,
-                ghostClass: 'sortable-ghost',
-                dragClass: 'sortable-drag',
-                onUpdate: function() {
-                    updatePositionNumbers();
-                    markAsChanged();
-                }
-            });
+            // Note: Sortable disabled for coefficient-based positions
+            // Individual member sorting should be handled differently
         }
 
-        function createPositionCard(member, position) {
-            const payoutAmount = member.monthly_payment * member.duration_months;
-            const isJoint = member.membership_type === 'joint';
+        function createPositionCard(positionData, positionNumber) {
+            // positionData now contains: position, members[], total_coefficient, total_payout, position_type
+            const members = positionData.members || [];
+            const isJoint = positionData.position_type === 'joint' || members.length > 1;
+            const coefficient = positionData.total_coefficient || 1.0;
+            const totalPayout = positionData.total_payout || 0;
+            
+            // Create member display
+            let memberDisplay = '';
+            if (isJoint) {
+                memberDisplay = `
+                    <div class="member-name">
+                        <i class="fas fa-users me-2 text-primary"></i>Position ${positionNumber} (Joint)
+                        <span class="joint-badge">Shared Position</span>
+                    </div>
+                    <div class="member-details">
+                        ${members.map(member => `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span><i class="fas fa-user me-1"></i>${member.first_name} ${member.last_name}</span>
+                                <div>
+                                    <span class="badge bg-secondary me-1">${parseFloat(member.position_coefficient || 0).toFixed(1)}</span>
+                                    <span class="text-muted">£${parseFloat(member.expected_payout || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div class="mt-2">
+                            <i class="fas fa-calculator me-1"></i>
+                            <span class="badge" style="background: var(--color-gold); color: white;">
+                                ${coefficient.toFixed(1)} coefficient total
+                            </span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const member = members[0] || {};
+                memberDisplay = `
+                    <div class="member-name">
+                        ${member.first_name || 'Unknown'} ${member.last_name || ''}
+                    </div>
+                    <div class="member-details">
+                        <i class="fas fa-id-card me-1"></i>${member.member_id || 'N/A'}
+                        <span class="ms-3">
+                            <i class="fas fa-pound-sign me-1"></i>
+                            £${parseFloat(member.effective_payment || member.monthly_payment || 0).toFixed(2)}/month
+                        </span>
+                        <span class="ms-3">
+                            <i class="fas fa-calculator me-1"></i>
+                            <span class="badge" style="background: var(--color-gold); color: white;">
+                                ${coefficient.toFixed(1)} coefficient
+                            </span>
+                        </span>
+                    </div>
+                `;
+            }
             
             return `
-                <div class="position-card" data-member-id="${member.id}">
+                <div class="position-card" data-position="${positionNumber}">
                     <div class="d-flex align-items-center">
-                        <div class="position-number">${position}</div>
+                        <div class="position-number">${positionNumber}</div>
                         <div class="member-info">
-                            <div class="member-name">
-                                ${member.first_name} ${member.last_name}
-                                ${isJoint ? `<span class="joint-badge">Joint Group</span>` : ''}
-                            </div>
-                            <div class="member-details">
-                                ${isJoint ? `
-                                    <div><i class="fas fa-users me-1"></i>${member.member_names}</div>
-                                    <div><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month (shared)</div>
-                                    <div><i class="fas fa-info-circle me-1"></i>${member.member_count} members sharing position ${position}</div>
-                                    <div><i class="fas fa-calculator me-1"></i><span class="badge" style="background: var(--color-gold); color: white;">${parseFloat(member.position_coefficient || 1).toFixed(2)} positions</span></div>
-                                ` : `
-                                    <i class="fas fa-id-card me-1"></i>${member.member_id}
-                                    <span class="ms-3"><i class="fas fa-pound-sign me-1"></i>£${parseFloat(member.monthly_payment).toFixed(2)}/month</span>
-                                    <span class="ms-3"><i class="fas fa-calculator me-1"></i><span class="badge" style="background: var(--color-gold); color: white;">${parseFloat(member.position_coefficient || 1).toFixed(2)} positions</span></span>
-                                `}
-                            </div>
+                            ${memberDisplay}
                         </div>
                         <div class="payout-info">
-                            <div class="payout-amount">£${payoutAmount.toFixed(2)}</div>
-                            <div class="payout-date">${member.estimated_payout_date || 'TBD'}</div>
-                            ${isJoint ? '<div class="small text-light">Split among members</div>' : ''}
+                            <div class="payout-amount">£${totalPayout.toFixed(2)}</div>
+                            <div class="payout-date">Month ${positionNumber}</div>
+                            ${isJoint ? '<div class="small text-primary">Split among members</div>' : ''}
                         </div>
                         <div class="ms-3 text-muted">
-                            <i class="fas fa-grip-vertical"></i>
+                            <i class="fas fa-info-circle" title="Position ${positionNumber} details"></i>
                         </div>
                     </div>
                 </div>
@@ -537,10 +569,38 @@ $csrf_token = generate_csrf_token();
         }
 
         function updateStats(stats) {
-            document.getElementById('statDuration').textContent = stats.duration + ' months';
-            document.getElementById('statMembers').textContent = stats.total_positions + ' positions (' + stats.total_people + ' people)';
-            document.getElementById('statIndividual').textContent = stats.individual_positions;
-            document.getElementById('statJoint').textContent = stats.joint_positions;
+            document.getElementById('statDuration').textContent = (stats.duration_months || stats.duration || 0) + ' months';
+            document.getElementById('statMembers').textContent = (stats.total_positions || 0) + ' positions (' + (stats.total_members || 0) + ' people)';
+            document.getElementById('statIndividual').textContent = stats.individual_positions || 'N/A';
+            document.getElementById('statJoint').textContent = stats.joint_positions || 'N/A';
+            
+            // Add coefficient validation display
+            if (stats.position_balance !== undefined) {
+                const balanceText = stats.position_balance ? 'Balanced ✅' : 'Unbalanced ⚠️';
+                const balanceColor = stats.position_balance ? 'text-success' : 'text-warning';
+                
+                // Add balance indicator to stats if not exists
+                let balanceElement = document.getElementById('statBalance');
+                if (!balanceElement) {
+                    const container = document.querySelector('.stats-row .col-md-3:last-child');
+                    if (container) {
+                        container.insertAdjacentHTML('afterend', `
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon"><i class="fas fa-balance-scale"></i></div>
+                                    <div class="stat-info">
+                                        <div class="stat-value ${balanceColor}" id="statBalance">${balanceText}</div>
+                                        <div class="stat-label">Position Balance</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                    }
+                } else {
+                    balanceElement.textContent = balanceText;
+                    balanceElement.className = `stat-value ${balanceColor}`;
+                }
+            }
         }
 
         function markAsChanged() {
