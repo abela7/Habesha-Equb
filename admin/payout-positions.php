@@ -257,7 +257,7 @@ $csrf_token = generate_csrf_token();
 
             currentEqubId = equbId;
             
-            fetch('api/payout-positions-new.php', {
+            fetch('api/payout-positions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `action=get_positions&equb_id=${equbId}`
@@ -445,7 +445,7 @@ $csrf_token = generate_csrf_token();
             
             console.log(`🚀 Sending ${updates.length} updates to NEW API`);
             
-            fetch('api/payout-positions-new.php', {
+            fetch('api/payout-positions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `action=update_positions&equb_id=${currentEqubId}&positions=${JSON.stringify(updates)}`
