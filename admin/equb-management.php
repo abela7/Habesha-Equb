@@ -43,8 +43,9 @@ try {
         $equb_calculation = $calculator->calculateEqubPositions($equb['id']);
         
         if ($equb_calculation['success']) {
-            $monthly_pool = $equb_calculation['total_monthly_pool'];
-            $equb['calculated_pool_amount'] = $monthly_pool * $equb['duration_months'];
+            // CORRECT: Total pool is the monthly pool amount (what each position gets)
+            // NOT monthly_pool * duration (that would be total contributions over time)
+            $equb['calculated_pool_amount'] = $equb_calculation['total_monthly_pool'];
         } else {
             $equb['calculated_pool_amount'] = 0;
         }

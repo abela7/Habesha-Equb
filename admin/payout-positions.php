@@ -477,13 +477,20 @@ $csrf_token = generate_csrf_token();
                 </div>
             `;
 
-            // Initialize sortable (disabled for now since we're showing grouped positions)
+            // Initialize sortable for position reordering
             if (sortableInstance) {
                 sortableInstance.destroy();
             }
             
-            // Note: Sortable disabled for coefficient-based positions
-            // Individual member sorting should be handled differently
+            sortableInstance = Sortable.create(document.getElementById('sortableList'), {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onUpdate: function() {
+                    updatePositionNumbers();
+                    markAsChanged();
+                }
+            });
         }
 
         function createPositionCard(positionData, positionNumber) {
@@ -564,7 +571,9 @@ $csrf_token = generate_csrf_token();
         function updatePositionNumbers() {
             const cards = document.querySelectorAll('.position-card');
             cards.forEach((card, index) => {
-                card.querySelector('.position-number').textContent = index + 1;
+                const newPosition = index + 1;
+                card.querySelector('.position-number').textContent = newPosition;
+                card.dataset.position = newPosition;
             });
         }
 
@@ -679,19 +688,30 @@ $csrf_token = generate_csrf_token();
             if (!hasChanges) return;
             
             const cards = document.querySelectorAll('.position-card');
-            const positions = Array.from(cards).map((card, index) => ({
-                member_id: parseInt(card.dataset.memberId),
-                position: index + 1
-            }));
+            const positions = [];
+            
+            // Extract member positions from the reordered cards
+            Array.from(cards).forEach((card, index) => {
+                const newPosition = index + 1;
+                const currentPosition = parseInt(card.dataset.position);
+                
+                // Get all members from this position and update their positions
+                const positionData = currentMembers.filter(member => 
+                    member.payout_position === currentPosition
+                );
+                
+                positionData.forEach(member => {
+                    positions.push({
+                        member_id: member.id,
+                        position: newPosition
+                    });
+                });
+            });
             
             fetch('api/payout-positions.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'save_positions',
-                    equb_id: currentEqubId,
-                    positions: positions
-                })
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=update_positions&equb_id=${currentEqubId}&positions=${JSON.stringify(positions)}`
             })
             .then(response => response.json())
             .then(data => {
