@@ -239,30 +239,31 @@ try {
     // Calculate payment deadline (1st + grace period)
     $payment_deadline_day = $payment_due_day + $grace_period_days;
     
-    // Check if member has paid for the CURRENT EQUB payment month
+    // FIXED: Check if member has paid for the EXACT CURRENT EQUB payment month
     $stmt = $db->prepare("
         SELECT 
             p.id, p.amount, p.status, p.payment_date, p.late_fee, p.created_at,
-            DATE_FORMAT(p.payment_date, '%Y-%m') as payment_month_year,
+            p.payment_month,
             DAY(p.payment_date) as payment_day
         FROM payments p 
         WHERE p.member_id = ? 
-        AND (
-            (p.payment_month = ? AND p.payment_month != '0000-00-00')
-            OR (DATE_FORMAT(p.payment_date, '%Y-%m') = ?)
-            OR (DATE_FORMAT(p.created_at, '%Y-%m') = ?)
-        )
+        AND p.payment_month = ?
+        AND p.payment_month != '0000-00-00'
         AND p.status IN ('paid', 'completed')
         ORDER BY p.created_at DESC
         LIMIT 1
     ");
     $stmt->execute([
         $user_id, 
-        $current_payment_month . '-01', 
-        $current_payment_month, 
-        $current_payment_month
+        $current_payment_month . '-01'
     ]);
     $current_month_payment = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // DEBUG: Log what we found
+    error_log("PAYMENT STATUS DEBUG - User ID: $user_id");
+    error_log("Current Payment Month Expected: " . $current_payment_month . '-01');
+    error_log("Payment Found: " . ($current_month_payment ? json_encode($current_month_payment) : 'NO PAYMENT FOUND'));
+    error_log("Current Date: $today, Payment Deadline Day: $payment_deadline_day");
     
     // Initialize payment status
     $payment_status = [
@@ -1783,7 +1784,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <?php endif; ?>
                             </div>
                             <div class="stat-title-group">
-                                <h3>Payment Status <small class="badge bg-secondary"><?php echo $payment_status['month_name']; ?> - Month <?php echo $payment_status['equb_month']; ?></small></h3>
+                                <h3>Payment Status</h3>
+                                <p class="stat-subtitle">
+                                    <span class="badge" style="background-color: var(--palette-gold); color: var(--palette-deep-purple);">
+                                        <?php echo $payment_status['month_name']; ?> - Month <?php echo $payment_status['equb_month']; ?>
+                                    </span>
+                                </p>
                             </div>
                         </div>
                         

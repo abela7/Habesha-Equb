@@ -868,9 +868,17 @@ $csrf_token = generate_csrf_token();
                                                 ?>
                                             </div>
                                         </td>
-                                        <td>
-                                            <div class="payment-date"><?php echo date('M d, Y', strtotime($payment['payment_date'])); ?></div>
-                                        </td>
+                                                                <td>
+                            <div class="payment-date">
+                                <?php 
+                                    if ($payment['payment_date'] && $payment['payment_date'] !== '0000-00-00') {
+                                        echo date('M d, Y', strtotime($payment['payment_date']));
+                                    } else {
+                                        echo '<span class="text-muted">Not Set</span>';
+                                    }
+                                ?>
+                            </div>
+                        </td>
                                                                 <td>
                             <?php 
                                 $status = $payment['status'] ?: 'pending'; // Default to 'pending' if empty
@@ -1430,9 +1438,11 @@ $csrf_token = generate_csrf_token();
             payments.forEach(payment => {
 
                 const initials = payment.first_name.charAt(0) + payment.last_name.charAt(0);
-                const paymentDate = new Date(payment.payment_date).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric'
-                });
+                const paymentDate = (payment.payment_date && payment.payment_date !== '0000-00-00') 
+                    ? new Date(payment.payment_date).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric'
+                    })
+                    : '<span class="text-muted">Not Set</span>';
                 const paymentMonth = (payment.payment_month && payment.payment_month !== '0000-00-00') 
                     ? new Date(payment.payment_month + '-01').toLocaleDateString('en-US', {
                         year: 'numeric', month: 'short'
