@@ -1,7 +1,7 @@
 <?php
 /**
- * HabeshaEqub - Payout Positions Management API
- * Professional API for managing member payout positions
+ * HabeshaEqub - Enhanced Payout Positions Management API V2
+ * Integrates with new position coefficient × monthly pool logic
  */
 
 // Prevent any output before JSON
@@ -12,8 +12,9 @@ ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 try {
-    // Include database connection
+    // Include database connection and enhanced calculator
     require_once '../../includes/db.php';
+    require_once '../../includes/enhanced_equb_calculator_v2.php';
     
     // Start session if not started
     if (session_status() === PHP_SESSION_NONE) {
@@ -46,281 +47,192 @@ try {
         json_response(false, 'Unauthorized access');
     }
     
-} catch (Exception $e) {
-    ob_clean();
-    echo json_encode([
-        'success' => false,
-        'message' => 'Server error: ' . $e->getMessage(),
-        'error_line' => $e->getLine(),
-        'error_file' => basename($e->getFile())
-    ]);
-    exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    json_response(false, 'Only POST requests allowed');
-}
-
-// Handle JSON input for save_positions
-$input = json_decode(file_get_contents('php://input'), true);
-if ($input) {
-    $_POST = array_merge($_POST, $input);
-}
-
-$action = $_POST['action'] ?? '';
-
-try {
+    $action = $_POST['action'] ?? $_GET['action'] ?? '';
+    
     switch ($action) {
         case 'get_positions':
             getPositions();
             break;
-        
-        case 'save_positions':
-            savePositions();
+        case 'update_positions':
+            updatePositions();
             break;
-            
-        case 'factory_reset':
-            factoryResetPositions();
+        case 'auto_sort':
+            autoSortPositions();
             break;
-        
         default:
             json_response(false, 'Invalid action');
     }
+
 } catch (Exception $e) {
+    ob_clean();
     error_log("Payout Positions API Error: " . $e->getMessage());
-    json_response(false, 'An error occurred: ' . $e->getMessage());
+    json_response(false, 'Server error occurred');
 }
 
+/**
+ * Get positions with enhanced calculations
+ */
 function getPositions() {
     global $pdo;
     
-    $equb_id = intval($_POST['equb_id'] ?? 0);
+    $equb_id = intval($_POST['equb_id'] ?? $_GET['equb_id'] ?? 0);
     
     if (!$equb_id) {
         json_response(false, 'EQUB ID is required');
     }
     
     try {
-        // Get EQUB info with start date and payout day
+        // Get enhanced calculator
+        $calculator = getEnhancedEqubCalculatorV2();
+        
+        // Get EQUB settings
         $stmt = $pdo->prepare("
-            SELECT duration_months, admin_fee, current_members, max_members,
-                   start_date, payout_day, regular_payment_tier, calculated_positions
-            FROM equb_settings 
-            WHERE id = ?
+            SELECT es.*, 
+                   COUNT(m.id) as actual_member_count,
+                   SUM(CASE WHEN m.membership_type = 'joint' THEN m.individual_contribution ELSE m.monthly_payment END) as total_monthly_pool
+            FROM equb_settings es
+            LEFT JOIN members m ON es.id = m.equb_settings_id AND m.is_active = 1
+            WHERE es.id = ?
+            GROUP BY es.id
         ");
         $stmt->execute([$equb_id]);
-        $equb_info = $stmt->fetch(PDO::FETCH_ASSOC);
+        $equb = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$equb_info) {
-            json_response(false, 'EQUB term not found');
+        if (!$equb) {
+            json_response(false, 'EQUB not found');
         }
         
-        // Get CORRECT positions - joint groups as single entities
+        // Get members with enhanced calculations
         $stmt = $pdo->prepare("
             SELECT 
+                m.*,
                 CASE 
-                    WHEN m.membership_type = 'joint' THEN CONCAT('joint_', m.joint_group_id)
-                    ELSE CONCAT('individual_', m.id)
-                END as position_key,
+                    WHEN m.membership_type = 'joint' THEN jmg.group_name
+                    ELSE NULL
+                END as joint_group_name,
                 CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                    ELSE m.payout_position
-                END as actual_payout_position,
-                m.membership_type,
-                m.joint_group_id,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN COALESCE(jmg.group_name, 'Joint Group')
-                    ELSE CONCAT(m.first_name, ' ', m.last_name)
-                END as display_name,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                    WHEN m.membership_type = 'joint' THEN m.individual_contribution
                     ELSE m.monthly_payment
-                END as position_payment,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN COALESCE(jmg.position_coefficient, 1.0)
-                    ELSE COALESCE(m.position_coefficient, 1.0)
-                END as position_coefficient,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN GROUP_CONCAT(CONCAT(m.first_name, ' ', m.last_name) ORDER BY m.primary_joint_member DESC SEPARATOR ' & ')
-                    ELSE CONCAT(m.first_name, ' ', m.last_name)
-                END as member_names,
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN COUNT(m.id)
-                    ELSE 1
-                END as member_count,
-                MIN(m.join_date) as join_date,
-                MIN(m.id) as primary_id
+                END as effective_payment
             FROM members m
             LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
             WHERE m.equb_settings_id = ? AND m.is_active = 1
-            GROUP BY 
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN m.joint_group_id
-                    ELSE m.id
-                END
-            ORDER BY 
-                CASE 
-                    WHEN m.membership_type = 'joint' THEN jmg.payout_position
-                    ELSE m.payout_position
-                END ASC, MIN(m.id) ASC
+            ORDER BY m.payout_position ASC, m.created_at ASC
         ");
         $stmt->execute([$equb_id]);
-        $position_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // CORRECT: Convert to position-based structure (joint groups = 1 position each)
-        $positions = [];
-        $individual_positions = 0;
-        $joint_positions = 0;
-        $total_people_count = 0;
+        // Calculate enhanced payouts for each member
+        $enhanced_members = [];
+        $total_coefficient = 0;
         
-        foreach ($position_data as $position) {
-            $position['duration_months'] = $equb_info['duration_months'];
-            $position['estimated_payout_date'] = calculatePayoutDate(
-                $position['actual_payout_position'], 
-                $equb_info['duration_months'],
-                $equb_info['start_date'],
-                $equb_info['payout_day']
-            );
+        foreach ($members as $member) {
+            $payout_result = $calculator->calculateMemberFriendlyPayout($member['id']);
             
-            // Convert to position-based structure for frontend compatibility
-            $position_entry = [
-                'id' => $position['primary_id'],
-                'member_id' => $position['position_key'],
-                'first_name' => $position['display_name'],
-                'last_name' => ($position['membership_type'] === 'joint' ? '(Joint Group)' : ''),
-                'email' => '',
-                'monthly_payment' => $position['position_payment'],
-                'payout_position' => $position['actual_payout_position'],
-                'membership_type' => $position['membership_type'],
-                'joint_group_id' => $position['joint_group_id'],
-                'member_names' => $position['member_names'],
-                'member_count' => $position['member_count'],
-                'duration_months' => $equb_info['duration_months'],
-                'estimated_payout_date' => $position['estimated_payout_date']
-            ];
-            
-            $positions[] = $position_entry;
-            
-            // CORRECT counting: Each entry = 1 position (whether individual or joint)
-            if ($position['membership_type'] === 'joint') {
-                $joint_positions++;
-                $total_people_count += $position['member_count']; // People in this position
+            if ($payout_result['success']) {
+                $calc = $payout_result['calculation'];
+                $member['expected_payout'] = $calc['display_payout'];
+                $member['gross_payout'] = $calc['gross_payout'];
+                $member['position_coefficient'] = $calc['position_coefficient'];
+                $member['formula_used'] = $calc['formula_used'];
+                $member['calculation_method'] = $calc['calculation_method'];
+                
+                $total_coefficient += $calc['position_coefficient'];
             } else {
-                $individual_positions++;
-                $total_people_count++; // One person in this position
+                $member['expected_payout'] = 0;
+                $member['gross_payout'] = 0;
+                $member['position_coefficient'] = 0;
+                $member['formula_used'] = 'Error';
+                $member['calculation_method'] = 'Error';
             }
+            
+            $enhanced_members[] = $member;
         }
         
-        // CORRECT statistics - positions vs people
+        // Enhanced statistics
         $stats = [
-            'total_positions' => count($position_data), // Number of payout positions
-            'total_people' => $total_people_count,      // Number of actual people
-            'individual_positions' => $individual_positions,
-            'joint_positions' => $joint_positions,
-            'duration' => $equb_info['duration_months']
+            'total_members' => count($enhanced_members),
+            'total_individual_members' => count(array_filter($enhanced_members, fn($m) => $m['membership_type'] === 'individual')),
+            'total_joint_members' => count(array_filter($enhanced_members, fn($m) => $m['membership_type'] === 'joint')),
+            'total_positions' => $total_coefficient,
+            'total_monthly_pool' => $equb['total_monthly_pool'],
+            'duration_months' => $equb['duration_months'],
+            'admin_fee' => $equb['admin_fee'],
+            'regular_payment_tier' => $equb['regular_payment_tier'],
+            'calculated_positions' => $equb['calculated_positions'],
+            'position_balance' => abs($total_coefficient - $equb['duration_months']) < 0.1
         ];
         
         json_response(true, 'Positions loaded successfully', [
-            'members' => $positions,  // Actually positions, not individual members
-            'stats' => $stats
+            'members' => $enhanced_members,
+            'stats' => $stats,
+            'equb' => $equb
         ]);
         
     } catch (Exception $e) {
-        error_log("Error getting positions: " . $e->getMessage());
+        error_log("Error in getPositions: " . $e->getMessage());
         json_response(false, 'Database error occurred');
     }
 }
 
-function savePositions() {
+/**
+ * Update position order
+ */
+function updatePositions() {
     global $pdo;
     
     $equb_id = intval($_POST['equb_id'] ?? 0);
     $positions = $_POST['positions'] ?? [];
     
-    if (!$equb_id || !is_array($positions) || empty($positions)) {
-        json_response(false, 'Invalid data provided');
+    if (!$equb_id) {
+        json_response(false, 'EQUB ID is required');
+    }
+    
+    if (empty($positions) || !is_array($positions)) {
+        json_response(false, 'Positions data is required');
     }
     
     try {
         $pdo->beginTransaction();
         
-        // Update each member's position
-        $stmt = $pdo->prepare("
-            UPDATE members 
-            SET payout_position = ?, updated_at = NOW() 
-            WHERE id = ? AND equb_settings_id = ?
-        ");
+        // Update positions
+        $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ? AND equb_settings_id = ?");
         
-        foreach ($positions as $position_data) {
-            $member_id = intval($position_data['member_id'] ?? 0);
-            $position = intval($position_data['position'] ?? 0);
-            
-            if ($member_id > 0 && $position > 0) {
-                $stmt->execute([$position, $member_id, $equb_id]);
-            }
+        foreach ($positions as $position => $member_id) {
+            $stmt->execute([($position + 1), intval($member_id), $equb_id]);
         }
         
-        // Update payout months based on new positions
-        updatePayoutMonths($equb_id);
+        // Update joint groups positions as well
+        $stmt = $pdo->prepare("
+            UPDATE joint_membership_groups jmg
+            SET payout_position = (
+                SELECT MIN(m.payout_position) 
+                FROM members m 
+                WHERE m.joint_group_id = jmg.joint_group_id AND m.is_active = 1
+            )
+            WHERE jmg.equb_settings_id = ?
+        ");
+        $stmt->execute([$equb_id]);
         
         $pdo->commit();
-        json_response(true, 'Payout positions updated successfully');
+        
+        json_response(true, 'Positions updated successfully');
         
     } catch (Exception $e) {
-        $pdo->rollback();
-        error_log("Error saving positions: " . $e->getMessage());
-        json_response(false, 'Failed to save positions');
+        $pdo->rollBack();
+        error_log("Error updating positions: " . $e->getMessage());
+        json_response(false, 'Failed to update positions');
     }
-}
-
-function updatePayoutMonths($equb_id) {
-    global $pdo;
-    
-    // Get EQUB start date
-    $stmt = $pdo->prepare("SELECT start_date FROM equb_settings WHERE id = ?");
-    $stmt->execute([$equb_id]);
-    $start_date = $stmt->fetchColumn();
-    
-    if (!$start_date) return;
-    
-    // Update payout months for all members
-    $stmt = $pdo->prepare("
-        UPDATE members 
-        SET payout_month = DATE_ADD(?, INTERVAL (payout_position - 1) MONTH)
-        WHERE equb_settings_id = ? AND is_active = 1
-    ");
-    $stmt->execute([$start_date, $equb_id]);
-}
-
-function calculatePayoutDate($position, $duration_months, $equb_start_date = null, $payout_day = 5) {
-    if (!$position || $position > $duration_months) {
-        return 'TBD';
-    }
-    
-    // Use actual EQUB start date if provided
-    if ($equb_start_date) {
-        $start_date = new DateTime($equb_start_date);
-    } else {
-        // Fallback to current month for backward compatibility
-        $start_date = new DateTime();
-        $start_date->modify('first day of this month');
-    }
-    
-    // Calculate payout date: start_date + (position-1) months + payout_day
-    $payout_date = clone $start_date;
-    $payout_date->modify('+' . ($position - 1) . ' months');
-    $payout_date->setDate($payout_date->format('Y'), $payout_date->format('n'), $payout_day);
-    
-    return $payout_date->format('M d, Y');
 }
 
 /**
- * Factory reset - Clear all payout positions (set to 0)
+ * Auto-sort positions based on different criteria
  */
-function factoryResetPositions() {
+function autoSortPositions() {
     global $pdo;
     
     $equb_id = intval($_POST['equb_id'] ?? 0);
+    $sort_method = $_POST['sort_method'] ?? 'registration_order';
     
     if (!$equb_id) {
         json_response(false, 'EQUB ID is required');
@@ -329,26 +241,64 @@ function factoryResetPositions() {
     try {
         $pdo->beginTransaction();
         
-        // Reset all payout positions to 0 and clear payout months
+        // Get members based on sort method
+        switch ($sort_method) {
+            case 'payment_amount':
+                $orderBy = "effective_payment DESC, m.created_at ASC";
+                break;
+            case 'position_coefficient':
+                $orderBy = "m.position_coefficient DESC, m.created_at ASC";
+                break;
+            case 'random':
+                $orderBy = "RAND()";
+                break;
+            case 'alphabetical':
+                $orderBy = "m.first_name ASC, m.last_name ASC";
+                break;
+            default: // registration_order
+                $orderBy = "m.created_at ASC";
+        }
+        
         $stmt = $pdo->prepare("
-            UPDATE members 
-            SET payout_position = 0, payout_month = NULL
-            WHERE equb_settings_id = ? AND is_active = 1
+            SELECT m.id,
+                   CASE 
+                       WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                       ELSE m.monthly_payment
+                   END as effective_payment
+            FROM members m
+            WHERE m.equb_settings_id = ? AND m.is_active = 1
+            ORDER BY {$orderBy}
+        ");
+        $stmt->execute([$equb_id]);
+        $sorted_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Update positions
+        $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
+        
+        foreach ($sorted_members as $index => $member) {
+            $stmt->execute([($index + 1), $member['id']]);
+        }
+        
+        // Update joint groups positions
+        $stmt = $pdo->prepare("
+            UPDATE joint_membership_groups jmg
+            SET payout_position = (
+                SELECT MIN(m.payout_position) 
+                FROM members m 
+                WHERE m.joint_group_id = jmg.joint_group_id AND m.is_active = 1
+            )
+            WHERE jmg.equb_settings_id = ?
         ");
         $stmt->execute([$equb_id]);
         
-        $affected_rows = $stmt->rowCount();
-        
         $pdo->commit();
         
-        json_response(true, "Factory reset completed successfully. {$affected_rows} members' positions have been cleared.", [
-            'affected_members' => $affected_rows
-        ]);
+        json_response(true, "Positions sorted by {$sort_method} successfully");
         
     } catch (Exception $e) {
         $pdo->rollBack();
-        error_log("Error during factory reset: " . $e->getMessage());
-        json_response(false, 'Database error during factory reset');
+        error_log("Error auto-sorting positions: " . $e->getMessage());
+        json_response(false, 'Failed to sort positions');
     }
 }
 ?>

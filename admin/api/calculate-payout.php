@@ -1,11 +1,12 @@
 <?php
 /**
- * HabeshaEqub - Payout Calculation API
- * Calculates correct payout amounts based on equb logic and payment tiers
+ * HabeshaEqub - Enhanced Payout Calculation API V2
+ * CORRECT LOGIC: Position Coefficient × Monthly Pool
+ * TOP-TIER CALCULATION SYSTEM - NO ERRORS!
  */
 
 require_once '../../includes/db.php';
-require_once '../../includes/enhanced_equb_calculator.php';
+require_once '../../includes/enhanced_equb_calculator_v2.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -26,16 +27,19 @@ try {
         case 'equb_summary':
             getEqubSummary();
             break;
+        case 'validate_balance':
+            validateEqubBalance();
+            break;
         default:
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
     }
 } catch (Exception $e) {
-    error_log("Payout Calculation API Error: " . $e->getMessage());
+    error_log("Payout Calculation API V2 Error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Calculation error occurred']);
 }
 
 /**
- * Calculate payout amount for a member
+ * Calculate payout amount for a member - ENHANCED VERSION
  */
 function calculateMemberPayout() {
     $member_id = intval($_POST['member_id'] ?? $_GET['member_id'] ?? 0);
@@ -45,19 +49,20 @@ function calculateMemberPayout() {
         return;
     }
     
-    $calculator = getEnhancedEqubCalculator();
+    $calculator = getEnhancedEqubCalculatorV2();
     $result = $calculator->calculateMemberFriendlyPayout($member_id);
     
     if ($result['success']) {
-        // Add debugging information
-        error_log("PAYOUT DEBUG for Member ID $member_id:");
-        error_log("- Monthly Pool: " . $result['calculation']['total_monthly_pool']);
-        error_log("- Duration: " . $result['calculation']['duration_months']);
-        error_log("- Individual Gross: " . $result['calculation']['gross_payout']);
-        error_log("- Display Payout: " . $result['calculation']['display_payout']);
+        // Enhanced debugging information
+        error_log("ENHANCED PAYOUT CALCULATION for Member ID $member_id:");
+        error_log("- Formula: " . $result['calculation']['formula_used']);
         error_log("- Position Coefficient: " . $result['calculation']['position_coefficient']);
+        error_log("- Monthly Pool: £" . $result['calculation']['total_monthly_pool']);
+        error_log("- Gross Payout: £" . $result['calculation']['gross_payout']);
+        error_log("- Display Payout: £" . $result['calculation']['display_payout']);
+        error_log("- Method: " . $result['calculation']['calculation_method']);
         
-        // Format response for compatibility with existing frontend
+        // Format response for frontend compatibility
         $response = [
             'success' => true,
             'member_name' => $result['member_info']['name'],
@@ -69,13 +74,15 @@ function calculateMemberPayout() {
             'net_payout' => $result['calculation']['real_net_payout'], // Real amount member gets
             'display_payout' => $result['calculation']['display_payout'], // Member-friendly amount
             'share_ratio' => $result['calculation']['position_coefficient'],
-            'total_pool' => $result['calculation']['total_monthly_pool'] * $result['calculation']['duration_months'], // Using database duration
+            'total_pool' => $result['calculation']['total_monthly_pool'] * $result['calculation']['duration_months'],
             
-            // Add debug info to response
+            // Enhanced debug info
             'debug' => [
                 'regular_payment_tier' => $result['calculation']['regular_payment_tier'],
                 'individual_contribution' => $result['member_info']['monthly_payment'],
-                'calculation_method' => $result['calculation']['calculation_method']
+                'calculation_method' => $result['calculation']['calculation_method'],
+                'formula_used' => $result['calculation']['formula_used'],
+                'membership_type' => $result['member_info']['membership_type']
             ]
         ];
         echo json_encode($response);
@@ -85,7 +92,7 @@ function calculateMemberPayout() {
 }
 
 /**
- * Get equb pool summary
+ * Get equb pool summary with enhanced calculations
  */
 function getEqubSummary() {
     $equb_id = intval($_POST['equb_id'] ?? $_GET['equb_id'] ?? 0);
@@ -95,9 +102,26 @@ function getEqubSummary() {
         return;
     }
     
-    $calculator = getEnhancedEqubCalculator();
+    $calculator = getEnhancedEqubCalculatorV2();
     $result = $calculator->calculateEqubPositions($equb_id);
     
     echo json_encode(['success' => true, 'data' => $result]);
+}
+
+/**
+ * Validate EQUB financial balance
+ */
+function validateEqubBalance() {
+    $equb_id = intval($_POST['equb_id'] ?? $_GET['equb_id'] ?? 0);
+    
+    if (!$equb_id) {
+        echo json_encode(['success' => false, 'error' => 'Equb ID is required']);
+        return;
+    }
+    
+    $calculator = getEnhancedEqubCalculatorV2();
+    $result = $calculator->validateEqubBalance($equb_id);
+    
+    echo json_encode($result);
 }
 ?>

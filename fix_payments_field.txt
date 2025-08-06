@@ -1,0 +1,5 @@
+Line 55 in admin/payments.php needs to be changed from:
+$member['expected_payout'] = $payout_result['calculation']['display_payout_amount'];
+
+To:
+$member['expected_payout'] = $payout_result['calculation']['display_payout'];
