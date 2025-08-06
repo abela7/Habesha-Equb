@@ -55,8 +55,21 @@ if ($selected_equb_id) {
         $equb_data = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($equb_data) {
-            // Initialize enhanced calculator
+            // Initialize enhanced calculator for DYNAMIC calculations
             $calculator = new EnhancedEqubCalculator($pdo);
+            
+            // Get REAL-TIME EQUB calculations (NO HARDCODE!)
+            $equb_calculation = $calculator->calculateEqubPositions($selected_equb_id);
+            
+            if (!$equb_calculation['success']) {
+                error_log("Enhanced calculator failed: " . $equb_calculation['message']);
+                $equb_calculation = [
+                    'total_monthly_pool' => 0,
+                    'total_positions' => 0,
+                    'individual_positions' => 0,
+                    'joint_groups' => 0
+                ];
+            }
             
             // Get POSITION-BASED member data (joint groups as single entities)
             $stmt = $pdo->prepare("
@@ -134,7 +147,7 @@ if ($selected_equb_id) {
                             'payout_position' => $position['payout_position'],
                             'position_coefficient' => $position['position_coefficient'],
                             'monthly_payment' => $position['monthly_payment'],
-                            'total_contributions' => $position['monthly_payment'] * $equb_data['duration_months'],
+                            'total_contributions' => $position['monthly_payment'] * $equb_data['duration_months'], // Dynamic from DB
                             'gross_payout' => $calculation['calculation']['gross_payout'],
                             'admin_fee' => $calculation['calculation']['admin_fee'],
                             'net_payout' => $calculation['calculation']['display_payout'],
@@ -150,24 +163,46 @@ if ($selected_equb_id) {
                 }
             }
             
-            // Calculate financial summary
+            // Calculate DYNAMIC financial summary (NO HARDCODE!)
             $total_expected_contributions = array_sum(array_column($member_payouts, 'total_contributions'));
             $total_paid_contributions = array_sum(array_column($member_payouts, 'total_contributed'));
             $total_net_payouts = array_sum(array_column($member_payouts, 'net_payout'));
             $total_positions = count($member_payouts);
             $completed_payouts = count(array_filter($member_payouts, fn($p) => $p['has_received_payout']));
             
+            // DYNAMIC VALUES from enhanced calculator
+            $real_monthly_pool = $equb_calculation['total_monthly_pool'] ?? 0;
+            $real_total_pool = $real_monthly_pool * $equb_data['duration_months'];
+            $real_positions = $equb_calculation['total_positions'] ?? 0;
+            $real_individual_positions = $equb_calculation['individual_positions'] ?? 0;
+            $real_joint_groups = $equb_calculation['joint_groups'] ?? 0;
+            
             $financial_summary = [
-                'total_positions' => $total_positions,
-                'individual_positions' => count(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'individual')),
-                'joint_positions' => count(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'joint')),
+                // REAL-TIME calculations from database
+                'monthly_pool' => $real_monthly_pool,
+                'total_pool_value' => $real_total_pool,
+                'duration_months' => $equb_data['duration_months'],
+                'admin_fee_rate' => $equb_data['admin_fee'],
+                
+                // Position analysis
+                'total_positions' => $real_positions,
+                'individual_positions' => $real_individual_positions,
+                'joint_positions' => $real_joint_groups,
+                'calculated_positions' => $equb_data['calculated_positions'],
+                
+                // Financial metrics
                 'total_expected_contributions' => $total_expected_contributions,
                 'total_paid_contributions' => $total_paid_contributions,
                 'collection_percentage' => $total_expected_contributions > 0 ? ($total_paid_contributions / $total_expected_contributions) * 100 : 0,
                 'total_net_payouts' => $total_net_payouts,
                 'admin_revenue' => $admin_revenue,
                 'completed_payouts' => $completed_payouts,
-                'remaining_payouts' => $total_positions - $completed_payouts
+                'remaining_payouts' => $real_positions - $completed_payouts,
+                
+                // Additional analytics
+                'average_payout' => $real_positions > 0 ? $real_monthly_pool : 0,
+                'total_admin_revenue_potential' => $real_positions * $equb_data['admin_fee'],
+                'equb_efficiency' => $total_expected_contributions > 0 ? ($total_paid_contributions / $total_expected_contributions) * 100 : 0
             ];
             
             // Create position timeline
@@ -747,7 +782,8 @@ $csrf_token = generate_csrf_token();
                         Financial Analytics Dashboard
                     </h1>
                     <p class="analytics-subtitle">
-                        Comprehensive financial insights and member payout analysis for professional EQUB management
+                        <strong>ENHANCED DYNAMIC ANALYTICS</strong> - Real-time calculations from database with NO hardcoded values!
+                        <br>Comprehensive financial insights and member payout analysis for professional EQUB management
                     </p>
                 </div>
                 <div class="col-lg-4">
@@ -851,6 +887,47 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-change change-positive">
                         <i class="fas fa-minus me-1"></i>
                         After admin fees
+                    </div>
+                </div>
+                
+                <!-- NEW DYNAMIC METRICS FROM ENHANCED CALCULATOR -->
+                
+                <!-- Monthly Pool (Real-Time) -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white;">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="metric-value">£<?php echo number_format($financial_summary['monthly_pool'], 0); ?></div>
+                    <div class="metric-label">Monthly Pool (Real-Time)</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-database me-1"></i>
+                        From actual contributions
+                    </div>
+                </div>
+
+                <!-- Total Pool Value (Lifetime) -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #DC2626, #F87171); color: white;">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="metric-value">£<?php echo number_format($financial_summary['total_pool_value'], 0); ?></div>
+                    <div class="metric-label">Total Pool Value (Lifetime)</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-times me-1"></i>
+                        £<?php echo number_format($financial_summary['monthly_pool'], 0); ?> × <?php echo $financial_summary['duration_months']; ?> months
+                    </div>
+                </div>
+
+                <!-- Average Payout Per Position -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #0891B2, #06B6D4); color: white;">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="metric-value">£<?php echo number_format($financial_summary['average_payout'], 0); ?></div>
+                    <div class="metric-label">Average Payout/Position</div>
+                    <div class="metric-change change-neutral">
+                        <i class="fas fa-equals me-1"></i>
+                        Gross amount before fees
                     </div>
                 </div>
             </div>
