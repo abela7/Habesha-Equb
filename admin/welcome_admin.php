@@ -29,7 +29,7 @@ try {
                             WHEN m.membership_type = 'joint' THEN m.individual_contribution
                             ELSE m.monthly_payment
                         END
-                    ) * es.duration_months
+                    )
                     FROM members m 
                     WHERE m.equb_settings_id = es.id AND m.is_active = 1)
                 ELSE 0 END
