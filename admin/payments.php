@@ -943,7 +943,10 @@ $csrf_token = generate_csrf_token();
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="memberId" class="form-label"><?php echo t('payments.member'); ?> *</label>
+                                    <label for="memberId" class="form-label">
+                                        Select Member *
+                                        <span class="badge bg-danger ms-1">Required</span>
+                                    </label>
                                     <select class="form-select" id="memberId" name="member_id" required>
                                         <option value=""><?php echo t('payments.select_member'); ?></option>
                                         <?php foreach ($members as $member): ?>
@@ -964,8 +967,15 @@ $csrf_token = generate_csrf_token();
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="amount" class="form-label"><?php echo t('payments.payment_amount'); ?> *</label>
+                                    <label for="amount" class="form-label">
+                                        Payment Amount (£) *
+                                        <span class="badge bg-danger ms-1">Required</span>
+                                    </label>
                                     <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                                    <div class="form-text">
+                                        <i class="fas fa-pound-sign text-success"></i>
+                                        Enter the actual amount received from member
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -973,14 +983,32 @@ $csrf_token = generate_csrf_token();
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="paymentDate" class="form-label"><?php echo t('payments.payment_date_label'); ?> *</label>
-                                    <input type="date" class="form-control" id="paymentDate" name="payment_date" required>
+                                    <label for="paymentMonth" class="form-label">
+                                        Payment Month (EQUB Month) *
+                                        <span class="badge bg-danger ms-1">Required</span>
+                                        <i class="fas fa-question-circle text-muted ms-1" data-bs-toggle="tooltip" 
+                                           title="Which EQUB month this payment is for (e.g., Month 1, Month 2)"></i>
+                                    </label>
+                                    <input type="month" class="form-control" id="paymentMonth" name="payment_month" required>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle text-primary"></i>
+                                        Which EQUB payment cycle month this payment covers
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="paymentMonth" class="form-label"><?php echo t('payments.payment_month'); ?> *</label>
-                                    <input type="month" class="form-control" id="paymentMonth" name="payment_month" required>
+                                    <label for="paymentDate" class="form-label">
+                                        Actual Payment Date
+                                        <span class="badge bg-success ms-1">Optional</span>
+                                        <i class="fas fa-question-circle text-muted ms-1" data-bs-toggle="tooltip" 
+                                           title="The actual date when the payment was received"></i>
+                                    </label>
+                                    <input type="date" class="form-control" id="paymentDate" name="payment_date">
+                                    <div class="form-text">
+                                        <i class="fas fa-calendar text-success"></i>
+                                        When the payment was actually received (optional)
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1025,8 +1053,18 @@ $csrf_token = generate_csrf_token();
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="lateFee" class="form-label"><?php echo t('payments.late_fee'); ?></label>
+                                    <label for="lateFee" class="form-label">
+                                        Late Fee (£)
+                                        <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="autoLateFeeBtn" 
+                                                onclick="calculateLateFee()" title="Auto-calculate late fee based on EQUB settings">
+                                            <i class="fas fa-calculator"></i> Auto
+                                        </button>
+                                    </label>
                                     <input type="number" class="form-control" id="lateFee" name="late_fee" step="0.01" min="0" value="0">
+                                    <div class="form-text">
+                                        <i class="fas fa-coins text-warning"></i>
+                                        Applied if payment is late (auto-calculated based on payment date)
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1514,10 +1552,102 @@ $csrf_token = generate_csrf_token();
             return token ? token.value : '';
         }
 
+        // ENHANCED: Calculate late fee based on EQUB settings and payment date
+        async function calculateLateFee() {
+            const paymentMonth = document.getElementById('paymentMonth').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            
+            if (!paymentMonth) {
+                alert('Please select a payment month first');
+                return;
+            }
+            
+            try {
+                // For now, use a simple calculation - can be enhanced with API call
+                const monthDate = new Date(paymentMonth + '-01');
+                const actualDate = paymentDate ? new Date(paymentDate) : new Date();
+                
+                // Calculate days late (assuming payments due on 1st + 2 grace days = 3rd)
+                const dueDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 3);
+                const daysDiff = Math.floor((actualDate - dueDate) / (1000 * 60 * 60 * 24));
+                
+                if (daysDiff > 0) {
+                    // Apply late fee (£20 from EQUB settings - could be dynamic)
+                    document.getElementById('lateFee').value = '20.00';
+                    showToast(`Late fee applied: ${daysDiff} days late`, 'warning');
+                } else {
+                    document.getElementById('lateFee').value = '0.00';
+                    showToast('No late fee - payment on time', 'success');
+                }
+            } catch (error) {
+                console.error('Error calculating late fee:', error);
+                showToast('Error calculating late fee', 'error');
+            }
+        }
+        
+        // ENHANCED: Auto-set payment date when payment month changes
+        function handlePaymentMonthChange() {
+            const paymentMonth = document.getElementById('paymentMonth').value;
+            const paymentDate = document.getElementById('paymentDate').value;
+            
+            // If no payment date set, suggest the first day of the month
+            if (paymentMonth && !paymentDate) {
+                document.getElementById('paymentDate').value = paymentMonth + '-01';
+            }
+            
+            // Auto-calculate late fee if both dates are available
+            if (paymentMonth && paymentDate) {
+                calculateLateFee();
+            }
+        }
+        
+        // ENHANCED: Form validation before submission
+        function validatePaymentForm() {
+            const memberId = document.getElementById('memberId').value;
+            const amount = document.getElementById('amount').value;
+            const paymentMonth = document.getElementById('paymentMonth').value;
+            
+            // Check required fields
+            if (!memberId) {
+                alert('Please select a member');
+                return false;
+            }
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                alert('Please enter a valid payment amount');
+                return false;
+            }
+            
+            if (!paymentMonth) {
+                alert('Please select a payment month');
+                return false;
+            }
+            
+            return true;
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             // Set up event listeners for real-time search
             document.getElementById('paymentSearch').addEventListener('input', debounce(filterPayments, 300));
+            
+            // ENHANCED: Add event listeners for payment form improvements
+            document.getElementById('paymentMonth').addEventListener('change', handlePaymentMonthChange);
+            document.getElementById('paymentDate').addEventListener('change', calculateLateFee);
+            
+            // Add form validation to payment form submission
+            document.getElementById('paymentForm').addEventListener('submit', function(e) {
+                if (!validatePaymentForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
 
         // Debounce function for search

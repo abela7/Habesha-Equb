@@ -75,9 +75,14 @@ function addPayment() {
     $payment_date = $_POST['payment_date'] ?? '';
     $payment_month = $_POST['payment_month'] ?? '';
     
-    if (!$member_id || !$amount_input || !$payment_date || !$payment_month) {
-        echo json_encode(['success' => false, 'message' => 'Member, amount, payment date, and payment month are required']);
+    if (!$member_id || !$amount_input || !$payment_month) {
+        echo json_encode(['success' => false, 'message' => 'Member, amount, and payment month are required']);
         return;
+    }
+    
+    // Payment date is optional - use current date if not provided
+    if (empty($payment_date)) {
+        $payment_date = date('Y-m-d');
     }
     
     // SECURITY FIX: Strict financial validation
@@ -232,9 +237,14 @@ function updatePayment() {
         return;
     }
     
-    if (!$payment_id || !$member_id || !$amount || !$payment_date || !$payment_month) {
-        echo json_encode(['success' => false, 'message' => 'All required fields must be provided']);
+    if (!$payment_id || !$member_id || !$amount || !$payment_month) {
+        echo json_encode(['success' => false, 'message' => 'Payment ID, member, amount, and payment month are required']);
         return;
+    }
+    
+    // Payment date is optional - use current date if not provided
+    if (empty($payment_date)) {
+        $payment_date = date('Y-m-d');
     }
     
     if ($amount <= 0) {
