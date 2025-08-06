@@ -213,10 +213,17 @@ function updatePositions() {
     global $pdo;
     
     $equb_id = intval($_POST['equb_id'] ?? 0);
-    $positions = $_POST['positions'] ?? [];
+    $positions_raw = $_POST['positions'] ?? '';
     
     if (!$equb_id) {
         json_response(false, 'EQUB ID is required');
+    }
+    
+    // Handle JSON string from frontend
+    if (is_string($positions_raw)) {
+        $positions = json_decode($positions_raw, true);
+    } else {
+        $positions = $positions_raw;
     }
     
     if (empty($positions) || !is_array($positions)) {
@@ -229,8 +236,14 @@ function updatePositions() {
         // Update positions
         $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ? AND equb_settings_id = ?");
         
-        foreach ($positions as $position => $member_id) {
-            $stmt->execute([($position + 1), intval($member_id), $equb_id]);
+        foreach ($positions as $position_data) {
+            if (isset($position_data['member_id']) && isset($position_data['position'])) {
+                $stmt->execute([
+                    intval($position_data['position']), 
+                    intval($position_data['member_id']), 
+                    $equb_id
+                ]);
+            }
         }
         
         // Update joint groups positions as well
