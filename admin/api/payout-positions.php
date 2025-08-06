@@ -276,16 +276,20 @@ function updatePositions() {
             }
         }
         
-        // Also update joint group positions (take the minimum position of members in the group)
-        $pdo->exec("
+        // Update joint group positions to match their members' positions
+        $joint_update_stmt = $pdo->prepare("
             UPDATE joint_membership_groups jmg
             SET payout_position = (
                 SELECT MIN(m.payout_position) 
                 FROM members m 
                 WHERE m.joint_group_id = jmg.joint_group_id AND m.is_active = 1
             )
-            WHERE jmg.equb_settings_id = {$equb_id}
+            WHERE jmg.equb_settings_id = ?
         ");
+        $joint_update_stmt->execute([$equb_id]);
+        $joint_groups_updated = $joint_update_stmt->rowCount();
+        
+        error_log("🔗 Updated {$joint_groups_updated} joint groups");
         
         $pdo->commit();
         

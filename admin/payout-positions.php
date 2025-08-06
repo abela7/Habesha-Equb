@@ -615,7 +615,18 @@ $csrf_token = generate_csrf_token();
                 currentMembers.forEach(member => {
                     if (member.payout_position === originalPosition) {
                         memberPositions[member.id] = newPosition;
-                        console.log(`📝 Member ${member.first_name} (ID: ${member.id}): Position ${originalPosition} → ${newPosition}`);
+                        console.log(`📝 Member ${member.first_name} (ID: ${member.id}) [${member.membership_type}]: Position ${originalPosition} → ${newPosition}`);
+                        
+                        // SPECIAL HANDLING FOR JOINT GROUPS:
+                        // If this is a joint member, make sure ALL members in the same joint group get the same position
+                        if (member.membership_type === 'joint' && member.joint_group_id) {
+                            currentMembers.forEach(otherMember => {
+                                if (otherMember.joint_group_id === member.joint_group_id && otherMember.id !== member.id) {
+                                    memberPositions[otherMember.id] = newPosition;
+                                    console.log(`🔗 Joint group member ${otherMember.first_name} (ID: ${otherMember.id}): Also moved to position ${newPosition}`);
+                                }
+                            });
+                        }
                     }
                 });
                 
@@ -623,7 +634,7 @@ $csrf_token = generate_csrf_token();
                 card.dataset.position = newPosition;
             });
             
-            console.log('💾 Updated member positions:', memberPositions);
+            console.log('💾 Updated member positions (including joint groups):', memberPositions);
         }
 
         function updateStats(stats) {
