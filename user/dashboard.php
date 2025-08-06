@@ -196,52 +196,75 @@ try {
     $recent_payments = [];
 }
 
-// MASTER-LEVEL PAYMENT STATUS LOGIC
-$current_month = date('Y-m');
-$current_day = (int)date('d');
-$current_month_formatted = date('F Y'); // For display
-
-// Payment Rules: 1st to 3rd day of month, overdue after 3rd, £20 late fee
-$payment_due_day = 3;
-$late_fee_amount = 20;
-
+// ENHANCED EQUB-AWARE PAYMENT STATUS LOGIC - FULLY DYNAMIC [[memory:5287409]]
 try {
-    // Get current month payment status with complete details
-    $stmt = $pdo->prepare("
+    // Get current date info
+    $current_date = new DateTime();
+    $today = $current_date->format('Y-m-d');
+    $current_day = (int)$current_date->format('d');
+    
+    // Get EQUB settings dynamically from database - NO HARDCODED VALUES
+    $stmt = $db->prepare("
+        SELECT es.start_date, es.payout_day, es.late_fee, es.grace_period_days, es.duration_months
+        FROM equb_settings es 
+        WHERE es.id = ?
+    ");
+    $stmt->execute([$member['equb_settings_id']]);
+    $equb_settings = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$equb_settings) {
+        throw new Exception("EQUB settings not found");
+    }
+    
+    // Extract dynamic payment rules from database
+    $equb_start_date = new DateTime($equb_settings['start_date']);
+    $payment_due_day = 1; // Based on database rules: "due on the 1st day of each month"
+    $grace_period_days = (int)$equb_settings['grace_period_days']; // Dynamic from DB
+    $late_fee_amount = (float)$equb_settings['late_fee']; // Dynamic from DB
+    $equb_duration = (int)$equb_settings['duration_months'];
+    
+    // Calculate which EQUB payment month we're currently in
+    $diff = $current_date->diff($equb_start_date);
+    $months_since_start = $diff->m + ($diff->y * 12);
+    
+    // Determine the current EQUB payment month
+    $current_equb_month = min($months_since_start + 1, $equb_duration);
+    
+    // Calculate current payment month date (don't modify original date object)
+    $payment_month_date = clone $equb_start_date;
+    $payment_month_date->modify("+{$months_since_start} months");
+    $current_payment_month = $payment_month_date->format('Y-m');
+    $payment_month_formatted = $payment_month_date->format('F Y');
+    
+    // Calculate payment deadline (1st + grace period)
+    $payment_deadline_day = $payment_due_day + $grace_period_days;
+    
+    // Check if member has paid for the CURRENT EQUB payment month
+    $stmt = $db->prepare("
         SELECT 
-            p.id,
-            p.amount,
-            p.status,
-            p.payment_date,
-            p.late_fee,
-            p.created_at,
-            CASE 
-                WHEN p.payment_month IS NOT NULL AND p.payment_month != '0000-00-00' 
-                THEN p.payment_month
-                WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00'
-                THEN DATE_FORMAT(p.payment_date, '%Y-%m-01')
-                ELSE DATE_FORMAT(p.created_at, '%Y-%m-01')
-            END as effective_payment_month,
-            CASE
-                WHEN p.payment_date IS NOT NULL AND p.payment_date != '0000-00-00'
-                THEN DAY(p.payment_date)
-                ELSE DAY(p.created_at)
-            END as payment_day_of_month
+            p.id, p.amount, p.status, p.payment_date, p.late_fee, p.created_at,
+            DATE_FORMAT(p.payment_date, '%Y-%m') as payment_month_year,
+            DAY(p.payment_date) as payment_day
         FROM payments p 
         WHERE p.member_id = ? 
         AND (
             (p.payment_month = ? AND p.payment_month != '0000-00-00')
-            OR (p.payment_month = '0000-00-00' AND DATE_FORMAT(p.payment_date, '%Y-%m') = ?)
-            OR (p.payment_month IS NULL AND DATE_FORMAT(p.payment_date, '%Y-%m') = ?)
-            OR (p.payment_month IS NULL AND DATE_FORMAT(p.created_at, '%Y-%m') = ?)
+            OR (DATE_FORMAT(p.payment_date, '%Y-%m') = ?)
+            OR (DATE_FORMAT(p.created_at, '%Y-%m') = ?)
         )
+        AND p.status IN ('paid', 'completed')
         ORDER BY p.created_at DESC
         LIMIT 1
     ");
-    $stmt->execute([$user_id, $current_month . '-01', $current_month, $current_month, $current_month]);
+    $stmt->execute([
+        $user_id, 
+        $current_payment_month . '-01', 
+        $current_payment_month, 
+        $current_payment_month
+    ]);
     $current_month_payment = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Calculate payment status logic
+    // Initialize payment status
     $payment_status = [
         'has_paid' => false,
         'status' => 'not_paid',
@@ -250,11 +273,13 @@ try {
         'amount_paid' => 0,
         'late_fee' => 0,
         'days_overdue' => 0,
-        'month_name' => $current_month_formatted
+        'month_name' => $payment_month_formatted,
+        'equb_month' => $current_equb_month,
+        'payment_deadline' => $payment_deadline_day
     ];
     
-    if ($current_month_payment && in_array($current_month_payment['status'], ['paid', 'completed'])) {
-        // Member has paid for current month
+    if ($current_month_payment) {
+        // Member has paid for current EQUB month
         $payment_status['has_paid'] = true;
         $payment_status['status'] = 'paid';
         $payment_status['status_class'] = 'success';
@@ -262,51 +287,52 @@ try {
         $payment_status['late_fee'] = $current_month_payment['late_fee'];
         
         // Check if payment was late
-        $payment_day = $current_month_payment['payment_day_of_month'];
-        if ($payment_day > $payment_due_day) {
-            $days_late = $payment_day - $payment_due_day;
-            $payment_status['status_text'] = t('dashboard.paid_late') . ' (' . $days_late . ' ' . t('dashboard.days_late') . ')';
+        $payment_day = (int)$current_month_payment['payment_day'];
+        if ($payment_day > $payment_deadline_day) {
+            $days_late = $payment_day - $payment_deadline_day;
+            $payment_status['status_text'] = "Paid Late ({$days_late} days late)";
         } else {
-            $payment_status['status_text'] = t('dashboard.paid_on_time');
+            $payment_status['status_text'] = "Paid On Time";
         }
     } else {
-        // Member has not paid for current month
+        // Member has not paid for current EQUB month
         $payment_status['has_paid'] = false;
         $payment_status['amount_paid'] = 0;
         
-        if ($current_day <= $payment_due_day) {
-            // Still within payment period
+        if ($current_day <= $payment_deadline_day) {
+            // Still within payment period (1st + grace period)
             $payment_status['status'] = 'pending';
             $payment_status['status_class'] = 'warning';
-            $days_left = $payment_due_day - $current_day + 1;
-            $payment_status['status_text'] = t('dashboard.payment_due') . ' (' . $days_left . ' ' . t('dashboard.days_remaining') . ')';
+            $days_left = $payment_deadline_day - $current_day + 1;
+            $payment_status['status_text'] = "Payment Due ({$days_left} days remaining)";
         } else {
             // Payment is overdue
             $payment_status['status'] = 'overdue';
             $payment_status['status_class'] = 'danger';
-            $payment_status['days_overdue'] = $current_day - $payment_due_day;
+            $payment_status['days_overdue'] = $current_day - $payment_deadline_day;
             $payment_status['late_fee'] = $late_fee_amount;
-            $payment_status['status_text'] = t('dashboard.overdue_by') . ' ' . $payment_status['days_overdue'] . ' ' . t('dashboard.days') . 
-                                            ' - £' . $late_fee_amount . ' ' . t('dashboard.late_fee_applies');
+            $payment_status['status_text'] = "Overdue by {$payment_status['days_overdue']} days - £{$late_fee_amount} late fee applies";
         }
     }
     
     // For backward compatibility
     $has_paid_this_month = $payment_status['has_paid'];
     
-} catch (PDOException $e) {
+} catch (Exception $e) {
     $has_paid_this_month = false;
     $payment_status = [
         'has_paid' => false,
         'status' => 'error',
-        'status_text' => t('dashboard.error_loading_status'),
+        'status_text' => 'Error loading payment status',
         'status_class' => 'secondary',
         'amount_paid' => 0,
         'late_fee' => 0,
         'days_overdue' => 0,
-        'month_name' => $current_month_formatted
+        'month_name' => date('F Y'),
+        'equb_month' => 1,
+        'payment_deadline' => 3
     ];
-    error_log("Payment status calculation error: " . $e->getMessage());
+    error_log("Enhanced payment status calculation error: " . $e->getMessage());
 }
 
 // Get active equb rules for accordion
@@ -1739,7 +1765,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                         <div class="stat-detail mt-2">
                             <i class="fas fa-users me-1"></i>
-                            <?php echo $total_equb_members; ?> <?php echo t('member_dashboard.members'); ?> × £<?php echo number_format($monthly_contribution, 2); ?> <?php echo t('member_dashboard.monthly_payment'); ?>
+                            <?php echo $total_equb_members; ?> members × £<?php echo number_format($monthly_contribution, 2); ?> monthly payment
                         </div>
                     </div>
                 </div>
@@ -1760,8 +1786,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <?php endif; ?>
                             </div>
                             <div class="stat-title-group">
-                                <h3><?php echo t('dashboard.payment_status'); ?></h3>
-                                <p class="stat-subtitle"><?php echo $payment_status['month_name']; ?></p>
+                                <h3>Payment Status</h3>
+                                <p class="stat-subtitle"><?php echo $payment_status['month_name']; ?> (Month <?php echo $payment_status['equb_month']; ?>)</p>
                             </div>
                         </div>
                         
@@ -1782,7 +1808,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <?php if ($payment_status['late_fee'] > 0): ?>
                             <div class="stat-detail text-danger mb-2">
                                 <i class="fas fa-exclamation-circle me-1"></i>
-                                <strong>£<?php echo $payment_status['late_fee']; ?> <?php echo t('dashboard.late_fee_applies'); ?></strong>
+                                <strong>£<?php echo $payment_status['late_fee']; ?> late fee applies</strong>
                             </div>
                         <?php endif; ?>
                         
@@ -1790,13 +1816,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="mt-3 text-center">
                                 <a href="contributions.php" class="btn btn-<?php echo $payment_status['status'] === 'overdue' ? 'danger' : 'warning'; ?> btn-sm">
                                     <i class="fas fa-credit-card me-1"></i>
-                                    <?php echo $payment_status['status'] === 'overdue' ? t('dashboard.pay_now_with_late_fee') : t('member_dashboard.pay_now'); ?>
+                                    <?php echo $payment_status['status'] === 'overdue' ? 'Pay Now (with late fee)' : 'Pay Now'; ?>
                                 </a>
                             </div>
                         <?php else: ?>
                             <div class="stat-detail text-success">
                                 <i class="fas fa-check me-1"></i>
-                                <?php echo t('member_dashboard.payment_confirmed'); ?>
+                                Payment Confirmed
                             </div>
                         <?php endif; ?>
                     </div>
