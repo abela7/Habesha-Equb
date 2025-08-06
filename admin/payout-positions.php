@@ -514,9 +514,17 @@ $csrf_token = generate_csrf_token();
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 dragClass: 'sortable-drag',
-                onUpdate: function() {
+                onUpdate: function(evt) {
+                    console.log('🔄 Drag detected - updating position numbers');
                     updatePositionNumbers();
                     markAsChanged();
+                },
+                onEnd: function(evt) {
+                    console.log('🎯 Drag ended - from:', evt.oldIndex, 'to:', evt.newIndex);
+                    if (evt.oldIndex !== evt.newIndex) {
+                        console.log('✅ Position changed - marking as changed');
+                        markAsChanged();
+                    }
                 }
             });
         }
@@ -715,33 +723,40 @@ $csrf_token = generate_csrf_token();
         function savePositions() {
             if (!hasChanges) return;
             
-            console.log('💾 SIMPLE SAVE - Just get card order and update database');
+            console.log('💾 SAVING POSITIONS - Getting current card order');
             
             const cards = document.querySelectorAll('.position-card');
             const updates = [];
             
-            // SIMPLE: For each card, get ALL members and assign them the card's NEW position
-            Array.from(cards).forEach((card, index) => {
-                const newPosition = index + 1; // Card 1 = position 1, Card 2 = position 2, etc.
+            // Get the CURRENT visual order of cards and map members to new positions
+            Array.from(cards).forEach((card, visualIndex) => {
+                const newPosition = visualIndex + 1; // First card = position 1, second = position 2, etc.
+                const originalPosition = parseInt(card.dataset.position);
                 
-                // Get the position data stored in the card (contains members)
-                const positionNumber = parseInt(card.dataset.position);
+                console.log(`📍 Visual position ${visualIndex + 1}: Card with original position ${originalPosition}`);
                 
-                // Find ALL members who belong to this position and update them
-                currentMembers.forEach(member => {
-                    if (member.payout_position === positionNumber) {
-                        updates.push({
-                            member_id: member.id,
-                            position: newPosition
-                        });
-                        console.log(`📝 Member ${member.first_name}: Position ${positionNumber} → ${newPosition}`);
-                    }
+                // Find ALL members from this original position
+                const membersInThisPosition = currentMembers.filter(member => 
+                    member.payout_position === originalPosition
+                );
+                
+                membersInThisPosition.forEach(member => {
+                    updates.push({
+                        member_id: member.id,
+                        position: newPosition
+                    });
+                    
+                    console.log(`👤 ${member.first_name} ${member.last_name} (ID: ${member.id}): ${originalPosition} → ${newPosition}`);
                 });
             });
             
-            console.log('📤 Final updates:', updates);
+            if (updates.length === 0) {
+                alert('No changes to save!');
+                return;
+            }
             
-            // Send to API
+            console.log(`📤 Sending ${updates.length} position updates to database`);
+            
             fetch('api/payout-positions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -749,21 +764,23 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                console.log('📥 Save result:', data);
+                console.log('📥 Database update result:', data);
                 if (data.success) {
-                    alert('Positions saved!');
+                    alert('✅ Positions saved successfully!');
                     hasChanges = false;
                     document.getElementById('saveBtn').disabled = true;
                     document.getElementById('saveBtn').classList.remove('btn-warning');
                     document.getElementById('saveBtn').classList.add('btn-success');
+                    
+                    // Reload to show updated positions
                     loadPositions(currentEqubId);
                 } else {
-                    alert('Save failed: ' + data.message);
+                    alert('❌ Save failed: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('Save error:', error);
-                alert('Save failed!');
+                console.error('💥 Network error:', error);
+                alert('💥 Network error - please try again');
             });
         }
 
