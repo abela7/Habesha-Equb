@@ -233,16 +233,24 @@ function updatePositions() {
     try {
         $pdo->beginTransaction();
         
+        // Debug: Log the positions data
+        error_log("🔄 Updating positions for EQUB {$equb_id}:");
+        error_log("📥 Positions data: " . json_encode($positions));
+        
         // Update positions
         $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ? AND equb_settings_id = ?");
+        $updated_count = 0;
         
         foreach ($positions as $position_data) {
             if (isset($position_data['member_id']) && isset($position_data['position'])) {
-                $stmt->execute([
-                    intval($position_data['position']), 
-                    intval($position_data['member_id']), 
-                    $equb_id
-                ]);
+                $member_id = intval($position_data['member_id']);
+                $new_position = intval($position_data['position']);
+                
+                $stmt->execute([$new_position, $member_id, $equb_id]);
+                $rows_affected = $stmt->rowCount();
+                $updated_count += $rows_affected;
+                
+                error_log("📝 Updated member {$member_id} to position {$new_position} (rows affected: {$rows_affected})");
             }
         }
         
@@ -257,10 +265,13 @@ function updatePositions() {
             WHERE jmg.equb_settings_id = ?
         ");
         $stmt->execute([$equb_id]);
+        $joint_groups_updated = $stmt->rowCount();
         
         $pdo->commit();
         
-        json_response(true, 'Positions updated successfully');
+        error_log("✅ Position update complete: {$updated_count} members updated, {$joint_groups_updated} joint groups updated");
+        
+        json_response(true, "Positions updated successfully ({$updated_count} members, {$joint_groups_updated} joint groups)");
         
     } catch (Exception $e) {
         $pdo->rollBack();

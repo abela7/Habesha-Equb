@@ -426,11 +426,19 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
-                console.log('API Response:', data); // Debug log
+                console.log('📥 API Response:', data); // Debug log
                 if (data.success && data.data) {
                     // Use positions from API (grouped by position) instead of individual members
                     const positions = data.data.positions || [];
                     currentMembers = data.data.members || []; // Keep for reference
+                    
+                    console.log('👥 Current Members:', currentMembers.map(m => ({
+                        id: m.id, 
+                        name: m.first_name + ' ' + m.last_name, 
+                        position: m.payout_position
+                    })));
+                    console.log('🎯 Grouped Positions:', positions);
+                    
                     displayPositions(positions); // Pass positions, not members
                     updateStats(data.data.stats || {});
                     document.getElementById('equbStats').style.display = 'block';
@@ -687,26 +695,33 @@ $csrf_token = generate_csrf_token();
         function savePositions() {
             if (!hasChanges) return;
             
+            console.log('🔄 Saving positions...');
+            
             const cards = document.querySelectorAll('.position-card');
             const positions = [];
             
-            // Extract member positions from the reordered cards
+            // SIMPLIFIED: Map each card's current position to its new position
             Array.from(cards).forEach((card, index) => {
                 const newPosition = index + 1;
-                const currentPosition = parseInt(card.dataset.position);
+                const originalPosition = parseInt(card.dataset.position);
                 
-                // Get all members from this position and update their positions
-                const positionData = currentMembers.filter(member => 
-                    member.payout_position === currentPosition
+                // Find all members who were originally in this position
+                const membersInOriginalPosition = currentMembers.filter(member => 
+                    member.payout_position === originalPosition
                 );
                 
-                positionData.forEach(member => {
+                console.log(`Position ${originalPosition} → ${newPosition}:`, membersInOriginalPosition.map(m => m.first_name));
+                
+                // Update all members from this original position to the new position
+                membersInOriginalPosition.forEach(member => {
                     positions.push({
                         member_id: member.id,
                         position: newPosition
                     });
                 });
             });
+            
+            console.log('📤 Sending positions data:', positions);
             
             fetch('api/payout-positions.php', {
                 method: 'POST',
@@ -715,20 +730,25 @@ $csrf_token = generate_csrf_token();
             })
             .then(response => response.json())
             .then(data => {
+                console.log('📥 API Response:', data);
                 if (data.success) {
-                    alert('Payout positions saved successfully!');
+                    alert('✅ Payout positions saved successfully!');
                     hasChanges = false;
                     document.getElementById('saveBtn').disabled = true;
                     document.getElementById('saveBtn').classList.remove('btn-warning');
                     document.getElementById('saveBtn').classList.add('btn-success');
-                    loadPositions(currentEqubId); // Reload to get updated data
+                    
+                    // Wait a bit before reloading to ensure database update is complete
+                    setTimeout(() => {
+                        loadPositions(currentEqubId);
+                    }, 500);
                 } else {
-                    alert('Error saving positions: ' + data.message);
+                    alert('❌ Error saving positions: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Network error. Please try again.');
+                console.error('💥 Save Error:', error);
+                alert('💥 Network error. Please try again.');
             });
         }
 
