@@ -43,14 +43,29 @@ try {
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Calculate expected payouts using enhanced calculator
+    // Calculate DYNAMIC payouts using enhanced calculator (NO HARDCODE!)
     $calculator = getEnhancedEqubCalculator();
     foreach ($members as &$member) {
         $payout_calc = $calculator->calculateMemberFriendlyPayout($member['id']);
         if ($payout_calc['success']) {
-            $member['expected_payout'] = $payout_calc['calculation']['display_payout'];
+            // Store BOTH display and real net amounts for flexibility
+            $member['display_payout'] = $payout_calc['calculation']['display_payout']; // Member-friendly
+            $member['real_net_payout'] = $payout_calc['calculation']['real_net_payout']; // Actual amount
+            $member['gross_payout'] = $payout_calc['calculation']['gross_payout']; // Before deductions
+            $member['admin_fee'] = $payout_calc['calculation']['admin_fee']; // Admin fee
+            $member['monthly_deduction'] = $payout_calc['calculation']['monthly_deduction']; // Monthly payment
+            $member['position_coefficient'] = $payout_calc['calculation']['position_coefficient']; // Position coefficient
             $member['payout_calculation'] = $payout_calc;
+            
+            // Keep backward compatibility
+            $member['expected_payout'] = $payout_calc['calculation']['display_payout'];
         } else {
+            $member['display_payout'] = 0;
+            $member['real_net_payout'] = 0;
+            $member['gross_payout'] = 0;
+            $member['admin_fee'] = 0;
+            $member['monthly_deduction'] = 0;
+            $member['position_coefficient'] = 0;
             $member['expected_payout'] = 0;
             $member['payout_calculation'] = null;
         }
@@ -75,12 +90,29 @@ $completed_payouts = count(array_filter($members, fn($m) => $m['has_received_pay
 $pending_payouts = count($members) - $completed_payouts;
 $total_members = count($members);
 
-// Calculate financial metrics
+// Calculate DYNAMIC financial metrics (NO HARDCODE!)
 $total_monthly_contributions = array_sum(array_column($members, 'effective_monthly_payment'));
 $total_contributions_received = array_sum(array_column($members, 'total_paid'));
 $average_payment = $total_members > 0 ? $total_contributions_received / $total_members : 0;
 
-// Member activity metrics
+// ENHANCED payout calculations using real amounts
+$total_display_payouts = array_sum(array_column($members, 'display_payout'));
+$total_real_net_payouts = array_sum(array_column($members, 'real_net_payout'));
+$total_gross_payouts = array_sum(array_column($members, 'gross_payout'));
+$total_admin_fees = array_sum(array_column($members, 'admin_fee'));
+$total_monthly_deductions = array_sum(array_column($members, 'monthly_deduction'));
+
+// Get EQUB-wide calculations from enhanced calculator
+$active_equb_ids = array_unique(array_filter(array_column($members, 'equb_settings_id')));
+$equb_totals = [];
+foreach ($active_equb_ids as $equb_id) {
+    $equb_calc = $calculator->calculateEqubPositions($equb_id);
+    if ($equb_calc['success']) {
+        $equb_totals[$equb_id] = $equb_calc;
+    }
+}
+
+// Member activity metrics  
 $recent_joiners = count(array_filter($members, fn($m) => strtotime($m['created_at']) > strtotime('-30 days')));
 $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) == 0));
 ?>
@@ -943,7 +975,10 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                         </svg>
                         <?php echo t('members.page_title'); ?>
                     </h1>
-                    <p class="page-subtitle"><?php echo t('members.page_subtitle'); ?></p>
+                    <p class="page-subtitle">
+                        <strong>ENHANCED DYNAMIC MEMBERS</strong> - Real-time payout calculations from database with NO hardcoded values!
+                        <br><?php echo t('members.page_subtitle'); ?>
+                    </p>
                 </div>
                 <div class="page-actions">
                     <button class="btn btn-add-member" onclick="showAddMemberModal()">
@@ -1082,6 +1117,58 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                         </div>
                         <h3 class="stat-number"><?php echo $never_paid; ?></h3>
                         <p class="stat-label">Never Paid</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NEW DYNAMIC FINANCIAL METRICS (NO HARDCODE!) -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card" style="border-left: 5px solid #10B981;">
+                        <div class="stat-header">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #10B981, #34D399);">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number">£<?php echo number_format($total_real_net_payouts, 0); ?></h3>
+                        <p class="stat-label">Total Real Net Payouts</p>
+                        <small class="text-muted">Actual amounts to be received</small>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card" style="border-left: 5px solid #3B82F6;">
+                        <div class="stat-header">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #3B82F6, #60A5FA);">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number">£<?php echo number_format($total_display_payouts, 0); ?></h3>
+                        <p class="stat-label">Total Display Payouts</p>
+                        <small class="text-muted">Member-friendly amounts</small>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card" style="border-left: 5px solid #F59E0B;">
+                        <div class="stat-header">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #F59E0B, #FCD34D);">
+                                <i class="fas fa-calculator"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number">£<?php echo number_format($total_admin_fees, 0); ?></h3>
+                        <p class="stat-label">Total Admin Fees</p>
+                        <small class="text-muted">Revenue from all payouts</small>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card" style="border-left: 5px solid #8B5CF6;">
+                        <div class="stat-header">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA);">
+                                <i class="fas fa-minus-circle"></i>
+                            </div>
+                        </div>
+                        <h3 class="stat-number">£<?php echo number_format($total_monthly_deductions, 0); ?></h3>
+                        <p class="stat-label">Monthly Deductions</p>
+                        <small class="text-muted">Total saved (no payment in payout month)</small>
                     </div>
                 </div>
             </div>
@@ -1307,9 +1394,19 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                                                 </div>
                                                 <div class="payment-status">
                                                     <?php echo t('members.paid'); ?>: £<?php echo number_format($member['total_paid'], 0); ?>
-                                                    <?php if ($member['expected_payout'] > 0): ?>
-                                                        <br><small class="text-success"><strong>Expected Payout:</strong> £<?php echo number_format($member['expected_payout'], 0); ?></small>
-                                                    <?php endif; ?>
+                                                                                                    <?php if ($member['expected_payout'] > 0): ?>
+                                                    <br><div class="payout-details">
+                                                        <small class="text-success">
+                                                            <strong>Display Payout:</strong> £<?php echo number_format($member['display_payout'], 0); ?>
+                                                            <br><strong>Real Net (Receipt):</strong> £<?php echo number_format($member['real_net_payout'], 0); ?>
+                                                            <br><span class="text-muted">
+                                                                Gross: £<?php echo number_format($member['gross_payout'], 0); ?> - 
+                                                                Fee: £<?php echo number_format($member['admin_fee'], 0); ?> - 
+                                                                Month: £<?php echo number_format($member['monthly_deduction'], 0); ?>
+                                                            </span>
+                                                        </small>
+                                                    </div>
+                                                <?php endif; ?>
                                                 </div>
                                                 <?php if ($member['membership_type'] === 'joint' && $member['group_name']): ?>
                                                     <div class="joint-group-info">
