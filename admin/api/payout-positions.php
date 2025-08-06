@@ -258,18 +258,17 @@ function updatePositions() {
     
     try {
         $pdo->beginTransaction();
-        error_log("🚀 Transaction started");
         
-        // SIMPLE: Just update member positions
-        $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
+        // SIMPLE ONE QUERY: Update all member positions at once
         $updated_count = 0;
         
-        foreach ($positions as $index => $position_data) {
+        foreach ($positions as $position_data) {
             if (isset($position_data['member_id']) && isset($position_data['position'])) {
                 $member_id = intval($position_data['member_id']);
                 $new_position = intval($position_data['position']);
                 
-                // Always update - even if position is same (to force database update)
+                // Update this member's position
+                $stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
                 $stmt->execute([$new_position, $member_id]);
                 $updated_count++;
                 
@@ -277,19 +276,20 @@ function updatePositions() {
             }
         }
         
+        // Also update joint group positions (take the minimum position of members in the group)
+        $pdo->exec("
+            UPDATE joint_membership_groups jmg
+            SET payout_position = (
+                SELECT MIN(m.payout_position) 
+                FROM members m 
+                WHERE m.joint_group_id = jmg.joint_group_id AND m.is_active = 1
+            )
+            WHERE jmg.equb_settings_id = {$equb_id}
+        ");
+        
         $pdo->commit();
-        error_log("🎉 Transaction committed. Total updates: {$updated_count}");
         
-        // Verify the updates worked
-        $verify_stmt = $pdo->prepare("SELECT id, first_name, last_name, payout_position FROM members WHERE id IN (" . implode(',', array_column($positions, 'member_id')) . ") ORDER BY payout_position");
-        $verify_stmt->execute();
-        $updated_members = $verify_stmt->fetchAll(PDO::FETCH_ASSOC);
-        error_log("🔍 Verification - Updated members: " . json_encode($updated_members));
-        
-        json_response(true, "Positions updated successfully! {$updated_count} members updated.", [
-            'updated_count' => $updated_count,
-            'updated_members' => $updated_members
-        ]);
+        json_response(true, "All positions updated successfully! {$updated_count} members updated.");
         
     } catch (Exception $e) {
         $pdo->rollBack();
