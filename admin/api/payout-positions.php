@@ -178,16 +178,31 @@ function getPositions() {
         ksort($positions);
         $positions_array = array_values($positions);
         
-        // Enhanced statistics
+        // Calculate proper stats from database
+        $individual_count = 0;
+        $joint_groups = [];
+        
+        foreach ($members as $member) {
+            if ($member['membership_type'] === 'individual') {
+                $individual_count++;
+            } else {
+                if (!in_array($member['joint_group_id'], $joint_groups)) {
+                    $joint_groups[] = $member['joint_group_id'];
+                }
+            }
+        }
+        
         $stats = [
             'total_members' => count($members),
-            'total_positions' => count($positions), // This should be 10, not 11!
+            'total_positions' => count($positions),
             'duration_months' => $equb['duration_months'],
             'total_monthly_pool' => $equb['total_monthly_pool'],
             'total_coefficient' => $total_coefficient,
             'admin_fee' => $equb['admin_fee'],
             'regular_payment_tier' => $equb['regular_payment_tier'],
             'calculated_positions' => $equb['calculated_positions'],
+            'individual_positions' => $individual_count,
+            'joint_positions' => count($joint_groups),
             'position_balance' => abs($total_coefficient - $equb['duration_months']) < 0.1,
             'positions_used' => count($positions),
             'positions_available' => $equb['duration_months'] - count($positions)

@@ -400,8 +400,25 @@ $csrf_token = generate_csrf_token();
     <script>
         let currentEqubId = null;
         let currentMembers = [];
+        let currentEqubData = null;
         let sortableInstance = null;
         let hasChanges = false;
+        
+        function getPayoutMonthDisplay(positionNumber) {
+            if (!currentEqubData || !currentEqubData.start_date) {
+                return `Month ${positionNumber}`;
+            }
+            
+            // Calculate actual payout month based on start_date and position
+            const startDate = new Date(currentEqubData.start_date);
+            const payoutDate = new Date(startDate);
+            payoutDate.setMonth(startDate.getMonth() + positionNumber - 1);
+            
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
+            return `${monthNames[payoutDate.getMonth()]} ${payoutDate.getFullYear()}`;
+        }
 
         function loadPositions(equbId) {
             if (!equbId) {
@@ -428,9 +445,10 @@ $csrf_token = generate_csrf_token();
             .then(data => {
                 console.log('📥 API Response:', data); // Debug log
                 if (data.success && data.data) {
-                    // Use positions from API (grouped by position) instead of individual members
+                    // Store all data for reference
                     const positions = data.data.positions || [];
-                    currentMembers = data.data.members || []; // Keep for reference
+                    currentMembers = data.data.members || [];
+                    currentEqubData = data.data.equb || {}; // Store equb data for date calculations
                     
                     console.log('👥 Current Members:', currentMembers.map(m => ({
                         id: m.id, 
@@ -438,14 +456,16 @@ $csrf_token = generate_csrf_token();
                         position: m.payout_position
                     })));
                     console.log('🎯 Grouped Positions:', positions);
+                    console.log('📅 Equb Data:', currentEqubData);
                     
-                    displayPositions(positions); // Pass positions, not members
+                    displayPositions(positions);
                     updateStats(data.data.stats || {});
                     document.getElementById('equbStats').style.display = 'block';
                     document.getElementById('autoSortSection').style.display = 'block';
                 } else {
                     alert('Error loading positions: ' + (data.message || 'Unknown error'));
                     currentMembers = [];
+                    currentEqubData = null;
                     displayPositions([]);
                 }
             })
@@ -565,7 +585,7 @@ $csrf_token = generate_csrf_token();
                         </div>
                         <div class="payout-info">
                             <div class="payout-amount">£${totalPayout.toFixed(2)}</div>
-                            <div class="payout-date">Month ${positionNumber}</div>
+                            <div class="payout-date">${getPayoutMonthDisplay(positionNumber)}</div>
                             ${isJoint ? '<div class="small text-primary">Split among members</div>' : ''}
                         </div>
                         <div class="ms-3 text-muted">
