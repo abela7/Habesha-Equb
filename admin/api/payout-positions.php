@@ -225,7 +225,7 @@ function updatePositions() {
         $pdo->beginTransaction();
         
         // Get EQUB settings for payout month calculation
-        $stmt = $pdo->prepare("SELECT start_date, payout_day FROM equb_settings WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT start_date, payout_day, duration_months FROM equb_settings WHERE id = ?");
         $stmt->execute([$equb_id]);
         $equb_settings = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -233,8 +233,12 @@ function updatePositions() {
             throw new Exception('EQUB settings not found');
         }
         
+        error_log("🔧 EQUB Settings: " . json_encode($equb_settings));
+        
         $start_date = new DateTime($equb_settings['start_date']);
-        $payout_day = $equb_settings['payout_day'];
+        $payout_day = intval($equb_settings['payout_day']);
+        
+        error_log("📅 Start Date: " . $start_date->format('Y-m-d') . ", Payout Day: {$payout_day}");
         
         // AUTOMATED LOGIC: Update position AND calculate payout month
         $updated_count = 0;
@@ -247,16 +251,27 @@ function updatePositions() {
                 // CALCULATE PAYOUT MONTH: Position determines the month
                 // Position 1 = start_date month, Position 2 = start_date + 1 month, etc.
                 $payout_date = clone $start_date;
-                $payout_date->add(new DateInterval('P' . ($new_position - 1) . 'M'));
-                $payout_date->setDate($payout_date->format('Y'), $payout_date->format('n'), $payout_day);
+                $months_to_add = $new_position - 1;
+                $payout_date->add(new DateInterval('P' . $months_to_add . 'M'));
+                
+                // Set the day to the payout day from EQUB settings
+                $year = $payout_date->format('Y');
+                $month = $payout_date->format('n');
+                $payout_date->setDate($year, $month, $payout_day);
                 $payout_month = $payout_date->format('Y-m-d');
+                
+                error_log("🧮 Position {$new_position}: Start={$start_date->format('Y-m-d')}, +{$months_to_add} months, Day={$payout_day} → {$payout_month}");
                 
                 // Update BOTH position AND payout month automatically
                 $stmt = $pdo->prepare("UPDATE members SET payout_position = ?, payout_month = ? WHERE id = ?");
-                $stmt->execute([$new_position, $payout_month, $member_id]);
-                $updated_count++;
+                $result = $stmt->execute([$new_position, $payout_month, $member_id]);
                 
-                error_log("✅ NEW: Member {$member_id} → Position {$new_position} → Payout Month {$payout_month}");
+                if ($result) {
+                    $updated_count++;
+                    error_log("✅ SUCCESS: Member {$member_id} → Position {$new_position} → Payout Month {$payout_month}");
+                } else {
+                    error_log("❌ FAILED: Member {$member_id} update failed");
+                }
             }
         }
         
