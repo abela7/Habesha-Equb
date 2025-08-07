@@ -1281,6 +1281,175 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         align-self: flex-end;
     }
 }
+
+/* Beautiful Mobile-First Accordion Styles */
+.accordion-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--palette-border);
+    box-shadow: 0 4px 20px rgba(48, 25, 52, 0.08);
+    overflow: hidden;
+}
+
+.accordion-card .accordion-header {
+    background: linear-gradient(135deg, var(--palette-deep-purple) 0%, var(--palette-light-purple) 100%);
+    color: white;
+    padding: 20px 24px;
+    border-bottom: none;
+}
+
+.accordion-card .accordion-header h5 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.badge-method {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 0.7em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.accordion {
+    border: none;
+}
+
+.accordion-item {
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background: white;
+}
+
+.accordion-item:last-child {
+    border-bottom: none;
+}
+
+.accordion-button {
+    background: white;
+    border: none;
+    padding: 20px 24px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--palette-deep-purple);
+    box-shadow: none;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+}
+
+.accordion-button:not(.collapsed) {
+    background: rgba(218, 165, 32, 0.05);
+    color: var(--palette-deep-purple);
+    box-shadow: none;
+}
+
+.accordion-button:hover {
+    background: rgba(218, 165, 32, 0.08);
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.2);
+}
+
+.accordion-title {
+    flex: 1;
+    text-align: left;
+}
+
+.accordion-badge {
+    background: rgba(218, 165, 32, 0.1);
+    color: var(--palette-gold);
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    margin-left: auto;
+}
+
+.accordion-button:not(.collapsed) .accordion-badge {
+    background: var(--palette-gold);
+    color: white;
+}
+
+.accordion-button::after {
+    background-image: none;
+    content: '\f107';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: var(--palette-gold);
+    font-size: 14px;
+    margin-left: 12px;
+    transition: transform 0.3s ease;
+}
+
+.accordion-button.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.accordion-body {
+    padding: 0 24px 20px 24px;
+    background: white;
+}
+
+/* Mobile-First Responsive Design */
+@media (max-width: 768px) {
+    .accordion-card .accordion-header {
+        padding: 16px 20px;
+    }
+    
+    .accordion-card .accordion-header h5 {
+        font-size: 16px;
+    }
+    
+    .accordion-button {
+        padding: 16px 20px;
+        font-size: 14px;
+    }
+    
+    .accordion-body {
+        padding: 0 20px 16px 20px;
+    }
+    
+    .accordion-title {
+        font-size: 14px;
+    }
+    
+    .accordion-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .accordion-card .accordion-header {
+        padding: 14px 16px;
+    }
+    
+    .accordion-card .accordion-header h5 {
+        font-size: 15px;
+    }
+    
+    .accordion-button {
+        padding: 14px 16px;
+        font-size: 13px;
+        gap: 8px;
+    }
+    
+    .accordion-body {
+        padding: 0 16px 14px 16px;
+    }
+    
+    .badge-method {
+        font-size: 0.65em;
+        padding: 2px 6px;
+    }
+}
 </style>
 
 </head>
@@ -1342,8 +1511,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <strong>Net Amount</strong> (What you receive)
                     </div>
                     <div class="payout-detail mt-2">
-                        <i class="fas fa-calculator text-secondary me-1"></i>
-                        <small><?php echo $total_equb_members; ?> members × £<?php echo number_format($monthly_contribution, 2); ?> monthly pool</small>
+                        <i class="fas fa-coins text-secondary me-1"></i>
+                        <small>Based on your contribution and EQUB position</small>
                     </div>
                 </div>
             </div>
@@ -1409,131 +1578,201 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.queue_progress'); ?></h3>
                          </div>
                      </div>
-                     <div class="payout-value"><?php echo round(($payout_position / $total_equb_members) * 100, 1); ?>%</div>
+                     <?php
+                     // Dynamic queue progress calculation
+                     $current_equb_month = $member['months_in_equb'];
+                     $members_who_received = 0;
+                     $members_pending = 0;
+                     
+                     // Get actual queue status from database
+                     try {
+                         $stmt = $pdo->prepare("
+                             SELECT 
+                                 COUNT(CASE WHEN m.payout_position <= ? AND po.status = 'completed' THEN 1 END) as completed_before_me,
+                                 COUNT(CASE WHEN m.payout_position <= ? THEN 1 END) as total_before_me_inclusive,
+                                 COUNT(CASE WHEN po.status = 'completed' THEN 1 END) as total_completed
+                             FROM members m 
+                             LEFT JOIN payouts po ON m.id = po.member_id 
+                             WHERE m.equb_settings_id = ? AND m.is_active = 1
+                         ");
+                         $stmt->execute([$payout_position, $payout_position, $member['equb_settings_id']]);
+                         $queue_stats = $stmt->fetch(PDO::FETCH_ASSOC);
+                         
+                         $members_who_received = (int)$queue_stats['completed_before_me'];
+                         $my_position_reached = ($current_equb_month >= $payout_position);
+                         $total_completed = (int)$queue_stats['total_completed'];
+                         
+                         // Calculate progress based on EQUB timeline vs member position
+                         if ($my_position_reached) {
+                             $progress_percentage = min(100, (($members_who_received + 1) / $total_equb_members) * 100);
+                             $status_text = "Your turn has arrived";
+                             $icon_class = "fas fa-check-circle text-success";
+                         } else {
+                             $progress_percentage = ($current_equb_month / $payout_position) * 100;
+                             $months_to_wait = $payout_position - $current_equb_month;
+                             $status_text = $months_to_wait . " months until your turn";
+                             $icon_class = "fas fa-clock text-info";
+                         }
+                         
+                     } catch (Exception $e) {
+                         // Fallback calculation
+                         $progress_percentage = ($current_equb_month / $member['duration_months']) * 100;
+                         $status_text = "Position " . $payout_position . " of " . $total_equb_members;
+                         $icon_class = "fas fa-list-ol text-warning";
+                     }
+                     ?>
+                     <div class="payout-value"><?php echo round($progress_percentage, 1); ?>%</div>
                      <div class="payout-detail">
-                         <i class="fas fa-list-ol text-warning me-1"></i>
-                         Position <?php echo $payout_position; ?> of <?php echo $total_equb_members; ?>
+                         <i class="<?php echo $icon_class; ?> me-1"></i>
+                         <?php echo $status_text; ?>
                      </div>
-                     <?php if (!empty($member['equb_name'])): ?>
                      <div class="payout-detail mt-1">
-                         <i class="fas fa-tag text-info me-1"></i>
-                         <small><?php echo htmlspecialchars($member['equb_name']); ?></small>
+                         <i class="fas fa-users text-secondary me-1"></i>
+                         <small>Position <?php echo $payout_position; ?> • Month <?php echo $current_equb_month; ?>/<?php echo $member['duration_months']; ?></small>
                      </div>
-                     <?php endif; ?>
                     <div class="progress">
-                        <div class="progress-bar" style="width: <?php echo ($payout_position / $total_equb_members) * 100; ?>%"></div>
+                        <div class="progress-bar" style="width: <?php echo $progress_percentage; ?>%"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- GOLDEN LOGIC: Enhanced Member & EQUB Information -->
+        <!-- Beautiful Mobile-First Accordion -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="card" style="border: 1px solid var(--palette-border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <div class="card-header" style="background: linear-gradient(135deg, var(--palette-deep-purple) 0%, var(--palette-light-purple) 100%); color: white; border-radius: 12px 12px 0 0;">
+                <div class="accordion-card">
+                    <div class="accordion-header">
                         <h5 class="mb-0">
                             <i class="fas fa-chart-line me-2"></i>
-                            Enhanced EQUB Analytics & Member Statistics
-                            <span class="badge bg-light text-dark ms-2 d-none d-lg-inline" style="font-size: 0.7em;">
+                            EQUB Analytics & Member Information
+                            <span class="badge badge-method d-none d-sm-inline">
                                 <?php echo ucfirst($calculation_method); ?>
                             </span>
                         </h5>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- Financial Breakdown -->
-                            <div class="col-lg-4">
-                                <h6 class="text-primary mb-3"><i class="fas fa-coins me-2"></i>Financial Summary</h6>
-                                <div class="info-grid">
-                                    <div class="info-item">
-                                        <span class="info-label">Total Monthly Pool</span>
-                                        <span class="info-value text-success">£<?php echo number_format($total_monthly_pool, 2); ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Monthly Contribution</span>
-                                        <span class="info-value">£<?php echo number_format($monthly_contribution, 2); ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Total Contributed</span>
-                                        <span class="info-value text-success">£<?php echo number_format($member['total_contributed'], 2); ?></span>
-                                    </div>
-                                </div>
+                    
+                    <div class="accordion" id="memberAccordion">
+                        <!-- Financial Summary -->
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#financialSummary" aria-expanded="true" aria-controls="financialSummary">
+                                    <i class="fas fa-coins me-2 text-success"></i>
+                                    <span class="accordion-title">Financial Summary</span>
+                                    <span class="accordion-badge">3 items</span>
+                                </button>
                             </div>
-                            
-                            <!-- EQUB Progress & Settings -->
-                            <div class="col-lg-4">
-                                <h6 class="text-info mb-3"><i class="fas fa-calendar me-2"></i>EQUB Progress</h6>
-                                <div class="info-grid">
-                                    <div class="info-item">
-                                        <span class="info-label">Start Date</span>
-                                        <span class="info-value"><?php echo $member['start_date'] ? date('M d, Y', strtotime($member['start_date'])) : 'Not set'; ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Duration</span>
-                                        <span class="info-value"><?php echo $member['duration_months']; ?> months</span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Months Completed</span>
-                                        <span class="info-value text-primary"><?php echo $member['months_in_equb']; ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Remaining Months</span>
-                                        <span class="info-value text-warning"><?php echo $member['remaining_months_in_equb']; ?></span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Payout & Member Info -->
-                            <div class="col-lg-4">
-                                <h6 class="text-warning mb-3"><i class="fas fa-trophy me-2"></i>Member Performance</h6>
-                                <div class="info-grid">
-                                    <?php if ($member['membership_type'] === 'joint'): ?>
-                                    <div class="info-item">
-                                        <span class="info-label">Joint Group</span>
-                                        <span class="info-value"><?php echo htmlspecialchars($member['joint_group_name']); ?></span>
-                                    </div>
-                                    <?php endif; ?>
-                                    <div class="info-item">
-                                        <span class="info-label">Payout Position</span>
-                                        <span class="info-value text-primary fw-bold">#<?php echo $payout_position; ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Total Payments Made</span>
-                                        <span class="info-value"><?php echo $member['total_payments']; ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Total Amount Received</span>
-                                        <span class="info-value text-success">£<?php echo number_format($member['total_amount_received'], 2); ?></span>
+                            <div id="financialSummary" class="accordion-collapse collapse show" data-bs-parent="#memberAccordion">
+                                <div class="accordion-body">
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">Total Monthly Pool</span>
+                                            <span class="info-value text-success">£<?php echo number_format($total_monthly_pool, 2); ?></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Monthly Contribution</span>
+                                            <span class="info-value">£<?php echo number_format($monthly_contribution, 2); ?></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Total Contributed</span>
+                                            <span class="info-value text-success">£<?php echo number_format($member['total_contributed'], 2); ?></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- EQUB Settings Details -->
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <h6 class="text-secondary mb-3"><i class="fas fa-sliders-h me-2"></i>EQUB Settings & Rules</h6>
-                                <div class="row">
-                                    <div class="col-md-3">
+                        <!-- EQUB Progress -->
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#equbProgress" aria-expanded="false" aria-controls="equbProgress">
+                                    <i class="fas fa-calendar me-2 text-info"></i>
+                                    <span class="accordion-title">EQUB Progress</span>
+                                    <span class="accordion-badge"><?php echo $member['months_in_equb']; ?>/<?php echo $member['duration_months']; ?> months</span>
+                                </button>
+                            </div>
+                            <div id="equbProgress" class="accordion-collapse collapse" data-bs-parent="#memberAccordion">
+                                <div class="accordion-body">
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">Start Date</span>
+                                            <span class="info-value"><?php echo $member['start_date'] ? date('M d, Y', strtotime($member['start_date'])) : 'Not set'; ?></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Duration</span>
+                                            <span class="info-value"><?php echo $member['duration_months']; ?> months</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Months Completed</span>
+                                            <span class="info-value text-primary"><?php echo $member['months_in_equb']; ?></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Remaining Months</span>
+                                            <span class="info-value text-warning"><?php echo $member['remaining_months_in_equb']; ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Member Performance -->
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#memberPerformance" aria-expanded="false" aria-controls="memberPerformance">
+                                    <i class="fas fa-trophy me-2 text-warning"></i>
+                                    <span class="accordion-title">Member Performance</span>
+                                    <span class="accordion-badge">Position #<?php echo $payout_position; ?></span>
+                                </button>
+                            </div>
+                            <div id="memberPerformance" class="accordion-collapse collapse" data-bs-parent="#memberAccordion">
+                                <div class="accordion-body">
+                                    <div class="info-grid">
+                                        <?php if ($member['membership_type'] === 'joint'): ?>
+                                        <div class="info-item">
+                                            <span class="info-label">Joint Group</span>
+                                            <span class="info-value"><?php echo htmlspecialchars($member['joint_group_name']); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <div class="info-item">
+                                            <span class="info-label">Payout Position</span>
+                                            <span class="info-value text-primary fw-bold">#<?php echo $payout_position; ?></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Total Payments Made</span>
+                                            <span class="info-value"><?php echo $member['total_payments']; ?></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Total Amount Received</span>
+                                            <span class="info-value text-success">£<?php echo number_format($member['total_amount_received'], 2); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- EQUB Settings & Rules -->
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#equbSettings" aria-expanded="false" aria-controls="equbSettings">
+                                    <i class="fas fa-sliders-h me-2 text-secondary"></i>
+                                    <span class="accordion-title">EQUB Settings & Rules</span>
+                                    <span class="accordion-badge">Rules</span>
+                                </button>
+                            </div>
+                            <div id="equbSettings" class="accordion-collapse collapse" data-bs-parent="#memberAccordion">
+                                <div class="accordion-body">
+                                    <div class="info-grid">
                                         <div class="info-item">
                                             <span class="info-label">Admin Fee</span>
                                             <span class="info-value text-warning">£<?php echo number_format($member['admin_fee'], 2); ?></span>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
                                         <div class="info-item">
                                             <span class="info-label">Late Fee</span>
                                             <span class="info-value text-danger">£<?php echo number_format($member['late_fee'], 2); ?></span>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
                                         <div class="info-item">
                                             <span class="info-label">Grace Period</span>
                                             <span class="info-value"><?php echo $member['grace_period_days']; ?> days</span>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
                                         <div class="info-item">
                                             <span class="info-label">Regular Payment Tier</span>
                                             <span class="info-value">£<?php echo number_format($member['regular_payment_tier'], 2); ?></span>
