@@ -1056,13 +1056,10 @@ $csrf_token = generate_csrf_token();
                     const payout = data.payout;
                     document.getElementById('payoutId').value = payout.id;
                     document.getElementById('memberId').value = payout.member_id;
-                    
-                    // Populate financial fields
                     document.getElementById('grossPayout').value = payout.gross_payout || 0;
                     document.getElementById('adminFee').value = payout.admin_fee || 0;
-                    document.getElementById('totalAmount').value = payout.total_amount || 0;
-                    document.getElementById('netAmount').value = payout.net_amount || 0;
-                    
+                    document.getElementById('totalAmount').value = payout.total_amount;
+                    document.getElementById('netAmount').value = payout.net_amount;
                     document.getElementById('scheduledDate').value = payout.scheduled_date;
                     document.getElementById('payoutMethod').value = payout.payout_method || 'bank_transfer';
                     document.getElementById('status').value = payout.status || 'scheduled';

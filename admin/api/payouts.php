@@ -341,25 +341,25 @@ function getPayout() {
     }
     
     try {
-        $stmt = $pdo->prepare("
+    $stmt = $pdo->prepare("
             SELECT 
                 p.*,
                 CONCAT(m.first_name, ' ', m.last_name) as member_name,
                 m.member_id as member_code
-            FROM payouts p
-            LEFT JOIN members m ON p.member_id = m.id
-            WHERE p.id = ?
-        ");
-        $stmt->execute([$payout_id]);
-        $payout = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$payout) {
+        FROM payouts p
+        LEFT JOIN members m ON p.member_id = m.id
+        WHERE p.id = ?
+    ");
+    $stmt->execute([$payout_id]);
+    $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$payout) {
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Payout not found']);
-            return;
-        }
-        
-        echo json_encode(['success' => true, 'payout' => $payout]);
+        echo json_encode(['success' => false, 'message' => 'Payout not found']);
+        return;
+    }
+    
+    echo json_encode(['success' => true, 'payout' => $payout]);
         
     } catch (Exception $e) {
         error_log("Get Payout Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
@@ -473,34 +473,34 @@ function processPayout() {
     try {
         // First check if payout exists and get current status
         $stmt = $pdo->prepare("SELECT id, status, payout_id, member_id FROM payouts WHERE id = ?");
-        $stmt->execute([$payout_id]);
-        $payout = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$payout) {
+    $stmt->execute([$payout_id]);
+    $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$payout) {
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Payout not found']);
-            return;
-        }
-        
+        echo json_encode(['success' => false, 'message' => 'Payout not found']);
+        return;
+    }
+    
         // Check if already processed
-        if ($payout['status'] === 'completed') {
+    if ($payout['status'] === 'completed') {
             echo json_encode(['success' => false, 'message' => 'Payout already completed']);
-            return;
-        }
-        
+        return;
+    }
+    
         // Update payout status to completed and set actual date
-        $stmt = $pdo->prepare("
+    $stmt = $pdo->prepare("
             UPDATE payouts 
             SET status = 'completed', 
-                actual_payout_date = CURDATE(),
-                processed_by_admin_id = ?,
+            actual_payout_date = CURDATE(),
+            processed_by_admin_id = ?,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        ");
+        WHERE id = ?
+    ");
         
         $admin_id = get_current_admin_id();
-        $stmt->execute([$admin_id, $payout_id]);
-        
+    $stmt->execute([$admin_id, $payout_id]);
+    
         if ($stmt->rowCount() === 0) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Failed to process payout']);
@@ -508,11 +508,11 @@ function processPayout() {
         }
         
         // Update member's payout flag
-        syncMemberPayoutFlag($payout['member_id']);
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Payout processed successfully',
+    syncMemberPayoutFlag($payout['member_id']);
+    
+    echo json_encode([
+        'success' => true, 
+        'message' => 'Payout processed successfully',
             'payout_id' => $payout['payout_id']
         ]);
         
