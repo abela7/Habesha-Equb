@@ -1221,6 +1221,11 @@
     "success": "Success",
     "error": "Error",
     "warning": "Warning",
-    "info": "Information"
+    "info": "Information",
+    "refresh": "Refresh",
+    "mark_all_read": "Mark all as read",
+    "mark_read": "Mark as read",
+    "unread": "Unread",
+    "no_data": "No data available"
   }
 } 
