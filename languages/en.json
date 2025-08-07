@@ -550,6 +550,7 @@
     "total_contributions": "Total payments",
     "total_contributed": "Total paid",
     "expected_payout": "Expected Payout",
+    "gross_payout_including_payment": "Gross payout including your monthly payment",
     "current_status": "Current",
     "next_payout": "Next Payout",
     "payout_date": "Payout Date",

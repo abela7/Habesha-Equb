@@ -572,6 +572,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     line-height: 1;
 }
 
+.stat-subtitle {
+    font-size: 12px;
+    color: var(--palette-dark-purple);
+    margin: 8px 0;
+    opacity: 0.7;
+    font-weight: 400;
+    line-height: 1.3;
+    font-style: italic;
+}
+
 .stat-detail {
     font-size: 14px;
     color: var(--palette-dark-purple);
@@ -1171,6 +1181,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         font-weight: 600;
     }
     
+    .stat-subtitle {
+        font-size: 11px;
+        text-align: center;
+        margin: 6px 0;
+        opacity: 0.7;
+    }
+    
     .stat-detail {
         font-size: 13px;
         color: var(--palette-dark-purple) !important;
@@ -1766,6 +1783,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                         </div>
                         <div class="stat-value">£<?php echo number_format($expected_payout, 2); ?></div>
+                        <div class="stat-subtitle">
+                            <?php echo t('member_dashboard.gross_payout_including_payment'); ?>
+                        </div>
                         <div class="stat-detail">
                             <i class="fas fa-calendar text-info me-1"></i>
                             <?php echo date('M Y', strtotime($next_payout_date)); ?>

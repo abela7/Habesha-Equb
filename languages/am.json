@@ -550,6 +550,7 @@
     "total_contributions": "እስካሁን የጣሉት የእቁብ መጠን",
     "total_contributed": "እስካሁን በአባላቶች የተከፈለ ",
     "expected_payout": "የሚወስዱት የእቁብ መጠን",
+    "gross_payout_including_payment": "አጠቃላይ የሚወጣው የእቁብ መጠን ከእርሶ ወርሃዊ ክፍያ ጋር ተደምሮ",
     "current_status": "የአሁን ሁኔታ",
     "next_payout": "ቀጣይ ክፍያ",
     "payout_date": "እቁብ የሚወስዱበት ቀን",
