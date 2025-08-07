@@ -186,8 +186,8 @@ function addPayout() {
     try {
         // Verify member
         $stmt = $pdo->prepare("SELECT id, first_name, last_name, is_active FROM members WHERE id = ?");
-        $stmt->execute([$member_id]);
-        $member = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$member_id]);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$member || !$member['is_active']) {
             http_response_code(400);
@@ -293,7 +293,7 @@ function listPayouts() {
         $payouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         echo json_encode([
-            'success' => true,
+            'success' => true, 
             'payouts' => $payouts,
             'count' => count($payouts)
         ]);
@@ -320,25 +320,25 @@ function getPayout() {
     }
     
     try {
-        $stmt = $pdo->prepare("
+    $stmt = $pdo->prepare("
             SELECT 
                 p.*,
                 CONCAT(m.first_name, ' ', m.last_name) as member_name,
                 m.member_id
-            FROM payouts p
-            LEFT JOIN members m ON p.member_id = m.id
-            WHERE p.id = ?
-        ");
-        $stmt->execute([$payout_id]);
-        $payout = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$payout) {
+        FROM payouts p
+        LEFT JOIN members m ON p.member_id = m.id
+        WHERE p.id = ?
+    ");
+    $stmt->execute([$payout_id]);
+    $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$payout) {
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Payout not found']);
-            return;
-        }
-        
-        echo json_encode(['success' => true, 'payout' => $payout]);
+        echo json_encode(['success' => false, 'message' => 'Payout not found']);
+        return;
+    }
+    
+    echo json_encode(['success' => true, 'payout' => $payout]);
         
     } catch (Exception $e) {
         error_log("Get Payout Error: " . $e->getMessage());
@@ -364,16 +364,16 @@ function updatePayout() {
     try {
         // Verify payout exists
         $stmt = $pdo->prepare("SELECT id FROM payouts WHERE id = ?");
-        $stmt->execute([$payout_id]);
+    $stmt->execute([$payout_id]);
         if (!$stmt->fetch()) {
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Payout not found']);
-            return;
-        }
-        
+        echo json_encode(['success' => false, 'message' => 'Payout not found']);
+        return;
+    }
+    
         // Update fields
         $gross_payout = floatval($_POST['gross_payout'] ?? 0);
-        $admin_fee = floatval($_POST['admin_fee'] ?? 0);
+    $admin_fee = floatval($_POST['admin_fee'] ?? 0);
         $status = $_POST['status'] ?? 'scheduled';
         $payout_notes = $_POST['payout_notes'] ?? '';
         $actual_date = $_POST['actual_payout_date'] ?? null;
@@ -381,14 +381,14 @@ function updatePayout() {
         // Recalculate derived amounts
         $total_amount = $gross_payout - $admin_fee;
         
-        $stmt = $pdo->prepare("
+    $stmt = $pdo->prepare("
             UPDATE payouts 
             SET gross_payout = ?, total_amount = ?, admin_fee = ?, status = ?, 
                 payout_notes = ?, actual_payout_date = ?, updated_at = NOW()
-            WHERE id = ?
-        ");
-        
-        $stmt->execute([
+        WHERE id = ?
+    ");
+    
+    $stmt->execute([
             $gross_payout, $total_amount, $admin_fee, $status, 
             $payout_notes, $actual_date, $payout_id
         ]);
@@ -417,15 +417,15 @@ function deletePayout() {
     }
     
     try {
-        $stmt = $pdo->prepare("DELETE FROM payouts WHERE id = ?");
-        $stmt->execute([$payout_id]);
-        
+    $stmt = $pdo->prepare("DELETE FROM payouts WHERE id = ?");
+    $stmt->execute([$payout_id]);
+    
         if ($stmt->rowCount() === 0) {
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Payout not found']);
-            return;
-        }
-        
+        echo json_encode(['success' => false, 'message' => 'Payout not found']);
+        return;
+    }
+    
         echo json_encode(['success' => true, 'message' => 'Payout deleted successfully']);
         
     } catch (Exception $e) {
@@ -436,4 +436,4 @@ function deletePayout() {
 }
 
 
-?>
+?> 
