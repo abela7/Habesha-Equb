@@ -39,33 +39,40 @@ try {
     $stmt->execute();
     $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Get all swap requests with member information - Fixed query
-    $stmt = $pdo->prepare("
-        SELECT 
-            psr.*,
-            CONCAT(m.first_name, ' ', m.last_name) as member_name,
-            m.email as member_email,
-            m.member_id,
-            m.phone as member_phone,
-            CONCAT(tm.first_name, ' ', tm.last_name) as target_member_name,
-            tm.member_id as target_member_code,
-            CONCAT(admin.username) as processed_by_name
-        FROM position_swap_requests psr
-        LEFT JOIN members m ON psr.member_id = m.id
-        LEFT JOIN members tm ON psr.target_member_id = tm.id
-        LEFT JOIN admins admin ON psr.processed_by_admin_id = admin.id
-        ORDER BY 
-            CASE psr.status 
-                WHEN 'pending' THEN 1 
-                WHEN 'approved' THEN 2 
-                WHEN 'rejected' THEN 3 
-                WHEN 'completed' THEN 4 
-                WHEN 'cancelled' THEN 5 
-            END,
-            psr.requested_date DESC
-    ");
+    // Get all swap requests - SIMPLE QUERY FIRST
+    $stmt = $pdo->prepare("SELECT * FROM position_swap_requests ORDER BY requested_date DESC");
     $stmt->execute();
     $swap_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Add member info separately
+    foreach ($swap_requests as &$request) {
+        // Get member info
+        $member_stmt = $pdo->prepare("SELECT first_name, last_name, email, member_id FROM members WHERE id = ?");
+        $member_stmt->execute([$request['member_id']]);
+        $member = $member_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($member) {
+            $request['member_name'] = $member['first_name'] . ' ' . $member['last_name'];
+            $request['member_email'] = $member['email'];
+            $request['member_code'] = $member['member_id'];
+        } else {
+            $request['member_name'] = 'Unknown Member';
+            $request['member_email'] = '';
+            $request['member_code'] = '';
+        }
+        
+        // Get target member info if exists
+        if ($request['target_member_id']) {
+            $target_stmt = $pdo->prepare("SELECT first_name, last_name, member_id FROM members WHERE id = ?");
+            $target_stmt->execute([$request['target_member_id']]);
+            $target = $target_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($target) {
+                $request['target_member_name'] = $target['first_name'] . ' ' . $target['last_name'];
+                $request['target_member_code'] = $target['member_id'];
+            }
+        }
+    }
 
     // Debug logging
     error_log("Position Swap Management: Found " . count($swap_requests) . " requests");
@@ -616,26 +623,7 @@ $csrf_token = generate_csrf_token();
             </div>
         <?php endif; ?>
 
-        <!-- Debug Information -->
-        <div class="debug-info">
-            <h5><i class="fas fa-bug me-2"></i>System Status</h5>
-            <div class="debug-item">
-                <span>Database Connection:</span>
-                <span class="badge bg-success">Connected</span>
-            </div>
-            <div class="debug-item">
-                <span>Position Swap Table:</span>
-                <span class="badge bg-success">Exists</span>
-            </div>
-            <div class="debug-item">
-                <span>Total Requests Found:</span>
-                <span class="badge bg-info"><?php echo count($swap_requests); ?></span>
-            </div>
-            <div class="debug-item">
-                <span>Query Status:</span>
-                <span class="badge bg-success">Executed Successfully</span>
-            </div>
-        </div>
+
 
         <!-- Statistics Cards -->
         <div class="row stats-row">
@@ -786,15 +774,15 @@ $csrf_token = generate_csrf_token();
                                         <code style="color: var(--color-teal); font-weight: 600;"><?php echo htmlspecialchars($request['request_id']); ?></code>
                                     </td>
                                     <td>
-                                        <div class="member-info">
-                                            <div class="member-name"><?php echo htmlspecialchars($request['member_name'] ?? 'Unknown Member'); ?></div>
-                                            <div class="member-details">
-                                                <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['member_id'] ?? 'N/A'); ?>
-                                                <?php if ($request['member_email']): ?>
-                                                <br><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($request['member_email']); ?>
-                                                <?php endif; ?>
+                                                                                    <div class="member-info">
+                                                <div class="member-name"><?php echo htmlspecialchars($request['member_name']); ?></div>
+                                                <div class="member-details">
+                                                    <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['member_code']); ?>
+                                                    <?php if ($request['member_email']): ?>
+                                                    <br><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($request['member_email']); ?>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
-                                        </div>
                                     </td>
                                     <td>
                                         <div class="position-change">
@@ -808,7 +796,7 @@ $csrf_token = generate_csrf_token();
                                             <div class="member-info">
                                                 <div class="member-name"><?php echo htmlspecialchars($request['target_member_name']); ?></div>
                                                 <div class="member-details">
-                                                    <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['target_member_code'] ?? 'N/A'); ?>
+                                                    <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['target_member_code']); ?>
                                                 </div>
                                             </div>
                                         <?php else: ?>
