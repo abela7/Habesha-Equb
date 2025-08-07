@@ -191,13 +191,13 @@ try {
         }
     }
 
-    // Get member's swap request history
+    // Get member's swap request history - ONLY show approved/rejected (not cancelled by member)
     $stmt = $pdo->prepare("
         SELECT psr.*, 
                CONCAT(tm.first_name, ' ', tm.last_name) as target_member_name
         FROM position_swap_requests psr
         LEFT JOIN members tm ON psr.target_member_id = tm.id
-        WHERE psr.member_id = ?
+        WHERE psr.member_id = ? AND psr.status IN ('approved', 'rejected')
         ORDER BY psr.requested_date DESC
         LIMIT 10
     ");
@@ -1144,7 +1144,7 @@ $current_payout_date->setDate(
                                 ?>">
                                     <?php if ($pos['is_locked']): ?>
                                         <i class="fas fa-ban me-1"></i>
-                                        No Swapping
+                                        <?php echo t('position_swap.no_swapping'); ?>
                                     <?php elseif ($pos['is_available']): ?>
                                         <i class="fas fa-check-circle me-1"></i>
                                         <?php echo t('position_swap.available'); ?>
@@ -1232,7 +1232,7 @@ $current_payout_date->setDate(
                         </div>
                         <div class="card-title">
                             <h3><?php echo t('position_swap.my_requests'); ?></h3>
-                            <p>View and manage your position swap requests</p>
+                            <p><?php echo t('position_swap.view_manage_requests'); ?></p>
                         </div>
                     </div>
                     <div class="card-content">

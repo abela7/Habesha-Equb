@@ -836,11 +836,7 @@ $csrf_token = generate_csrf_token();
                 <span class="nav-text"><?php echo t('member_nav.payout_info'); ?></span>
             </a>
             <a href="position-swap.php" class="nav-item <?php echo ($current_page === 'position-swap.php') ? 'active' : ''; ?>">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M8 3l4 8 5-5v11H4V4l4-1"/>
-                    <path d="M2 21l16-10"/>
-                    <path d="M22 8l-10 10-4-7"/>
-                </svg>
+                <i class="fas fa-exchange-alt nav-icon"></i>
                 <span class="nav-text"><?php echo t('settings.position_swap'); ?></span>
             </a>
         </div>

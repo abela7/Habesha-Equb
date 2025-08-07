@@ -1037,7 +1037,9 @@
     "requested_payout_date": "Requested Payout Date",
     "current": "Current",
     "requested_pos": "Requested",
-    "actions": "Actions"
+    "actions": "Actions",
+    "no_swapping": "No Swapping",
+    "view_manage_requests": "View and manage your position swap requests"
   },
   "swap_management": {
     "page_title": "Position Swap Management",

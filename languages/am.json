@@ -1037,7 +1037,9 @@
     "requested_payout_date": "የተጠየቀ የመውጫ ቀን",
     "current": "አሁኑ",
     "requested_pos": "የተጠየቀ",
-    "actions": "እርምጃዎች"
+    "actions": "እርምጃዎች",
+    "no_swapping": "መቀየር አይችልም",
+    "view_manage_requests": "የእርስዎን የቦታ ለውጥ ጥያቄዎች ይመልከቱ እና ያስተዳድሩ"
   },
   "swap_management": {
     "page_title": "የቦታ መቀያየር አስተዳደር",
