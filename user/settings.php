@@ -38,9 +38,8 @@ try {
     die("❌ DATABASE ERROR: " . $e->getMessage());
 }
 
-// Get notification preferences from new database columns
+// Get user preferences from database columns
 $email_notifications = (bool)($member['email_notifications'] ?? 1); // Default to 1 (enabled)
-$sms_notifications = (bool)($member['email_notifications'] ?? 1); // For now, use same as email (SMS column doesn't exist yet)
 $payment_reminders = (bool)($member['payment_reminders'] ?? 1); // Default to 1 (enabled)
 $swap_terms_allowed = (bool)($member['swap_terms_allowed'] ?? 0); // Default to 0 (disabled)
 
@@ -699,6 +698,33 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 .settings-card:nth-child(2) { animation-delay: 0.1s; }
 .settings-card:nth-child(3) { animation-delay: 0.2s; }
 .settings-card:nth-child(4) { animation-delay: 0.3s; }
+
+/* Settings Sections */
+.settings-section {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid rgba(218, 165, 32, 0.2);
+}
+
+.settings-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.subsection-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-deep-purple);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.subsection-title i {
+    font-size: 18px;
+}
 </style>
 
 </head>
@@ -721,169 +747,122 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="row">
-            <!-- Notification Preferences -->
-            <div class="col-lg-6">
+        <!-- Unified Settings Card -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
                 <div class="settings-card">
                     <h2 class="section-title">
-                        <i class="fas fa-bell text-warning"></i>
-                        <?php echo t('settings.notification_preferences'); ?>
+                        <i class="fas fa-cogs text-primary"></i>
+                        <?php echo t('settings.account_settings'); ?>
                     </h2>
                     
-                    <form id="notificationForm" action="api/update-settings.php" method="POST">
-                        <input type="hidden" name="action" value="notifications">
+                    <form id="unifiedSettingsForm" action="api/update-settings.php" method="POST">
+                        <input type="hidden" name="action" value="unified">
                         
-                        <div class="feature-item">
-                            <div class="feature-content">
-                                <div class="feature-title">
-                                    <i class="fas fa-envelope text-primary"></i>
-                                    <?php echo t('settings.email_notifications'); ?>
+                        <!-- Notifications Section -->
+                        <div class="settings-section">
+                            <h3 class="subsection-title">
+                                <i class="fas fa-bell text-warning"></i>
+                                <?php echo t('settings.notification_preferences'); ?>
+                            </h3>
+                            
+                            <div class="feature-item">
+                                <div class="feature-content">
+                                    <div class="feature-title">
+                                        <i class="fas fa-envelope text-primary"></i>
+                                        <?php echo t('settings.email_notifications'); ?>
+                                    </div>
+                                    <p class="feature-description">
+                                        <?php echo t('settings.email_notifications_desc'); ?>
+                                    </p>
                                 </div>
-                                <p class="feature-description">
-                                    <?php echo t('settings.email_notifications_desc'); ?>
-                                </p>
-                            </div>
-                            <div class="feature-toggle">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
-                                           <?php echo $email_notifications ? 'checked' : ''; ?>>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="feature-item">
-                            <div class="feature-content">
-                                <div class="feature-title">
-                                    <i class="fas fa-sms text-success"></i>
-                                    <?php echo t('settings.sms_notifications'); ?>
-                                </div>
-                                <p class="feature-description">
-                                    <?php echo t('settings.sms_notifications_desc'); ?>
-                                </p>
-                            </div>
-                            <div class="feature-toggle">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="sms_notifications" name="sms_notifications"
-                                           <?php echo $sms_notifications ? 'checked' : ''; ?>>
+                                <div class="feature-toggle">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
+                                               <?php echo $email_notifications ? 'checked' : ''; ?>>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="feature-item">
-                            <div class="feature-content">
-                                <div class="feature-title">
-                                    <i class="fas fa-crown text-warning"></i>
-                                    <?php echo t('settings.payment_reminders'); ?>
+                            
+                            <div class="feature-item">
+                                <div class="feature-content">
+                                    <div class="feature-title">
+                                        <i class="fas fa-crown text-warning"></i>
+                                        <?php echo t('settings.payment_reminders'); ?>
+                                    </div>
+                                    <p class="feature-description">
+                                        <?php echo t('settings.payment_reminders_desc'); ?>
+                                    </p>
                                 </div>
-                                <p class="feature-description">
-                                    <?php echo t('settings.payment_reminders_desc'); ?>
-                                </p>
-                            </div>
-                            <div class="feature-toggle">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="payment_reminders" name="payment_reminders"
-                                           <?php echo $payment_reminders ? 'checked' : ''; ?>>
+                                <div class="feature-toggle">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="payment_reminders" name="payment_reminders"
+                                               <?php echo $payment_reminders ? 'checked' : ''; ?>>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Language Section -->
+                        <div class="settings-section">
+                            <h3 class="subsection-title">
+                                <i class="fas fa-globe text-success"></i>
+                                <?php echo t('settings.language_preference'); ?>
+                            </h3>
+                            
+                            <div class="form-group">
+                                <label for="language_preference" class="form-label">
+                                    <i class="fas fa-language text-warning"></i>
+                                    <?php echo t('settings.interface_language'); ?>
+                                </label>
+                                
+                                <select class="form-select" id="language_preference" name="language_preference" style="border-radius: 12px; border: 2px solid #daa520; padding: 12px 16px; background: white; font-size: 16px;">
+                                    <option value="0" <?php echo ($member['language_preference'] == 0) ? 'selected' : ''; ?>>
+                                        🇺🇸 English
+                                    </option>
+                                    <option value="1" <?php echo ($member['language_preference'] == 1) ? 'selected' : ''; ?>>
+                                        🇪🇹 አማርኛ (Amharic)
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Privacy Section -->
+                        <div class="settings-section">
+                            <h3 class="subsection-title">
+                                <i class="fas fa-shield-alt text-info"></i>
+                                <?php echo t('settings.privacy_security'); ?>
+                            </h3>
+                            
+                            <div class="feature-item">
+                                <div class="feature-content">
+                                    <div class="feature-title">
+                                        <i class="fas fa-eye text-info"></i>
+                                        <?php echo t('settings.public_profile'); ?>
+                                    </div>
+                                    <p class="feature-description">
+                                        <?php echo t('settings.public_profile_desc'); ?>
+                                    </p>
+                                </div>
+                                <div class="feature-toggle">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="go_public" name="go_public"
+                                               <?php echo $member['go_public'] ? 'checked' : ''; ?>>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
                         <div class="d-flex gap-3 mt-4">
-                            <button type="submit" class="btn btn-success flex-fill">
+                            <button type="submit" class="btn btn-primary flex-fill">
                                 <i class="fas fa-save me-2"></i>
-                                <?php echo t('settings.save_preferences'); ?>
+                                <?php echo t('settings.save_all_settings'); ?>
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
-            
-            <!-- Language Preference -->
-            <div class="col-lg-6">
-                <div class="settings-card">
-                    <h2 class="section-title">
-                        <i class="fas fa-globe text-success"></i>
-                        <?php echo t('settings.language_preference'); ?>
-                    </h2>
-                    
-                    <form id="languageForm" action="api/update-settings.php" method="POST">
-                        <input type="hidden" name="action" value="privacy">
-                        <input type="hidden" name="go_public" value="<?php echo ($member['go_public'] ?? 0); ?>">
-                        
-                        <div class="form-group">
-                            <label for="language_preference" class="form-label">
-                                <i class="fas fa-language text-warning"></i>
-                                <?php echo t('settings.interface_language'); ?>
-                            </label>
-                            
-                            <!-- Debug Info -->
-                            <div class="alert alert-info mb-3" style="font-size: 12px; padding: 8px;">
-                                <strong>Debug:</strong> 
-                                DB Value: <?php echo $member['language_preference'] ?? 'NULL'; ?> | 
-                                Session: <?php echo $_SESSION['app_language'] ?? 'NOT SET'; ?>
-                            </div>
-                            
-                            <select class="form-select" id="language_preference" name="language_preference" style="border-radius: 12px; border: 2px solid #daa520; padding: 12px 16px; background: white; font-size: 16px;">
-                                <option value="0" <?php echo ($member['language_preference'] == 0) ? 'selected' : ''; ?>>
-                                    🇺🇸 English
-                                </option>
-                                <option value="1" <?php echo ($member['language_preference'] == 1) ? 'selected' : ''; ?>>
-                                    🇪🇹 አማርኛ (Amharic)
-                                </option>
-                            </select>
-                        </div>
-
-                        <div class="d-flex gap-3 mt-4">
-                            <button type="submit" class="btn btn-warning flex-fill">
-                                <i class="fas fa-sync-alt me-2"></i>
-                                <?php echo t('settings.apply_language'); ?>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Privacy & Security -->
-            <div class="col-lg-6">
-                <div class="settings-card">
-                    <h2 class="section-title">
-                        <i class="fas fa-shield-alt text-primary"></i>
-                        <?php echo t('settings.privacy_security'); ?>
-                    </h2>
-                    
-                    <form id="privacyForm" action="api/update-settings.php" method="POST">
-                        <input type="hidden" name="action" value="privacy">
-                        <input type="hidden" name="language_preference" value="<?php echo ($member['language_preference'] ?? 0); ?>">
-                        
-                        <div class="feature-item">
-                            <div class="feature-content">
-                                <div class="feature-title">
-                                    <i class="fas fa-eye text-info"></i>
-                                    <?php echo t('settings.public_profile'); ?>
-                                </div>
-                                <p class="feature-description">
-                                    <?php echo t('settings.public_profile_desc'); ?>
-                                </p>
-                            </div>
-                            <div class="feature-toggle">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="go_public" name="go_public"
-                                           <?php echo $member['go_public'] ? 'checked' : ''; ?>>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-3 mt-4">
-                            <button type="submit" class="btn btn-warning flex-fill">
-                                <i class="fas fa-shield-alt me-2"></i>
-                                <?php echo t('settings.save_changes'); ?>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-
         </div>
     </div>
 
@@ -891,21 +870,21 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
     
     <script>
-    // Enhanced settings page functionality
+    // Enhanced unified settings page functionality
     document.addEventListener('DOMContentLoaded', function() {
         // Form loading animation
-        const cards = document.querySelectorAll('.settings-card');
-        cards.forEach((card, index) => {
+        const settingsCard = document.querySelector('.settings-card');
+        if (settingsCard) {
             setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, index * 100);
-        });
+                settingsCard.style.opacity = '1';
+                settingsCard.style.transform = 'translateY(0)';
+            }, 100);
+        }
 
-        // Notification form handling
-        const notificationForm = document.getElementById('notificationForm');
-        if (notificationForm) {
-            notificationForm.addEventListener('submit', async function(e) {
+        // Unified settings form handling
+        const unifiedForm = document.getElementById('unifiedSettingsForm');
+        if (unifiedForm) {
+            unifiedForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const submitBtn = this.querySelector('button[type="submit"]');
@@ -924,89 +903,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     
                     if (result.success) {
                         showAlert(result.message, 'success');
-                    } else {
-                        showAlert(result.message, 'danger');
-                    }
-                } catch (error) {
-                    showAlert('Network error. Please try again.', 'danger');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
-            });
-        }
-
-        // Language form handling
-        const languageForm = document.getElementById('languageForm');
-        if (languageForm) {
-            languageForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Applying...';
-                
-                try {
-                    const formData = new FormData(this);
-                    const response = await fetch('api/update-settings.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        console.log('Language update response:', result);
-                        showAlert(result.message, 'success');
-                        if (result.language_changed) {
-                            console.log('Language changed to:', result.new_language);
-                            setTimeout(() => {
-                                console.log('Reloading page...');
-                                window.location.reload();
-                            }, 1000);
-                        }
-                    } else {
-                        console.error('Language update failed:', result);
-                        showAlert(result.message, 'danger');
-                    }
-                } catch (error) {
-                    showAlert('Network error. Please try again.', 'danger');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
-            });
-        }
-
-        // Privacy form handling
-        const privacyForm = document.getElementById('privacyForm');
-        if (privacyForm) {
-            privacyForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
-                
-                try {
-                    const formData = new FormData(this);
-                    const response = await fetch('api/update-settings.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        showAlert(result.message, 'success');
                         
-                        // If language was changed, reload page immediately to apply
-                        if (result.language_changed) {
+                        // If language was changed, reload the page after a short delay
+                        const languageSelect = this.querySelector('#language_preference');
+                        if (languageSelect && languageSelect.dataset.changed) {
                             setTimeout(() => {
                                 window.location.reload();
-                            }, 1000);
+                            }, 1500);
                         }
                     } else {
                         showAlert(result.message, 'danger');
@@ -1017,6 +920,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
                 }
+            });
+        }
+
+        // Track language changes
+        const languageSelect = document.getElementById('language_preference');
+        if (languageSelect) {
+            const originalValue = languageSelect.value;
+            languageSelect.addEventListener('change', function() {
+                this.dataset.changed = (this.value !== originalValue);
             });
         }
 

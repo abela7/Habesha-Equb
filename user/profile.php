@@ -38,7 +38,7 @@ try {
     $enhanced_calculator = new EnhancedEqubCalculator($pdo);
     
     $stmt = $pdo->prepare("
-        SELECT m.*, 
+        SELECT m.*,
                es.equb_name, es.start_date, es.end_date, es.payout_day, es.duration_months, 
                es.max_members, es.current_members, es.admin_fee, es.late_fee, es.grace_period_days,
                es.regular_payment_tier, es.currency, es.status as equb_status,
