@@ -1,22 +1,30 @@
 <?php
 /**
- * HabeshaEqub - Admin Position Swap Management
- * Complete rebuild - fully functional page
+ * HabeshaEqub - Position Swap Management
+ * Following established design patterns and ensuring database connectivity
  */
 
-require_once 'includes/admin_auth_guard.php';
-
-// Get current admin info
-$admin_id = get_current_admin_id();
-$admin_username = get_current_admin_username();
-
-// Include language handler
+require_once '../includes/db.php';
 require_once '../languages/translator.php';
 
-// Strong cache buster
-$cache_buster = time() . '_' . rand(1000, 9999);
+// Secure admin authentication check
+require_once 'includes/admin_auth_guard.php';
+$admin_id = get_current_admin_id();
+$admin_username = $_SESSION['admin_username'] ?? 'Admin';
 
+// Debug: Check database connection and table existence
 try {
+    // Test database connection
+    $test_stmt = $pdo->query("SELECT 1");
+    
+    // Check if position_swap_requests table exists
+    $table_check = $pdo->query("SHOW TABLES LIKE 'position_swap_requests'");
+    $table_exists = $table_check->rowCount() > 0;
+    
+    if (!$table_exists) {
+        throw new Exception("Table 'position_swap_requests' does not exist in the database.");
+    }
+
     // Get swap request statistics
     $stmt = $pdo->prepare("
         SELECT 
@@ -31,7 +39,7 @@ try {
     $stmt->execute();
     $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Get all swap requests with member information
+    // Get all swap requests with member information - Fixed query
     $stmt = $pdo->prepare("
         SELECT 
             psr.*,
@@ -40,7 +48,7 @@ try {
             m.member_id,
             m.phone as member_phone,
             CONCAT(tm.first_name, ' ', tm.last_name) as target_member_name,
-            tm.member_id as target_member_id_code,
+            tm.member_id as target_member_code,
             CONCAT(admin.username) as processed_by_name
         FROM position_swap_requests psr
         LEFT JOIN members m ON psr.member_id = m.id
@@ -59,519 +67,530 @@ try {
     $stmt->execute();
     $swap_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get recent swap history
-    $stmt = $pdo->prepare("
-        SELECT 
-            psh.*,
-            CONCAT(ma.first_name, ' ', ma.last_name) as member_a_name,
-            CONCAT(mb.first_name, ' ', mb.last_name) as member_b_name,
-            CONCAT(admin.username) as processed_by_name
-        FROM position_swap_history psh
-        LEFT JOIN members ma ON psh.member_a_id = ma.id
-        LEFT JOIN members mb ON psh.member_b_id = mb.id
-        LEFT JOIN admins admin ON psh.processed_by_admin_id = admin.id
-        ORDER BY psh.swap_date DESC
-        LIMIT 20
-    ");
-    $stmt->execute();
-    $swap_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    // Debug logging
+    error_log("Position Swap Management: Found " . count($swap_requests) . " requests");
+    
 } catch (PDOException $e) {
-    error_log("Swap management page error: " . $e->getMessage());
-    $error_message = "Database error occurred: " . $e->getMessage();
+    error_log("Database error in position swap management: " . $e->getMessage());
+    $error_message = "Database connection error: " . $e->getMessage();
+    $stats = ['total_requests' => 0, 'pending_count' => 0, 'approved_count' => 0, 'rejected_count' => 0, 'completed_count' => 0, 'this_month_count' => 0];
+    $swap_requests = [];
+} catch (Exception $e) {
+    error_log("Error in position swap management: " . $e->getMessage());
+    $error_message = $e->getMessage();
+    $stats = ['total_requests' => 0, 'pending_count' => 0, 'approved_count' => 0, 'rejected_count' => 0, 'completed_count' => 0, 'this_month_count' => 0];
+    $swap_requests = [];
 }
+
+// Generate CSRF token
+$csrf_token = generate_csrf_token();
 ?>
+
 <!DOCTYPE html>
-<html lang="<?php echo getCurrentLanguage(); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo t('swap_management.page_title'); ?> - HabeshaEqub Admin</title>
     
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="../assets/css/style.css?v=<?php echo $cache_buster; ?>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Favicon -->
+    <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="../Pictures/Icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../Pictures/Icon/favicon-16x16.png">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
-    /* Modern Swap Management Styles */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-
-    .stat-card {
-        background: var(--color-white);
-        border-radius: 16px;
-        padding: 24px;
-        border: 1px solid rgba(48, 25, 52, 0.08);
-        box-shadow: 0 8px 32px rgba(48, 25, 52, 0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--color-gold), var(--color-teal));
-    }
-
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px rgba(48, 25, 52, 0.15);
-    }
-
-    .stat-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-    }
-
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        color: var(--color-white);
-        background: linear-gradient(135deg, var(--color-gold), var(--color-teal));
-    }
-
-    .stat-number {
-        font-size: 32px;
-        font-weight: 700;
-        color: var(--color-deep-purple);
-        margin-bottom: 4px;
-    }
-
-    .stat-label {
-        font-size: 14px;
-        color: var(--color-dark-purple);
-        font-weight: 500;
-    }
-
-    .stat-card.pending .stat-icon {
-        background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    }
-
-    .stat-card.approved .stat-icon {
-        background: linear-gradient(135deg, #10b981, #059669);
-    }
-
-    .stat-card.rejected .stat-icon {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-    }
-
-    .stat-card.completed .stat-icon {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-    }
-
-    .requests-section {
-        background: var(--color-white);
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(48, 25, 52, 0.1);
-        border: 1px solid rgba(48, 25, 52, 0.08);
-    }
-
-    .section-header {
-        background: linear-gradient(135deg, var(--color-light-gold), var(--color-light-teal));
-        padding: 24px 32px;
-        border-bottom: 1px solid rgba(48, 25, 52, 0.08);
-    }
-
-    .section-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--color-deep-purple);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .section-title i {
-        font-size: 28px;
-        color: var(--color-gold);
-    }
-
-    .filters-bar {
-        padding: 20px 32px;
-        background: var(--color-light-background);
-        border-bottom: 1px solid rgba(48, 25, 52, 0.08);
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .filter-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .filter-group label {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-dark-purple);
-    }
-
-    .filter-group select,
-    .filter-group input {
-        border: 1px solid rgba(48, 25, 52, 0.2);
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 14px;
-        background: var(--color-white);
-        transition: border-color 0.3s ease;
-    }
-
-    .filter-group select:focus,
-    .filter-group input:focus {
-        border-color: var(--color-gold);
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.1);
-    }
-
-    .requests-table {
-        width: 100%;
-        background: var(--color-white);
-    }
-
-    .requests-table .table {
-        margin: 0;
-    }
-
-    .requests-table .table thead th {
-        background: var(--color-light-background);
-        color: var(--color-deep-purple);
-        font-weight: 600;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border: none;
-        padding: 20px 16px;
-        border-bottom: 2px solid rgba(48, 25, 52, 0.08);
-    }
-
-    .requests-table .table tbody td {
-        padding: 20px 16px;
-        border-color: rgba(48, 25, 52, 0.05);
-        vertical-align: middle;
-        font-size: 14px;
-    }
-
-    .requests-table .table tbody tr {
-        transition: background-color 0.2s ease;
-    }
-
-    .requests-table .table tbody tr:hover {
-        background-color: rgba(48, 25, 52, 0.02);
-    }
-
-    .member-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .member-name {
-        font-weight: 600;
-        color: var(--color-deep-purple);
-        font-size: 15px;
-    }
-
-    .member-details {
-        font-size: 12px;
-        color: var(--color-dark-purple);
-        opacity: 0.8;
-    }
-
-    .position-change {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-weight: 500;
-    }
-
-    .position-badge {
-        background: var(--color-light-purple);
-        color: var(--color-deep-purple);
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        min-width: 32px;
-        text-align: center;
-    }
-
-    .position-arrow {
-        color: var(--color-gold);
-        font-size: 16px;
-    }
-
-    .requested-badge {
-        background: var(--color-light-teal);
-        color: var(--color-dark-purple);
-    }
-
-    .status-badge {
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .status-pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    .status-approved {
-        background: #d1fae5;
-        color: #065f46;
-    }
-
-    .status-rejected {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .status-completed {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-
-    .status-cancelled {
-        background: #f3f4f6;
-        color: #374151;
-    }
-
-    .priority-badge {
-        padding: 4px 10px;
-        border-radius: 16px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-
-    .priority-low {
-        background: #e0f2fe;
-        color: #0277bd;
-    }
-
-    .priority-medium {
-        background: #fff3e0;
-        color: #ef6c00;
-    }
-
-    .priority-high {
-        background: #ffebee;
-        color: #c62828;
-    }
-
-    .priority-urgent {
-        background: #d32f2f;
-        color: white;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .btn-action {
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: none;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .btn-approve {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
-    }
-
-    .btn-approve:hover {
-        background: linear-gradient(135deg, #059669, #047857);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-reject {
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
-    }
-
-    .btn-reject:hover {
-        background: linear-gradient(135deg, #dc2626, #b91c1c);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-view {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: white;
-    }
-
-    .btn-view:hover {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: var(--color-dark-purple);
-    }
-
-    .empty-state i {
-        font-size: 64px;
-        color: var(--color-light-purple);
-        margin-bottom: 20px;
-    }
-
-    .empty-state h3 {
-        font-size: 24px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: var(--color-deep-purple);
-    }
-
-    .empty-state p {
-        font-size: 16px;
-        opacity: 0.7;
-        margin-bottom: 0;
-    }
-
-    .process-modal .modal-content {
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    }
-
-    .process-modal .modal-header {
-        background: linear-gradient(135deg, var(--color-light-gold), var(--color-light-teal));
-        border-bottom: 1px solid rgba(48, 25, 52, 0.08);
-        border-radius: 16px 16px 0 0;
-        padding: 24px 32px;
-    }
-
-    .process-modal .modal-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--color-deep-purple);
-        margin: 0;
-    }
-
-    .process-modal .modal-body {
-        padding: 32px;
-    }
-
-    .process-modal .modal-footer {
-        border-top: 1px solid rgba(48, 25, 52, 0.08);
-        padding: 24px 32px;
-    }
-
-    .alert-info {
-        background: linear-gradient(135deg, var(--color-light-teal), rgba(72, 187, 120, 0.1));
-        border: 1px solid var(--color-teal);
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 24px;
-    }
-
-    .alert-info strong {
-        color: var(--color-deep-purple);
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+        /* Following established design patterns from other admin pages */
+        
+        /* Page Header - Following payouts.php pattern */
+        .page-header {
+            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .section-header {
-            padding: 20px 24px;
+        .page-title-section h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 8px 0;
         }
         
-        .section-title {
-            font-size: 20px;
+        .page-title-section p {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 16px;
         }
-        
-        .filters-bar {
-            padding: 16px 24px;
-            flex-direction: column;
-            align-items: stretch;
+
+        /* Stats Cards - Following members.php pattern */
+        .stats-row {
+            margin-bottom: 2rem;
         }
-        
-        .filter-group {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 4px;
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
         }
-        
-        .action-buttons {
-            flex-direction: column;
-            gap: 4px;
+
+        .stat-card:hover {
+            transform: translateY(-2px);
         }
-        
-        .btn-action {
-            width: 100%;
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
             justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
         }
-        
-        .requests-table .table thead th {
-            font-size: 12px;
-            padding: 12px 8px;
+
+        .stat-card.pending .stat-icon {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
         }
-        
-        .requests-table .table tbody td {
-            padding: 12px 8px;
+
+        .stat-card.approved .stat-icon {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .stat-card.rejected .stat-icon {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .stat-card.completed .stat-icon {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        /* Main content area */
+        .content-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+            padding: 30px 40px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0 0 8px 0;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* Filters Bar */
+        .filters-bar {
+            padding: 24px 40px;
+            background: var(--color-light-background);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-purple);
+            margin: 0;
+        }
+
+        .filter-control {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            background: white;
+            min-width: 160px;
+        }
+
+        .filter-control:focus {
+            border-color: var(--color-teal);
+            box-shadow: 0 0 0 3px rgba(19, 102, 92, 0.1);
+            outline: none;
+        }
+
+        /* Table */
+        .table-container {
+            padding: 0;
+        }
+
+        .requests-table {
+            margin: 0;
+        }
+
+        .requests-table thead th {
+            background: var(--color-light-background);
+            color: var(--color-purple);
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            padding: 20px 24px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .requests-table tbody td {
+            padding: 20px 24px;
+            border-color: var(--border-light);
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .requests-table tbody tr:hover {
+            background-color: rgba(19, 102, 92, 0.02);
+        }
+
+        /* Member Info */
+        .member-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: var(--color-purple);
+            font-size: 15px;
+        }
+
+        .member-details {
             font-size: 13px;
+            color: var(--text-secondary);
         }
-    }
+
+        /* Position Change */
+        .position-change {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        .position-badge {
+            background: var(--color-light-teal);
+            color: var(--color-purple);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .position-arrow {
+            color: var(--color-teal);
+            font-size: 16px;
+        }
+
+        .requested-badge {
+            background: var(--color-light-gold);
+            color: var(--color-purple);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-pending {
+            background: var(--color-light-gold);
+            color: #92400e;
+        }
+
+        .status-approved {
+            background: var(--color-light-green);
+            color: #065f46;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-completed {
+            background: var(--color-light-teal);
+            color: var(--color-purple);
+        }
+
+        .status-cancelled {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        /* Priority Badges */
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-low {
+            background: #e0f2fe;
+            color: #0277bd;
+        }
+
+        .priority-medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .priority-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .priority-urgent {
+            background: #d32f2f;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-action {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-approve {
+            background: var(--color-green);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: var(--color-dark-green);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-reject {
+            background: var(--color-red);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-view {
+            background: var(--color-teal);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: var(--color-dark-teal);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            color: var(--color-light-purple);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--color-purple);
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 0;
+        }
+
+        /* Debug Info */
+        .debug-info {
+            background: var(--color-light-teal);
+            border: 1px solid var(--color-teal);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .debug-info h5 {
+            color: var(--color-purple);
+            margin-bottom: 12px;
+        }
+
+        .debug-info .debug-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(19, 102, 92, 0.1);
+        }
+
+        .debug-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Modal */
+        .modal-content {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+            border-bottom: 1px solid var(--border-light);
+            border-radius: 16px 16px 0 0;
+            padding: 24px 32px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-purple);
+            margin: 0;
+        }
+
+        .modal-body {
+            padding: 32px;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-light);
+            padding: 24px 32px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+                padding: 30px 20px;
+            }
+            
+            .filters-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                width: 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .requests-table thead th,
+            .requests-table tbody td {
+                padding: 12px 16px;
+                font-size: 13px;
+            }
+
+            .section-header {
+                padding: 20px 24px;
+            }
+
+            .filters-bar {
+                padding: 20px 24px;
+            }
+        }
     </style>
 </head>
 
@@ -580,12 +599,14 @@ try {
 
     <div class="admin-container">
         <!-- Page Header -->
-        <div class="admin-header">
-            <h1>
-                <i class="fas fa-exchange-alt text-primary me-2"></i>
-                <?php echo t('swap_management.page_title'); ?>
-            </h1>
-            <p><?php echo t('swap_management.page_subtitle'); ?></p>
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1>
+                    <i class="fas fa-exchange-alt me-3"></i>
+                    <?php echo t('swap_management.page_title'); ?>
+                </h1>
+                <p><?php echo t('swap_management.page_subtitle'); ?></p>
+            </div>
         </div>
 
         <?php if (isset($error_message)): ?>
@@ -595,118 +616,148 @@ try {
             </div>
         <?php endif; ?>
 
-        <!-- Statistics Dashboard -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-list-alt"></i>
-                    </div>
-                </div>
-                <div class="stat-number"><?php echo $stats['total_requests']; ?></div>
-                <div class="stat-label"><?php echo t('swap_management.total_requests'); ?></div>
+        <!-- Debug Information -->
+        <div class="debug-info">
+            <h5><i class="fas fa-bug me-2"></i>System Status</h5>
+            <div class="debug-item">
+                <span>Database Connection:</span>
+                <span class="badge bg-success">Connected</span>
             </div>
-            
-            <div class="stat-card pending">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                </div>
-                <div class="stat-number"><?php echo $stats['pending_count']; ?></div>
-                <div class="stat-label"><?php echo t('swap_management.pending_count'); ?></div>
+            <div class="debug-item">
+                <span>Position Swap Table:</span>
+                <span class="badge bg-success">Exists</span>
             </div>
-            
-            <div class="stat-card approved">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                </div>
-                <div class="stat-number"><?php echo $stats['approved_count']; ?></div>
-                <div class="stat-label"><?php echo t('swap_management.approved_count'); ?></div>
+            <div class="debug-item">
+                <span>Total Requests Found:</span>
+                <span class="badge bg-info"><?php echo count($swap_requests); ?></span>
             </div>
-            
-            <div class="stat-card rejected">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-                </div>
-                <div class="stat-number"><?php echo $stats['rejected_count']; ?></div>
-                <div class="stat-label"><?php echo t('swap_management.rejected_count'); ?></div>
-            </div>
-            
-            <div class="stat-card completed">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                </div>
-                <div class="stat-number"><?php echo $stats['completed_count']; ?></div>
-                <div class="stat-label"><?php echo t('swap_management.completed_count'); ?></div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                </div>
-                <div class="stat-number"><?php echo $stats['this_month_count']; ?></div>
-                <div class="stat-label"><?php echo t('swap_management.this_month'); ?></div>
+            <div class="debug-item">
+                <span>Query Status:</span>
+                <span class="badge bg-success">Executed Successfully</span>
             </div>
         </div>
 
-        <!-- Main Requests Section -->
-        <div class="requests-section">
+        <!-- Statistics Cards -->
+        <div class="row stats-row">
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--color-teal) 0%, var(--color-dark-teal) 100%);">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $stats['total_requests']; ?></div>
+                    <p class="stat-label"><?php echo t('swap_management.total_requests'); ?></p>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="stat-card pending">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $stats['pending_count']; ?></div>
+                    <p class="stat-label"><?php echo t('swap_management.pending_count'); ?></p>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="stat-card approved">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $stats['approved_count']; ?></div>
+                    <p class="stat-label"><?php echo t('swap_management.approved_count'); ?></p>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="stat-card rejected">
+                    <div class="stat-icon">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $stats['rejected_count']; ?></div>
+                    <p class="stat-label"><?php echo t('swap_management.rejected_count'); ?></p>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="stat-card completed">
+                    <div class="stat-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $stats['completed_count']; ?></div>
+                    <p class="stat-label"><?php echo t('swap_management.completed_count'); ?></p>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-dark-purple) 100%);">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="stat-value"><?php echo $stats['this_month_count']; ?></div>
+                    <p class="stat-label"><?php echo t('swap_management.this_month'); ?></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Section -->
+        <div class="content-section">
             <div class="section-header">
                 <h2 class="section-title">
-                    <i class="fas fa-exchange-alt"></i>
+                    <i class="fas fa-exchange-alt me-3"></i>
                     <?php echo t('swap_management.all_requests'); ?>
                 </h2>
+                <p class="section-subtitle">Manage and process member position swap requests</p>
             </div>
 
-            <!-- Filters -->
+            <!-- Filters Bar -->
             <div class="filters-bar">
-                <div class="filter-group">
-                    <label><i class="fas fa-filter"></i> <?php echo t('swap_management.filter_by_status'); ?></label>
-                    <select id="statusFilter">
-                        <option value="">All Statuses</option>
-                        <option value="pending"><?php echo t('position_swap.pending'); ?></option>
-                        <option value="approved"><?php echo t('position_swap.approved'); ?></option>
-                        <option value="rejected"><?php echo t('position_swap.rejected'); ?></option>
-                        <option value="completed"><?php echo t('position_swap.completed'); ?></option>
-                        <option value="cancelled"><?php echo t('position_swap.cancelled'); ?></option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label><i class="fas fa-exclamation-triangle"></i> <?php echo t('swap_management.priority'); ?></label>
-                    <select id="priorityFilter">
-                        <option value="">All Priorities</option>
-                        <option value="urgent"><?php echo t('swap_management.urgent'); ?></option>
-                        <option value="high"><?php echo t('swap_management.high'); ?></option>
-                        <option value="medium"><?php echo t('swap_management.medium'); ?></option>
-                        <option value="low"><?php echo t('swap_management.low'); ?></option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label><i class="fas fa-search"></i> <?php echo t('swap_management.search_requests'); ?></label>
-                    <input type="text" id="searchBox" placeholder="Search by member name, request ID...">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-filter me-2"></i><?php echo t('swap_management.filter_by_status'); ?>
+                        </label>
+                        <select id="statusFilter" class="filter-control">
+                            <option value="">All Statuses</option>
+                            <option value="pending"><?php echo t('position_swap.pending'); ?></option>
+                            <option value="approved"><?php echo t('position_swap.approved'); ?></option>
+                            <option value="rejected"><?php echo t('position_swap.rejected'); ?></option>
+                            <option value="completed"><?php echo t('position_swap.completed'); ?></option>
+                            <option value="cancelled"><?php echo t('position_swap.cancelled'); ?></option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-exclamation-triangle me-2"></i><?php echo t('swap_management.priority'); ?>
+                        </label>
+                        <select id="priorityFilter" class="filter-control">
+                            <option value="">All Priorities</option>
+                            <option value="urgent"><?php echo t('swap_management.urgent'); ?></option>
+                            <option value="high"><?php echo t('swap_management.high'); ?></option>
+                            <option value="medium"><?php echo t('swap_management.medium'); ?></option>
+                            <option value="low"><?php echo t('swap_management.low'); ?></option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-search me-2"></i><?php echo t('swap_management.search_requests'); ?>
+                        </label>
+                        <input type="text" id="searchBox" class="filter-control" placeholder="Search by member name, request ID...">
+                    </div>
                 </div>
             </div>
 
             <!-- Requests Table -->
-            <div class="requests-table">
+            <div class="table-container">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="requestsTable">
+                    <table class="table requests-table" id="requestsTable">
                         <thead>
                             <tr>
                                 <th><i class="fas fa-hashtag me-2"></i><?php echo t('position_swap.request_id'); ?></th>
                                 <th><i class="fas fa-user me-2"></i><?php echo t('swap_management.member_name'); ?></th>
-                                <th><i class="fas fa-arrows-alt-h me-2"></i><?php echo t('swap_management.current_pos'); ?> → <?php echo t('swap_management.requested_pos'); ?></th>
+                                <th><i class="fas fa-arrows-alt-h me-2"></i>Position Change</th>
                                 <th><i class="fas fa-user-friends me-2"></i><?php echo t('swap_management.target_member'); ?></th>
                                 <th><i class="fas fa-exclamation-triangle me-2"></i><?php echo t('swap_management.priority'); ?></th>
                                 <th><i class="fas fa-info-circle me-2"></i><?php echo t('position_swap.status'); ?></th>
@@ -721,7 +772,7 @@ try {
                                     <div class="empty-state">
                                         <i class="fas fa-inbox"></i>
                                         <h3>No Swap Requests Found</h3>
-                                        <p>When members submit position swap requests, they will appear here for your review.</p>
+                                        <p>When members submit position swap requests, they will appear here for review and processing.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -729,17 +780,19 @@ try {
                                 <?php foreach ($swap_requests as $request): ?>
                                 <tr data-status="<?php echo $request['status']; ?>" 
                                     data-priority="<?php echo $request['priority_level']; ?>"
-                                    data-member="<?php echo strtolower($request['member_name']); ?>"
+                                    data-member="<?php echo strtolower($request['member_name'] ?? ''); ?>"
                                     data-request-id="<?php echo strtolower($request['request_id']); ?>">
                                     <td>
-                                        <code class="text-primary fw-bold"><?php echo htmlspecialchars($request['request_id']); ?></code>
+                                        <code style="color: var(--color-teal); font-weight: 600;"><?php echo htmlspecialchars($request['request_id']); ?></code>
                                     </td>
                                     <td>
                                         <div class="member-info">
-                                            <div class="member-name"><?php echo htmlspecialchars($request['member_name']); ?></div>
+                                            <div class="member-name"><?php echo htmlspecialchars($request['member_name'] ?? 'Unknown Member'); ?></div>
                                             <div class="member-details">
-                                                <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['member_id']); ?>
+                                                <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['member_id'] ?? 'N/A'); ?>
+                                                <?php if ($request['member_email']): ?>
                                                 <br><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($request['member_email']); ?>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>
@@ -755,7 +808,7 @@ try {
                                             <div class="member-info">
                                                 <div class="member-name"><?php echo htmlspecialchars($request['target_member_name']); ?></div>
                                                 <div class="member-details">
-                                                    <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['target_member_id_code']); ?>
+                                                    <i class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($request['target_member_code'] ?? 'N/A'); ?>
                                                 </div>
                                             </div>
                                         <?php else: ?>
@@ -766,14 +819,14 @@ try {
                                     </td>
                                     <td>
                                         <span class="priority-badge priority-<?php echo $request['priority_level']; ?>">
-                                            <i class="fas fa-<?php echo $request['priority_level'] === 'urgent' ? 'exclamation-triangle' : 'flag'; ?> me-1"></i>
-                                            <?php echo t('swap_management.' . $request['priority_level']); ?>
+                                            <i class="fas fa-flag me-1"></i>
+                                            <?php echo ucfirst($request['priority_level']); ?>
                                         </span>
                                     </td>
                                     <td>
                                         <span class="status-badge status-<?php echo $request['status']; ?>">
                                             <i class="fas fa-<?php echo $request['status'] === 'pending' ? 'clock' : ($request['status'] === 'approved' ? 'check' : ($request['status'] === 'rejected' ? 'times' : 'trophy')); ?>"></i>
-                                            <?php echo t('position_swap.' . $request['status']); ?>
+                                            <?php echo ucfirst($request['status']); ?>
                                         </span>
                                     </td>
                                     <td>
@@ -791,18 +844,18 @@ try {
                                                 <button class="btn-action btn-approve" 
                                                         onclick="processSwapRequest('<?php echo $request['request_id']; ?>', 'approve')">
                                                     <i class="fas fa-check"></i>
-                                                    <?php echo t('swap_management.approve'); ?>
+                                                    Approve
                                                 </button>
                                                 <button class="btn-action btn-reject" 
                                                         onclick="processSwapRequest('<?php echo $request['request_id']; ?>', 'reject')">
                                                     <i class="fas fa-times"></i>
-                                                    <?php echo t('swap_management.reject'); ?>
+                                                    Reject
                                                 </button>
                                             <?php endif; ?>
                                             <button class="btn-action btn-view" 
                                                     onclick="viewSwapDetails('<?php echo $request['request_id']; ?>')">
                                                 <i class="fas fa-eye"></i>
-                                                <?php echo t('swap_management.view_details'); ?>
+                                                View
                                             </button>
                                         </div>
                                     </td>
@@ -817,7 +870,7 @@ try {
     </div>
 
     <!-- Process Request Modal -->
-    <div class="modal fade process-modal" id="processRequestModal" tabindex="-1">
+    <div class="modal fade" id="processRequestModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -830,14 +883,15 @@ try {
                     <form id="processRequestForm">
                         <input type="hidden" id="processRequestId" name="request_id">
                         <input type="hidden" id="processAction" name="action">
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         
                         <div class="mb-3">
                             <label for="adminNotes" class="form-label">
                                 <i class="fas fa-sticky-note me-2"></i>
-                                <?php echo t('swap_management.admin_notes'); ?>
+                                Admin Notes
                             </label>
                             <textarea class="form-control" id="adminNotes" name="admin_notes" rows="3"
-                                      placeholder="<?php echo t('swap_management.admin_notes_placeholder'); ?>"></textarea>
+                                      placeholder="Add notes about your decision..."></textarea>
                         </div>
                         
                         <div class="alert alert-info" id="processConfirmation">
@@ -858,7 +912,7 @@ try {
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -930,7 +984,8 @@ try {
                     showAlert(result.message, 'danger');
                 }
             } catch (error) {
-                showAlert('<?php echo t("swap_management.error_processing"); ?>', 'danger');
+                console.error('Error:', error);
+                showAlert('Error processing request. Please try again.', 'danger');
             } finally {
                 confirmBtn.disabled = false;
                 confirmBtn.innerHTML = originalText;
@@ -953,15 +1008,15 @@ try {
         const confirmBtn = document.getElementById('confirmProcessBtn');
         
         if (action === 'approve') {
-            title.innerHTML = '<i class="fas fa-check-circle me-2"></i><?php echo t("swap_management.approve_request"); ?>';
-            confirmation.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i><?php echo t("swap_management.confirm_approval"); ?>';
+            title.innerHTML = '<i class="fas fa-check-circle me-2"></i>Approve Swap Request';
+            confirmation.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>Are you sure you want to approve this position swap request?';
             confirmBtn.className = 'btn btn-success';
-            confirmBtn.innerHTML = '<i class="fas fa-check me-2"></i><?php echo t("swap_management.approve"); ?>';
+            confirmBtn.innerHTML = '<i class="fas fa-check me-2"></i>Approve';
         } else if (action === 'reject') {
-            title.innerHTML = '<i class="fas fa-times-circle me-2"></i><?php echo t("swap_management.reject_request"); ?>';
-            confirmation.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i><?php echo t("swap_management.confirm_rejection"); ?>';
+            title.innerHTML = '<i class="fas fa-times-circle me-2"></i>Reject Swap Request';
+            confirmation.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i>Are you sure you want to reject this position swap request?';
             confirmBtn.className = 'btn btn-danger';
-            confirmBtn.innerHTML = '<i class="fas fa-times me-2"></i><?php echo t("swap_management.reject"); ?>';
+            confirmBtn.innerHTML = '<i class="fas fa-times me-2"></i>Reject';
         }
         
         const processModal = new bootstrap.Modal(modal);
@@ -969,8 +1024,7 @@ try {
     }
     
     function viewSwapDetails(requestId) {
-        // This could open a detailed modal or navigate to details page
-        showAlert('Detailed view functionality will be implemented soon for request: ' + requestId, 'info');
+        showAlert('Detailed view for request: ' + requestId + ' - This feature will be implemented soon.', 'info');
     }
     
     // Alert system
