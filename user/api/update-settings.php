@@ -116,6 +116,7 @@ try {
             $payment_reminders = isset($_POST['payment_reminders']) ? 1 : 0;
             $go_public = isset($_POST['go_public']) ? 1 : 0;
             $language_preference = (int)($_POST['language_preference'] ?? 0);
+            $swap_terms_allowed = isset($_POST['swap_terms_allowed']) ? 1 : 0;
             
             // Validate language preference
             if (!in_array($language_preference, [0, 1])) {
@@ -137,6 +138,7 @@ try {
                     payment_reminders = ?,
                     go_public = ?,
                     language_preference = ?,
+                    swap_terms_allowed = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ");
@@ -145,7 +147,8 @@ try {
                 $email_notifications, 
                 $payment_reminders, 
                 $go_public, 
-                $language_preference, 
+                $language_preference,
+                $swap_terms_allowed,
                 $user_id
             ]);
             

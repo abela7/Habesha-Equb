@@ -992,7 +992,10 @@
     "dashboard": "Dashboard",
     "equb_management": "Equb Management",
     "position_swap": "Position Swap",
-    "equb_description": "Create and manage equb terms, payment tiers, and member assignments"
+    "equb_description": "Create and manage equb terms, payment tiers, and member assignments",
+    "swap_terms_title": "Swap Terms",
+    "swap_terms_label": "Allow swapping Equb payout position",
+    "swap_terms_desc": "When enabled, other members can request to swap payout positions with you. Turn off to prevent swaps." 
   },
   "position_swap": {
     "page_title": "Position Swap Request",

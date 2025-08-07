@@ -843,6 +843,30 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                         </div>
 
+                        <!-- Swap Terms Section -->
+                        <div class="settings-section">
+                            <h3 class="subsection-title">
+                                <i class="fas fa-exchange-alt text-success"></i>
+                                <?php echo t('settings.swap_terms_title'); ?>
+                            </h3>
+                            <div class="feature-item">
+                                <div class="feature-content">
+                                    <div class="feature-title">
+                                        <i class="fas fa-random text-success"></i>
+                                        <?php echo t('settings.swap_terms_label'); ?>
+                                    </div>
+                                    <p class="feature-description">
+                                        <?php echo t('settings.swap_terms_desc'); ?>
+                                    </p>
+                                </div>
+                                <div class="feature-toggle">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="swap_terms_allowed" name="swap_terms_allowed" <?php echo $swap_terms_allowed ? 'checked' : ''; ?>>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Save Button -->
                         <div class="d-flex gap-3 mt-4">
                             <button type="submit" class="btn btn-primary flex-fill">
