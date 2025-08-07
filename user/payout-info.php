@@ -200,7 +200,7 @@ if (isset($payout_info['error'])) {
 try {
     $stmt = $pdo->prepare("
         SELECT m.id, m.first_name, m.last_name, m.payout_position, m.monthly_payment,
-               m.go_public, m.position_coefficient,
+               m.go_public, m.position_coefficient, m.payout_month,
                CASE 
                    WHEN po.id IS NOT NULL AND po.status = 'completed' THEN 'completed'
                    WHEN m.payout_position = ? THEN 'current'
@@ -270,6 +270,7 @@ try {
             'position_coefficient' => $queue_member['position_coefficient'],
             'payout_status' => $queue_member['payout_status'],
             'received_date' => $queue_member['received_date'],
+            'payout_month' => $queue_member['payout_month'],
             'gross_payout' => $gross_payout,
             'display_payout' => $display_payout,
             'net_payout' => $net_payout,
@@ -1924,15 +1925,20 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             $is_current = $queue_member['is_current_user'];
                             $is_next = ($step_count == 1 && !$is_current && $queue_member['payout_status'] !== 'completed');
                             
-                            // Calculate correct payout date using equb settings
-                            $start_date = new DateTime($member['start_date']);
-                            $member_payout_date = clone $start_date;
-                            $member_payout_date->add(new DateInterval('P' . ($queue_member['payout_position'] - 1) . 'M'));
-                            $member_payout_date->setDate(
-                                $member_payout_date->format('Y'), 
-                                $member_payout_date->format('n'), 
-                                $member['payout_day']
-                            );
+                            // Use actual payout_month from database (dynamic, not hardcoded)
+                            if (!empty($queue_member['payout_month']) && $queue_member['payout_month'] !== '0000-00-00') {
+                                $member_payout_date = new DateTime($queue_member['payout_month']);
+                            } else {
+                                // Fallback: if payout_month is not set, calculate based on equb settings
+                                $start_date = new DateTime($member['start_date']);
+                                $member_payout_date = clone $start_date;
+                                $member_payout_date->add(new DateInterval('P' . ($queue_member['payout_position'] - 1) . 'M'));
+                                $member_payout_date->setDate(
+                                    $member_payout_date->format('Y'), 
+                                    $member_payout_date->format('n'), 
+                                    $member['payout_day']
+                                );
+                            }
                         ?>
                         <div class="journey-step <?php echo $queue_member['payout_status'] === 'completed' ? 'completed' : ($is_current ? 'current' : ($is_next ? 'next' : '')); ?>">
                             <div class="step-badge">
