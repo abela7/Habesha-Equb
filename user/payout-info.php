@@ -1336,30 +1336,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.expected_payout'); ?></h3>
                          </div>
                     </div>
-                    <div class="payout-value">£<?php echo number_format($display_payout, 2); ?></div>
+                    <div class="payout-value">£<?php echo number_format($real_net_payout, 2); ?></div>
                     <div class="payout-detail">
-                        <i class="fas fa-info-circle text-info me-1"></i>
-                        <small><strong>Display Amount</strong> (Gross - Admin Fee)</small>
-                    </div>
-                    <div class="payout-detail mt-2" style="border-top: 1px solid #e9ecef; padding-top: 8px;">
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <small class="text-muted d-block">Gross</small>
-                                <strong class="text-success">£<?php echo number_format($gross_payout, 2); ?></strong>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">Admin Fee</small>
-                                <strong class="text-warning">-£<?php echo number_format($admin_fee, 2); ?></strong>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">Real Net</small>
-                                <strong class="text-primary">£<?php echo number_format($real_net_payout, 2); ?></strong>
-                            </div>
-                        </div>
+                        <i class="fas fa-money-bill-wave text-success me-1"></i>
+                        <strong>Net Amount</strong> (What you receive)
                     </div>
                     <div class="payout-detail mt-2">
                         <i class="fas fa-calculator text-secondary me-1"></i>
-                        <small>Coefficient: <?php echo number_format($position_coefficient, 2); ?> × Pool: £<?php echo number_format($total_monthly_pool, 2); ?></small>
+                        <small><?php echo $total_equb_members; ?> members × £<?php echo number_format($monthly_contribution, 2); ?> monthly pool</small>
                     </div>
                 </div>
             </div>
@@ -1375,18 +1359,41 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.payout_date'); ?></h3>
                          </div>
                      </div>
-                     <div class="payout-value"><?php echo date('M d, Y', strtotime($payout_date)); ?></div>
-                     <div class="payout-detail">
-                         <i class="fas fa-clock text-info me-1"></i>
-                         <?php 
-                         if ($days_until_payout > 0) {
-                             echo $days_until_payout . ' ' . t('payout.days_remaining');
-                         } elseif ($days_until_payout < 0) {
-                             echo t('payout.due') . ' ' . abs($days_until_payout) . ' ' . t('payout.days_ago');
+                     <?php
+                     // Dynamic payout date calculation based on EQUB term and member position
+                     $equb_start = new DateTime($member['start_date']);
+                     $member_payout_month = $payout_position; // Position determines payout month
+                     $payout_target_date = clone $equb_start;
+                     $payout_target_date->modify("+".($member_payout_month - 1)." months");
+                     
+                     // Check if member has already received payout
+                     $has_received_payout = $member['total_payouts_received'] > 0;
+                     $actual_payout_date = $member['last_payout_received_date'];
+                     
+                     if ($has_received_payout && $actual_payout_date) {
+                         // Member has received payout - show actual date
+                         $display_date = date('M d, Y', strtotime($actual_payout_date));
+                         $days_info = '<i class="fas fa-check-circle text-success me-1"></i>Payout Completed';
+                         $value_class = 'text-success';
+                     } else {
+                         // Member hasn't received payout yet - show scheduled date
+                         $display_date = $payout_target_date->format('M d, Y');
+                         $current_date = new DateTime();
+                         $days_until = $current_date->diff($payout_target_date)->days;
+                         $is_future = $payout_target_date > $current_date;
+                         
+                         if ($is_future) {
+                             $days_info = '<i class="fas fa-clock text-info me-1"></i>' . $days_until . ' days remaining';
+                             $value_class = '';
                          } else {
-                             echo t('payout.due_today');
+                             $days_info = '<i class="fas fa-exclamation-triangle text-warning me-1"></i>Due ' . $days_until . ' days ago';
+                             $value_class = 'text-warning';
                          }
-                         ?>
+                     }
+                     ?>
+                     <div class="payout-value <?php echo $value_class; ?>"><?php echo $display_date; ?></div>
+                     <div class="payout-detail">
+                         <?php echo $days_info; ?>
                      </div>
                 </div>
             </div>
@@ -1428,8 +1435,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <h5 class="mb-0">
                             <i class="fas fa-chart-line me-2"></i>
                             Enhanced EQUB Analytics & Member Statistics
-                            <span class="badge bg-light text-dark ms-2" style="font-size: 0.7em;">
-                                Method: <?php echo ucfirst($calculation_method); ?>
+                            <span class="badge bg-light text-dark ms-2 d-none d-lg-inline" style="font-size: 0.7em;">
+                                <?php echo ucfirst($calculation_method); ?>
                             </span>
                         </h5>
                     </div>
@@ -1437,12 +1444,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <div class="row">
                             <!-- Financial Breakdown -->
                             <div class="col-lg-4">
-                                <h6 class="text-primary mb-3"><i class="fas fa-coins me-2"></i>Financial Breakdown</h6>
+                                <h6 class="text-primary mb-3"><i class="fas fa-coins me-2"></i>Financial Summary</h6>
                                 <div class="info-grid">
-                                    <div class="info-item">
-                                        <span class="info-label">Position Coefficient</span>
-                                        <span class="info-value text-warning fw-bold"><?php echo number_format($position_coefficient, 3); ?></span>
-                                    </div>
                                     <div class="info-item">
                                         <span class="info-label">Total Monthly Pool</span>
                                         <span class="info-value text-success">£<?php echo number_format($total_monthly_pool, 2); ?></span>
@@ -1452,28 +1455,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                         <span class="info-value">£<?php echo number_format($monthly_contribution, 2); ?></span>
                                     </div>
                                     <div class="info-item">
-                                        <span class="info-label">Individual Contribution</span>
-                                        <span class="info-value">£<?php echo number_format($member['individual_contribution'], 2); ?></span>
-                                    </div>
-                                    <div class="info-item">
                                         <span class="info-label">Total Contributed</span>
                                         <span class="info-value text-success">£<?php echo number_format($member['total_contributed'], 2); ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Total Late Fees</span>
-                                        <span class="info-value text-danger">£<?php echo number_format($member['total_late_fees'], 2); ?></span>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- EQUB Progress & Settings -->
                             <div class="col-lg-4">
-                                <h6 class="text-info mb-3"><i class="fas fa-cogs me-2"></i>EQUB Progress & Settings</h6>
+                                <h6 class="text-info mb-3"><i class="fas fa-calendar me-2"></i>EQUB Progress</h6>
                                 <div class="info-grid">
-                                    <div class="info-item">
-                                        <span class="info-label">EQUB Name</span>
-                                        <span class="info-value"><?php echo htmlspecialchars($member['equb_name']); ?></span>
-                                    </div>
                                     <div class="info-item">
                                         <span class="info-label">Start Date</span>
                                         <span class="info-value"><?php echo $member['start_date'] ? date('M d, Y', strtotime($member['start_date'])) : 'Not set'; ?></span>
@@ -1483,36 +1474,20 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                         <span class="info-value"><?php echo $member['duration_months']; ?> months</span>
                                     </div>
                                     <div class="info-item">
-                                        <span class="info-label">Months in EQUB</span>
+                                        <span class="info-label">Months Completed</span>
                                         <span class="info-value text-primary"><?php echo $member['months_in_equb']; ?></span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">Remaining Months</span>
                                         <span class="info-value text-warning"><?php echo $member['remaining_months_in_equb']; ?></span>
                                     </div>
-                                    <div class="info-item">
-                                        <span class="info-label">EQUB Status</span>
-                                        <span class="info-value">
-                                            <span class="badge bg-<?php echo $member['equb_status'] === 'active' ? 'success' : 'secondary'; ?>">
-                                                <?php echo ucfirst($member['equb_status']); ?>
-                                            </span>
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Payout & Member Info -->
                             <div class="col-lg-4">
-                                <h6 class="text-warning mb-3"><i class="fas fa-user-check me-2"></i>Payout & Member Info</h6>
+                                <h6 class="text-warning mb-3"><i class="fas fa-trophy me-2"></i>Member Performance</h6>
                                 <div class="info-grid">
-                                    <div class="info-item">
-                                        <span class="info-label">Membership Type</span>
-                                        <span class="info-value">
-                                            <span class="badge bg-<?php echo $member['membership_type'] === 'joint' ? 'info' : 'primary'; ?>">
-                                                <?php echo ucfirst($member['membership_type']); ?>
-                                            </span>
-                                        </span>
-                                    </div>
                                     <?php if ($member['membership_type'] === 'joint'): ?>
                                     <div class="info-item">
                                         <span class="info-label">Joint Group</span>
@@ -1526,10 +1501,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <div class="info-item">
                                         <span class="info-label">Total Payments Made</span>
                                         <span class="info-value"><?php echo $member['total_payments']; ?></span>
-                                    </div>
-                                    <div class="info-item">
-                                        <span class="info-label">Payouts Received</span>
-                                        <span class="info-value"><?php echo $member['total_payouts_received']; ?></span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">Total Amount Received</span>
