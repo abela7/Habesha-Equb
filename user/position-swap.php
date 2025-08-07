@@ -178,10 +178,14 @@ try {
                 'month_name' => $position_date->format('M Y'),
                 'is_available' => $position_available && !$position_locked,
                 'is_locked' => $position_locked,
+                'is_occupied' => !$position_available,
+                'can_select' => !$position_locked, // Can select if not locked (even if occupied)
                 'occupants' => $position_occupants,
                 'occupant_name' => $occupant_name,
                 'lock_reason' => $position_locked ? 'Position locked - swap permission disabled' : null
             ];
+            
+            // Position analysis complete
         }
     }
 
@@ -300,6 +304,20 @@ $current_payout_date->setDate(
     .position-item.locked:hover {
         border-color: #ffeaa7;
         transform: none;
+    }
+
+    .position-item.selectable {
+        cursor: pointer;
+    }
+
+    .position-item.selectable:hover {
+        border-color: var(--color-gold);
+        transform: translateY(-2px);
+    }
+
+    .position-item.occupied {
+        background: #e3f2fd;
+        border-color: #bbdefb;
     }
 
     .position-number {
@@ -528,10 +546,17 @@ $current_payout_date->setDate(
                         <?php foreach ($available_positions as $pos): ?>
                             <?php 
                             $item_class = 'position-item';
-                            if ($pos['is_available']) {
-                                $item_class .= ' available';
-                            } elseif ($pos['is_locked']) {
+                            
+                            // Determine the main class based on position state
+                            if ($pos['is_locked']) {
                                 $item_class .= ' locked';
+                            } elseif ($pos['can_select']) {
+                                $item_class .= ' selectable'; // Can be selected for swap
+                                if ($pos['is_available']) {
+                                    $item_class .= ' available'; // Empty position
+                                } else {
+                                    $item_class .= ' occupied'; // Has occupant but can swap
+                                }
                             } else {
                                 $item_class .= ' unavailable';
                             }
@@ -540,26 +565,27 @@ $current_payout_date->setDate(
                                  data-position="<?php echo $pos['position']; ?>"
                                  data-month="<?php echo $pos['month_name']; ?>"
                                  data-date="<?php echo $pos['date']->format('Y-m-d'); ?>"
+                                 data-can-select="<?php echo $pos['can_select'] ? 'true' : 'false'; ?>"
                                  <?php if ($pos['is_locked']): ?>
                                     title="<?php echo htmlspecialchars($pos['lock_reason']); ?>"
                                  <?php endif; ?>>
                                 <div class="position-number"><?php echo $pos['position']; ?></div>
                                 <div class="position-month"><?php echo $pos['month_name']; ?></div>
                                 <div class="position-status <?php 
-                                    if ($pos['is_available']) {
-                                        echo 'status-available';
-                                    } elseif ($pos['is_locked']) {
+                                    if ($pos['is_locked']) {
                                         echo 'status-locked';
+                                    } elseif ($pos['is_available']) {
+                                        echo 'status-available';
                                     } else {
                                         echo 'status-taken';
                                     }
                                 ?>">
-                                    <?php if ($pos['is_available']): ?>
-                                        <i class="fas fa-check-circle me-1"></i>
-                                        <?php echo t('position_swap.available'); ?>
-                                    <?php elseif ($pos['is_locked']): ?>
+                                    <?php if ($pos['is_locked']): ?>
                                         <i class="fas fa-lock me-1"></i>
                                         Locked
+                                    <?php elseif ($pos['is_available']): ?>
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        <?php echo t('position_swap.available'); ?>
                                     <?php else: ?>
                                         <i class="fas fa-user me-1"></i>
                                         <?php echo $pos['occupant_name']; ?>
@@ -700,22 +726,27 @@ $current_payout_date->setDate(
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Position selection handling - ONLY AVAILABLE POSITIONS
-        const positionItems = document.querySelectorAll('.position-item.available');
+        // Position selection handling - ALL SELECTABLE POSITIONS
+        const selectableItems = document.querySelectorAll('.position-item.selectable');
         const requestForm = document.getElementById('requestForm');
         const selectedPositionInput = document.getElementById('selectedPosition');
         const selectedMonthInput = document.getElementById('selectedMonth');
         const selectedPositionDisplay = document.getElementById('selectedPositionDisplay');
         
-        positionItems.forEach(item => {
+        console.log('Found', selectableItems.length, 'selectable positions');
+        
+        selectableItems.forEach(item => {
             item.addEventListener('click', function() {
-                // Check if position is actually available (double check)
-                if (this.classList.contains('locked') || this.classList.contains('unavailable')) {
-                    return; // Prevent selection of locked/unavailable positions
+                // Double check if position can be selected
+                if (this.dataset.canSelect !== 'true') {
+                    console.log('Position cannot be selected:', this.dataset.position);
+                    return;
                 }
                 
-                // Remove previous selection
-                positionItems.forEach(p => p.classList.remove('selected'));
+                console.log('Position selected:', this.dataset.position);
+                
+                // Remove previous selection from all position items
+                document.querySelectorAll('.position-item').forEach(p => p.classList.remove('selected'));
                 
                 // Select current item
                 this.classList.add('selected');
@@ -735,15 +766,12 @@ $current_payout_date->setDate(
             });
         });
         
-        // Add click handlers for locked/unavailable positions to show message
-        const lockedItems = document.querySelectorAll('.position-item.locked, .position-item.unavailable');
+        // Add click handlers for locked positions to show message
+        const lockedItems = document.querySelectorAll('.position-item.locked');
         lockedItems.forEach(item => {
             item.addEventListener('click', function() {
-                if (this.classList.contains('locked')) {
-                    showAlert('This position is locked because one or more members have disabled swap permissions.', 'warning');
-                } else {
-                    showAlert('This position is already taken by another member.', 'info');
-                }
+                console.log('Locked position clicked:', this.dataset.position);
+                showAlert('This position is locked because one or more members have disabled swap permissions.', 'warning');
             });
         });
         
@@ -790,16 +818,19 @@ $current_payout_date->setDate(
         const requestForm = document.getElementById('requestForm');
         const positionItems = document.querySelectorAll('.position-item');
         
+        console.log('Cancelling request and clearing selections');
+        
         // Hide form
         requestForm.style.display = 'none';
         
-        // Clear selections
+        // Clear selections from all position items
         positionItems.forEach(p => p.classList.remove('selected'));
         
         // Clear form
         document.getElementById('selectedPosition').value = '';
         document.getElementById('selectedMonth').value = '';
         document.getElementById('reason').value = '';
+        document.getElementById('selectedPositionDisplay').textContent = '<?php echo t("position_swap.select_position"); ?>';
     }
     
     async function cancelSwapRequest(requestId) {
