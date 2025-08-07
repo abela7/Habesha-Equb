@@ -1069,6 +1069,8 @@
     "months": "ወራቶች",
     "rules": "ደንቦች",
     "not_set": "አልተዘጋጀም",
-    "days": "ቀናት"
+    "days": "ቀናት",
+    "anonymous": "ስሙ እንዲጠቀስ ያልፈለግ",
+    "upcoming_payout_journey": "የሚመጣው የክፍያ ሂደት"
   }
 } 

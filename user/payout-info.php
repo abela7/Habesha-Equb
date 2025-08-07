@@ -18,6 +18,13 @@ require_once '../includes/db.php';
 require_once '../languages/translator.php';
 require_once '../includes/payout_sync_service.php';
 
+// Ensure translation function exists
+if (!function_exists('t')) {
+    function t($key) {
+        return $key; // Fallback to key if translation function doesn't exist
+    }
+}
+
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
@@ -100,6 +107,9 @@ $total_equb_members = (int)$member['total_equb_members'];
 // GOLDEN LOGIC: Use EnhancedEqubCalculator for top-tier calculations
 require_once '../includes/enhanced_equb_calculator_final.php';
 try {
+    if (!class_exists('EnhancedEqubCalculator')) {
+        throw new Exception('EnhancedEqubCalculator class not found');
+    }
     $enhanced_calculator = new EnhancedEqubCalculator($pdo);
     $calculation_result = $enhanced_calculator->calculateMemberFriendlyPayout($user_id);
     
@@ -222,12 +232,18 @@ try {
         
         // Calculate dynamic payout using enhanced calculator
         try {
-            $calc_result = $calculator->calculateMemberFriendlyPayout($queue_member['id']);
-            if ($calc_result['success']) {
-                $gross_payout = $calc_result['calculation']['gross_payout'];
-                $display_payout = $calc_result['calculation']['display_payout'];
+            if (isset($enhanced_calculator) && is_object($enhanced_calculator)) {
+                $calc_result = $enhanced_calculator->calculateMemberFriendlyPayout($queue_member['id']);
+                if ($calc_result['success']) {
+                    $gross_payout = $calc_result['calculation']['gross_payout'];
+                    $display_payout = $calc_result['calculation']['display_payout'];
+                } else {
+                    // Fallback calculation
+                    $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
+                    $display_payout = $gross_payout - $member['admin_fee'];
+                }
             } else {
-                // Fallback calculation
+                // Fallback calculation if calculator not available
                 $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
                 $display_payout = $gross_payout - $member['admin_fee'];
             }
@@ -235,6 +251,7 @@ try {
             // Fallback calculation
             $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
             $display_payout = $gross_payout - $member['admin_fee'];
+            error_log("Calculator error for member {$queue_member['id']}: " . $e->getMessage());
         }
         
         $payout_queue[] = [
@@ -1882,7 +1899,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                         </div>
                         <div class="journey-stats">
-                             <div class="stat-item">
+                                                         <div class="stat-item">
                                  <span class="stat-number"><?php echo $current_member_position; ?></span>
                                  <span class="stat-label">Your Position</span>
                              </div>
@@ -1894,7 +1911,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     </div>
 
                     <!-- Journey Steps -->
-                                            <div class="journey-steps">
+                    <div class="journey-steps">
                         <?php 
                         $step_count = 0;
                         foreach ($payout_queue as $index => $queue_member): 
