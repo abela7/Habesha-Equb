@@ -47,7 +47,7 @@ try {
                es.equb_name, es.start_date, es.end_date, es.payout_day, es.duration_months, 
                es.max_members, es.current_members, es.status as equb_status,
                es.admin_fee, es.late_fee, es.grace_period_days, es.regular_payment_tier,
-               es.currency, es.description as equb_description,
+               es.currency,
                -- Member Statistics
                (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
