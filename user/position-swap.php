@@ -1420,11 +1420,22 @@ $current_payout_date->setDate(
     }
     
     async function cancelSwapRequest(requestId) {
+        console.log('Cancel request called with ID:', requestId);
+        
         if (!confirm('Are you sure you want to cancel this swap request?')) {
             return;
         }
         
+        // Disable all cancel buttons to prevent double clicks
+        const cancelBtns = document.querySelectorAll('.btn-cancel-request');
+        cancelBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cancelling...';
+        });
+        
         try {
+            console.log('Sending cancel request...');
+            
             const response = await fetch('api/position-swap.php?action=cancel', {
                 method: 'POST',
                 headers: {
@@ -1433,18 +1444,30 @@ $current_payout_date->setDate(
                 body: JSON.stringify({ request_id: requestId })
             });
             
+            console.log('Response received:', response.status);
+            
             const result = await response.json();
+            console.log('Result:', result);
             
             if (result.success) {
-                showAlert(result.message, 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
+                alert('✅ Request cancelled successfully! The page will reload.');
+                window.location.reload();
             } else {
-                showAlert(result.message, 'danger');
+                alert('❌ Error: ' + result.message);
+                // Re-enable buttons on error
+                cancelBtns.forEach(btn => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-times me-1"></i><?php echo t("position_swap.cancel_pending_request"); ?>';
+                });
             }
         } catch (error) {
-            showAlert('Error cancelling request', 'danger');
+            console.error('Cancel request error:', error);
+            alert('❌ Error cancelling request. Please try again.');
+            // Re-enable buttons on error
+            cancelBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times me-1"></i><?php echo t("position_swap.cancel_pending_request"); ?>';
+            });
         }
     }
     
