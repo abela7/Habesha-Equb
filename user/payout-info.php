@@ -1660,7 +1660,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      <div class="payout-value">#<?php echo $payout_position; ?></div>
                      <div class="payout-detail">
                          <i class="fas fa-users text-info me-1"></i>
-                         <?php echo t('payout.out_of'); ?> <?php echo $total_members; ?> <?php echo t('payout.active_members'); ?>
+                         <?php echo t('payout.out_of'); ?> <?php echo $total_equb_members; ?> <?php echo t('payout.active_members'); ?>
                      </div>
                 </div>
             </div>
@@ -1705,6 +1705,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      $member_payout_month = $payout_position; // Position determines payout month
                      $payout_target_date = clone $equb_start;
                      $payout_target_date->modify("+".($member_payout_month - 1)." months");
+                     // Set the day dynamically from equb_settings payout_day (no hardcoding)
+                     $payout_day = (int)($member['payout_day'] ?? 1);
+                     $payout_target_date->setDate(
+                         (int)$payout_target_date->format('Y'),
+                         (int)$payout_target_date->format('n'),
+                         max(1, $payout_day)
+                     );
                      
                      // Check if member has already received payout
                      $has_received_payout = $member['total_payouts_received'] > 0;
