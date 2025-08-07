@@ -137,7 +137,7 @@ $csrf_token = generate_csrf_token();
                                     <th>Priority</th>
                                     <th>Recipients</th>
                                     <th>Sent</th>
-                                    <th></th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="notificationsTable"></tbody>
@@ -149,10 +149,57 @@ $csrf_token = generate_csrf_token();
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-pen-to-square me-2"></i>Edit Notification</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm" class="row g-3">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>" />
+            <input type="hidden" name="action" value="update" />
+            <input type="hidden" name="id" id="editId" />
+            <div class="col-md-6">
+                <label class="form-label">Title (English)</label>
+                <input type="text" class="form-control" name="title_en" id="editTitleEn" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Title (Amharic)</label>
+                <input type="text" class="form-control" name="title_am" id="editTitleAm" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Detail (English)</label>
+                <textarea class="form-control" name="body_en" id="editBodyEn" rows="4" required></textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Detail (Amharic)</label>
+                <textarea class="form-control" name="body_am" id="editBodyAm" rows="4" required></textarea>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Priority</label>
+                <select class="form-select" name="priority" id="editPriority">
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-primary" id="btnSaveEdit"><i class="fas fa-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const apiBase = 'api/notifications.php';
     const csrfToken = '<?php echo htmlspecialchars($csrf_token); ?>';
+    let editModal, editEl;
 
     document.addEventListener('DOMContentLoaded', () => {
         initAudienceControls();
@@ -161,6 +208,9 @@ $csrf_token = generate_csrf_token();
         document.getElementById('btnRefresh').addEventListener('click', loadNotifications);
         document.getElementById('notificationForm').addEventListener('submit', onSubmit);
         document.getElementById('btnSearchMembers').addEventListener('click', searchMembers);
+        editEl = document.getElementById('editModal');
+        editModal = new bootstrap.Modal(editEl);
+        document.getElementById('btnSaveEdit').addEventListener('click', saveEdit);
     });
 
     function initAudienceControls() {
@@ -207,7 +257,10 @@ $csrf_token = generate_csrf_token();
                         <td><span class="badge-priority ${n.priority === 'high' ? 'badge-high' : 'badge-normal'}">${n.priority}</span></td>
                         <td>${n.recipients_count || 0}</td>
                         <td>${n.sent_at ? n.sent_at : ''}</td>
-                        <td><button class="btn btn-sm btn-outline-primary" onclick="viewNotification(${n.id})"><i class="fas fa-eye"></i></button></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" title="Edit" onclick="openEdit(${n.id})"><i class="fas fa-pen"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteNotification(${n.id})"><i class="fas fa-trash"></i></button>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -221,7 +274,6 @@ $csrf_token = generate_csrf_token();
         e.preventDefault();
         const form = e.target;
         const formData = new FormData(form);
-        // collect selected members
         const memberIds = Array.from(document.querySelectorAll('#selectedMembers .chip')).map(ch => ch.dataset.id);
         if (memberIds.length) formData.set('member_ids', JSON.stringify(memberIds));
         try {
@@ -235,9 +287,7 @@ $csrf_token = generate_csrf_token();
             } else {
                 alert(data.message || 'Failed to send');
             }
-        } catch (e) {
-            alert('Network error');
-        }
+        } catch (e) { alert('Network error'); }
     }
 
     async function searchMembers() {
@@ -269,7 +319,7 @@ $csrf_token = generate_csrf_token();
 
     function addMemberChip(id, name) {
         const wrap = document.getElementById('selectedMembers');
-        if (wrap.querySelector(`.chip[data-id="${id}"]`)) return; // avoid duplicates
+        if (wrap.querySelector(`.chip[data-id="${id}"]`)) return;
         const chip = document.createElement('span');
         chip.className = 'chip';
         chip.dataset.id = id;
@@ -278,25 +328,55 @@ $csrf_token = generate_csrf_token();
         wrap.appendChild(chip);
     }
 
-    function escapeHtml(s) {
-        return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    }
+    function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-    async function viewNotification(id) {
+    async function openEdit(id) {
         try {
             const resp = await fetch(`${apiBase}?action=get&id=${id}`);
             const data = await resp.json();
+            if (!data.success) return alert(data.message || 'Load failed');
+            const n = data.notification;
+            document.getElementById('editId').value = n.id;
+            document.getElementById('editTitleEn').value = n.title_en || '';
+            document.getElementById('editTitleAm').value = n.title_am || '';
+            document.getElementById('editBodyEn').value = n.body_en || '';
+            document.getElementById('editBodyAm').value = n.body_am || '';
+            document.getElementById('editPriority').value = n.priority || 'normal';
+            editModal.show();
+        } catch (e) { alert('Network error'); }
+    }
+
+    async function saveEdit() {
+        const form = document.getElementById('editForm');
+        const fd = new FormData(form);
+        try {
+            const resp = await fetch(apiBase, { method: 'POST', body: fd });
+            const data = await resp.json();
             if (data.success) {
-                const n = data.notification;
-                const rec = data.recipients || [];
-                const list = rec.map(r => `${escapeHtml(r.first_name)} ${escapeHtml(r.last_name)} (${r.member_code || ''})`).join('\n');
-                alert(`${n.notification_code}\n\nEN: ${n.title_en}\n${n.body_en}\n\nAM: ${n.title_am}\n${n.body_am}\n\nRecipients (${rec.length}):\n${list}`);
+                editModal.hide();
+                loadNotifications();
+                alert('Notification updated');
             } else {
-                alert(data.message || 'Failed to load');
+                alert(data.message || 'Update failed');
             }
-        } catch (e) {
-            alert('Network error');
-        }
+        } catch (e) { alert('Network error'); }
+    }
+
+    async function deleteNotification(id) {
+        if (!confirm('Are you sure you want to delete this notification? This will remove it from members as well.')) return;
+        const fd = new FormData();
+        fd.append('action','delete');
+        fd.append('csrf_token', csrfToken);
+        fd.append('id', String(id));
+        try {
+            const resp = await fetch(apiBase, { method:'POST', body: fd });
+            const data = await resp.json();
+            if (data.success) {
+                loadNotifications();
+            } else {
+                alert(data.message || 'Delete failed');
+            }
+        } catch (e) { alert('Network error'); }
     }
 </script>
 </body>

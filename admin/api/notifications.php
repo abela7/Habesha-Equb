@@ -1,5 +1,5 @@
 <?php
-// Admin Notifications API - Create, list, get, and helper lookups
+// Admin Notifications API - Create, list, get, update, delete and helper lookups
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -45,6 +45,12 @@ try {
             break;
         case 'get':
             getNotification();
+            break;
+        case 'update':
+            updateNotification($admin_id);
+            break;
+        case 'delete':
+            deleteNotification();
             break;
         case 'search_members':
             searchMembers();
@@ -98,7 +104,6 @@ function createNotification(int $admin_id): void {
     $member_ids = [];
     if ($audience_type === 'members') {
         if (is_string($member_ids_raw)) {
-            // Accept JSON array or comma-separated list
             $decoded = json_decode($member_ids_raw, true);
             if (is_array($decoded)) {
                 $member_ids = array_map('intval', $decoded);
@@ -117,7 +122,6 @@ function createNotification(int $admin_id): void {
 
     $pdo->beginTransaction();
     try {
-        // Generate unique code
         $code = 'NTF-' . date('Ymd') . '-' . sprintf('%03d', random_int(100, 999));
         $stmt = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
         $stmt->execute([$code]);
@@ -126,12 +130,10 @@ function createNotification(int $admin_id): void {
             $stmt->execute([$code]);
         }
 
-        // Insert notification
         $insert = $pdo->prepare('INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?, NOW(), NOW(), NOW())');
         $insert->execute([$code, $admin_id, $audience_type, $equb_settings_id, $title_en, $title_am, $body_en, $body_am, $priority, 'sent']);
         $notificationId = (int)$pdo->lastInsertId();
 
-        // Insert recipients based on audience
         if ($audience_type === 'all') {
             $sql = 'INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.is_active = 1';
             $stmt = $pdo->prepare($sql);
@@ -140,7 +142,7 @@ function createNotification(int $admin_id): void {
             $sql = 'INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.is_active = 1 AND m.equb_settings_id = ?';
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$notificationId, $equb_settings_id]);
-        } else { // members
+        } else {
             $ins = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
             foreach ($member_ids as $mid) {
                 if ($mid > 0) {
@@ -206,6 +208,50 @@ function getNotification(): void {
     $rec->execute([$id]);
     $recipients = $rec->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'notification' => $n, 'recipients' => $recipients]);
+}
+
+function updateNotification(int $admin_id): void {
+    global $pdo;
+    $id = (int)($_POST['id'] ?? 0);
+    $title_en = trim($_POST['title_en'] ?? '');
+    $title_am = trim($_POST['title_am'] ?? '');
+    $body_en = trim($_POST['body_en'] ?? '');
+    $body_am = trim($_POST['body_am'] ?? '');
+    $priority = $_POST['priority'] ?? 'normal';
+
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'ID required']);
+        return;
+    }
+    if ($title_en === '' || $title_am === '' || $body_en === '' || $body_am === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Both language titles and bodies are required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare('UPDATE program_notifications SET title_en = ?, title_am = ?, body_en = ?, body_am = ?, priority = ?, updated_at = NOW() WHERE id = ?');
+    $stmt->execute([$title_en, $title_am, $body_en, $body_am, $priority, $id]);
+    echo json_encode(['success' => true, 'message' => 'Notification updated']);
+}
+
+function deleteNotification(): void {
+    global $pdo;
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'ID required']);
+        return;
+    }
+    // CASCADE: recipients table has FK ON DELETE CASCADE to program_notifications
+    $stmt = $pdo->prepare('DELETE FROM program_notifications WHERE id = ?');
+    $stmt->execute([$id]);
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Notification not found']);
+        return;
+    }
+    echo json_encode(['success' => true, 'message' => 'Notification deleted']);
 }
 
 function searchMembers(): void {
