@@ -278,30 +278,46 @@ function listPayouts() {
     global $pdo;
     
     try {
-        $stmt = $pdo->query("
+        // Enhanced query with better error handling
+        $stmt = $pdo->prepare("
             SELECT 
                 p.*,
                 CONCAT(m.first_name, ' ', m.last_name) as member_name,
-                m.member_id,
-                CONCAT(a.username) as processed_by_name
+                m.member_id as member_code,
+                COALESCE(a.username, 'System') as processed_by_name
             FROM payouts p
             LEFT JOIN members m ON p.member_id = m.id
             LEFT JOIN admins a ON p.processed_by_admin_id = a.id
             ORDER BY p.created_at DESC
         ");
         
+        $stmt->execute();
         $payouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Debug logging
+        error_log("Payouts found: " . count($payouts));
         
         echo json_encode([
             'success' => true, 
             'payouts' => $payouts,
-            'count' => count($payouts)
+            'count' => count($payouts),
+            'debug' => [
+                'query_executed' => true,
+                'result_count' => count($payouts)
+            ]
         ]);
         
     } catch (Exception $e) {
-        error_log("List Payouts Error: " . $e->getMessage());
+        error_log("List Payouts Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Failed to fetch payouts']);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Failed to fetch payouts: ' . $e->getMessage(),
+            'debug' => [
+                'error_line' => $e->getLine(),
+                'error_file' => basename($e->getFile())
+            ]
+        ]);
     }
 }
 
