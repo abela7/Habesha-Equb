@@ -27,7 +27,8 @@ $lang = getCurrentLanguage();
     <style>
         .notif-header { background: linear-gradient(135deg, var(--color-cream), #fff); border-radius: 16px; border:1px solid var(--border-light); padding: 20px; box-shadow: 0 8px 24px rgba(48,25,52,0.06); }
         .notif-actions { display:flex; gap:10px; flex-wrap:wrap; }
-        .notif-card { border:1px solid var(--border-light); border-radius: 16px; padding: 16px; background: #fff; box-shadow: 0 4px 16px rgba(48,25,52,0.06); display:flex; gap:16px; align-items:flex-start; }
+        .notif-card { border:1px solid var(--border-light); border-radius: 16px; padding: 16px; background: #fff; box-shadow: 0 4px 16px rgba(48,25,52,0.06); display:flex; gap:16px; align-items:flex-start; cursor: pointer; transition: transform .15s ease, box-shadow .2s ease; }
+        .notif-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(48,25,52,0.12); }
         .notif-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; box-shadow: 0 8px 20px rgba(42,157,143,0.25); background: linear-gradient(135deg, var(--color-teal), #0F766E); }
         .notif-meta { font-size: 12px; color: var(--text-secondary); }
         .notif-title { font-weight:700; color: var(--text-primary); margin:0; }
@@ -36,7 +37,22 @@ $lang = getCurrentLanguage();
         .badge-unread { background: var(--color-coral); color:#fff; border-radius: 999px; font-size: 11px; padding:4px 8px; }
         .priority-high { background: linear-gradient(135deg, var(--color-coral), #e76f51); color:#fff; border-radius:8px; padding:2px 8px; font-size:11px; font-weight:700; }
         .list-wrap { display:grid; gap:12px; }
-        @media (max-width: 768px) { .notif-card { padding:14px; border-radius:14px; } }
+        /* Modal styling */
+        .modal-content { border-radius: 16px; border: 1px solid var(--border-light); }
+        .modal-header { border-bottom: 1px solid var(--border-light); background: linear-gradient(135deg, var(--color-cream), #fff); }
+        .modal-title { font-weight: 700; color: var(--text-primary); }
+        .modal-body { color: var(--text-primary); font-size: 15px; line-height: 1.6; }
+        .modal-priority { font-size: 12px; margin-left: 8px; }
+        @media (max-width: 768px) { 
+            .notif-card { padding:14px; border-radius:14px; }
+            .modal-body { font-size: 16px; }
+            .modal-title { font-size: 18px; }
+        }
+        @media (max-width: 480px) {
+            .modal-dialog { margin: 12px; }
+            .modal-title { font-size: 17px; }
+            .modal-body { font-size: 15px; }
+        }
     </style>
 </head>
 <body>
@@ -64,8 +80,28 @@ $lang = getCurrentLanguage();
     </div>
 </div>
 
+<!-- Notification Modal -->
+<div class="modal fade" id="notifModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title d-flex align-items-center" id="notifModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="notifModalMeta" class="text-muted mb-2" style="font-size:12px"></div>
+        <div id="notifModalBody"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?php echo t('common.close') ?: 'Close'; ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const apiBase = 'api/notifications.php';
+let notifModal, notifModalEl;
 
 function currentLang() { return '<?php echo $lang; ?>'; }
 
@@ -73,7 +109,7 @@ function renderNotifications(items) {
     const wrap = document.getElementById('notificationsList');
     wrap.innerHTML = '';
     if (!Array.isArray(items) || !items.length) {
-        wrap.innerHTML = `<div class="alert alert-info"><i class="fas fa-info-circle me-1"></i><?php echo t('common.no_data') ?: 'No notifications yet.'; ?></div>`;
+        wrap.innerHTML = `<div class=\"alert alert-info\"><i class=\"fas fa-info-circle me-1\"></i><?php echo t('common.no_data') ?: 'No notifications yet.'; ?></div>`;
         return;
     }
     items.forEach(n => {
@@ -83,19 +119,25 @@ function renderNotifications(items) {
         const created = n.sent_at || n.created_at || '';
         const el = document.createElement('div');
         el.className = 'notif-card ' + (isUnread ? 'notif-unread':'' );
+        el.setAttribute('role','button');
+        el.setAttribute('tabindex','0');
+        el.addEventListener('click', () => openNotification({
+            id: Number(n.notification_id),
+            title,
+            body,
+            priority: n.priority,
+            created
+        }, isUnread, el));
         el.innerHTML = `
-            <div class="notif-icon"><i class="fas fa-bell"></i></div>
-            <div class="flex-fill">
-                <div class="d-flex align-items-center gap-2">
-                    <h5 class="notif-title">${escapeHtml(title)}</h5>
-                    ${n.priority==='high' ? '<span class="priority-high">HIGH</span>' : ''}
-                    ${isUnread ? '<span class="badge-unread"><?php echo t('common.unread') ?: 'Unread'; ?></span>' : ''}
+            <div class=\"notif-icon\"><i class=\"fas fa-bell\"></i></div>
+            <div class=\"flex-fill\">
+                <div class=\"d-flex align-items-center gap-2\">
+                    <h5 class=\"notif-title\">${escapeHtml(title)}</h5>
+                    ${n.priority==='high' ? '<span class=\"priority-high modal-priority\">HIGH</span>' : ''}
+                    ${isUnread ? '<span class=\"badge-unread\"><?php echo t('common.unread') ?: 'Unread'; ?></span>' : ''}
                 </div>
-                <div class="notif-meta">${created ? escapeHtml(created) : ''}</div>
-                <div class="notif-body">${escapeHtml(body)}</div>
-                ${isUnread ? `<div class="mt-2">
-                    <button class="btn btn-sm btn-primary" onclick="markRead(${Number(n.notification_id)})"><i class="fas fa-check me-1"></i><?php echo t('common.mark_read') ?: 'Mark as read'; ?></button>
-                </div>`: ''}
+                <div class=\"notif-meta\">${created ? escapeHtml(created) : ''}</div>
+                <div class=\"notif-body text-truncate\" style=\"-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;\">${escapeHtml(body)}</div>
             </div>
         `;
         wrap.appendChild(el);
@@ -114,7 +156,7 @@ async function loadNotifications() {
         }
     } catch (e) {
         console.error(e);
-        document.getElementById('notificationsList').innerHTML = `<div class="alert alert-danger">${escapeHtml(e.message)}</div>`;
+        document.getElementById('notificationsList').innerHTML = `<div class=\"alert alert-danger\">${escapeHtml(e.message)}</div>`;
     }
 }
 
@@ -125,10 +167,8 @@ async function markRead(id) {
         fd.append('notification_id', String(id));
         const r = await fetch(apiBase, { method:'POST', body: fd });
         const data = await r.json();
-        if (data.success) {
-            await loadNotifications();
-        }
-    } catch (e) { console.error(e); }
+        return !!data.success;
+    } catch (e) { console.error(e); return false; }
 }
 
 async function markAll() {
@@ -147,9 +187,14 @@ async function updateUnreadBadge() {
         const count = data.success ? Number(data.unread) : 0;
         const badge = document.getElementById('memberNotifBadge');
         const bell = document.getElementById('memberNotifBell');
+        const badgeTop = document.getElementById('memberNotifBadgeTop');
         if (badge) {
             badge.textContent = count > 99 ? '99+' : String(count);
             badge.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        if (badgeTop) {
+            badgeTop.textContent = count > 99 ? '99+' : String(count);
+            badgeTop.style.display = count > 0 ? 'inline-flex' : 'none';
         }
         if (bell) {
             bell.classList.toggle('text-warning', count > 0);
@@ -157,13 +202,49 @@ async function updateUnreadBadge() {
     } catch (e) { console.error(e); }
 }
 
-function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+function escapeHtml(s){return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+
+function initModal() {
+    notifModalEl = document.getElementById('notifModal');
+    if (window.bootstrap && notifModalEl) {
+        notifModal = new bootstrap.Modal(notifModalEl);
+    }
+}
+
+async function openNotification(n, wasUnread, cardEl) {
+    // Fill modal content
+    const titleEl = document.getElementById('notifModalTitle');
+    const bodyEl = document.getElementById('notifModalBody');
+    const metaEl = document.getElementById('notifModalMeta');
+    titleEl.innerHTML = `${escapeHtml(n.title)} ${n.priority==='high' ? '<span class=\'priority-high modal-priority\'>HIGH</span>' : ''}`;
+    bodyEl.textContent = n.body || '';
+    metaEl.textContent = n.created || '';
+
+    if (!notifModal) initModal();
+    if (notifModal) notifModal.show();
+
+    // Mark as read when opened
+    if (wasUnread) {
+        const ok = await markRead(n.id);
+        if (ok) {
+            // Update visuals inline without full reload
+            if (cardEl) {
+                cardEl.classList.remove('notif-unread');
+                const pill = cardEl.querySelector('.badge-unread');
+                if (pill) pill.remove();
+            }
+            updateUnreadBadge();
+        }
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnRefresh').addEventListener('click', loadNotifications);
     document.getElementById('btnMarkAll').addEventListener('click', markAll);
+    initModal();
     loadNotifications();
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
 </body>
 </html>
