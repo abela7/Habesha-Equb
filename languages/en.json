@@ -981,6 +981,8 @@
     "language_preference_desc": "Choose your preferred language for the interface",
     "apply_language": "Apply Language",
     "save_changes": "Save Changes",
+    "save_all_settings": "Save All Settings",
+    "account_settings": "Account Settings",
     "update_privacy": "Update Privacy",
     "quick_actions": "Quick Actions",
     "edit_profile": "Edit Profile",

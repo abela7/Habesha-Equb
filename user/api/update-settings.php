@@ -109,6 +109,66 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Failed to update settings']);
             }
             break;
+
+        case 'unified':
+            // Handle unified settings form - all settings in one request
+            $email_notifications = isset($_POST['email_notifications']) ? 1 : 0;
+            $payment_reminders = isset($_POST['payment_reminders']) ? 1 : 0;
+            $go_public = isset($_POST['go_public']) ? 1 : 0;
+            $language_preference = (int)($_POST['language_preference'] ?? 0);
+            
+            // Validate language preference
+            if (!in_array($language_preference, [0, 1])) {
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => 'Invalid language preference']);
+                exit;
+            }
+            
+            // Get current language preference to detect changes
+            $stmt_check = $db->prepare("SELECT language_preference FROM members WHERE id = ?");
+            $stmt_check->execute([$user_id]);
+            $current_user = $stmt_check->fetch(PDO::FETCH_ASSOC);
+            $language_changed = ($current_user['language_preference'] != $language_preference);
+            
+            // Update all settings in one query
+            $stmt = $db->prepare("
+                UPDATE members 
+                SET email_notifications = ?,
+                    payment_reminders = ?,
+                    go_public = ?,
+                    language_preference = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ");
+            
+            $result = $stmt->execute([
+                $email_notifications, 
+                $payment_reminders, 
+                $go_public, 
+                $language_preference, 
+                $user_id
+            ]);
+            
+            if ($result) {
+                // Update session language if changed
+                if ($language_changed) {
+                    $current_lang = $language_preference == 1 ? 'am' : 'en';
+                    setLanguage($current_lang);
+                    error_log("Language preference updated in unified form: user_id=$user_id, preference=$language_preference, lang=$current_lang");
+                }
+                
+                ob_clean();
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'All settings updated successfully!',
+                    'language_changed' => $language_changed,
+                    'new_language' => $language_changed ? ($language_preference == 1 ? 'am' : 'en') : null
+                ]);
+            } else {
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => 'Failed to update settings']);
+            }
+            break;
             
         default:
             ob_clean();
