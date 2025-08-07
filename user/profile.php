@@ -75,7 +75,7 @@ try {
                END as remaining_months_in_equb,
                -- Get latest login info from device tracking
                COALESCE(
-                   (SELECT dt.last_login FROM device_tracking dt WHERE dt.user_id = m.id ORDER BY dt.last_login DESC LIMIT 1),
+                   (SELECT dt.last_seen FROM device_tracking dt WHERE dt.email = m.email ORDER BY dt.last_seen DESC LIMIT 1),
                    m.created_at
                ) as latest_login
         FROM members m 
