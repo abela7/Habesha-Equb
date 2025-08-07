@@ -332,7 +332,7 @@ function listPayouts() {
 function getPayout() {
     global $pdo;
     
-    $payout_id = intval($_GET['id'] ?? 0);
+    $payout_id = intval($_GET['payout_id'] ?? $_GET['id'] ?? 0);
     
     if (!$payout_id) {
         http_response_code(400);
@@ -341,30 +341,30 @@ function getPayout() {
     }
     
     try {
-    $stmt = $pdo->prepare("
+        $stmt = $pdo->prepare("
             SELECT 
                 p.*,
                 CONCAT(m.first_name, ' ', m.last_name) as member_name,
-                m.member_id
-        FROM payouts p
-        LEFT JOIN members m ON p.member_id = m.id
-        WHERE p.id = ?
-    ");
-    $stmt->execute([$payout_id]);
-    $payout = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$payout) {
+                m.member_id as member_code
+            FROM payouts p
+            LEFT JOIN members m ON p.member_id = m.id
+            WHERE p.id = ?
+        ");
+        $stmt->execute([$payout_id]);
+        $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$payout) {
             http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Payout not found']);
-        return;
-    }
-    
-    echo json_encode(['success' => true, 'payout' => $payout]);
+            echo json_encode(['success' => false, 'message' => 'Payout not found']);
+            return;
+        }
+        
+        echo json_encode(['success' => true, 'payout' => $payout]);
         
     } catch (Exception $e) {
-        error_log("Get Payout Error: " . $e->getMessage());
+        error_log("Get Payout Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Failed to fetch payout']);
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch payout: ' . $e->getMessage()]);
     }
 }
 
