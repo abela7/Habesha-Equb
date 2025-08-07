@@ -831,114 +831,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     </form>
                 </div>
 
-                <!-- EQUB Financial Summary Section -->
-                <div class="form-section">
-                    <h2 class="section-title">
-                        <i class="fas fa-chart-line text-success"></i>
-                        <?php echo t('payout_info.financial_summary'); ?>
-                    </h2>
-                    
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-success">
-                                    <i class="fas fa-coins"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>£<?php echo number_format($member['monthly_payment'], 0); ?></h3>
-                                    <p><?php echo t('members_directory.monthly_payment_full'); ?></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-primary">
-                                    <i class="fas fa-piggy-bank"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>£<?php echo number_format($member['total_contributed'], 0); ?></h3>
-                                    <p><?php echo t('members_directory.total_contributions'); ?></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-warning">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>£<?php echo number_format($display_payout, 0); ?></h3>
-                                    <p><?php echo t('members_directory.expected_payout'); ?></p>
-                                    <small class="text-muted"><?php echo t('payout_info.based_on_contribution'); ?></small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-info">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3><?php echo $expected_payout_date ? date('M j, Y', strtotime($expected_payout_date)) : 'TBD'; ?></h3>
-                                    <p><?php echo t('members_directory.payout_date'); ?></p>
-                                    <?php if ($expected_payout_date): ?>
-                                        <?php $days_until = max(0, floor((strtotime($expected_payout_date) - time()) / (60 * 60 * 24))); ?>
-                                        <small class="text-muted"><?php echo $days_until; ?> days remaining</small>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- EQUB Progress Section -->
-                <div class="form-section">
-                    <h2 class="section-title">
-                        <i class="fas fa-progress-bar text-info"></i>
-                        <?php echo t('payout_info.equb_progress_title'); ?>
-                    </h2>
-                    
-                    <div class="row g-4">
-                        <div class="col-md-4">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-primary">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3><?php echo $member['payout_position']; ?> / <?php echo $member['total_equb_members']; ?></h3>
-                                    <p><?php echo t('members_directory.queue_position'); ?></p>
-                                    <?php if (!empty($member['equb_name'])): ?>
-                                        <small class="text-muted"><?php echo htmlspecialchars($member['equb_name']); ?></small>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-success">
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3><?php echo $member['months_in_equb']; ?></h3>
-                                    <p><?php echo t('payout_info.months_completed'); ?></p>
-                                    <small class="text-muted">Since <?php echo $member['start_date'] ? date('M Y', strtotime($member['start_date'])) : 'N/A'; ?></small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="profile-stat-card">
-                                <div class="stat-icon text-warning">
-                                    <i class="fas fa-hourglass-half"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3><?php echo $member['remaining_months_in_equb'] ?? 0; ?></h3>
-                                    <p><?php echo t('payout_info.remaining_months'); ?></p>
-                                    <small class="text-muted">Until completion</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Account Summary Sidebar -->
@@ -984,28 +877,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     
                     <div class="account-info-item">
                         <div class="account-info-label">
-                            <i class="fas fa-trophy me-1"></i>
-                            <?php echo t('user_profile.total_payouts'); ?>
-                        </div>
-                        <div class="account-info-value">
-                            <span class="text-success fw-bold"><?php echo $total_payouts_received; ?> <?php echo t('user_profile.received'); ?></span>
-                        </div>
-                    </div>
-
-                    <?php if ($member['last_total_amount'] > 0): ?>
-                    <div class="account-info-item">
-                        <div class="account-info-label">
-                            <i class="fas fa-money-bill-wave me-1"></i>
-                            Last Payout Amount
-                        </div>
-                        <div class="account-info-value">
-                            <span class="text-warning fw-bold">£<?php echo number_format($member['last_total_amount'], 0); ?></span>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <div class="account-info-item">
-                        <div class="account-info-label">
                             <i class="fas fa-calendar-alt me-1"></i>
                             Last Login
                         </div>
@@ -1013,18 +884,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <span class="text-info fw-bold"><?php echo $latest_login_formatted; ?></span>
                         </div>
                     </div>
-
-                    <?php if (!empty($member['equb_name'])): ?>
-                    <div class="account-info-item">
-                        <div class="account-info-label">
-                            <i class="fas fa-users me-1"></i>
-                            EQUB Group
-                        </div>
-                        <div class="account-info-value">
-                            <span class="text-primary fw-bold"><?php echo htmlspecialchars($member['equb_name']); ?></span>
-                        </div>
-                    </div>
-                    <?php endif; ?>
 
                     <div class="account-info-item">
                         <div class="account-info-label">
