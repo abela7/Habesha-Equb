@@ -200,7 +200,7 @@ if (isset($payout_info['error'])) {
 try {
     $stmt = $pdo->prepare("
         SELECT m.id, m.first_name, m.last_name, m.payout_position, m.monthly_payment,
-               m.go_public, m.position_coefficient, m.payout_month,
+               m.go_public, m.position_coefficient, m.payout_month, m.membership_type,
                CASE 
                    WHEN po.id IS NOT NULL AND po.status = 'completed' THEN 'completed'
                    WHEN m.payout_position = ? THEN 'current'
@@ -218,66 +218,148 @@ try {
     $stmt->execute([$payout_position, $payout_position, $member['equb_settings_id']]);
     $payout_queue_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Process each member with proper privacy and dynamic calculation
-    $payout_queue = [];
+    // Group members by payout position to handle shared positions
+    $position_groups = [];
     foreach ($payout_queue_raw as $queue_member) {
-        // Privacy logic: Show real name only if go_public=1 OR if it's the logged-in member
-        if ($queue_member['go_public'] == 1 || $queue_member['id'] == $user_id) {
-            $display_name = trim($queue_member['first_name'] . ' ' . $queue_member['last_name']);
-            $is_anonymous = false;
-        } else {
-            $display_name = t('payout_info.anonymous');
-            $is_anonymous = true;
+        $position = $queue_member['payout_position'];
+        if (!isset($position_groups[$position])) {
+            $position_groups[$position] = [];
         }
-        
-        // Calculate dynamic payout using enhanced calculator
-        try {
-            if (isset($enhanced_calculator) && is_object($enhanced_calculator)) {
-                $calc_result = $enhanced_calculator->calculateMemberFriendlyPayout($queue_member['id']);
-                if ($calc_result['success']) {
-                    $gross_payout = $calc_result['calculation']['gross_payout'];
-                    $display_payout = $calc_result['calculation']['display_payout'];
-                    $net_payout = $calc_result['calculation']['real_net_payout'];
+        $position_groups[$position][] = $queue_member;
+    }
+    
+    // Process each position group and create consolidated payout queue
+    $payout_queue = [];
+    foreach ($position_groups as $position => $members) {
+        if (count($members) > 1) {
+            // SHARED POSITION: Multiple members share this position
+            $combined_monthly_payment = 0;
+            $combined_coefficient = 0;
+            $all_payout_months = [];
+            $has_current_user = false;
+            $position_status = 'pending';
+            $received_date = null;
+            $all_completed = true;
+            
+            // Aggregate data for shared position
+            foreach ($members as $member_data) {
+                $combined_monthly_payment += $member_data['monthly_payment'];
+                $combined_coefficient += $member_data['position_coefficient'];
+                if (!empty($member_data['payout_month'])) {
+                    $all_payout_months[] = $member_data['payout_month'];
+                }
+                if ($member_data['id'] == $user_id) {
+                    $has_current_user = true;
+                }
+                if ($member_data['payout_status'] === 'current') {
+                    $position_status = 'current';
+                } elseif ($member_data['payout_status'] === 'completed') {
+                    $position_status = 'completed';
+                    if ($member_data['received_date']) {
+                        $received_date = $member_data['received_date'];
+                    }
                 } else {
-                    // Fallback calculation
+                    $all_completed = false;
+                }
+            }
+            
+            // Calculate combined payout for shared position
+            $gross_payout = $combined_coefficient * $total_monthly_pool;
+            $display_payout = $gross_payout - $member['admin_fee'];
+            $net_payout = $gross_payout - $member['admin_fee'] - $combined_monthly_payment;
+            
+            // Use the earliest payout month if multiple exist
+            $payout_month = !empty($all_payout_months) ? min($all_payout_months) : null;
+            
+            $payout_queue[] = [
+                'id' => 'joint_' . $position,
+                'first_name' => '',
+                'last_name' => '',
+                'display_name' => t('payout_info.joint_equb'),
+                'is_anonymous' => false,
+                'is_current_user' => $has_current_user,
+                'is_joint_position' => true,
+                'payout_position' => $position,
+                'monthly_payment' => $combined_monthly_payment,
+                'position_coefficient' => $combined_coefficient,
+                'payout_status' => $position_status,
+                'received_date' => $received_date,
+                'payout_month' => $payout_month,
+                'gross_payout' => $gross_payout,
+                'display_payout' => $display_payout,
+                'net_payout' => $net_payout,
+                'received_amount' => null,
+                'payout_record_status' => $position_status,
+                'member_count' => count($members)
+            ];
+        } else {
+            // INDIVIDUAL POSITION: Single member
+            $queue_member = $members[0];
+            
+            // Privacy logic: Show real name only if go_public=1 OR if it's the logged-in member
+            if ($queue_member['go_public'] == 1 || $queue_member['id'] == $user_id) {
+                $display_name = trim($queue_member['first_name'] . ' ' . $queue_member['last_name']);
+                $is_anonymous = false;
+            } else {
+                $display_name = t('payout_info.anonymous');
+                $is_anonymous = true;
+            }
+            
+            // Calculate dynamic payout using enhanced calculator
+            try {
+                if (isset($enhanced_calculator) && is_object($enhanced_calculator)) {
+                    $calc_result = $enhanced_calculator->calculateMemberFriendlyPayout($queue_member['id']);
+                    if ($calc_result['success']) {
+                        $gross_payout = $calc_result['calculation']['gross_payout'];
+                        $display_payout = $calc_result['calculation']['display_payout'];
+                        $net_payout = $calc_result['calculation']['real_net_payout'];
+                    } else {
+                        // Fallback calculation
+                        $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
+                        $display_payout = $gross_payout - $member['admin_fee'];
+                        $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
+                    }
+                } else {
+                    // Fallback calculation if calculator not available
                     $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
                     $display_payout = $gross_payout - $member['admin_fee'];
                     $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
                 }
-            } else {
-                // Fallback calculation if calculator not available
+            } catch (Exception $e) {
+                // Fallback calculation
                 $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
                 $display_payout = $gross_payout - $member['admin_fee'];
                 $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
+                error_log("Calculator error for member {$queue_member['id']}: " . $e->getMessage());
             }
-        } catch (Exception $e) {
-            // Fallback calculation
-            $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
-            $display_payout = $gross_payout - $member['admin_fee'];
-            $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
-            error_log("Calculator error for member {$queue_member['id']}: " . $e->getMessage());
+            
+            $payout_queue[] = [
+                'id' => $queue_member['id'],
+                'first_name' => $queue_member['first_name'],
+                'last_name' => $queue_member['last_name'],
+                'display_name' => $display_name,
+                'is_anonymous' => $is_anonymous,
+                'is_current_user' => ($queue_member['id'] == $user_id),
+                'is_joint_position' => false,
+                'payout_position' => $queue_member['payout_position'],
+                'monthly_payment' => $queue_member['monthly_payment'],
+                'position_coefficient' => $queue_member['position_coefficient'],
+                'payout_status' => $queue_member['payout_status'],
+                'received_date' => $queue_member['received_date'],
+                'payout_month' => $queue_member['payout_month'],
+                'gross_payout' => $gross_payout,
+                'display_payout' => $display_payout,
+                'net_payout' => $net_payout,
+                'received_amount' => $queue_member['net_amount'],
+                'payout_record_status' => $queue_member['payout_record_status']
+            ];
         }
-        
-        $payout_queue[] = [
-            'id' => $queue_member['id'],
-            'first_name' => $queue_member['first_name'],
-            'last_name' => $queue_member['last_name'],
-            'display_name' => $display_name,
-            'is_anonymous' => $is_anonymous,
-            'is_current_user' => ($queue_member['id'] == $user_id),
-            'payout_position' => $queue_member['payout_position'],
-            'monthly_payment' => $queue_member['monthly_payment'],
-            'position_coefficient' => $queue_member['position_coefficient'],
-            'payout_status' => $queue_member['payout_status'],
-            'received_date' => $queue_member['received_date'],
-            'payout_month' => $queue_member['payout_month'],
-            'gross_payout' => $gross_payout,
-            'display_payout' => $display_payout,
-            'net_payout' => $net_payout,
-            'received_amount' => $queue_member['net_amount'],
-            'payout_record_status' => $queue_member['payout_record_status']
-        ];
     }
+    
+    // Sort by position to ensure proper order
+    usort($payout_queue, function($a, $b) {
+        return $a['payout_position'] - $b['payout_position'];
+    });
 } catch (PDOException $e) {
     error_log("Error fetching payout queue: " . $e->getMessage());
     $payout_queue = [];
@@ -1955,12 +2037,22 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="step-content">
                                 <div class="step-member">
                                     <?php 
-                                    if ($is_current) {
-                                        echo '<strong>👤 ' . htmlspecialchars($queue_member['display_name']) . ' (You)</strong>';
+                                    if (isset($queue_member['is_joint_position']) && $queue_member['is_joint_position']) {
+                                        // Joint position display
+                                        echo '<strong><i class="fas fa-users text-warning me-1"></i>' . htmlspecialchars($queue_member['display_name']) . '</strong>';
+                                        echo '<br><small class="text-muted">' . $queue_member['member_count'] . ' members sharing</small>';
+                                        if ($is_current) {
+                                            echo ' <span class="badge bg-primary ms-1">You\'re in this group</span>';
+                                        }
                                     } else {
-                                        echo htmlspecialchars($queue_member['display_name']);
-                                        if ($queue_member['is_anonymous']) {
-                                            echo ' <i class="fas fa-user-secret text-muted ms-1" title="' . t('payout_info.anonymous') . '"></i>';
+                                        // Individual position display
+                                        if ($is_current) {
+                                            echo '<strong>👤 ' . htmlspecialchars($queue_member['display_name']) . ' (You)</strong>';
+                                        } else {
+                                            echo htmlspecialchars($queue_member['display_name']);
+                                            if ($queue_member['is_anonymous']) {
+                                                echo ' <i class="fas fa-user-secret text-muted ms-1" title="' . t('payout_info.anonymous') . '"></i>';
+                                            }
                                         }
                                     }
                                     ?>
