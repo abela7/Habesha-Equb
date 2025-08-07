@@ -246,11 +246,7 @@ function calculateMemberPayout() {
         }
         
         // 🚀 ENHANCED CALCULATION using financial-analytics.php logic (NO HARDCODE) [[memory:5287409]]
-        $calculator_path = '../includes/enhanced_equb_calculator_final.php';
-        if (!file_exists($calculator_path)) {
-            throw new Exception("Calculator file not found at: $calculator_path");
-        }
-        require_once $calculator_path;
+        require_once '../../includes/enhanced_equb_calculator_final.php';
         $calculator = new EnhancedEqubCalculator($pdo);
         $calculation = $calculator->calculateMemberFriendlyPayout($member_id);
         
@@ -364,7 +360,7 @@ function addPayout() {
     }
     
     // 🚀 ENHANCED CALCULATION using financial-analytics.php logic (NO HARDCODE) [[memory:5287409]]
-    require_once '../includes/enhanced_equb_calculator_final.php';
+    require_once '../../includes/enhanced_equb_calculator_final.php';
     $calculator = new EnhancedEqubCalculator($pdo);
     $calculation = $calculator->calculateMemberFriendlyPayout($member_id);
     
