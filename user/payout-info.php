@@ -124,7 +124,7 @@ try {
             'real_net_payout' => $real_net_payout,
             'calculation_method' => $calculation_method
         ];
-    } else {
+} else {
         // Enhanced fallback calculation
         $position_coefficient = $monthly_contribution / ($member['regular_payment_tier'] ?? 1000);
         $total_monthly_pool = $monthly_contribution * $total_equb_members;
@@ -1508,11 +1508,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     <div class="payout-value">£<?php echo number_format($real_net_payout, 2); ?></div>
                     <div class="payout-detail">
                         <i class="fas fa-money-bill-wave text-success me-1"></i>
-                        <strong>Net Amount</strong> (What you receive)
+                        <strong><?php echo t('payout_info.net_amount'); ?></strong> (<?php echo t('payout_info.what_you_receive'); ?>)
                     </div>
                     <div class="payout-detail mt-2">
                         <i class="fas fa-coins text-secondary me-1"></i>
-                        <small>Based on your contribution and EQUB position</small>
+                        <small><?php echo t('payout_info.based_on_contribution'); ?></small>
                     </div>
                 </div>
             </div>
@@ -1528,7 +1528,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.payout_date'); ?></h3>
                          </div>
                      </div>
-                     <?php
+                         <?php 
                      // Dynamic payout date calculation based on EQUB term and member position
                      $equb_start = new DateTime($member['start_date']);
                      $member_payout_month = $payout_position; // Position determines payout month
@@ -1544,7 +1544,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                          $display_date = date('M d, Y', strtotime($actual_payout_date));
                          $days_info = '<i class="fas fa-check-circle text-success me-1"></i>Payout Completed';
                          $value_class = 'text-success';
-                     } else {
+                         } else {
                          // Member hasn't received payout yet - show scheduled date
                          $display_date = $payout_target_date->format('M d, Y');
                          $current_date = new DateTime();
@@ -1605,12 +1605,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                          // Calculate progress based on EQUB timeline vs member position
                          if ($my_position_reached) {
                              $progress_percentage = min(100, (($members_who_received + 1) / $total_equb_members) * 100);
-                             $status_text = "Your turn has arrived";
+                             $status_text = t('payout_info.your_turn_arrived');
                              $icon_class = "fas fa-check-circle text-success";
                          } else {
                              $progress_percentage = ($current_equb_month / $payout_position) * 100;
                              $months_to_wait = $payout_position - $current_equb_month;
-                             $status_text = $months_to_wait . " months until your turn";
+                             $status_text = $months_to_wait . " " . t('payout_info.months_until_turn');
                              $icon_class = "fas fa-clock text-info";
                          }
                          
@@ -1657,23 +1657,23 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="accordion-header">
                                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#financialSummary" aria-expanded="true" aria-controls="financialSummary">
                                     <i class="fas fa-coins me-2 text-success"></i>
-                                    <span class="accordion-title">Financial Summary</span>
-                                    <span class="accordion-badge">3 items</span>
+                                    <span class="accordion-title"><?php echo t('payout_info.financial_summary'); ?></span>
+                                    <span class="accordion-badge">3 <?php echo t('payout_info.items'); ?></span>
                                 </button>
                             </div>
                             <div id="financialSummary" class="accordion-collapse collapse show" data-bs-parent="#memberAccordion">
                                 <div class="accordion-body">
                                     <div class="info-grid">
                                         <div class="info-item">
-                                            <span class="info-label">Total Monthly Pool</span>
+                                            <span class="info-label"><?php echo t('payout_info.total_monthly_pool'); ?></span>
                                             <span class="info-value text-success">£<?php echo number_format($total_monthly_pool, 2); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Monthly Contribution</span>
+                                            <span class="info-label"><?php echo t('payout_info.monthly_contribution'); ?></span>
                                             <span class="info-value">£<?php echo number_format($monthly_contribution, 2); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Total Contributed</span>
+                                            <span class="info-label"><?php echo t('payout_info.total_contributed'); ?></span>
                                             <span class="info-value text-success">£<?php echo number_format($member['total_contributed'], 2); ?></span>
                                         </div>
                                     </div>
@@ -1686,27 +1686,27 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#equbProgress" aria-expanded="false" aria-controls="equbProgress">
                                     <i class="fas fa-calendar me-2 text-info"></i>
-                                    <span class="accordion-title">EQUB Progress</span>
-                                    <span class="accordion-badge"><?php echo $member['months_in_equb']; ?>/<?php echo $member['duration_months']; ?> months</span>
+                                    <span class="accordion-title"><?php echo t('payout_info.equb_progress_title'); ?></span>
+                                    <span class="accordion-badge"><?php echo $member['months_in_equb']; ?>/<?php echo $member['duration_months']; ?> <?php echo t('payout_info.months'); ?></span>
                                 </button>
                             </div>
                             <div id="equbProgress" class="accordion-collapse collapse" data-bs-parent="#memberAccordion">
                                 <div class="accordion-body">
                                     <div class="info-grid">
                                         <div class="info-item">
-                                            <span class="info-label">Start Date</span>
-                                            <span class="info-value"><?php echo $member['start_date'] ? date('M d, Y', strtotime($member['start_date'])) : 'Not set'; ?></span>
+                                            <span class="info-label"><?php echo t('payout_info.start_date'); ?></span>
+                                            <span class="info-value"><?php echo $member['start_date'] ? date('M d, Y', strtotime($member['start_date'])) : t('payout_info.not_set'); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Duration</span>
-                                            <span class="info-value"><?php echo $member['duration_months']; ?> months</span>
+                                            <span class="info-label"><?php echo t('payout_info.duration'); ?></span>
+                                            <span class="info-value"><?php echo $member['duration_months']; ?> <?php echo t('payout_info.months'); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Months Completed</span>
+                                            <span class="info-label"><?php echo t('payout_info.months_completed'); ?></span>
                                             <span class="info-value text-primary"><?php echo $member['months_in_equb']; ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Remaining Months</span>
+                                            <span class="info-label"><?php echo t('payout_info.remaining_months'); ?></span>
                                             <span class="info-value text-warning"><?php echo $member['remaining_months_in_equb']; ?></span>
                                         </div>
                                     </div>
@@ -1719,8 +1719,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#memberPerformance" aria-expanded="false" aria-controls="memberPerformance">
                                     <i class="fas fa-trophy me-2 text-warning"></i>
-                                    <span class="accordion-title">Member Performance</span>
-                                    <span class="accordion-badge">Position #<?php echo $payout_position; ?></span>
+                                    <span class="accordion-title"><?php echo t('payout_info.member_performance_title'); ?></span>
+                                    <span class="accordion-badge"><?php echo t('payout_info.position_hash'); ?><?php echo $payout_position; ?></span>
                                 </button>
                             </div>
                             <div id="memberPerformance" class="accordion-collapse collapse" data-bs-parent="#memberAccordion">
@@ -1728,21 +1728,17 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <div class="info-grid">
                                         <?php if ($member['membership_type'] === 'joint'): ?>
                                         <div class="info-item">
-                                            <span class="info-label">Joint Group</span>
+                                            <span class="info-label"><?php echo t('payout_info.joint_group'); ?></span>
                                             <span class="info-value"><?php echo htmlspecialchars($member['joint_group_name']); ?></span>
                                         </div>
                                         <?php endif; ?>
                                         <div class="info-item">
-                                            <span class="info-label">Payout Position</span>
+                                            <span class="info-label"><?php echo t('payout_info.payout_position'); ?></span>
                                             <span class="info-value text-primary fw-bold">#<?php echo $payout_position; ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Total Payments Made</span>
+                                            <span class="info-label"><?php echo t('payout_info.total_payments_made'); ?></span>
                                             <span class="info-value"><?php echo $member['total_payments']; ?></span>
-                                        </div>
-                                        <div class="info-item">
-                                            <span class="info-label">Total Amount Received</span>
-                                            <span class="info-value text-success">£<?php echo number_format($member['total_amount_received'], 2); ?></span>
                                         </div>
                                     </div>
                                 </div>
@@ -1754,27 +1750,27 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#equbSettings" aria-expanded="false" aria-controls="equbSettings">
                                     <i class="fas fa-sliders-h me-2 text-secondary"></i>
-                                    <span class="accordion-title">EQUB Settings & Rules</span>
-                                    <span class="accordion-badge">Rules</span>
+                                    <span class="accordion-title"><?php echo t('payout_info.equb_settings_rules'); ?></span>
+                                    <span class="accordion-badge"><?php echo t('payout_info.rules'); ?></span>
                                 </button>
                             </div>
                             <div id="equbSettings" class="accordion-collapse collapse" data-bs-parent="#memberAccordion">
                                 <div class="accordion-body">
                                     <div class="info-grid">
                                         <div class="info-item">
-                                            <span class="info-label">Admin Fee</span>
+                                            <span class="info-label"><?php echo t('payout_info.admin_fee'); ?></span>
                                             <span class="info-value text-warning">£<?php echo number_format($member['admin_fee'], 2); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Late Fee</span>
+                                            <span class="info-label"><?php echo t('payout_info.late_fee'); ?></span>
                                             <span class="info-value text-danger">£<?php echo number_format($member['late_fee'], 2); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Grace Period</span>
-                                            <span class="info-value"><?php echo $member['grace_period_days']; ?> days</span>
+                                            <span class="info-label"><?php echo t('payout_info.grace_period'); ?></span>
+                                            <span class="info-value"><?php echo $member['grace_period_days']; ?> <?php echo t('payout_info.days'); ?></span>
                                         </div>
                                         <div class="info-item">
-                                            <span class="info-label">Regular Payment Tier</span>
+                                            <span class="info-label"><?php echo t('payout_info.regular_payment_tier'); ?></span>
                                             <span class="info-value">£<?php echo number_format($member['regular_payment_tier'], 2); ?></span>
                                         </div>
                                     </div>
