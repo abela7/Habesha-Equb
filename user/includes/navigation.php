@@ -839,6 +839,11 @@ $csrf_token = generate_csrf_token();
                 <i class="fas fa-exchange-alt nav-icon"></i>
                 <span class="nav-text"><?php echo t('settings.position_swap'); ?></span>
             </a>
+            <a href="notifications.php" class="nav-item <?php echo ($current_page === 'notifications.php') ? 'active' : ''; ?>">
+                <i class="fas fa-bell nav-icon"></i>
+                <span class="nav-text"><?php echo t('member_nav.notifications') ?: 'Notifications'; ?></span>
+                <span class="nav-badge" id="memberNotifBadge" style="display:none;">0</span>
+            </a>
         </div>
         
                  <!-- Account Section -->
@@ -928,6 +933,10 @@ $csrf_token = generate_csrf_token();
         </div>
         
         <div class="topbar-right">
+            <button class="language-toggle" id="memberNotifBell" title="Notifications" onclick="window.location.href='notifications.php'" style="display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-bell"></i>
+                <span class="current-lang" id="memberNotifBadgeTop" style="display:none;">0</span>
+            </button>
             <!-- Language Selector -->
             <div class="language-menu" id="languageMenu">
                 <button class="language-toggle" id="languageToggle">
@@ -1150,6 +1159,31 @@ async function changeLanguage(language) {
         console.error('Language switch error:', error);
     }
 }
+
+// Unread notifications badge updater
+async function updateMemberUnreadBadges() {
+    try {
+        const r = await fetch('api/notifications.php?action=count_unread');
+        const data = await r.json();
+        const count = data.success ? Number(data.unread) : 0;
+        const sideBadge = document.getElementById('memberNotifBadge');
+        const topBadge = document.getElementById('memberNotifBadgeTop');
+        if (sideBadge) {
+            sideBadge.textContent = count > 99 ? '99+' : String(count);
+            sideBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        if (topBadge) {
+            topBadge.textContent = count > 99 ? '99+' : String(count);
+            topBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+    } catch (e) { console.error(e); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateMemberUnreadBadges();
+    // also refresh every 60s like modern apps
+    setInterval(updateMemberUnreadBadges, 60000);
+});
 
 // Logout function
 function handleLogout() {
