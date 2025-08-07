@@ -2055,7 +2055,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                         // Joint position display
                                         echo '<strong><i class="fas fa-users text-warning me-1"></i>' . htmlspecialchars($queue_member['display_name']) . '</strong>';
                                         echo '<br><small class="text-muted">' . implode(', ', $queue_member['member_names']) . '</small>';
-                                        if ($is_current) {
+                                    if ($is_current) {
                                             echo '<br><span class="badge bg-primary">You\'re in this group</span>';
                                         }
                                     } else {

@@ -17,6 +17,14 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
 require_once '../includes/payout_sync_service.php';
+require_once '../includes/enhanced_equb_calculator_final.php';
+
+// Ensure translation function exists
+if (!function_exists('t')) {
+    function t($key) {
+        return $key; // Fallback to key if translation function doesn't exist
+    }
+}
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
@@ -34,17 +42,33 @@ if (!$member_id) {
 // For now, let's allow viewing public profiles but restrict private data
 $viewing_own_profile = ($member_id === $current_user_id);
 
-// Get detailed member information
+// Get detailed member information with enhanced data
 try {
+    // Initialize enhanced calculator
+    if (!class_exists('EnhancedEqubCalculator')) {
+        throw new Exception('EnhancedEqubCalculator class not found');
+    }
+    $enhanced_calculator = new EnhancedEqubCalculator($pdo);
+    
     $stmt = $pdo->prepare("
         SELECT m.*, 
-               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
+               es.equb_name, es.start_date, es.end_date, es.payout_day, es.duration_months, 
+               es.max_members, es.current_members, es.admin_fee, es.late_fee, es.grace_period_days,
+               es.regular_payment_tier, es.currency, es.status as equb_status,
                COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
                COALESCE(COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END), 0) as payments_made,
                COALESCE(
+                   (SELECT po.gross_payout FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   0
+               ) as last_gross_payout,
+               COALESCE(
+                   (SELECT po.total_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   0
+               ) as last_total_amount,
+               COALESCE(
                    (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
                    0
-               ) as last_payout_amount,
+               ) as last_net_amount,
                COALESCE(
                    (SELECT po.actual_payout_date FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
                    NULL
@@ -52,7 +76,18 @@ try {
                (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed') as total_payouts_received,
                (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
                -- Get payment history count
-               (SELECT COUNT(*) FROM payments p WHERE p.member_id = m.id) as total_payment_records
+               (SELECT COUNT(*) FROM payments p WHERE p.member_id = m.id) as total_payment_records,
+               -- Calculate EQUB progress
+               CASE 
+                   WHEN es.start_date IS NOT NULL THEN 
+                       GREATEST(0, FLOOR(DATEDIFF(CURDATE(), es.start_date) / 30.44))
+                   ELSE 0 
+               END as months_in_equb,
+               CASE 
+                   WHEN es.duration_months IS NOT NULL AND es.start_date IS NOT NULL THEN 
+                       GREATEST(0, es.duration_months - FLOOR(DATEDIFF(CURDATE(), es.start_date) / 30.44))
+                   ELSE es.duration_months 
+               END as remaining_months_in_equb
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
@@ -68,12 +103,61 @@ try {
         exit;
     }
     
+    // Privacy logic: Show real name only if go_public=1 OR if it's the current user
+    if ($member['go_public'] == 1 || $viewing_own_profile) {
+        $display_name = trim($member['first_name'] . ' ' . $member['last_name']);
+        $is_anonymous = false;
+    } else {
+        $display_name = t('payout_info.anonymous');
+        $is_anonymous = true;
+    }
+    
+    // Enhanced calculations using calculator
+    try {
+        if (isset($enhanced_calculator) && is_object($enhanced_calculator)) {
+            $calc_result = $enhanced_calculator->calculateMemberFriendlyPayout($member_id);
+            if ($calc_result['success']) {
+                $gross_payout = $calc_result['calculation']['gross_payout'];
+                $display_payout = $calc_result['calculation']['display_payout'];
+                $net_payout = $calc_result['calculation']['real_net_payout'];
+                $calculation_method = $calc_result['calculation']['calculation_method'];
+                $position_coefficient = $calc_result['calculation']['position_coefficient'];
+                $total_monthly_pool = $calc_result['calculation']['total_monthly_pool'];
+            } else {
+                // Fallback calculation
+                $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+                $display_payout = $gross_payout - $member['admin_fee'];
+                $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
+                $calculation_method = 'fallback';
+                $position_coefficient = $member['position_coefficient'] ?? 1;
+                $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+            }
+        } else {
+            // Fallback calculation if calculator not available
+            $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+            $display_payout = $gross_payout - $member['admin_fee'];
+            $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
+            $calculation_method = 'basic_fallback';
+            $position_coefficient = $member['position_coefficient'] ?? 1;
+            $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+        }
+    } catch (Exception $e) {
+        // Final fallback calculation
+        $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+        $display_payout = $gross_payout - $member['admin_fee'];
+        $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
+        $calculation_method = 'error_fallback';
+        $position_coefficient = $member['position_coefficient'] ?? 1;
+        $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+        error_log("Calculator error for member {$member_id}: " . $e->getMessage());
+    }
+    
     // Get real payout information using the sync service
     $payout_service = getPayoutSyncService();
     $payout_info = $payout_service->getMemberPayoutStatus($member_id);
     
-    // Calculate correct expected payout based on equb members
-    $expected_payout = $member['total_equb_members'] * $member['monthly_payment'];
+    // Legacy variable for compatibility (but we'll use display_payout instead)
+    $expected_payout = $display_payout;
 
     // Get member's recent payment history (last 6 months)
     $stmt = $pdo->prepare("
@@ -105,9 +189,20 @@ try {
     exit;
 }
 
-// Calculate member data with real payout information
-$profile_member_name = trim($member['first_name'] . ' ' . $member['last_name']);
-$initials = substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1);
+// Calculate member data with privacy-aware display
+$profile_member_name = $display_name;
+
+// Generate initials - use first letters of display name or Anonymous symbol  
+if ($is_anonymous) {
+    $initials = '🔒'; // Lock symbol for anonymous members
+} else {
+    $name_parts = explode(' ', $display_name);
+    if (count($name_parts) >= 2) {
+        $initials = substr($name_parts[0], 0, 1) . substr($name_parts[1], 0, 1);
+    } else {
+        $initials = substr($display_name, 0, 2);
+    }
+}
 $member_since = date('M Y', strtotime($member['created_at']));
 $payout_status = $member['total_payouts_received'] > 0 ? 'received' : ($member['payout_position'] == 1 ? 'current' : 'upcoming');
 
@@ -232,6 +327,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     font-size: 24px;
     font-weight: 600;
     flex-shrink: 0;
+}
+
+.profile-avatar.anonymous {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
 }
 
 .profile-info h2 {
@@ -576,11 +675,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         <div class="row mb-4">
             <div class="col-12">
                 <div class="member-profile-header">
-                    <div class="profile-avatar">
+                    <div class="profile-avatar <?php echo $is_anonymous ? 'anonymous' : ''; ?>">
                         <?php echo strtoupper($initials); ?>
                     </div>
                     <div class="profile-info">
-                        <h2><?php echo htmlspecialchars($profile_member_name, ENT_QUOTES); ?></h2>
+                        <h2>
+                            <?php echo htmlspecialchars($profile_member_name, ENT_QUOTES); ?>
+                            <?php if ($viewing_own_profile): ?>
+                                <span class="badge bg-primary ms-2">You</span>
+                            <?php endif; ?>
+                            <?php if ($is_anonymous): ?>
+                                <i class="fas fa-user-secret text-muted ms-2" title="<?php echo t('payout_info.anonymous'); ?>"></i>
+                            <?php endif; ?>
+                        </h2>
                         <div class="profile-meta">
                             <div class="meta-item">
                                 <i class="fas fa-trophy"></i>
@@ -651,10 +758,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-icon info">
                                 <i class="fas fa-hand-holding-usd"></i>
                             </div>
-                            <div class="stat-value">£<?php echo number_format($expected_payout, 0); ?></div>
+                            <div class="stat-value">£<?php echo number_format($display_payout, 0); ?></div>
                             <div class="stat-label"><?php echo t('members_directory.expected_payout'); ?></div>
                             <div class="stat-detail">
-                                <?php echo $member['total_equb_members']; ?> members × £<?php echo number_format($member['monthly_payment'], 0); ?>
+                                <?php echo ucfirst($calculation_method); ?> - Coefficient: <?php echo number_format($position_coefficient, 2); ?>
                             </div>
                         </div>
                         
@@ -669,7 +776,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="stat-label"><?php echo t('members_directory.paid_out'); ?></div>
                                 <div class="stat-detail">
                                     <i class="fas fa-money-bill-wave text-success me-1"></i>
-                                    <?php echo t('members_directory.received_amount'); ?> £<?php echo number_format($member['last_payout_amount'], 0); ?>
+                                    <?php echo t('members_directory.received_amount'); ?> £<?php echo number_format($member['last_total_amount'], 0); ?>
                                 </div>
                                 <?php if ($member['total_payouts_received'] > 1): ?>
                                 <div class="stat-detail mt-1">
@@ -813,8 +920,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-value"><?php echo $member['total_payouts_received']; ?></div>
                             <div class="stat-label"><?php echo t('members_directory.payouts_received'); ?></div>
                             <div class="stat-detail">
-                                <?php if ($member['last_payout_amount'] > 0): ?>
-                                    <small><?php echo t('members_directory.last'); ?>: £<?php echo number_format($member['last_payout_amount'], 0); ?></small>
+                                <?php if ($member['last_total_amount'] > 0): ?>
+                                    <small><?php echo t('members_directory.last'); ?>: £<?php echo number_format($member['last_total_amount'], 0); ?></small>
                                 <?php else: ?>
                                     <small><?php echo t('members_directory.no_payment_history'); ?></small>
                                 <?php endif; ?>

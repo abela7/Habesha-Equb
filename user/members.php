@@ -77,7 +77,7 @@ try {
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
-        WHERE m.is_active = 1 AND m.is_approved = 1
+        WHERE m.is_active = 1
         GROUP BY m.id
         ORDER BY 
             CASE WHEN m.payout_position = 0 THEN 999 ELSE m.payout_position END ASC,
@@ -161,8 +161,8 @@ try {
         ]);
     }
     
-    // Get total member count for statistics - all approved members
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1 AND is_approved = 1");
+    // Get total member count for statistics - all active members
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1");
     $stmt->execute();
     $total_members = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
     
@@ -991,6 +991,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                         <?php echo htmlspecialchars($member_name, ENT_QUOTES); ?>
                                         <?php if ($member['is_current_user']): ?>
                                             <span class="badge bg-primary ms-1">You</span>
+                                        <?php endif; ?>
+                                        <?php if (!$member['is_approved']): ?>
+                                            <span class="badge bg-warning ms-1">Pending</span>
                                         <?php endif; ?>
                                         <?php if ($member['is_anonymous']): ?>
                                             <i class="fas fa-user-secret text-muted ms-1" title="<?php echo t('payout_info.anonymous'); ?>"></i>
