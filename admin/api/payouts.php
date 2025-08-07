@@ -246,7 +246,11 @@ function calculateMemberPayout() {
         }
         
         // 🚀 ENHANCED CALCULATION using financial-analytics.php logic (NO HARDCODE) [[memory:5287409]]
-        require_once '../includes/enhanced_equb_calculator_final.php';
+        $calculator_path = '../includes/enhanced_equb_calculator_final.php';
+        if (!file_exists($calculator_path)) {
+            throw new Exception("Calculator file not found at: $calculator_path");
+        }
+        require_once $calculator_path;
         $calculator = new EnhancedEqubCalculator($pdo);
         $calculation = $calculator->calculateMemberFriendlyPayout($member_id);
         
@@ -283,7 +287,8 @@ function calculateMemberPayout() {
         
     } catch (Exception $e) {
         error_log("Calculate Member Payout Error: " . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Calculation error occurred']);
+        error_log("Stack trace: " . $e->getTraceAsString());
+        echo json_encode(['success' => false, 'message' => 'Calculation error: ' . $e->getMessage()]);
     }
 }
 

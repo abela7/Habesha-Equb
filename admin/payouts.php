@@ -1464,8 +1464,10 @@ $csrf_token = generate_csrf_token();
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while calculating payout');
+            console.error('Network Error Details:', error);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            alert('Network error while calculating payout: ' + error.message + '\n\nCheck browser console for details.');
         });
     }
 
