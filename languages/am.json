@@ -1034,7 +1034,10 @@
     "rule_3": "በቦታ መቀያየር ላይ ክፍያ ሊኖር ይችላል",
     "rule_4": "በመጠባበቅ ላይ ያሉ ጥያቄዎች ካሉዎት መቀያየር መጠየቅ አይችሉም",
     "current_payout_date": "የአሁኑ የመውጫ ቀን",
-    "requested_payout_date": "የተጠየቀ የመውጫ ቀን"
+    "requested_payout_date": "የተጠየቀ የመውጫ ቀን",
+    "current": "አሁኑ",
+    "requested_pos": "የተጠየቀ",
+    "actions": "እርምጃዎች"
   },
   "swap_management": {
     "page_title": "የቦታ መቀያየር አስተዳደር",

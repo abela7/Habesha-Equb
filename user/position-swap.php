@@ -255,11 +255,32 @@ $current_payout_date->setDate(
         background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%);
         color: var(--color-white);
         border: none;
+        box-shadow: 0 8px 24px rgba(218, 165, 32, 0.25);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .current-position::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+        0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
     }
 
     .current-position .position-number {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.25);
         color: var(--color-white);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     }
 
     .position-grid {
@@ -271,17 +292,37 @@ $current_payout_date->setDate(
 
     .position-item {
         background: var(--color-white);
-        border: 2px solid var(--color-border);
-        border-radius: 12px;
-        padding: 20px;
+        border: 1px solid rgba(48, 25, 52, 0.1);
+        border-radius: 16px;
+        padding: 24px;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
+        box-shadow: 0 4px 12px rgba(48, 25, 52, 0.08);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+    }
+
+    .position-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--color-gold), var(--color-teal));
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
     .position-item:hover {
         border-color: var(--color-gold);
-        transform: translateY(-2px);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(48, 25, 52, 0.15);
+    }
+
+    .position-item:hover::before {
+        opacity: 1;
     }
 
     .position-item.selected {
@@ -323,32 +364,40 @@ $current_payout_date->setDate(
     }
 
     .position-number {
-        display: inline-block;
-        background: var(--color-gold);
-        color: var(--color-white);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 600;
-        font-size: 18px;
-        margin-bottom: 12px;
+        background: linear-gradient(135deg, var(--color-gold), #e6b800);
+        color: var(--color-white);
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(218, 165, 32, 0.25);
+        transition: all 0.3s ease;
     }
 
     .position-month {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 600;
         color: var(--color-deep-purple);
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        letter-spacing: -0.5px;
     }
 
     .position-status {
-        font-size: 14px;
-        padding: 4px 8px;
-        border-radius: 6px;
-        display: inline-block;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 12px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        letter-spacing: 0.25px;
+        text-transform: uppercase;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .status-available {
@@ -396,25 +445,73 @@ $current_payout_date->setDate(
 
     .request-form {
         background: var(--color-white);
-        border-radius: 12px;
-        padding: 24px;
-        border: 1px solid var(--color-border);
-        margin-top: 20px;
+        border-radius: 16px;
+        padding: 32px;
+        border: 1px solid rgba(48, 25, 52, 0.08);
+        margin-top: 24px;
+        box-shadow: 0 6px 20px rgba(48, 25, 52, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .request-form::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--color-gold), var(--color-teal));
     }
 
     .history-table {
         background: var(--color-white);
-        border-radius: 12px;
+        border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 4px 16px rgba(48, 25, 52, 0.08);
+        box-shadow: 0 6px 20px rgba(48, 25, 52, 0.12);
+        border: 1px solid rgba(48, 25, 52, 0.08);
+    }
+
+    .history-table .table {
+        margin-bottom: 0;
+    }
+
+    .history-table .table thead th {
+        background: linear-gradient(135deg, var(--color-light-gold), var(--color-gold));
+        color: var(--color-deep-purple);
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: none;
+        padding: 20px 16px;
+    }
+
+    .history-table .table tbody td {
+        padding: 16px;
+        border-color: rgba(48, 25, 52, 0.05);
+        vertical-align: middle;
+    }
+
+    .history-table .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .history-table .table tbody tr:hover {
+        background-color: rgba(48, 25, 52, 0.02);
     }
 
     .status-badge {
-        padding: 4px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-size: 12px;
-        font-weight: 500;
+        font-size: 11px;
+        font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .status-pending {
@@ -675,7 +772,7 @@ $current_payout_date->setDate(
                             <thead class="table-light">
                                 <tr>
                                     <th><?php echo t('position_swap.request_id'); ?></th>
-                                    <th><?php echo t('position_swap.current_pos'); ?></th>
+                                    <th><?php echo t('position_swap.current'); ?></th>
                                     <th><?php echo t('position_swap.requested_pos'); ?></th>
                                     <th><?php echo t('position_swap.status'); ?></th>
                                     <th><?php echo t('position_swap.date_requested'); ?></th>

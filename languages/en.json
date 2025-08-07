@@ -1034,7 +1034,10 @@
     "rule_3": "There may be a fee associated with position swaps",
     "rule_4": "You cannot request a swap if you have pending requests",
     "current_payout_date": "Current Payout Date",
-    "requested_payout_date": "Requested Payout Date"
+    "requested_payout_date": "Requested Payout Date",
+    "current": "Current",
+    "requested_pos": "Requested",
+    "actions": "Actions"
   },
   "swap_management": {
     "page_title": "Position Swap Management",
