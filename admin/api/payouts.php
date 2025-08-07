@@ -72,6 +72,9 @@ try {
         case 'delete':
             deletePayout();
             break;
+        case 'process':
+            processPayout();
+            break;
         case 'get_csrf_token':
             echo json_encode(['success' => true, 'csrf_token' => generate_csrf_token()]);
             break;
@@ -450,6 +453,93 @@ function deletePayout() {
         error_log("Delete Payout Error: " . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to delete payout']);
+    }
+}
+
+/**
+ * PROCESS PAYOUT - Mark as completed and set actual date
+ */
+function processPayout() {
+    global $pdo;
+    
+    $payout_id = intval($_POST['payout_id'] ?? $_POST['id'] ?? 0);
+    
+    if (!$payout_id) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Payout ID is required']);
+        return;
+    }
+    
+    try {
+        // First check if payout exists and get current status
+        $stmt = $pdo->prepare("SELECT id, status, payout_id, member_id FROM payouts WHERE id = ?");
+        $stmt->execute([$payout_id]);
+        $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$payout) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Payout not found']);
+            return;
+        }
+        
+        // Check if already processed
+        if ($payout['status'] === 'completed') {
+            echo json_encode(['success' => false, 'message' => 'Payout already completed']);
+            return;
+        }
+        
+        // Update payout status to completed and set actual date
+        $stmt = $pdo->prepare("
+            UPDATE payouts 
+            SET status = 'completed', 
+                actual_payout_date = CURDATE(),
+                processed_by_admin_id = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        
+        $admin_id = get_current_admin_id();
+        $stmt->execute([$admin_id, $payout_id]);
+        
+        if ($stmt->rowCount() === 0) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to process payout']);
+            return;
+        }
+        
+        // Update member's payout flag
+        syncMemberPayoutFlag($payout['member_id']);
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Payout processed successfully',
+            'payout_id' => $payout['payout_id']
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Process Payout Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Failed to process payout: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * SYNC MEMBER PAYOUT FLAG - Update member's received_payout status
+ */
+function syncMemberPayoutFlag($member_id) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE members 
+            SET received_payout = 1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        $stmt->execute([$member_id]);
+        
+    } catch (Exception $e) {
+        error_log("Sync Member Payout Flag Error: " . $e->getMessage());
     }
 }
 
