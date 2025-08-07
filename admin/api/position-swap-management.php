@@ -1,7 +1,7 @@
 <?php
 /**
  * HabeshaEqub - Position Swap Management API
- * Handle position swap request processing
+ * COMPLETE WORKFLOW: Update positions, delete requests, populate history
  */
 
 require_once '../../includes/db.php';
@@ -34,7 +34,6 @@ try {
     
     switch ($action) {
         case 'approve':
-        case 'reject':
             $request_id = $_POST['request_id'] ?? '';
             $admin_notes = $_POST['admin_notes'] ?? '';
             
@@ -55,101 +54,145 @@ try {
                 throw new Exception('Request has already been processed');
             }
             
-            // Update the request status
-            $new_status = ($action === 'approve') ? 'approved' : 'rejected';
-            $processed_date = date('Y-m-d H:i:s');
+            // Start transaction
+            $pdo->beginTransaction();
             
-            $stmt = $pdo->prepare("
-                UPDATE position_swap_requests 
-                SET status = ?, 
-                    processed_by_admin_id = ?, 
-                    processed_date = ?, 
-                    admin_notes = ?
-                WHERE request_id = ?
-            ");
-            
-            $result = $stmt->execute([
-                $new_status,
-                $admin_id,
-                $processed_date,
-                $admin_notes,
-                $request_id
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to update request status');
-            }
-            
-            // If approved, handle the position swap logic
-            if ($action === 'approve') {
-                // Start transaction for position swap
-                $pdo->beginTransaction();
+            try {
+                // 1. Update the member's position
+                $update_stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
+                $result = $update_stmt->execute([
+                    $swap_request['requested_position'], 
+                    $swap_request['member_id']
+                ]);
                 
-                try {
-                    // If there's a target member, swap positions
-                    if ($swap_request['target_member_id']) {
-                        // Get current positions
-                        $member_stmt = $pdo->prepare("SELECT payout_position FROM members WHERE id = ?");
-                        $member_stmt->execute([$swap_request['member_id']]);
-                        $member_pos = $member_stmt->fetchColumn();
-                        
-                        $target_stmt = $pdo->prepare("SELECT payout_position FROM members WHERE id = ?");
-                        $target_stmt->execute([$swap_request['target_member_id']]);
-                        $target_pos = $target_stmt->fetchColumn();
-                        
-                        // Swap the positions
-                        $update1 = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
-                        $update1->execute([$target_pos, $swap_request['member_id']]);
-                        
-                        $update2 = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
-                        $update2->execute([$member_pos, $swap_request['target_member_id']]);
-                        
-                    } else {
-                        // Just update the requesting member's position
-                        $update = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
-                        $update->execute([$swap_request['requested_position'], $swap_request['member_id']]);
-                    }
-                    
-                    // Update request status to completed
-                    $complete_stmt = $pdo->prepare("
-                        UPDATE position_swap_requests 
-                        SET status = 'completed', completed_date = ?
-                        WHERE request_id = ?
-                    ");
-                    $complete_stmt->execute([date('Y-m-d H:i:s'), $request_id]);
-                    
-                    // Add to position swap history
-                    $history_stmt = $pdo->prepare("
-                        INSERT INTO position_swap_history 
-                        (request_id, member_id, target_member_id, old_position, new_position, admin_id, swap_date, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
-                    
-                    $history_stmt->execute([
-                        $request_id,
-                        $swap_request['member_id'],
-                        $swap_request['target_member_id'],
-                        $swap_request['current_position'],
-                        $swap_request['requested_position'],
-                        $admin_id,
-                        date('Y-m-d H:i:s'),
-                        $admin_notes
-                    ]);
-                    
-                    $pdo->commit();
-                    
-                } catch (Exception $e) {
-                    $pdo->rollback();
-                    throw new Exception('Failed to complete position swap: ' . $e->getMessage());
+                if (!$result) {
+                    throw new Exception('Failed to update member position');
                 }
+                
+                // 2. Add to position_swap_history (using correct table structure)
+                $history_stmt = $pdo->prepare("
+                    INSERT INTO position_swap_history 
+                    (swap_request_id, member_a_id, member_b_id, position_a_before, position_b_before, position_a_after, position_b_after, processed_by_admin_id, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                
+                // Get the request ID (we'll use the numeric ID from the request if available)
+                $request_numeric_id = $swap_request['id'] ?? 0;
+                
+                $history_stmt->execute([
+                    $request_numeric_id,
+                    $swap_request['member_id'],
+                    $swap_request['target_member_id'] ?? $swap_request['member_id'], // If no target, use same member
+                    $swap_request['current_position'],
+                    $swap_request['target_member_id'] ? 0 : 0, // Position before for target (0 if no target)
+                    $swap_request['requested_position'],
+                    $swap_request['target_member_id'] ? 0 : 0, // Position after for target (0 if no target)
+                    $admin_id,
+                    $admin_notes
+                ]);
+                
+                // 3. DELETE the request since it's approved and completed
+                $delete_stmt = $pdo->prepare("DELETE FROM position_swap_requests WHERE request_id = ?");
+                $delete_stmt->execute([$request_id]);
+                
+                $pdo->commit();
+                
+                // Clean output buffer and send response
+                ob_clean();
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Position swap approved! Member position updated and request completed.'
+                ]);
+                
+            } catch (Exception $e) {
+                $pdo->rollback();
+                throw $e;
+            }
+            break;
+            
+        case 'reject':
+            $request_id = $_POST['request_id'] ?? '';
+            $admin_notes = $_POST['admin_notes'] ?? '';
+            
+            if (empty($request_id)) {
+                throw new Exception('Request ID is required');
             }
             
-            // Clean output buffer and send response
-            ob_clean();
-            echo json_encode([
-                'success' => true,
-                'message' => 'Request ' . $action . 'd successfully'
-            ]);
+            if (empty($admin_notes)) {
+                throw new Exception('Admin notes/reason is required for rejection');
+            }
+            
+            // Get the swap request
+            $stmt = $pdo->prepare("SELECT * FROM position_swap_requests WHERE request_id = ?");
+            $stmt->execute([$request_id]);
+            $swap_request = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$swap_request) {
+                throw new Exception('Swap request not found');
+            }
+            
+            if ($swap_request['status'] !== 'pending') {
+                throw new Exception('Request has already been processed');
+            }
+            
+            // Start transaction
+            $pdo->beginTransaction();
+            
+            try {
+                // 1. Update request status to rejected and add reason
+                $reject_stmt = $pdo->prepare("
+                    UPDATE position_swap_requests 
+                    SET status = 'rejected', 
+                        admin_notes = ?,
+                        processed_by_admin_id = ?
+                    WHERE request_id = ?
+                ");
+                
+                $result = $reject_stmt->execute([
+                    $admin_notes,
+                    $admin_id,
+                    $request_id
+                ]);
+                
+                if (!$result) {
+                    throw new Exception('Failed to update request status');
+                }
+                
+                // 2. Add rejection to history for record keeping (using correct table structure)
+                $history_stmt = $pdo->prepare("
+                    INSERT INTO position_swap_history 
+                    (swap_request_id, member_a_id, member_b_id, position_a_before, position_b_before, position_a_after, position_b_after, processed_by_admin_id, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                
+                // Get the request ID (we'll use the numeric ID from the request if available)
+                $request_numeric_id = $swap_request['id'] ?? 0;
+                
+                $history_stmt->execute([
+                    $request_numeric_id,
+                    $swap_request['member_id'],
+                    $swap_request['target_member_id'] ?? $swap_request['member_id'], // If no target, use same member
+                    $swap_request['current_position'],
+                    $swap_request['target_member_id'] ? 0 : 0, // Position before for target (0 if no target)
+                    $swap_request['current_position'], // Position stays the same - REJECTED
+                    $swap_request['target_member_id'] ? 0 : 0, // Position after for target (0 if no target)
+                    $admin_id,
+                    'REJECTED: ' . $admin_notes
+                ]);
+                
+                $pdo->commit();
+                
+                // Clean output buffer and send response
+                ob_clean();
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Request rejected and recorded in history.'
+                ]);
+                
+            } catch (Exception $e) {
+                $pdo->rollback();
+                throw $e;
+            }
             break;
             
         default:

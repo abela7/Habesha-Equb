@@ -439,65 +439,7 @@ $csrf_token = generate_csrf_token();
             </div>
         <?php endif; ?>
 
-        <!-- Statistics Cards -->
-        <div class="stats-container">
-            <div class="row">
-                <div class="col-md-2 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-icon total">
-                            <i class="fas fa-list-alt"></i>
-                        </div>
-                        <div class="stat-number"><?php echo $stats['total_requests']; ?></div>
-                        <p class="stat-label"><?php echo t('swap_management.total_requests'); ?></p>
-                    </div>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-icon pending">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-number"><?php echo $stats['pending_count']; ?></div>
-                        <p class="stat-label"><?php echo t('swap_management.pending'); ?></p>
-                    </div>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-icon approved">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-number"><?php echo $stats['approved_count']; ?></div>
-                        <p class="stat-label"><?php echo t('swap_management.approved'); ?></p>
-                    </div>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-icon rejected">
-                            <i class="fas fa-times-circle"></i>
-                        </div>
-                        <div class="stat-number"><?php echo $stats['rejected_count']; ?></div>
-                        <p class="stat-label"><?php echo t('swap_management.rejected'); ?></p>
-                    </div>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-icon completed">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                        <div class="stat-number"><?php echo $stats['completed_count']; ?></div>
-                        <p class="stat-label"><?php echo t('swap_management.completed_count'); ?></p>
-                    </div>
-                </div>
-                <div class="col-md-2 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-icon month">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <div class="stat-number"><?php echo $stats['this_month_count']; ?></div>
-                        <p class="stat-label"><?php echo t('swap_management.this_month'); ?></p>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Main Table -->
         <div class="table-container">
@@ -625,8 +567,9 @@ $csrf_token = generate_csrf_token();
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         
                         <div class="mb-3">
-                            <label for="adminNotes" class="form-label"><?php echo t('swap_management.admin_notes'); ?></label>
+                            <label for="adminNotes" class="form-label"><?php echo t('swap_management.admin_notes'); ?> <span id="requiredMark" class="text-danger" style="display: none;">*</span></label>
                             <textarea class="form-control" id="adminNotes" name="admin_notes" rows="3" placeholder="<?php echo t('swap_management.admin_notes_placeholder'); ?>"></textarea>
+                            <small id="notesHelp" class="form-text text-muted"></small>
                         </div>
                         
                         <div class="alert alert-info" id="confirmText"></div>
@@ -651,18 +594,30 @@ $csrf_token = generate_csrf_token();
             const title = document.getElementById('processTitle');
             const confirmText = document.getElementById('confirmText');
             const confirmBtn = document.getElementById('confirmBtn');
+            const requiredMark = document.getElementById('requiredMark');
+            const notesHelp = document.getElementById('notesHelp');
+            const adminNotes = document.getElementById('adminNotes');
             
             if (action === 'approve') {
                 title.textContent = '<?php echo t("swap_management.approve_request"); ?>';
                 confirmText.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i><?php echo t("swap_management.approve_confirm"); ?>';
                 confirmBtn.className = 'btn btn-success';
                 confirmBtn.innerHTML = '<i class="fas fa-check me-2"></i><?php echo t("swap_management.approve"); ?>';
+                requiredMark.style.display = 'none';
+                notesHelp.textContent = 'Optional: Add notes about the approval';
+                adminNotes.required = false;
             } else {
                 title.textContent = '<?php echo t("swap_management.reject_request"); ?>';
                 confirmText.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i><?php echo t("swap_management.reject_confirm"); ?>';
                 confirmBtn.className = 'btn btn-danger';
                 confirmBtn.innerHTML = '<i class="fas fa-times me-2"></i><?php echo t("swap_management.reject"); ?>';
+                requiredMark.style.display = 'inline';
+                notesHelp.textContent = 'Required: Please provide a reason for rejection';
+                adminNotes.required = true;
             }
+            
+            // Clear previous notes
+            adminNotes.value = '';
             
             new bootstrap.Modal(document.getElementById('processModal')).show();
         }
@@ -670,6 +625,14 @@ $csrf_token = generate_csrf_token();
         document.getElementById('confirmBtn').addEventListener('click', async function() {
             const form = document.getElementById('processForm');
             const formData = new FormData(form);
+            const action = formData.get('action');
+            const adminNotes = formData.get('admin_notes');
+            
+            // Validate rejection requires notes
+            if (action === 'reject' && (!adminNotes || adminNotes.trim() === '')) {
+                alert('Please provide a reason for rejection');
+                return;
+            }
             
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><?php echo t("swap_management.processing"); ?>...';
@@ -683,7 +646,7 @@ $csrf_token = generate_csrf_token();
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('<?php echo t("swap_management.success_message"); ?>');
+                    alert(result.message);
                     window.location.reload();
                 } else {
                     alert('<?php echo t("swap_management.error"); ?>: ' + result.message);
