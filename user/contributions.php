@@ -993,17 +993,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
     <!-- Page Content -->
     <div class="container-fluid">
-        <!-- Page Header -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="page-header">
-                    <h1>
-                        <i class="fas fa-credit-card text-warning"></i>
-                        <?php echo t('contributions.page_title'); ?>
-                    </h1>
-                </div>
-            </div>
-        </div>
+        <!-- Removed top introduction card to keep page simple -->
 
         <!-- Financial Summary Section -->
         <div class="row mb-3">

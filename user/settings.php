@@ -735,17 +735,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
     <!-- Page Content -->
     <div class="container-fluid">
-        <!-- Page Header -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="page-header">
-                    <h1 class="page-title">
-                        <i class="fas fa-cogs text-warning"></i>
-                        <?php echo t('settings.page_title'); ?>
-                    </h1>
-                </div>
-            </div>
-        </div>
+        <!-- Removed top introduction card to keep page simple -->
 
         <!-- Unified Settings Card -->
         <div class="row justify-content-center">
