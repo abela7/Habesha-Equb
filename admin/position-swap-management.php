@@ -12,14 +12,21 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = $_SESSION['admin_username'] ?? 'Admin';
 
-// Debug: Check database connection and table existence
+// SIMPLE DEBUG - Check what's happening
 try {
     // Test database connection
     $test_stmt = $pdo->query("SELECT 1");
+    echo "<div style='background: blue; color: white; padding: 10px; margin: 10px;'>Database connection: OK</div>";
     
     // Check if position_swap_requests table exists
     $table_check = $pdo->query("SHOW TABLES LIKE 'position_swap_requests'");
     $table_exists = $table_check->rowCount() > 0;
+    echo "<div style='background: blue; color: white; padding: 10px; margin: 10px;'>Table exists: " . ($table_exists ? 'YES' : 'NO') . "</div>";
+    
+    // Try to count records
+    $count_stmt = $pdo->query("SELECT COUNT(*) as total FROM position_swap_requests");
+    $count_result = $count_stmt->fetch(PDO::FETCH_ASSOC);
+    echo "<div style='background: blue; color: white; padding: 10px; margin: 10px;'>Total records: " . $count_result['total'] . "</div>";
     
     if (!$table_exists) {
         throw new Exception("Table 'position_swap_requests' does not exist in the database.");
@@ -43,6 +50,14 @@ try {
     $stmt = $pdo->prepare("SELECT * FROM position_swap_requests ORDER BY requested_date DESC");
     $stmt->execute();
     $swap_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // TEMPORARY DEBUG - REMOVE AFTER FIXING
+    echo "<div style='background: red; color: white; padding: 10px; margin: 10px;'>";
+    echo "DEBUG: Found " . count($swap_requests) . " requests<br>";
+    if (count($swap_requests) > 0) {
+        echo "First request: " . print_r($swap_requests[0], true);
+    }
+    echo "</div>";
     
     // Add member info separately
     foreach ($swap_requests as &$request) {
