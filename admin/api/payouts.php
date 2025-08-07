@@ -83,6 +83,9 @@ try {
         case 'list':
             listPayouts();
             break;
+        case 'calculate':
+            calculateMemberPayout();
+            break;
         case 'get_csrf_token':
             echo json_encode([
                 'success' => true, 
@@ -205,6 +208,81 @@ function createJointGroupPayouts($joint_group_id, $total_group_amount, $schedule
     } catch (Exception $e) {
         error_log("Joint Group Payout Creation Error: " . $e->getMessage());
         return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+
+/**
+ * Calculate payout amount for a member - ENHANCED VERSION
+ * Uses the same logic as the addPayout function
+ */
+function calculateMemberPayout() {
+    global $pdo;
+    
+    $member_id = intval($_POST['member_id'] ?? $_GET['member_id'] ?? 0);
+    
+    if (!$member_id) {
+        echo json_encode(['success' => false, 'message' => 'Member ID is required']);
+        return;
+    }
+    
+    try {
+        // Get member details
+        $stmt = $pdo->prepare("
+            SELECT m.*, 
+                CONCAT(m.first_name, ' ', m.last_name) as full_name,
+                es.admin_fee as equb_admin_fee,
+                es.duration_months
+            FROM members m 
+            LEFT JOIN equb_settings es ON m.equb_settings_id = es.id 
+            WHERE m.id = ?
+        ");
+        $stmt->execute([$member_id]);
+        $member = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$member) {
+            echo json_encode(['success' => false, 'message' => 'Member not found']);
+            return;
+        }
+        
+        // 🚀 ENHANCED CALCULATION using financial-analytics.php logic (NO HARDCODE) [[memory:5287409]]
+        require_once '../includes/enhanced_equb_calculator_final.php';
+        $calculator = new EnhancedEqubCalculator($pdo);
+        $calculation = $calculator->calculateMemberFriendlyPayout($member_id);
+        
+        if (!$calculation['success']) {
+            echo json_encode(['success' => false, 'message' => 'Failed to calculate payout: ' . ($calculation['message'] ?? 'Unknown error')]);
+            return;
+        }
+        
+        // Extract DYNAMIC calculations (all from database)
+        $gross_payout = $calculation['calculation']['gross_payout'];
+        $admin_fee = $calculation['calculation']['admin_fee'];
+        $monthly_payment = $calculation['calculation']['monthly_deduction'];
+        $display_payout = $calculation['calculation']['display_payout']; // gross - admin fee
+        $net_payout = $calculation['calculation']['real_net_payout']; // gross - admin fee - monthly payment
+        $position_coefficient = $calculation['calculation']['position_coefficient'];
+        $total_monthly_pool = $calculation['calculation']['total_monthly_pool'];
+        
+        // Return all the data needed by the frontend
+        echo json_encode([
+            'success' => true,
+            'member_name' => $member['full_name'],
+            'monthly_payment' => $monthly_payment,
+            'position_coefficient' => $position_coefficient,
+            'total_monthly_pool' => $total_monthly_pool,
+            'gross_payout' => $gross_payout,
+            'admin_fee' => $admin_fee,
+            'display_payout' => $display_payout,
+            'net_payout' => $net_payout,
+            'debug' => [
+                'calculation_method' => $calculation['calculation']['calculation_method'] ?? 'enhanced',
+                'formula_used' => $calculation['calculation']['formula_used'] ?? 'position_coefficient × total_monthly_pool'
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Calculate Member Payout Error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Calculation error occurred']);
     }
 }
 
