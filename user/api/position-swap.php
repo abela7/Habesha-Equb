@@ -254,48 +254,61 @@ function submitSwapRequest($user_id) {
 function cancelSwapRequest($user_id) {
     global $pdo;
     
-    // Get JSON input
-    $input = json_decode(file_get_contents('php://input'), true);
-    $request_id = $input['request_id'] ?? '';
+    // Try to read request_id from multiple sources
+    $request_id = '';
+    if (isset($_POST['request_id'])) {
+        $request_id = trim($_POST['request_id']);
+    }
+
+    if ($request_id === '') {
+        // Try JSON body
+        $rawInput = file_get_contents('php://input');
+        if (!empty($rawInput)) {
+            $decoded = json_decode($rawInput, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $request_id = trim($decoded['request_id'] ?? '');
+            }
+        }
+    }
+
+    if ($request_id === '' && isset($_GET['request_id'])) {
+        $request_id = trim($_GET['request_id']);
+    }
     
-    if (empty($request_id)) {
+    if ($request_id === '') {
         ob_clean();
         echo json_encode(['success' => false, 'message' => 'Request ID is required']);
         return;
     }
     
-    // Verify the request belongs to the user and is pending
-    $stmt = $pdo->prepare("
-        SELECT id FROM position_swap_requests 
-        WHERE request_id = ? AND member_id = ? AND status = 'pending'
-    ");
-    $stmt->execute([$request_id, $user_id]);
-    $swap_request = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$swap_request) {
+    try {
+        // Ensure PDO throws exceptions
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Verify the request belongs to the user and is pending
+        $stmt = $pdo->prepare(
+            "SELECT id, status FROM position_swap_requests WHERE request_id = ? AND member_id = ? AND status = 'pending'"
+        );
+        $stmt->execute([$request_id, $user_id]);
+        $request = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$request) {
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'Pending request not found or already processed']);
+            return;
+        }
+        
+        // Delete the pending request
+        $delete_stmt = $pdo->prepare("DELETE FROM position_swap_requests WHERE request_id = ? AND member_id = ?");
+        $delete_stmt->execute([$request_id, $user_id]);
+        
         ob_clean();
-        echo json_encode(['success' => false, 'message' => 'Request not found or cannot be cancelled']);
-        return;
-    }
-    
-    // Update request status to cancelled
-    $stmt = $pdo->prepare("
-        UPDATE position_swap_requests 
-        SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ?
-    ");
-    
-    $result = $stmt->execute([$swap_request['id']]);
-    
-    if ($result) {
+        echo json_encode(['success' => true, 'message' => 'Request cancelled successfully']);
+        
+    } catch (Throwable $e) {
+        error_log('Cancel request error: ' . $e->getMessage());
         ob_clean();
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Swap request cancelled successfully'
-        ]);
-    } else {
-        ob_clean();
-        echo json_encode(['success' => false, 'message' => 'Failed to cancel swap request']);
+        echo json_encode(['success' => false, 'message' => 'Server error while cancelling the request']);
     }
 }
 
@@ -383,57 +396,5 @@ function getAvailablePositions($user_id) {
         'current_position' => $member['payout_position'],
         'available_positions' => $positions
     ]);
-}
-
-/**
- * Cancel a pending position swap request
- */
-function cancelSwapRequest($user_id) {
-    global $pdo;
-    
-    // Get request ID from POST data
-    $input = file_get_contents('php://input');
-    $data = json_decode($input, true);
-    $request_id = $data['request_id'] ?? '';
-    
-    if (empty($request_id)) {
-        ob_clean();
-        echo json_encode(['success' => false, 'message' => 'Request ID is required']);
-        return;
-    }
-    
-    try {
-        // Verify the request belongs to the user and is pending
-        $stmt = $pdo->prepare("
-            SELECT id, status 
-            FROM position_swap_requests 
-            WHERE request_id = ? AND member_id = ? AND status = 'pending'
-        ");
-        $stmt->execute([$request_id, $user_id]);
-        $request = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$request) {
-            ob_clean();
-            echo json_encode(['success' => false, 'message' => 'Request not found or cannot be cancelled']);
-            return;
-        }
-        
-        // Delete the pending request (we don't keep cancelled requests in history)
-        $delete_stmt = $pdo->prepare("DELETE FROM position_swap_requests WHERE request_id = ? AND member_id = ?");
-        $result = $delete_stmt->execute([$request_id, $user_id]);
-        
-        if ($result) {
-            ob_clean();
-            echo json_encode(['success' => true, 'message' => 'Request cancelled successfully']);
-        } else {
-            ob_clean();
-            echo json_encode(['success' => false, 'message' => 'Failed to cancel request']);
-        }
-        
-    } catch (PDOException $e) {
-        ob_clean();
-        error_log("Cancel request error: " . $e->getMessage());
-        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
-    }
 }
 ?>

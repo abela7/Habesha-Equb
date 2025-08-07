@@ -1436,24 +1436,38 @@ $current_payout_date->setDate(
         try {
             console.log('Sending cancel request...');
             
-            const response = await fetch('api/position-swap.php?action=cancel', {
+            // Try JSON first
+            let response = await fetch('api/position-swap.php?action=cancel', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ request_id: requestId })
             });
             
-            console.log('Response received:', response.status);
+            // If server returns 415/500 due to headers/body, fall back to form-encoded
+            if (!response.ok) {
+                console.warn('JSON cancel failed with status', response.status, '- retrying with form data');
+                const formData = new FormData();
+                formData.append('request_id', requestId);
+                response = await fetch('api/position-swap.php?action=cancel', {
+                    method: 'POST',
+                    body: formData
+                });
+            }
             
-            const result = await response.json();
-            console.log('Result:', result);
+            let result;
+            const text = await response.text();
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                console.error('Non-JSON response:', text);
+                result = { success: false, message: 'Unexpected server response' };
+            }
             
             if (result.success) {
                 alert('✅ Request cancelled successfully! The page will reload.');
                 window.location.reload();
             } else {
-                alert('❌ Error: ' + result.message);
+                alert('❌ Error: ' + (result.message || 'Failed to cancel'));
                 // Re-enable buttons on error
                 cancelBtns.forEach(btn => {
                     btn.disabled = false;
@@ -1462,7 +1476,7 @@ $current_payout_date->setDate(
             }
         } catch (error) {
             console.error('Cancel request error:', error);
-            alert('❌ Error cancelling request. Please try again.');
+            alert('❌ Network error cancelling request. Please try again.');
             // Re-enable buttons on error
             cancelBtns.forEach(btn => {
                 btn.disabled = false;
