@@ -16,18 +16,73 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once '../includes/db.php';
 require_once '../languages/translator.php';
+require_once '../includes/enhanced_equb_calculator_final.php';
+
+// Ensure translation function exists
+if (!function_exists('t')) {
+    function t($key) {
+        return $key; // Fallback to key if translation function doesn't exist
+    }
+}
 
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
 
-// Get member data
+// Get comprehensive member data with enhanced calculations
 try {
+    // Initialize enhanced calculator
+    if (!class_exists('EnhancedEqubCalculator')) {
+        throw new Exception('EnhancedEqubCalculator class not found');
+    }
+    $enhanced_calculator = new EnhancedEqubCalculator($pdo);
+    
     $stmt = $pdo->prepare("
-        SELECT m.*,
-               (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id) as total_payouts_received
+        SELECT m.*, 
+               es.equb_name, es.start_date, es.end_date, es.payout_day, es.duration_months, 
+               es.max_members, es.current_members, es.admin_fee, es.late_fee, es.grace_period_days,
+               es.regular_payment_tier, es.currency, es.status as equb_status,
+               COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
+               COALESCE(COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END), 0) as payments_made,
+               COALESCE(
+                   (SELECT po.gross_payout FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   0
+               ) as last_gross_payout,
+               COALESCE(
+                   (SELECT po.total_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   0
+               ) as last_total_amount,
+               COALESCE(
+                   (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   0
+               ) as last_net_amount,
+               COALESCE(
+                   (SELECT po.actual_payout_date FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1), 
+                   NULL
+               ) as last_payout_date,
+               (SELECT COUNT(*) FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed') as total_payouts_received,
+               (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
+               -- Calculate EQUB progress
+               CASE 
+                   WHEN es.start_date IS NOT NULL THEN 
+                       GREATEST(0, FLOOR(DATEDIFF(CURDATE(), es.start_date) / 30.44))
+                   ELSE 0 
+               END as months_in_equb,
+               CASE 
+                   WHEN es.duration_months IS NOT NULL AND es.start_date IS NOT NULL THEN 
+                       GREATEST(0, es.duration_months - FLOOR(DATEDIFF(CURDATE(), es.start_date) / 30.44))
+                   ELSE es.duration_months 
+               END as remaining_months_in_equb,
+               -- Get latest login info from device tracking
+               COALESCE(
+                   (SELECT dt.last_login FROM device_tracking dt WHERE dt.user_id = m.id ORDER BY dt.last_login DESC LIMIT 1),
+                   m.created_at
+               ) as latest_login
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
+        LEFT JOIN payments p ON m.id = p.member_id
         WHERE m.id = ? AND m.is_active = 1
+        GROUP BY m.id
     ");
     $stmt->execute([$user_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -35,6 +90,64 @@ try {
     if (!$member) {
         die("❌ ERROR: No member found with ID $user_id. Please check database.");
     }
+    
+    // Enhanced calculations using calculator
+    try {
+        if (isset($enhanced_calculator) && is_object($enhanced_calculator)) {
+            $calc_result = $enhanced_calculator->calculateMemberFriendlyPayout($user_id);
+            if ($calc_result['success']) {
+                $gross_payout = $calc_result['calculation']['gross_payout'];
+                $display_payout = $calc_result['calculation']['display_payout'];
+                $net_payout = $calc_result['calculation']['real_net_payout'];
+                $calculation_method = $calc_result['calculation']['calculation_method'];
+                $position_coefficient = $calc_result['calculation']['position_coefficient'];
+                $total_monthly_pool = $calc_result['calculation']['total_monthly_pool'];
+            } else {
+                // Fallback calculation
+                $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+                $display_payout = $gross_payout - $member['admin_fee'];
+                $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
+                $calculation_method = 'fallback';
+                $position_coefficient = $member['position_coefficient'] ?? 1;
+                $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+            }
+        } else {
+            // Basic fallback if calculator not available
+            $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+            $display_payout = $gross_payout - $member['admin_fee'];
+            $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
+            $calculation_method = 'basic_fallback';
+            $position_coefficient = $member['position_coefficient'] ?? 1;
+            $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+        }
+    } catch (Exception $e) {
+        // Final fallback calculation
+        $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+        $display_payout = $gross_payout - $member['admin_fee'];
+        $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
+        $calculation_method = 'error_fallback';
+        $position_coefficient = $member['position_coefficient'] ?? 1;
+        $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+        error_log("Calculator error for member {$user_id}: " . $e->getMessage());
+    }
+    
+    // Calculate expected payout date
+    if (!empty($member['payout_month']) && $member['payout_month'] !== '0000-00-00') {
+        $expected_payout_date = $member['payout_month'];
+    } else if ($member['start_date'] && $member['payout_position'] > 0) {
+        $start_date = new DateTime($member['start_date']);
+        $payout_date = clone $start_date;
+        $payout_date->add(new DateInterval('P' . ($member['payout_position'] - 1) . 'M'));
+        $payout_date->setDate(
+            $payout_date->format('Y'), 
+            $payout_date->format('n'), 
+            $member['payout_day'] ?? 1
+        );
+        $expected_payout_date = $payout_date->format('Y-m-d');
+    } else {
+        $expected_payout_date = null;
+    }
+    
 } catch (PDOException $e) {
     die("❌ DATABASE ERROR: " . $e->getMessage());
 }
@@ -42,6 +155,7 @@ try {
 // Calculate member data
 $total_payouts_received = (int)$member['total_payouts_received'];
 $member_since = date('M Y', strtotime($member['created_at']));
+$latest_login_formatted = $member['latest_login'] ? date('M j, Y g:i A', strtotime($member['latest_login'])) : 'Never';
 
 // Strong cache buster for assets
 $cache_buster = time() . '_' . rand(1000, 9999);
@@ -545,6 +659,89 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
 .profile-card:nth-child(2) { animation-delay: 0.1s; }
 .form-section:nth-child(2) { animation-delay: 0.2s; }
+
+/* Profile Stat Cards */
+.profile-stat-card {
+    background: var(--color-white);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--color-border);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.profile-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-gold) 0%, var(--color-light-gold) 100%);
+}
+
+.profile-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(48, 25, 52, 0.15);
+    border-color: var(--color-gold);
+}
+
+.profile-stat-card .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    background: rgba(218, 165, 32, 0.1);
+}
+
+.profile-stat-card .stat-icon.text-success {
+    background: rgba(40, 167, 69, 0.1);
+    color: var(--color-green);
+}
+
+.profile-stat-card .stat-icon.text-primary {
+    background: rgba(13, 110, 253, 0.1);
+    color: var(--color-purple);
+}
+
+.profile-stat-card .stat-icon.text-warning {
+    background: rgba(255, 193, 7, 0.1);
+    color: var(--color-gold);
+}
+
+.profile-stat-card .stat-icon.text-info {
+    background: rgba(13, 202, 240, 0.1);
+    color: #0dcaf0;
+}
+
+.profile-stat-card .stat-content h3 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-deep-purple);
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.profile-stat-card .stat-content p {
+    font-size: 15px;
+    color: var(--color-text);
+    margin-bottom: 0;
+    font-weight: 500;
+}
+
+.profile-stat-card .stat-content small {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
 </style>
 
 </head>
@@ -634,48 +831,113 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     </form>
                 </div>
 
-                <!-- Change Password Section -->
+                <!-- EQUB Financial Summary Section -->
                 <div class="form-section">
                     <h2 class="section-title">
-                        <i class="fas fa-lock text-warning"></i>
-                        <?php echo t('user_profile.change_password'); ?>
+                        <i class="fas fa-chart-line text-success"></i>
+                        <?php echo t('payout_info.financial_summary'); ?>
                     </h2>
                     
-                    <form id="passwordForm" method="POST" action="api/change-password.php">
-                        <div class="form-group">
-                            <label for="current_password" class="form-label">
-                                <i class="fas fa-key text-secondary"></i>
-                                <?php echo t('user_profile.current_password'); ?>
-                            </label>
-                            <input type="password" class="form-control" id="current_password" name="current_password" required>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="new_password" class="form-label">
-                                        <i class="fas fa-shield-alt text-success"></i>
-                                        <?php echo t('user_profile.new_password'); ?>
-                                    </label>
-                                    <input type="password" class="form-control" id="new_password" name="new_password" required>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-success">
+                                    <i class="fas fa-coins"></i>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="confirm_password" class="form-label">
-                                        <i class="fas fa-check-circle text-primary"></i>
-                                        <?php echo t('user_profile.confirm_password'); ?>
-                                    </label>
-                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                <div class="stat-content">
+                                    <h3>£<?php echo number_format($member['monthly_payment'], 0); ?></h3>
+                                    <p><?php echo t('members_directory.monthly_payment_full'); ?></p>
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-primary">
+                                    <i class="fas fa-piggy-bank"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3>£<?php echo number_format($member['total_contributed'], 0); ?></h3>
+                                    <p><?php echo t('members_directory.total_contributions'); ?></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-warning">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3>£<?php echo number_format($display_payout, 0); ?></h3>
+                                    <p><?php echo t('members_directory.expected_payout'); ?></p>
+                                    <small class="text-muted"><?php echo t('payout_info.based_on_contribution'); ?></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-info">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3><?php echo $expected_payout_date ? date('M j, Y', strtotime($expected_payout_date)) : 'TBD'; ?></h3>
+                                    <p><?php echo t('members_directory.payout_date'); ?></p>
+                                    <?php if ($expected_payout_date): ?>
+                                        <?php $days_until = max(0, floor((strtotime($expected_payout_date) - time()) / (60 * 60 * 24))); ?>
+                                        <small class="text-muted"><?php echo $days_until; ?> days remaining</small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                        <button type="submit" class="btn btn-warning mt-3">
-                            <i class="fas fa-key me-2"></i>
-                            <?php echo t('user_profile.change_password'); ?>
-                        </button>
-                    </form>
+                <!-- EQUB Progress Section -->
+                <div class="form-section">
+                    <h2 class="section-title">
+                        <i class="fas fa-progress-bar text-info"></i>
+                        <?php echo t('payout_info.equb_progress_title'); ?>
+                    </h2>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-primary">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3><?php echo $member['payout_position']; ?> / <?php echo $member['total_equb_members']; ?></h3>
+                                    <p><?php echo t('members_directory.queue_position'); ?></p>
+                                    <?php if (!empty($member['equb_name'])): ?>
+                                        <small class="text-muted"><?php echo htmlspecialchars($member['equb_name']); ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-success">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3><?php echo $member['months_in_equb']; ?></h3>
+                                    <p><?php echo t('payout_info.months_completed'); ?></p>
+                                    <small class="text-muted">Since <?php echo $member['start_date'] ? date('M Y', strtotime($member['start_date'])) : 'N/A'; ?></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="profile-stat-card">
+                                <div class="stat-icon text-warning">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3><?php echo $member['remaining_months_in_equb'] ?? 0; ?></h3>
+                                    <p><?php echo t('payout_info.remaining_months'); ?></p>
+                                    <small class="text-muted">Until completion</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -730,6 +992,54 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </div>
                     </div>
 
+                    <?php if ($member['last_total_amount'] > 0): ?>
+                    <div class="account-info-item">
+                        <div class="account-info-label">
+                            <i class="fas fa-money-bill-wave me-1"></i>
+                            Last Payout Amount
+                        </div>
+                        <div class="account-info-value">
+                            <span class="text-warning fw-bold">£<?php echo number_format($member['last_total_amount'], 0); ?></span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="account-info-item">
+                        <div class="account-info-label">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Last Login
+                        </div>
+                        <div class="account-info-value">
+                            <span class="text-info fw-bold"><?php echo $latest_login_formatted; ?></span>
+                        </div>
+                    </div>
+
+                    <?php if (!empty($member['equb_name'])): ?>
+                    <div class="account-info-item">
+                        <div class="account-info-label">
+                            <i class="fas fa-users me-1"></i>
+                            EQUB Group
+                        </div>
+                        <div class="account-info-value">
+                            <span class="text-primary fw-bold"><?php echo htmlspecialchars($member['equb_name']); ?></span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="account-info-item">
+                        <div class="account-info-label">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Privacy Setting
+                        </div>
+                        <div class="account-info-value">
+                            <?php if ($member['go_public'] == 1): ?>
+                                <span class="text-success fw-bold">Public Profile</span>
+                            <?php else: ?>
+                                <span class="text-secondary fw-bold">Private Profile</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
                     <hr style="border-color: var(--color-border); margin: 25px 0;">
                     
                     <div class="d-grid gap-3">
@@ -766,67 +1076,18 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             }, index * 100);
         });
 
-        // Password confirmation validation
-        const passwordForm = document.getElementById('passwordForm');
-        const newPassword = document.getElementById('new_password');
-        const confirmPassword = document.getElementById('confirm_password');
-        
-        if (passwordForm) {
-            // Real-time password matching feedback
-            confirmPassword.addEventListener('input', function() {
-                if (newPassword.value && confirmPassword.value) {
-                    if (newPassword.value === confirmPassword.value) {
-                        confirmPassword.style.borderColor = 'var(--color-gold)';
-                        confirmPassword.style.boxShadow = '0 0 0 0.25rem rgba(218, 165, 32, 0.15)';
-                    } else {
-                        confirmPassword.style.borderColor = 'var(--color-brown)';
-                        confirmPassword.style.boxShadow = '0 0 0 0.25rem rgba(93, 66, 37, 0.15)';
-                    }
-                }
-            });
-
-            passwordForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                if (newPassword.value !== confirmPassword.value) {
-                    showAlert('<?php echo t('user_profile.passwords_no_match'); ?>', 'danger');
-                    return false;
-                }
-                
-                if (newPassword.value.length < 6) {
-                    showAlert('<?php echo t('user_profile.password_min_length'); ?>', 'warning');
-                    return false;
-                }
-                
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Changing...';
-                
-                try {
-                    const formData = new FormData(this);
-                    const response = await fetch(this.action, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        showAlert(result.message, 'success');
-                        // Clear the form on success
-                        this.reset();
-                    } else {
-                        showAlert(result.message, 'danger');
-                    }
-                } catch (error) {
-                    showAlert('Network error. Please try again.', 'danger');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                }
-            });
-        }
+        // Enhanced stat card animations
+        const statCards = document.querySelectorAll('.profile-stat-card');
+        statCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
         
         // Profile form enhancement
         const profileForm = document.getElementById('profileForm');
