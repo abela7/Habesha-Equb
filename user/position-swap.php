@@ -169,7 +169,7 @@ try {
                     if ($occupant['go_public']) {
                         $occupant_name = $occupant['first_name'] . ' ' . $occupant['last_name'];
                     } else {
-                        $occupant_name = t('position_swap.anonymous');
+                        $occupant_name = t('payout_info.anonymous');
                     }
                 }
             }
@@ -702,6 +702,313 @@ $current_payout_date->setDate(
             padding: 16px 12px;
         }
     }
+
+    /* === NEW PROFESSIONAL CARD DESIGNS === */
+    
+    /* Current Position Card */
+    .current-position-card {
+        background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%);
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(218, 165, 32, 0.2);
+        box-shadow: 0 8px 32px rgba(218, 165, 32, 0.15);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    
+    .current-position-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+        pointer-events: none;
+    }
+    
+    .current-position-card .card-header {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem 2rem 1rem 2rem;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .current-position-card .card-icon {
+        width: 56px;
+        height: 56px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        margin-right: 1rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .current-position-card .card-title h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin: 0 0 0.25rem 0;
+    }
+    
+    .current-position-card .card-title p {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0;
+    }
+    
+    .current-position-card .card-content {
+        padding: 0 2rem 2rem 2rem;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .position-display {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+    
+    .position-badge-large {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+    }
+    
+    .position-details h4 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: white;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .payout-date {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+    }
+    
+    /* Swap Requests Card */
+    .swap-requests-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+        box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+        overflow: hidden;
+    }
+    
+    .swap-requests-card .card-header {
+        background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
+        display: flex;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .swap-requests-card .card-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(19, 102, 92, 0.1);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: var(--color-teal);
+        margin-right: 1rem;
+    }
+    
+    .swap-requests-card .card-title h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--color-purple);
+        margin: 0 0 0.25rem 0;
+    }
+    
+    .swap-requests-card .card-title p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .swap-requests-card .card-content {
+        padding: 0;
+    }
+    
+    .requests-table-container {
+        overflow-x: auto;
+    }
+    
+    .requests-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+    
+    .requests-table thead th {
+        background: var(--color-cream);
+        color: var(--color-purple);
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem;
+        border: none;
+        border-bottom: 2px solid var(--border-light);
+        text-align: left;
+    }
+    
+    .requests-table tbody td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+    
+    .requests-table tbody tr:hover {
+        background-color: rgba(241, 236, 226, 0.3);
+    }
+    
+    .request-code {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        background: rgba(19, 102, 92, 0.1);
+        color: var(--color-teal);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .position-badge-small {
+        background: var(--color-teal);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        min-width: 24px;
+        text-align: center;
+        display: inline-block;
+    }
+    
+    .position-badge-small.requested {
+        background: var(--color-gold);
+        color: var(--color-purple);
+    }
+    
+    .request-date {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .btn-cancel-request {
+        background: var(--color-coral);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .btn-cancel-request:hover {
+        background: #D6492C;
+        transform: translateY(-1px);
+    }
+    
+    .btn-view-details {
+        background: var(--color-teal);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .btn-view-details:hover {
+        background: #0F5147;
+        transform: translateY(-1px);
+    }
+    
+    /* Mobile Responsive for New Cards */
+    @media (max-width: 768px) {
+        .current-position-card .card-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 1.5rem 1rem 1rem 1rem;
+        }
+        
+        .current-position-card .card-icon {
+            margin-right: 0;
+            margin-bottom: 1rem;
+        }
+        
+        .current-position-card .card-content {
+            padding: 0 1rem 1.5rem 1rem;
+        }
+        
+        .position-display {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .position-badge-large {
+            width: 64px;
+            height: 64px;
+            font-size: 1.5rem;
+        }
+        
+        .swap-requests-card .card-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 1.5rem 1rem;
+        }
+        
+        .swap-requests-card .card-icon {
+            margin-right: 0;
+            margin-bottom: 1rem;
+        }
+        
+        .requests-table thead th {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .requests-table tbody td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .btn-cancel-request,
+        .btn-view-details {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.625rem;
+        }
+    }
     </style>
 </head>
 
@@ -738,24 +1045,33 @@ $current_payout_date->setDate(
             </div>
         <?php endif; ?>
 
-        <!-- Current Position -->
+        <!-- Current Position Card - Professional Design -->
         <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="position-card current-position">
-                    <h3 class="mb-3">
-                        <i class="fas fa-map-marker-alt me-2"></i>
-                        <?php echo t('position_swap.current_position'); ?>
-                    </h3>
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="position-number"><?php echo $member['payout_position']; ?></div>
-                        <div class="ms-3">
-                            <div class="h4 mb-1"><?php echo t('position_swap.your_position'); ?></div>
-                            <div><?php echo $current_payout_date->format('M j, Y'); ?></div>
+            <div class="col-12">
+                <div class="current-position-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="card-title">
+                            <h3><?php echo t('position_swap.current_position'); ?></h3>
+                            <p><?php echo t('position_swap.current_position_desc'); ?></p>
                         </div>
                     </div>
-                    <p class="mb-0 opacity-90">
-                        <?php echo t('position_swap.current_position_desc'); ?>
-                    </p>
+                    <div class="card-content">
+                        <div class="position-display">
+                            <div class="position-badge-large">
+                                <?php echo $member['payout_position']; ?>
+                            </div>
+                            <div class="position-details">
+                                <h4><?php echo t('position_swap.your_position'); ?></h4>
+                                <div class="payout-date">
+                                    <i class="fas fa-calendar me-2"></i>
+                                    <?php echo $current_payout_date->format('M j, Y'); ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -905,61 +1221,79 @@ $current_payout_date->setDate(
         <?php endif; ?>
         <?php endif; ?>
 
-        <!-- My Requests History -->
+        <!-- My Swap Requests - Professional Design -->
         <?php if (!empty($swap_history)): ?>
         <div class="row mt-5">
             <div class="col-12">
-                <h3 class="mb-3">
-                    <i class="fas fa-history text-info me-2"></i>
-                    <?php echo t('position_swap.my_requests'); ?>
-                </h3>
-                
-                <div class="history-table">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th><?php echo t('position_swap.request_id'); ?></th>
-                                    <th><?php echo t('position_swap.current'); ?></th>
-                                    <th><?php echo t('position_swap.requested_pos'); ?></th>
-                                    <th><?php echo t('position_swap.status'); ?></th>
-                                    <th><?php echo t('position_swap.date_requested'); ?></th>
-                                    <th><?php echo t('position_swap.actions'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($swap_history as $request): ?>
-                                <tr>
-                                    <td>
-                                        <code class="small"><?php echo htmlspecialchars($request['request_id']); ?></code>
-                                    </td>
-                                    <td><?php echo $request['current_position']; ?></td>
-                                    <td><?php echo $request['requested_position']; ?></td>
-                                    <td>
-                                        <span class="status-badge status-<?php echo $request['status']; ?>">
-                                            <?php echo t('position_swap.' . $request['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo date('M j, Y', strtotime($request['requested_date'])); ?></td>
-                                    <td>
-                                        <?php if ($request['status'] === 'pending'): ?>
-                                            <button class="btn btn-sm btn-outline-danger" 
-                                                    onclick="cancelSwapRequest('<?php echo $request['request_id']; ?>')">
-                                                <i class="fas fa-times me-1"></i>
-                                                <?php echo t('position_swap.cancel_pending_request'); ?>
-                                            </button>
-                                        <?php else: ?>
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    onclick="viewRequestDetails('<?php echo $request['request_id']; ?>')">
-                                                <i class="fas fa-eye me-1"></i>
-                                                <?php echo t('position_swap.view_details'); ?>
-                                            </button>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                <div class="swap-requests-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="card-title">
+                            <h3><?php echo t('position_swap.my_requests'); ?></h3>
+                            <p>View and manage your position swap requests</p>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="requests-table-container">
+                            <div class="table-responsive">
+                                <table class="requests-table">
+                                    <thead>
+                                        <tr>
+                                            <th><?php echo t('position_swap.request_id'); ?></th>
+                                            <th><?php echo t('position_swap.current'); ?></th>
+                                            <th><?php echo t('position_swap.requested_pos'); ?></th>
+                                            <th><?php echo t('position_swap.status'); ?></th>
+                                            <th><?php echo t('position_swap.date_requested'); ?></th>
+                                            <th><?php echo t('position_swap.actions'); ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($swap_history as $request): ?>
+                                        <tr>
+                                            <td>
+                                                <span class="request-code"><?php echo htmlspecialchars($request['request_id']); ?></span>
+                                            </td>
+                                            <td>
+                                                <span class="position-badge-small"><?php echo $request['current_position']; ?></span>
+                                            </td>
+                                            <td>
+                                                <span class="position-badge-small requested"><?php echo $request['requested_position']; ?></span>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge status-<?php echo $request['status']; ?>">
+                                                    <i class="fas fa-<?php echo $request['status'] === 'pending' ? 'clock' : ($request['status'] === 'approved' ? 'check' : ($request['status'] === 'rejected' ? 'times' : 'trophy')); ?> me-1"></i>
+                                                    <?php echo t('position_swap.' . $request['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="request-date">
+                                                    <i class="fas fa-calendar me-1"></i>
+                                                    <?php echo date('M j, Y', strtotime($request['requested_date'])); ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <?php if ($request['status'] === 'pending'): ?>
+                                                    <button class="btn-cancel-request" 
+                                                            onclick="cancelSwapRequest('<?php echo $request['request_id']; ?>')">
+                                                        <i class="fas fa-times me-1"></i>
+                                                        <?php echo t('position_swap.cancel_pending_request'); ?>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button class="btn-view-details" 
+                                                            onclick="viewRequestDetails('<?php echo $request['request_id']; ?>')">
+                                                        <i class="fas fa-eye me-1"></i>
+                                                        <?php echo t('position_swap.view_details'); ?>
+                                                    </button>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
