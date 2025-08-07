@@ -166,9 +166,11 @@ try {
                 } else {
                     // Individual position
                     $occupant = $position_occupants[0];
-                    $occupant_name = $occupant['go_public'] ? 
-                        $occupant['first_name'] . ' ' . $occupant['last_name'] : 
-                        t('position_swap.anonymous');
+                    if ($occupant['go_public']) {
+                        $occupant_name = $occupant['first_name'] . ' ' . $occupant['last_name'];
+                    } else {
+                        $occupant_name = t('position_swap.anonymous');
+                    }
                 }
             }
             
@@ -295,14 +297,14 @@ $current_payout_date->setDate(
     }
 
     .position-item.locked {
-        background: #fff3cd;
-        border-color: #ffeaa7;
+        background: var(--color-light-purple);
+        border-color: var(--color-dark-purple);
         cursor: not-allowed;
-        opacity: 0.8;
+        opacity: 0.7;
     }
 
     .position-item.locked:hover {
-        border-color: #ffeaa7;
+        border-color: var(--color-dark-purple);
         transform: none;
     }
 
@@ -316,8 +318,8 @@ $current_payout_date->setDate(
     }
 
     .position-item.occupied {
-        background: #e3f2fd;
-        border-color: #bbdefb;
+        background: var(--color-light-teal);
+        border-color: var(--color-teal);
     }
 
     .position-number {
@@ -350,13 +352,13 @@ $current_payout_date->setDate(
     }
 
     .status-available {
-        background: #d4edda;
-        color: #155724;
+        background: var(--color-light-green);
+        color: var(--color-dark-green);
     }
 
     .status-taken {
-        background: #f8d7da;
-        color: #721c24;
+        background: var(--color-light-teal);
+        color: var(--color-dark-purple);
     }
 
     .status-your {
@@ -365,13 +367,13 @@ $current_payout_date->setDate(
     }
 
     .status-locked {
-        background: #856404;
-        color: #fff3cd;
+        background: var(--color-dark-purple);
+        color: var(--color-light-purple);
     }
 
     .swap-rules {
-        background: #e7f3ff;
-        border: 1px solid #b8daff;
+        background: var(--color-light-teal);
+        border: 1px solid var(--color-teal);
         border-radius: 8px;
         padding: 20px;
         margin: 20px 0;
@@ -436,9 +438,9 @@ $current_payout_date->setDate(
     }
 
     .disabled-notice {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
+        background: var(--color-light-purple);
+        color: var(--color-dark-purple);
+        border: 1px solid var(--color-dark-purple);
         border-radius: 8px;
         padding: 20px;
         margin: 20px 0;
@@ -522,7 +524,6 @@ $current_payout_date->setDate(
             <ul>
                 <li><?php echo t('position_swap.rule_1'); ?></li>
                 <li><?php echo t('position_swap.rule_2'); ?></li>
-                <li><?php echo t('position_swap.rule_3'); ?></li>
                 <li><?php echo t('position_swap.rule_4'); ?></li>
             </ul>
         </div>
@@ -581,8 +582,8 @@ $current_payout_date->setDate(
                                     }
                                 ?>">
                                     <?php if ($pos['is_locked']): ?>
-                                        <i class="fas fa-lock me-1"></i>
-                                        Locked
+                                        <i class="fas fa-ban me-1"></i>
+                                        No Swapping
                                     <?php elseif ($pos['is_available']): ?>
                                         <i class="fas fa-check-circle me-1"></i>
                                         <?php echo t('position_swap.available'); ?>
@@ -771,7 +772,7 @@ $current_payout_date->setDate(
         lockedItems.forEach(item => {
             item.addEventListener('click', function() {
                 console.log('Locked position clicked:', this.dataset.position);
-                showAlert('This position is locked because one or more members have disabled swap permissions.', 'warning');
+                showAlert('This position is not available for swapping because one or more members have disabled their swap permissions.', 'warning');
             });
         });
         
@@ -797,10 +798,16 @@ $current_payout_date->setDate(
                     const result = await response.json();
                     
                     if (result.success) {
-                        showAlert(result.message, 'success');
+                        // Show success message with confirmation
+                        showAlert('✅ Swap request submitted successfully! Your request is now pending admin approval. You will receive an email notification once it\'s processed.', 'success');
+                        
+                        // Hide the form and clear selection
+                        cancelRequest();
+                        
+                        // Reload page after delay to show updated request history
                         setTimeout(() => {
                             window.location.reload();
-                        }, 2000);
+                        }, 3000);
                     } else {
                         showAlert(result.message, 'danger');
                     }
