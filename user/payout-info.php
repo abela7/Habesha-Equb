@@ -1676,10 +1676,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.expected_payout'); ?></h3>
                          </div>
                     </div>
-                    <div class="payout-value">£<?php echo number_format($real_net_payout, 2); ?></div>
+                    <div class="payout-value">£<?php echo number_format($display_payout, 2); ?></div>
                     <div class="payout-detail">
                         <i class="fas fa-money-bill-wave text-success me-1"></i>
-                        <strong><?php echo t('payout_info.net_amount'); ?></strong> (<?php echo t('payout_info.what_you_receive'); ?>)
+                        <strong><?php echo t('payout_info.display_amount'); ?></strong> (<?php echo t('payout_info.gross_minus_admin_fee'); ?>)
                     </div>
                     <div class="payout-detail mt-2">
                         <i class="fas fa-coins text-secondary me-1"></i>
@@ -2072,7 +2072,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     ?>
                                 </div>
                                 <div class="step-amount">
-                                    £<?php echo number_format($queue_member['net_payout'], 2); ?>
+                                    £<?php echo number_format($queue_member['display_payout'], 2); ?>
                                 </div>
                                 <div class="step-date">
                                     <?php echo $member_payout_date->format('M j, Y'); ?>

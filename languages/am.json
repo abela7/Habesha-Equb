@@ -1046,6 +1046,8 @@
   "payout_info": {
     "net_amount": "የተጣራ መጠን",
     "what_you_receive": "የሚያገኙት",
+    "display_amount": "የሚታይ መጠን",
+    "gross_minus_admin_fee": "አጠቃላይ እቁብ መጠን ከአስተዳደር ክፍያ ተቀንሶ",
     "based_on_contribution": "ይህ መጠን በሚጥሉት እቁብ ላይ መሰረት ያደረገ ነው",
     "your_turn_arrived": "የእርስዎ ተራ ደርሷል",
     "months_until_turn": "ወሮች ተራዎ እስከሚደርስ ድረስ",

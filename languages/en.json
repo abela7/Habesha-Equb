@@ -1046,6 +1046,8 @@
   "payout_info": {
     "net_amount": "Net Amount",
     "what_you_receive": "What you receive",
+    "display_amount": "Display Amount",
+    "gross_minus_admin_fee": "Gross payout minus admin fee",
     "based_on_contribution": "Based on your contribution and EQUB position",
     "your_turn_arrived": "Your turn has arrived",
     "months_until_turn": "months until your turn",
