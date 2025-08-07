@@ -12,8 +12,14 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../../includes/db.php';
 require_once '../../includes/enhanced_equb_calculator.php';
 
-// Set JSON header
+// Set JSON header and error handling
 header('Content-Type: application/json');
+
+// Capture any PHP errors/warnings
+ob_start();
+set_error_handler(function($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
 
 // Check database connection
 if (!isset($pdo) || !$pdo) {
@@ -229,6 +235,9 @@ function createJointGroupPayouts($joint_group_id, $total_group_amount, $schedule
  */
 function calculateMemberPayout() {
     global $pdo;
+    
+    // Clear any previous output
+    if (ob_get_length()) ob_clean();
     
     $member_id = intval($_POST['member_id'] ?? $_GET['member_id'] ?? 0);
     
