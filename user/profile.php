@@ -73,11 +73,8 @@ try {
                        GREATEST(0, es.duration_months - FLOOR(DATEDIFF(CURDATE(), es.start_date) / 30.44))
                    ELSE es.duration_months 
                END as remaining_months_in_equb,
-               -- Get latest login info from device tracking
-               COALESCE(
-                   (SELECT dt.last_seen FROM device_tracking dt WHERE dt.email = m.email ORDER BY dt.last_seen DESC LIMIT 1),
-                   m.created_at
-               ) as latest_login
+               -- Get latest login directly from members table
+               COALESCE(m.last_login, m.created_at) as latest_login
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
