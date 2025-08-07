@@ -18,8 +18,12 @@ header('X-Frame-Options: DENY');
 // Database connection
 require_once '../../includes/db.php';
 
+// Admin authentication and CSRF functions
+require_once '../includes/admin_auth_guard.php';
+
 // Security check
-if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
+$admin_id = get_current_admin_id();
+if (!$admin_id) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
@@ -34,7 +38,6 @@ if (!isset($pdo) || !$pdo instanceof PDO) {
 
 // Get action
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
-$admin_id = $_SESSION['admin_id'];
 
 // CSRF protection (except for read-only actions)
 $read_only_actions = ['list', 'get', 'calculate'];
@@ -432,20 +435,5 @@ function deletePayout() {
     }
 }
 
-/**
- * Generate CSRF token
- */
-function generate_csrf_token() {
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
 
-/**
- * Verify CSRF token
- */
-function verify_csrf_token($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
-}
 ?>
