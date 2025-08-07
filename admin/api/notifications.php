@@ -119,7 +119,7 @@ function createNotification(int $admin_id): void {
     try {
         // Generate unique code
         $code = 'NTF-' . date('Ymd') . '-' . sprintf('%03d', random_int(100, 999));
-        $stmt = $pdo->prepare('SELECT id FROM notifications WHERE notification_code = ?');
+        $stmt = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
         $stmt->execute([$code]);
         while ($stmt->fetch()) {
             $code = 'NTF-' . date('Ymd') . '-' . sprintf('%03d', random_int(100, 999));
@@ -127,8 +127,8 @@ function createNotification(int $admin_id): void {
         }
 
         // Insert notification
-        $insert = $pdo->prepare('INSERT INTO notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,"sent", NOW(), NOW(), NOW())');
-        $insert->execute([$code, $admin_id, $audience_type, $equb_settings_id, $title_en, $title_am, $body_en, $body_am, $priority]);
+        $insert = $pdo->prepare('INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?, NOW(), NOW(), NOW())');
+        $insert->execute([$code, $admin_id, $audience_type, $equb_settings_id, $title_en, $title_am, $body_en, $body_am, $priority, 'sent']);
         $notificationId = (int)$pdo->lastInsertId();
 
         // Insert recipients based on audience
@@ -161,7 +161,26 @@ function createNotification(int $admin_id): void {
 
 function listNotifications(): void {
     global $pdo;
-    $stmt = $pdo->prepare('SELECT n.*, a.username AS admin_name, COUNT(nr.id) AS recipients_count FROM notifications n LEFT JOIN admins a ON n.created_by_admin_id = a.id LEFT JOIN notification_recipients nr ON nr.notification_id = n.id GROUP BY n.id ORDER BY n.created_at DESC LIMIT 100');
+    $sql = "
+        SELECT 
+            n.id,
+            n.notification_code,
+            n.audience_type,
+            n.equb_settings_id,
+            n.title_en,
+            n.title_am,
+            n.priority,
+            n.status,
+            n.sent_at,
+            n.created_at,
+            COALESCE(a.username, 'System') AS admin_name,
+            (SELECT COUNT(*) FROM notification_recipients nr WHERE nr.notification_id = n.id) AS recipients_count
+        FROM program_notifications n
+        LEFT JOIN admins a ON n.created_by_admin_id = a.id
+        ORDER BY n.created_at DESC
+        LIMIT 100
+    ";
+    $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'notifications' => $rows]);
@@ -175,7 +194,7 @@ function getNotification(): void {
         echo json_encode(['success' => false, 'message' => 'ID required']);
         return;
     }
-    $stmt = $pdo->prepare('SELECT n.*, a.username AS admin_name FROM notifications n LEFT JOIN admins a ON n.created_by_admin_id = a.id WHERE n.id = ?');
+    $stmt = $pdo->prepare('SELECT n.*, a.username AS admin_name FROM program_notifications n LEFT JOIN admins a ON n.created_by_admin_id = a.id WHERE n.id = ?');
     $stmt->execute([$id]);
     $n = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$n) {
