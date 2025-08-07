@@ -1091,7 +1091,23 @@
     "bulk_actions": "የጅምላ እርምጃዎች",
     "select_all": "ሁሉንም ይምረጡ",
     "bulk_approve": "በጅምላ ያጽድቁ",
-    "bulk_reject": "በጅምላ ይቀንሱ"
+    "bulk_reject": "በጅምላ ይቀንሱ",
+    "member": "አባል",
+    "position_change": "ቦታ ለውጥ",
+    "target_member": "ዒላማ አባል",
+    "status": "ሁኔታ",
+    "date": "ቀን",
+    "request_id": "የጥያቄ መለያ",
+    "no_requests": "ምንም የቦታ ለውጥ ጥያቄዎች አልተገኙም",
+    "no_requests_desc": "አባላት የቦታ ለውጥ ጥያቄዎችን ሲያቀርቡ እዚህ ይታያሉ።",
+    "available_position": "የሚገኝ ቦታ",
+    "processed": "ተሰርቷል",
+    "approve_confirm": "ይህንን የቦታ ለውጥ ጥያቄ ማፅደቅ እርግጠኛ ነዎት?",
+    "reject_confirm": "ይህንን የቦታ ለውጥ ጥያቄ መሰረዝ እርግጠኛ ነዎት?",
+    "processing": "በሂደት ላይ",
+    "success_message": "ጥያቄ በተሳካ ሁኔታ ተሰርቷል!",
+    "error": "ስህተት",
+    "error_processing": "ጥያቄን ሲያስሰራ ስህተት"
   },
   "welcome": {
     "page_title": "እንኳን ወደ ሐበሻ እቁብ በደህና መጡ",
@@ -1176,5 +1192,22 @@
     "anonymous": "ስሙ እንዲጠቀስ ያልፈለግ",
     "upcoming_payout_journey": "የሚመጣው የክፍያ ሂደት",
     "joint_equb": "የጋራ እቁብ"
+  },
+  "common": {
+    "cancel": "ይቅር",
+    "confirm": "አረጋግጥ",
+    "save": "አስቀምጥ",
+    "delete": "ሰርዝ",
+    "edit": "አርም",
+    "view": "ተመልከት",
+    "close": "ዝጋ",
+    "back": "ወደኋላ",
+    "next": "ቀጣይ",
+    "previous": "ቀዳሚ",
+    "loading": "በመጫን ላይ...",
+    "success": "ተሳክቷል",
+    "error": "ስህተት",
+    "warning": "ማስጠንቀቂያ",
+    "info": "መረጃ"
   }
 } 

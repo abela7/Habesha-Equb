@@ -1091,7 +1091,23 @@
     "bulk_actions": "Bulk Actions",
     "select_all": "Select All",
     "bulk_approve": "Bulk Approve",
-    "bulk_reject": "Bulk Reject"
+    "bulk_reject": "Bulk Reject",
+    "member": "Member",
+    "position_change": "Position Change",
+    "target_member": "Target Member",
+    "status": "Status",
+    "date": "Date",
+    "request_id": "Request ID",
+    "no_requests": "No Swap Requests Found",
+    "no_requests_desc": "When members submit position swap requests, they will appear here.",
+    "available_position": "Available Position",
+    "processed": "Processed",
+    "approve_confirm": "Are you sure you want to approve this position swap request?",
+    "reject_confirm": "Are you sure you want to reject this position swap request?",
+    "processing": "Processing",
+    "success_message": "Request processed successfully!",
+    "error": "Error",
+    "error_processing": "Error processing request"
   },
   "welcome": {
     "page_title": "Welcome to HabeshaEqub",
@@ -1176,5 +1192,22 @@
     "anonymous": "Anonymous",
     "upcoming_payout_journey": "Upcoming Payout Journey",
     "joint_equb": "Joint EQUB"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information"
   }
 } 
