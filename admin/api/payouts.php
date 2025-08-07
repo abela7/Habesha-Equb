@@ -282,6 +282,8 @@ function listPayouts() {
         $stmt = $pdo->prepare("
             SELECT 
                 p.*,
+                m.first_name,
+                m.last_name,
                 CONCAT(m.first_name, ' ', m.last_name) as member_name,
                 m.member_id as member_code,
                 COALESCE(a.username, 'System') as processed_by_name
