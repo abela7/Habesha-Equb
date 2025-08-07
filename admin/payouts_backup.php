@@ -1430,7 +1430,7 @@ $csrf_token = generate_csrf_token();
         }
 
         // Fetch correct payout calculation from server
-        fetch('api/payouts.php', {
+        fetch('api/test_minimal.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
