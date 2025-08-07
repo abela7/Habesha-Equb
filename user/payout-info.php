@@ -240,6 +240,7 @@ try {
             $position_status = 'pending';
             $received_date = null;
             $all_completed = true;
+            $member_names = [];
             
             // Aggregate data for shared position
             foreach ($members as $member_data) {
@@ -261,6 +262,18 @@ try {
                 } else {
                     $all_completed = false;
                 }
+                
+                // Collect member names based on privacy settings
+                if ($member_data['go_public'] == 1 || $member_data['id'] == $user_id) {
+                    $name = trim($member_data['first_name'] . ' ' . $member_data['last_name']);
+                    if ($member_data['id'] == $user_id) {
+                        $member_names[] = $name . ' (You)';
+                    } else {
+                        $member_names[] = $name;
+                    }
+                } else {
+                    $member_names[] = t('payout_info.anonymous');
+                }
             }
             
             // Calculate combined payout for shared position
@@ -276,6 +289,7 @@ try {
                 'first_name' => '',
                 'last_name' => '',
                 'display_name' => t('payout_info.joint_equb'),
+                'member_names' => $member_names,
                 'is_anonymous' => false,
                 'is_current_user' => $has_current_user,
                 'is_joint_position' => true,
@@ -980,13 +994,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .payout-title-group h3 {
-        font-size: 18px;
+        font-size: 19px;
         font-weight: 600;
         margin-bottom: 8px;
     }
     
     .payout-value {
-        font-size: 32px;
+        font-size: 34px;
         text-align: center;
         margin: 20px 0 16px 0;
         font-weight: 700;
@@ -994,7 +1008,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     
     .payout-detail {
         text-align: center;
-        font-size: 15px;
+        font-size: 16px;
         line-height: 1.4;
     }
     
@@ -1063,18 +1077,18 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .step-member {
-        font-size: 17px;
+        font-size: 18px;
         margin-bottom: 12px;
         line-height: 1.3;
     }
     
     .step-amount {
-        font-size: 24px;
+        font-size: 26px;
         margin-bottom: 8px;
     }
     
     .step-date {
-        font-size: 15px;
+        font-size: 16px;
         margin-bottom: 16px;
     }
     
@@ -1220,19 +1234,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .step-member {
-        font-size: 16px;
+        font-size: 17px;
         margin-bottom: 10px;
         font-weight: 600;
     }
     
     .step-amount {
-        font-size: 22px;
+        font-size: 24px;
         margin-bottom: 6px;
         font-weight: 700;
     }
     
     .step-date {
-        font-size: 14px;
+        font-size: 15px;
         margin-bottom: 14px;
     }
     
@@ -1329,11 +1343,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .step-amount {
-        font-size: 20px;
+        font-size: 22px;
     }
     
     .step-member {
-        font-size: 15px;
+        font-size: 16px;
     }
     
     .btn-lg {
@@ -1413,11 +1427,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .info-label {
-        font-size: 12px;
+        font-size: 13px;
     }
     
     .info-value {
-        font-size: 13px;
+        font-size: 14px;
     }
 }
 
@@ -1561,12 +1575,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .accordion-card .accordion-header h5 {
-        font-size: 16px;
+        font-size: 17px;
     }
     
     .accordion-button {
         padding: 16px 20px;
-        font-size: 14px;
+        font-size: 15px;
     }
     
     .accordion-body {
@@ -1574,11 +1588,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .accordion-title {
-        font-size: 14px;
+        font-size: 15px;
     }
     
     .accordion-badge {
-        font-size: 11px;
+        font-size: 12px;
         padding: 3px 6px;
     }
 }
@@ -1589,12 +1603,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .accordion-card .accordion-header h5 {
-        font-size: 15px;
+        font-size: 16px;
     }
     
     .accordion-button {
         padding: 14px 16px;
-        font-size: 13px;
+        font-size: 14px;
         gap: 8px;
     }
     
@@ -2012,14 +2026,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 $member_payout_date = new DateTime($queue_member['payout_month']);
                             } else {
                                 // Fallback: if payout_month is not set, calculate based on equb settings
-                                $start_date = new DateTime($member['start_date']);
-                                $member_payout_date = clone $start_date;
-                                $member_payout_date->add(new DateInterval('P' . ($queue_member['payout_position'] - 1) . 'M'));
-                                $member_payout_date->setDate(
-                                    $member_payout_date->format('Y'), 
-                                    $member_payout_date->format('n'), 
-                                    $member['payout_day']
-                                );
+                            $start_date = new DateTime($member['start_date']);
+                            $member_payout_date = clone $start_date;
+                            $member_payout_date->add(new DateInterval('P' . ($queue_member['payout_position'] - 1) . 'M'));
+                            $member_payout_date->setDate(
+                                $member_payout_date->format('Y'), 
+                                $member_payout_date->format('n'), 
+                                $member['payout_day']
+                            );
                             }
                         ?>
                         <div class="journey-step <?php echo $queue_member['payout_status'] === 'completed' ? 'completed' : ($is_current ? 'current' : ($is_next ? 'next' : '')); ?>">
@@ -2037,12 +2051,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="step-content">
                                 <div class="step-member">
                                     <?php 
-                                    if (isset($queue_member['is_joint_position']) && $queue_member['is_joint_position']) {
+                                                                        if (isset($queue_member['is_joint_position']) && $queue_member['is_joint_position']) {
                                         // Joint position display
                                         echo '<strong><i class="fas fa-users text-warning me-1"></i>' . htmlspecialchars($queue_member['display_name']) . '</strong>';
-                                        echo '<br><small class="text-muted">' . $queue_member['member_count'] . ' members sharing</small>';
+                                        echo '<br><small class="text-muted">' . implode(', ', $queue_member['member_names']) . '</small>';
                                         if ($is_current) {
-                                            echo ' <span class="badge bg-primary ms-1">You\'re in this group</span>';
+                                            echo '<br><span class="badge bg-primary">You\'re in this group</span>';
                                         }
                                     } else {
                                         // Individual position display
