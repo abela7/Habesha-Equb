@@ -61,9 +61,11 @@ try {
                    0
                ) as payout_count,
                
-               -- Latest Completed Payout Details
+               -- Latest Completed Payout Details (ENHANCED structure)
                (SELECT po.actual_payout_date FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_payout_date,
-               (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_payout_amount,
+               (SELECT po.gross_payout FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_gross_payout,
+               (SELECT po.total_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_total_amount,
+               (SELECT po.net_amount FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_net_amount,
                (SELECT po.payout_id FROM payouts po WHERE po.member_id = m.id AND po.status = 'completed' ORDER BY po.actual_payout_date DESC LIMIT 1) as latest_payout_id,
                
                -- Equb Statistics
@@ -1846,7 +1848,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             </div>
                             <div class="stat-detail text-success">
                                 <i class="fas fa-money-bill-wave me-1"></i>
-                                <strong>Amount Received: £<?php echo number_format(($member['latest_payout_amount'] + $monthly_contribution), 0); ?></strong>
+                                <strong>Amount Received: £<?php echo number_format($member['latest_total_amount'], 0); ?></strong>
+                                <small class="d-block text-muted mt-1">
+                                    Gross: £<?php echo number_format($member['latest_gross_payout'], 0); ?> | 
+                                    Net: £<?php echo number_format($member['latest_net_amount'], 0); ?>
+                                </small>
                             </div>
                             <div class="stat-detail">
                                 <i class="fas fa-receipt me-1"></i>

@@ -134,7 +134,8 @@ function createJointGroupPayouts($joint_group_id, $total_group_amount, $schedule
                 throw new Exception("Failed to calculate payout for member {$joint_member['first_name']} {$joint_member['last_name']}");
             }
             
-            $individual_gross = $payout_result['calculation']['display_payout_amount'];
+            $individual_gross_payout = $payout_result['calculation']['gross_payout'];
+            $individual_total_amount = $payout_result['calculation']['display_payout']; // gross - admin fee
             $individual_admin_fee = $payout_result['calculation']['admin_fee'];
             $individual_net = $payout_result['calculation']['real_net_payout'];
             
@@ -154,18 +155,19 @@ function createJointGroupPayouts($joint_group_id, $total_group_amount, $schedule
                 $member_payout_id = $temp_id;
             }
             
-            // Insert individual payout
+            // Insert individual payout with ENHANCED structure
             $stmt = $pdo->prepare("
                 INSERT INTO payouts 
-                (payout_id, member_id, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
+                (payout_id, member_id, gross_payout, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
                  admin_fee, net_amount, processed_by_admin_id, payout_notes, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ");
             
             $stmt->execute([
                 $member_payout_id, 
                 $joint_member['id'], 
-                $individual_gross, 
+                $individual_gross_payout, 
+                $individual_total_amount,
                 $scheduled_date, 
                 $actual_payout_date, 
                 $status, 
@@ -277,9 +279,26 @@ function addPayout() {
         }
     }
     
+    // 🚀 ENHANCED CALCULATION using financial-analytics.php logic (NO HARDCODE) [[memory:5287409]]
+    require_once '../includes/enhanced_equb_calculator_final.php';
+    $calculator = new EnhancedEqubCalculator($pdo);
+    $calculation = $calculator->calculateMemberFriendlyPayout($member_id);
+    
+    if (!$calculation['success']) {
+        echo json_encode(['success' => false, 'message' => 'Failed to calculate payout: ' . ($calculation['message'] ?? 'Unknown error')]);
+        return;
+    }
+    
+    // Extract DYNAMIC calculations (all from database)
+    $calculated_gross_payout = $calculation['calculation']['gross_payout'];
+    $calculated_admin_fee = $calculation['calculation']['admin_fee'];
+    $calculated_monthly_payment = $calculation['calculation']['monthly_deduction'];
+    $calculated_total_amount = $calculation['calculation']['display_payout']; // gross - admin fee
+    $calculated_net_amount = $calculation['calculation']['real_net_payout']; // gross - admin fee - monthly payment
+    
     // Optional fields with validation
     $payout_method = sanitize_input($_POST['payout_method'] ?? 'bank_transfer');
-    $admin_fee_input = $_POST['admin_fee'] ?? 0;
+    $admin_fee_input = $_POST['admin_fee'] ?? $calculated_admin_fee; // Use calculated as default
     $status = sanitize_input($_POST['status'] ?? 'scheduled');
     $payout_notes = sanitize_input($_POST['payout_notes'] ?? '');
     $manual_actual_date = $_POST['actual_payout_date'] ?? '';
@@ -292,23 +311,34 @@ function addPayout() {
     
     $admin_fee = round(floatval($admin_fee_input), 2);
     
+    // Allow admin flexibility but use calculated values as basis
+    $gross_payout = $total_amount + $admin_fee; // If admin provided total_amount, calculate gross
+    $total_amount_final = $gross_payout - $admin_fee; // Total amount (what member thinks they get)
+    $net_amount = $gross_payout - $admin_fee - $calculated_monthly_payment; // What member actually gets
+    
+    // Validation with enhanced logic
+    if ($gross_payout <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Gross payout must be greater than 0']);
+        return;
+    }
+    
     if ($admin_fee < 0) {
         echo json_encode(['success' => false, 'message' => 'Admin fee cannot be negative']);
         return;
     }
     
-    if ($admin_fee >= $total_amount) {
-        echo json_encode(['success' => false, 'message' => 'Admin fee cannot exceed total amount']);
+    if ($admin_fee >= $gross_payout) {
+        echo json_encode(['success' => false, 'message' => 'Admin fee cannot exceed gross payout']);
         return;
     }
-    
-    // Calculate net amount with validation
-    $net_amount = round($total_amount - $admin_fee, 2);
     
     if ($net_amount <= 0) {
         echo json_encode(['success' => false, 'message' => 'Net amount must be greater than 0']);
         return;
     }
+    
+    // Override total_amount with calculated value for consistency
+    $total_amount = $total_amount_final;
     
     // Handle actual payout date for completed status
     $actual_payout_date = null;
@@ -382,16 +412,16 @@ function addPayout() {
             $payout_id = $temp_id;
         }
         
-        // Insert payout
+        // Insert payout with ENHANCED structure (gross_payout, total_amount, net_amount)
         $stmt = $pdo->prepare("
             INSERT INTO payouts 
-            (payout_id, member_id, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
+            (payout_id, member_id, gross_payout, total_amount, scheduled_date, actual_payout_date, status, payout_method, 
              admin_fee, net_amount, processed_by_admin_id, payout_notes, created_at, updated_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         
         $stmt->execute([
-            $payout_id, $member_id, $total_amount, $scheduled_date, $actual_payout_date, $status, 
+            $payout_id, $member_id, $gross_payout, $total_amount, $scheduled_date, $actual_payout_date, $status, 
             $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
         ]);
         

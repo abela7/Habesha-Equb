@@ -788,21 +788,67 @@ $csrf_token = generate_csrf_token();
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="totalAmount" class="form-label">
-                                    Net Payout Amount (£) * 
-                                    <small class="text-muted">Real amount member receives</small>
+                                <label for="grossPayout" class="form-label">
+                                    Gross Payout (£) 
+                                    <small class="text-muted">Coefficient × Monthly Pool</small>
+                                    <button type="button" class="btn btn-sm btn-outline-primary ms-1" onclick="calculatePayout()">
+                                        <i class="fas fa-calculator"></i> Auto
+                                    </button>
                                 </label>
-                                <input type="number" class="form-control" id="totalAmount" name="total_amount" step="0.01" min="0" required>
-                                
-                                <!-- DYNAMIC CALCULATION BREAKDOWN -->
-                                <div id="calculationBreakdown" class="mt-2" style="display: none;">
-                                    <div class="alert alert-info p-2">
-                                        <small>
-                                            <strong>📊 Calculation Breakdown (from database):</strong><br>
-                                            <span id="grossBreakdown"></span><br>
-                                            <span id="deductionsBreakdown"></span><br>
-                                            <span id="netBreakdown"></span>
-                                        </small>
+                                <input type="number" class="form-control" id="grossPayout" name="gross_payout" step="0.01" min="0" oninput="updateCalculatedAmounts()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="adminFee" class="form-label">
+                                    Admin Fee (£)
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="setDefaultAdminFee()">
+                                        <i class="fas fa-magic"></i> Auto
+                                    </button>
+                                </label>
+                                <input type="number" class="form-control" id="adminFee" name="admin_fee" step="0.01" min="0" value="0" oninput="updateCalculatedAmounts()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="totalAmount" class="form-label">
+                                    Total Amount (£)
+                                    <small class="text-muted">Gross - Admin Fee</small>
+                                </label>
+                                <input type="number" class="form-control" id="totalAmount" name="total_amount" step="0.01" min="0" readonly style="background-color: #f8f9fa;">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="netAmount" class="form-label">
+                                    Net Amount (£) *
+                                    <small class="text-muted">What member gets</small>
+                                </label>
+                                <input type="number" class="form-control" id="netAmount" name="net_amount" step="0.01" min="0" readonly style="background-color: #e8f5e8;" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DYNAMIC CALCULATION BREAKDOWN -->
+                    <div id="calculationBreakdown" class="row" style="display: none;">
+                        <div class="col-12">
+                            <div class="alert alert-info p-3">
+                                <h6><i class="fas fa-calculator"></i> Enhanced Calculation Breakdown:</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>Gross Payout:</strong><br>
+                                        <span id="grossBreakdown" class="text-primary"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Deductions:</strong><br>
+                                        <span id="deductionsBreakdown" class="text-warning"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Final Amount:</strong><br>
+                                        <span id="netBreakdown" class="text-success"></span>
                                     </div>
                                 </div>
                             </div>
@@ -831,12 +877,6 @@ $csrf_token = generate_csrf_token();
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="adminFee" class="form-label">Admin Fee (£)</label>
-                                <input type="number" class="form-control" id="adminFee" name="admin_fee" step="0.01" min="0" value="0">
-                            </div>
-                        </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="status" class="form-label"><?php echo t('payouts.status'); ?></label>
@@ -1308,17 +1348,22 @@ $csrf_token = generate_csrf_token();
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Use REAL NET PAYOUT for admin/receipt purposes (gross - admin fee - monthly payment)
-                    // This is what the member ACTUALLY receives
-                    document.getElementById('totalAmount').value = data.net_payout.toFixed(2);
+                    // 🚀 ENHANCED: Set all three amounts with admin flexibility
+                    document.getElementById('grossPayout').value = data.gross_payout.toFixed(2);
+                    document.getElementById('adminFee').value = data.admin_fee.toFixed(2);
+                    document.getElementById('totalAmount').value = data.display_payout.toFixed(2); // gross - admin fee
+                    document.getElementById('netAmount').value = data.net_payout.toFixed(2); // what member actually gets
                     
-                    // Show DYNAMIC calculation breakdown in the form
+                    // Store member's monthly payment for calculations
+                    window.memberMonthlyPayment = data.monthly_payment;
+                    
+                    // Show ENHANCED calculation breakdown
                     document.getElementById('grossBreakdown').innerHTML = 
-                        `Gross Payout: £${data.gross_payout.toFixed(2)} = ${data.position_coefficient} × £${data.total_monthly_pool}`;
+                        `£${data.gross_payout.toFixed(2)} = ${data.position_coefficient} × £${data.total_monthly_pool}`;
                     document.getElementById('deductionsBreakdown').innerHTML = 
-                        `Deductions: -£${data.admin_fee.toFixed(2)} (admin fee) -£${data.monthly_payment} (no payment in payout month)`;
+                        `Admin: -£${data.admin_fee.toFixed(2)} | Monthly: -£${data.monthly_payment}`;
                     document.getElementById('netBreakdown').innerHTML = 
-                        `<strong>Net Payout: £${data.net_payout.toFixed(2)} (what member actually gets)</strong>`;
+                        `£${data.net_payout.toFixed(2)} (final receipt amount)`;
                     
                     // Show the breakdown
                     document.getElementById('calculationBreakdown').style.display = 'block';
@@ -1443,6 +1488,41 @@ $csrf_token = generate_csrf_token();
             actualDateField.style.backgroundColor = '#f8f9fa';
         }
     });
+
+    // 🚀 ENHANCED: Update calculated amounts when gross payout or admin fee changes
+    function updateCalculatedAmounts() {
+        const grossPayout = parseFloat(document.getElementById('grossPayout').value) || 0;
+        const adminFee = parseFloat(document.getElementById('adminFee').value) || 0;
+        const monthlyPayment = window.memberMonthlyPayment || 0;
+        
+        // Calculate total amount (gross - admin fee)
+        const totalAmount = grossPayout - adminFee;
+        document.getElementById('totalAmount').value = totalAmount.toFixed(2);
+        
+        // Calculate net amount (total - monthly payment)
+        const netAmount = totalAmount - monthlyPayment;
+        document.getElementById('netAmount').value = netAmount.toFixed(2);
+        
+        // Update breakdown display
+        if (grossPayout > 0) {
+            document.getElementById('grossBreakdown').innerHTML = `£${grossPayout.toFixed(2)}`;
+            document.getElementById('deductionsBreakdown').innerHTML = `Admin: -£${adminFee.toFixed(2)} | Monthly: -£${monthlyPayment}`;
+            document.getElementById('netBreakdown').innerHTML = `£${netAmount.toFixed(2)} (final receipt amount)`;
+            document.getElementById('calculationBreakdown').style.display = 'block';
+        }
+    }
+
+    // Set default admin fee from database/calculation
+    function setDefaultAdminFee() {
+        const memberId = document.getElementById('memberId').value;
+        if (!memberId) {
+            alert('Please select a member first');
+            return;
+        }
+        
+        // This will trigger calculatePayout which sets the default admin fee
+        calculatePayout();
+    }
 </script>
 </body>
 </html> 
