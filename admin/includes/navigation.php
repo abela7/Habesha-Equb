@@ -884,6 +884,14 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">All Members</span>
             </a>
+            <a href="position-swap-management.php" class="nav-item <?php echo ($current_page === 'position-swap-management.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3l4 8 5-5v11H4V4l4-1"/>
+                    <path d="M2 21l16-10"/>
+                    <path d="M22 8l-10 10-4-7"/>
+                </svg>
+                <span class="nav-text"><?php echo t('settings.position_swap'); ?></span>
+            </a>
         </div>
         
         <!-- Financial Management -->
@@ -991,6 +999,7 @@ body.no-scroll {
                     'welcome_admin.php' => 'Dashboard',
                     'members.php' => t('navigation.members'),
                     'member-profile.php' => t('navigation.member_profile'),
+                    'position-swap-management.php' => t('swap_management.page_title'),
                     'payments.php' => t('navigation.payments'),
                     'payouts.php' => t('navigation.payouts'),
                     'reports.php' => t('navigation.reports'),

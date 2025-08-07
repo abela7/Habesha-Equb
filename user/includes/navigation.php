@@ -835,6 +835,14 @@ $csrf_token = generate_csrf_token();
                 </svg>
                 <span class="nav-text"><?php echo t('member_nav.payout_info'); ?></span>
             </a>
+            <a href="position-swap.php" class="nav-item <?php echo ($current_page === 'position-swap.php') ? 'active' : ''; ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3l4 8 5-5v11H4V4l4-1"/>
+                    <path d="M2 21l16-10"/>
+                    <path d="M22 8l-10 10-4-7"/>
+                </svg>
+                <span class="nav-text"><?php echo t('settings.position_swap'); ?></span>
+            </a>
         </div>
         
                  <!-- Account Section -->
@@ -912,6 +920,7 @@ $csrf_token = generate_csrf_token();
                     'dashboard.php' => t('member_nav.dashboard'),
                     'contributions.php' => t('member_nav.contributions'),
                     'payout-info.php' => t('member_nav.payout_info'),
+                    'position-swap.php' => t('position_swap.page_title'),
                     'members.php' => t('member_nav.equb_members'),
                     'member-profile.php' => t('navigation.member_profile'),
                     'profile.php' => t('member_nav.profile'),
