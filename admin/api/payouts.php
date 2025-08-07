@@ -311,9 +311,19 @@ function addPayout() {
     
     $admin_fee = round(floatval($admin_fee_input), 2);
     
-    // Allow admin flexibility but use calculated values as basis
-    $gross_payout = $total_amount + $admin_fee; // If admin provided total_amount, calculate gross
-    $total_amount_final = $gross_payout - $admin_fee; // Total amount (what member thinks they get)
+    // Allow admin flexibility: use provided values or calculated defaults
+    $gross_payout_input = $_POST['gross_payout'] ?? null;
+    
+    if (!empty($gross_payout_input) && is_numeric($gross_payout_input)) {
+        // Admin provided gross payout - use it
+        $gross_payout = round(floatval($gross_payout_input), 2);
+    } else {
+        // Use calculated gross payout as default
+        $gross_payout = $calculated_gross_payout;
+    }
+    
+    // Calculate derived amounts
+    $total_amount_final = $gross_payout - $admin_fee; // Total amount (what member sees)
     $net_amount = $gross_payout - $admin_fee - $calculated_monthly_payment; // What member actually gets
     
     // Validation with enhanced logic
@@ -420,21 +430,42 @@ function addPayout() {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
         
-        $stmt->execute([
-            $payout_id, $member_id, $gross_payout, $total_amount, $scheduled_date, $actual_payout_date, $status, 
-            $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
-        ]);
-        
-        // MASTER-LEVEL: Auto-sync the member's payout flag
-        syncMemberPayoutFlag($member_id);
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Individual payout scheduled successfully',
-            'payout_id' => $payout_id,
-            'member_payout_flag_synced' => true,
-            'is_joint_group' => false
-        ]);
+        try {
+            $stmt->execute([
+                $payout_id, $member_id, $gross_payout, $total_amount, $scheduled_date, $actual_payout_date, $status, 
+                $payout_method, $admin_fee, $net_amount, $processed_by_admin_id, $payout_notes
+            ]);
+            
+            error_log("✅ PAYOUT INSERTED: ID=$payout_id, Member=$member_id, Gross=$gross_payout, Total=$total_amount, Net=$net_amount");
+            
+            // MASTER-LEVEL: Auto-sync the member's payout flag
+            syncMemberPayoutFlag($member_id);
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Individual payout scheduled successfully',
+                'payout_id' => $payout_id,
+                'member_payout_flag_synced' => true,
+                'is_joint_group' => false,
+                'debug' => [
+                    'gross_payout' => $gross_payout,
+                    'total_amount' => $total_amount,
+                    'net_amount' => $net_amount,
+                    'admin_fee' => $admin_fee,
+                    'monthly_deduction' => $calculated_monthly_payment
+                ]
+            ]);
+        } catch (PDOException $e) {
+            error_log("❌ DATABASE ERROR inserting payout: " . $e->getMessage());
+            error_log("Values: gross=$gross_payout, total=$total_amount, net=$net_amount, admin_fee=$admin_fee");
+            
+            if (strpos($e->getMessage(), 'gross_payout') !== false) {
+                echo json_encode(['success' => false, 'message' => 'Database error: gross_payout column missing. Please run the database update script first.']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+            }
+            return;
+        }
     }
 }
 

@@ -1337,76 +1337,8 @@ $csrf_token = generate_csrf_token();
                 }
             }
             
-            // Fetch correct payout calculation from server
-            fetch('api/calculate-payout.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `member_id=${memberId}&action=calculate`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 🚀 ENHANCED: Set all three amounts with admin flexibility
-                    document.getElementById('grossPayout').value = data.gross_payout.toFixed(2);
-                    document.getElementById('adminFee').value = data.admin_fee.toFixed(2);
-                    document.getElementById('totalAmount').value = data.display_payout.toFixed(2); // gross - admin fee
-                    document.getElementById('netAmount').value = data.net_payout.toFixed(2); // what member actually gets
-                    
-                    // Store member's monthly payment for calculations
-                    window.memberMonthlyPayment = data.monthly_payment;
-                    
-                    // Show ENHANCED calculation breakdown
-                    document.getElementById('grossBreakdown').innerHTML = 
-                        `£${data.gross_payout.toFixed(2)} = ${data.position_coefficient} × £${data.total_monthly_pool}`;
-                    document.getElementById('deductionsBreakdown').innerHTML = 
-                        `Admin: -£${data.admin_fee.toFixed(2)} | Monthly: -£${data.monthly_payment}`;
-                    document.getElementById('netBreakdown').innerHTML = 
-                        `£${data.net_payout.toFixed(2)} (final receipt amount)`;
-                    
-                    // Show the breakdown
-                    document.getElementById('calculationBreakdown').style.display = 'block';
-                    
-                    // Show DYNAMIC calculation details for admin reference
-                    console.info('🔍 DYNAMIC Payout Calculation (NO HARDCODE):');
-                    console.info('├─ Member:', data.member_name);
-                    console.info('├─ Monthly Payment: £' + data.monthly_payment + ' (their monthly contribution)');
-                    console.info('├─ Position Coefficient:', data.position_coefficient + ' (calculated from DB)');
-                    console.info('├─ Monthly Pool: £' + data.total_monthly_pool + ' (sum of all contributions)');
-                    console.info('├─ Regular Payment Tier: £' + (data.debug?.regular_payment_tier || 'N/A') + ' (from DB)');
-                    console.info('│');
-                    console.info('├─ 📊 CALCULATION BREAKDOWN:');
-                    console.info('│  ├─ Gross Payout: £' + data.gross_payout.toFixed(2) + ' = ' + data.position_coefficient + ' × £' + data.total_monthly_pool);
-                    console.info('│  ├─ Admin Fee: -£' + data.admin_fee.toFixed(2) + ' (deducted)');
-                    console.info('│  ├─ Monthly Payment: -£' + data.monthly_payment + ' (no payment in payout month)');
-                    console.info('│  └─ Real Net Payout: £' + data.net_payout.toFixed(2) + ' (what member actually gets)');
-                    console.info('│');
-                    console.info('├─ Display Payout (member-friendly): £' + data.display_payout.toFixed(2) + ' (hides monthly deduction)');
-                    console.info('└─ Used for RECEIPT: £' + data.net_payout.toFixed(2) + ' (real amount received)');
-                    
-                    // Check if calculation seems wrong
-                    if (data.total_monthly_pool > 8000 && data.gross_payout < 8000) {
-                        console.warn('🚨 POTENTIAL CALCULATION ERROR: Monthly pool is £' + data.total_monthly_pool + ' but individual gross is only £' + data.gross_payout.toFixed(2));
-                        console.warn('Expected: Individual gross should be around £' + data.total_monthly_pool + ' for position coefficient ' + data.position_coefficient);
-                    }
-                    
-                    if (membershipType === 'joint') {
-                        console.info('🔄 JOINT GROUP: Will create individual payouts for all group members');
-                    }
-                } else {
-                    console.error('Calculation error:', data.error);
-                    // Fallback to simple calculation
-                    const monthlyPayment = parseFloat(selectedOption.dataset.payment || 0);
-                    document.getElementById('totalAmount').value = (monthlyPayment * 8).toFixed(2);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching calculation:', error);
-                // Fallback to simple calculation
-                const monthlyPayment = parseFloat(selectedOption.dataset.payment || 0);
-                document.getElementById('totalAmount').value = (monthlyPayment * 8).toFixed(2);
-            });
+            // Auto-calculate when member is selected
+            calculatePayout();
         }
     });
 
@@ -1488,6 +1420,54 @@ $csrf_token = generate_csrf_token();
             actualDateField.style.backgroundColor = '#f8f9fa';
         }
     });
+
+    // 🚀 ENHANCED: Calculate payout for selected member
+    function calculatePayout() {
+        const memberId = document.getElementById('memberId').value;
+        if (!memberId) {
+            alert('Please select a member first');
+            return;
+        }
+
+        // Fetch correct payout calculation from server
+        fetch('api/calculate-payout.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `member_id=${memberId}&action=calculate`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 🚀 ENHANCED: Set all three amounts with admin flexibility
+                document.getElementById('grossPayout').value = data.gross_payout.toFixed(2);
+                document.getElementById('adminFee').value = data.admin_fee.toFixed(2);
+                document.getElementById('totalAmount').value = data.display_payout.toFixed(2); // gross - admin fee
+                document.getElementById('netAmount').value = data.net_payout.toFixed(2); // what member actually gets
+                
+                // Store member's monthly payment for calculations
+                window.memberMonthlyPayment = data.monthly_payment;
+                
+                // Show ENHANCED calculation breakdown
+                document.getElementById('grossBreakdown').innerHTML = 
+                    `£${data.gross_payout.toFixed(2)} = ${data.position_coefficient} × £${data.total_monthly_pool}`;
+                document.getElementById('deductionsBreakdown').innerHTML = 
+                    `Admin: -£${data.admin_fee.toFixed(2)} | Monthly: -£${data.monthly_payment}`;
+                document.getElementById('netBreakdown').innerHTML = 
+                    `£${data.net_payout.toFixed(2)} (final receipt amount)`;
+                
+                // Show the breakdown
+                document.getElementById('calculationBreakdown').style.display = 'block';
+            } else {
+                alert('Error calculating payout: ' + (data.message || data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while calculating payout');
+        });
+    }
 
     // 🚀 ENHANCED: Update calculated amounts when gross payout or admin fee changes
     function updateCalculatedAmounts() {
