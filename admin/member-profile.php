@@ -19,15 +19,28 @@ if (!$member_id) {
     exit;
 }
 
-// Get member data
+// Get member data with enhanced information
 try {
     $stmt = $pdo->prepare("
         SELECT m.*, 
-               COUNT(p.id) as total_payments,
+               es.start_date as equb_start_date,
+               es.duration_months,
+               es.admin_fee as equb_admin_fee,
+               es.late_fee as equb_late_fee,
+               es.grace_period_days,
+               es.regular_payment_tier,
+               COUNT(DISTINCT p.id) as total_payments,
                COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0) as total_paid,
-               MAX(p.payment_date) as last_payment_date
+               MAX(p.payment_date) as last_payment_date,
+               COUNT(DISTINCT po.id) as total_payouts_received,
+               COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as total_payout_amount,
+               MAX(po.actual_payout_date) as last_payout_date,
+               (SELECT login_time FROM user_otps WHERE member_id = m.id AND used = 1 ORDER BY login_time DESC LIMIT 1) as last_login,
+               (SELECT COUNT(*) FROM user_otps WHERE member_id = m.id AND used = 1) as total_logins
         FROM members m 
+        LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
+        LEFT JOIN payouts po ON m.id = po.member_id
         WHERE m.id = ?
         GROUP BY m.id
     ");
@@ -75,6 +88,45 @@ try {
 } catch (PDOException $e) {
     error_log("Error fetching payouts: " . $e->getMessage());
     $payouts = [];
+}
+
+// Get enhanced calculations for member
+require_once '../includes/enhanced_equb_calculator_final.php';
+$enhanced_calculator = new EnhancedEqubCalculator($pdo);
+$enhanced_calculation = $enhanced_calculator->calculateMemberFriendlyPayout($member_id);
+
+// Extract calculation data
+$calculation_data = [];
+if ($enhanced_calculation['success']) {
+    $calc = $enhanced_calculation['calculation'];
+    $calculation_data = [
+        'position_coefficient' => $calc['position_coefficient'],
+        'total_monthly_pool' => $calc['total_monthly_pool'],
+        'gross_payout' => $calc['gross_payout'],
+        'admin_fee' => $calc['admin_fee'],
+        'monthly_deduction' => $calc['monthly_deduction'],
+        'display_payout' => $calc['display_payout'],
+        'real_net_payout' => $calc['real_net_payout'],
+        'calculation_method' => $calc['calculation_method'] ?? 'enhanced'
+    ];
+} else {
+    // Fallback calculations if enhanced calculator fails
+    $monthly_contribution = $member['membership_type'] === 'joint' ? $member['individual_contribution'] : $member['monthly_payment'];
+    $total_monthly_pool = $monthly_contribution * 10; // Estimate
+    $position_coefficient = $monthly_contribution / ($member['regular_payment_tier'] ?: 1000);
+    $gross_payout = $position_coefficient * $total_monthly_pool;
+    $admin_fee = $member['equb_admin_fee'] ?: 20;
+    
+    $calculation_data = [
+        'position_coefficient' => $position_coefficient,
+        'total_monthly_pool' => $total_monthly_pool,
+        'gross_payout' => $gross_payout,
+        'admin_fee' => $admin_fee,
+        'monthly_deduction' => $monthly_contribution,
+        'display_payout' => $gross_payout - $admin_fee,
+        'real_net_payout' => $gross_payout - $admin_fee - $monthly_contribution,
+        'calculation_method' => 'fallback'
+    ];
 }
 
 // Calculate next payment date (assuming monthly payments)
@@ -530,16 +582,28 @@ $csrf_token = generate_csrf_token();
                                 <span class="info-value success">£<?php echo number_format($member['total_paid'], 2); ?></span>
                             </div>
                             <div class="info-row">
+                                <span class="info-label">Position Coefficient</span>
+                                <span class="info-value" style="color: var(--color-gold);"><?php echo number_format($calculation_data['position_coefficient'], 2); ?>x</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Expected Gross Payout</span>
+                                <span class="info-value success">£<?php echo number_format($calculation_data['gross_payout'], 2); ?></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Expected Net Payout</span>
+                                <span class="info-value success">£<?php echo number_format($calculation_data['real_net_payout'], 2); ?></span>
+                            </div>
+                            <div class="info-row">
                                 <span class="info-label">Payout Position</span>
                                 <span class="info-value">#<?php echo $member['payout_position']; ?></span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Payout Month</span>
-                                <span class="info-value"><?php echo date('M Y', strtotime($member['payout_month'] . '-01')); ?></span>
+                                <span class="info-value"><?php echo $member['payout_month'] ? date('M Y', strtotime($member['payout_month'] . '-01')) : 'Not assigned'; ?></span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">Next Payment Due</span>
-                                <span class="info-value warning"><?php echo $next_payment_date ? $next_payment_date->format('M d, Y') : 'Not calculated'; ?></span>
+                                <span class="info-label">Total Monthly Pool</span>
+                                <span class="info-value" style="color: var(--color-deep-purple);">£<?php echo number_format($calculation_data['total_monthly_pool'], 2); ?></span>
                             </div>
                         </div>
                     </div>
@@ -618,8 +682,85 @@ $csrf_token = generate_csrf_token();
                                 <span class="info-value"><?php echo $member['total_payments']; ?> payments</span>
                             </div>
                             <div class="info-row">
+                                <span class="info-label">Total Payouts Received</span>
+                                <span class="info-value"><?php echo $member['total_payouts_received']; ?> payouts</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Last Login</span>
+                                <span class="info-value <?php echo $member['last_login'] ? 'success' : 'warning'; ?>">
+                                    <?php echo $member['last_login'] ? date('M d, Y g:i A', strtotime($member['last_login'])) : 'Never logged in'; ?>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Total Logins</span>
+                                <span class="info-value"><?php echo $member['total_logins'] ?? 0; ?> times</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Member Since</span>
+                                <span class="info-value"><?php echo date('M d, Y', strtotime($member['created_at'])); ?></span>
+                            </div>
+                            <div class="info-row">
                                 <span class="info-label">Notifications</span>
                                 <span class="info-value"><?php echo htmlspecialchars($member['notification_preferences']); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EQUB Calculations & Analysis -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="info-card">
+                            <div class="card-header">
+                                <div class="card-icon" style="background: var(--color-gold);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 3v5h5M3 21v-5h5m13-13v5h-5m0 13v-5h5M9 12h6m-3-3v6"/>
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">EQUB Calculations & Analysis</h3>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <span class="info-label">Calculation Method</span>
+                                        <span class="info-value" style="color: var(--color-deep-purple);"><?php echo ucfirst($calculation_data['calculation_method']); ?></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Member Contribution</span>
+                                        <span class="info-value success">£<?php echo number_format($calculation_data['monthly_deduction'], 2); ?>/month</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Position Coefficient</span>
+                                        <span class="info-value" style="color: var(--color-gold);"><?php echo number_format($calculation_data['position_coefficient'], 4); ?>x</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Total Pool Size</span>
+                                        <span class="info-value" style="color: var(--color-coral);">£<?php echo number_format($calculation_data['total_monthly_pool'], 2); ?></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <span class="info-label">Gross Payout (Full)</span>
+                                        <span class="info-value success">£<?php echo number_format($calculation_data['gross_payout'], 2); ?></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Admin Fee</span>
+                                        <span class="info-value warning">-£<?php echo number_format($calculation_data['admin_fee'], 2); ?></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Display Payout (Member Sees)</span>
+                                        <span class="info-value" style="color: var(--color-teal);">£<?php echo number_format($calculation_data['display_payout'], 2); ?></span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Net Payout (Actual Received)</span>
+                                        <span class="info-value success">£<?php echo number_format($calculation_data['real_net_payout'], 2); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 p-3" style="background: rgba(var(--color-gold-rgb), 0.1); border-radius: 8px; border-left: 4px solid var(--color-gold);">
+                                <small style="color: var(--color-deep-purple);">
+                                    <strong>Formula:</strong> Position Coefficient (<?php echo number_format($calculation_data['position_coefficient'], 4); ?>) × Total Pool (£<?php echo number_format($calculation_data['total_monthly_pool'], 2); ?>) = Gross Payout (£<?php echo number_format($calculation_data['gross_payout'], 2); ?>)
+                                </small>
                             </div>
                         </div>
                     </div>
