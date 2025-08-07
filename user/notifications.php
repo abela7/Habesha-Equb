@@ -45,6 +45,12 @@ $lang = getCurrentLanguage();
         .modal-title { font-weight: 700; color: var(--text-primary); }
         .modal-body { color: var(--text-primary); font-size: 15px; line-height: 1.6; }
         .modal-priority { font-size: 12px; margin-left: 8px; }
+        /* Responsive: stack header and icons-only on mobile */
+        @media (max-width: 576px) {
+            .notif-header { display:flex; flex-direction: column; align-items: flex-start; }
+            .notif-actions { margin-top: 10px; }
+            .btn-label { display: none; }
+        }
         @media (max-width: 768px) { 
             .notif-card { padding:14px; border-radius:14px; }
             .modal-body { font-size: 16px; }
@@ -68,8 +74,14 @@ $lang = getCurrentLanguage();
                     <h2 class="m-0" style="font-weight:700; color:var(--text-primary)"><?php echo t('member_nav.notifications') ?: 'Notifications'; ?></h2>
                 </div>
                 <div class="notif-actions">
-                    <button id="btnMarkAll" class="btn btn-sm btn-outline-primary"><i class="fas fa-check-double me-1"></i><?php echo t('common.mark_all_read') ?: 'Mark all as read'; ?></button>
-                    <button id="btnRefresh" class="btn btn-sm btn-outline-secondary"><i class="fas fa-rotate me-1"></i><?php echo t('common.refresh') ?: 'Refresh'; ?></button>
+                    <button id="btnMarkAll" class="btn btn-sm btn-outline-primary" title="<?php echo t('common.mark_all_read') ?: 'Mark all as read'; ?>">
+                        <i class="fas fa-check-double"></i>
+                        <span class="btn-label ms-1"><?php echo t('common.mark_all_read') ?: 'Mark all as read'; ?></span>
+                    </button>
+                    <button id="btnRefresh" class="btn btn-sm btn-outline-secondary" title="<?php echo t('common.refresh') ?: 'Refresh'; ?>">
+                        <i class="fas fa-rotate"></i>
+                        <span class="btn-label ms-1"><?php echo t('common.refresh') ?: 'Refresh'; ?></span>
+                    </button>
                 </div>
             </div>
         </div>

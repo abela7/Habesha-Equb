@@ -708,6 +708,10 @@ $csrf_token = generate_csrf_token();
     .page-title {
         font-size: 15px;
         font-weight: 600;
+        max-width: 55vw;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .language-toggle {
@@ -927,7 +931,8 @@ $csrf_token = generate_csrf_token();
                     'profile.php' => t('member_nav.profile'),
                     'settings.php' => t('settings.page_title')
                 ];
-                echo $page_titles[$current_page] ?? 'HabeshaEqub Member';
+                // Use short, mobile-friendly fallback title
+                echo $page_titles[$current_page] ?? 'HabeshaEqub';
                 ?>
             </h1>
         </div>
