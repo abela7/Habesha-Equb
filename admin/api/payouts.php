@@ -4,11 +4,22 @@
  * Handle all payout-related CRUD operations and management
  */
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once '../../includes/db.php';
 require_once '../../includes/enhanced_equb_calculator.php';
 
 // Set JSON header
 header('Content-Type: application/json');
+
+// Check database connection
+if (!isset($pdo) || !$pdo) {
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
 
 /**
  * MASTER-LEVEL HELPER FUNCTION
