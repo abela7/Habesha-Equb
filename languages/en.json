@@ -1069,6 +1069,8 @@
     "months": "months",
     "rules": "Rules",
     "not_set": "Not set",
-    "days": "days"
+    "days": "days",
+    "anonymous": "Anonymous",
+    "upcoming_payout_journey": "Upcoming Payout Journey"
   }
 } 

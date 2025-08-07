@@ -186,27 +186,77 @@ if (isset($payout_info['error'])) {
     $days_until_payout = $payout_info['days_until_payout'];
 }
 
-// Get all members for payout queue display (filtered by equb term)
+// Get all members for payout queue display with enhanced privacy logic
 try {
     $stmt = $pdo->prepare("
-        SELECT m.first_name, m.last_name, m.payout_position, m.monthly_payment,
+        SELECT m.id, m.first_name, m.last_name, m.payout_position, m.monthly_payment,
+               m.go_public, m.position_coefficient,
                CASE 
-                   WHEN po.id IS NOT NULL THEN 'completed'
+                   WHEN po.id IS NOT NULL AND po.status = 'completed' THEN 'completed'
                    WHEN m.payout_position = ? THEN 'current'
                    WHEN m.payout_position < ? THEN 'upcoming'
                    ELSE 'pending'
                END as payout_status,
                po.actual_payout_date as received_date,
-               po.net_amount as received_amount,
+               po.gross_payout, po.total_amount, po.net_amount,
                po.status as payout_record_status
         FROM members m
-        LEFT JOIN payouts po ON m.id = po.member_id
+        LEFT JOIN payouts po ON m.id = po.member_id AND po.status = 'completed'
         WHERE m.equb_settings_id = ? AND m.is_active = 1
         ORDER BY m.payout_position ASC
     ");
     $stmt->execute([$payout_position, $payout_position, $member['equb_settings_id']]);
-    $payout_queue = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $payout_queue_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Process each member with proper privacy and dynamic calculation
+    $payout_queue = [];
+    foreach ($payout_queue_raw as $queue_member) {
+        // Privacy logic: Show real name only if go_public=1 OR if it's the logged-in member
+        if ($queue_member['go_public'] == 1 || $queue_member['id'] == $user_id) {
+            $display_name = trim($queue_member['first_name'] . ' ' . $queue_member['last_name']);
+            $is_anonymous = false;
+        } else {
+            $display_name = t('payout_info.anonymous');
+            $is_anonymous = true;
+        }
+        
+        // Calculate dynamic payout using enhanced calculator
+        try {
+            $calc_result = $calculator->calculateMemberFriendlyPayout($queue_member['id']);
+            if ($calc_result['success']) {
+                $gross_payout = $calc_result['calculation']['gross_payout'];
+                $display_payout = $calc_result['calculation']['display_payout'];
+            } else {
+                // Fallback calculation
+                $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
+                $display_payout = $gross_payout - $member['admin_fee'];
+            }
+        } catch (Exception $e) {
+            // Fallback calculation
+            $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
+            $display_payout = $gross_payout - $member['admin_fee'];
+        }
+        
+        $payout_queue[] = [
+            'id' => $queue_member['id'],
+            'first_name' => $queue_member['first_name'],
+            'last_name' => $queue_member['last_name'],
+            'display_name' => $display_name,
+            'is_anonymous' => $is_anonymous,
+            'is_current_user' => ($queue_member['id'] == $user_id),
+            'payout_position' => $queue_member['payout_position'],
+            'monthly_payment' => $queue_member['monthly_payment'],
+            'position_coefficient' => $queue_member['position_coefficient'],
+            'payout_status' => $queue_member['payout_status'],
+            'received_date' => $queue_member['received_date'],
+            'gross_payout' => $gross_payout,
+            'display_payout' => $display_payout,
+            'received_amount' => $queue_member['net_amount'],
+            'payout_record_status' => $queue_member['payout_record_status']
+        ];
+    }
 } catch (PDOException $e) {
+    error_log("Error fetching payout queue: " . $e->getMessage());
     $payout_queue = [];
 }
 
@@ -1328,26 +1378,26 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     border-bottom: none;
 }
 
-.accordion-button {
-    background: white;
-    border: none;
-    padding: 20px 24px;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--palette-deep-purple);
-    box-shadow: none;
-    border-radius: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: all 0.3s ease;
-}
+        .accordion-button {
+            background: white;
+            border: none;
+            padding: 20px 24px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #000000;
+            box-shadow: none;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
 
-.accordion-button:not(.collapsed) {
-    background: rgba(218, 165, 32, 0.05);
-    color: var(--palette-deep-purple);
-    box-shadow: none;
-}
+        .accordion-button:not(.collapsed) {
+            background: rgba(218, 165, 32, 0.05);
+            color: #000000;
+            box-shadow: none;
+        }
 
 .accordion-button:hover {
     background: rgba(218, 165, 32, 0.08);
@@ -1357,10 +1407,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     box-shadow: 0 0 0 3px rgba(218, 165, 32, 0.2);
 }
 
-.accordion-title {
-    flex: 1;
-    text-align: left;
-}
+        .accordion-title {
+            flex: 1;
+            text-align: left;
+            color: #000000;
+            font-weight: 600;
+        }
 
 .accordion-badge {
     background: rgba(218, 165, 32, 0.1);
@@ -1800,7 +1852,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             <div class="col-12">
                                  <h2 class="section-title">
                      <i class="fas fa-route text-primary"></i>
-                     <?php echo t('payout.upcoming_journey'); ?>
+                     <?php echo t('payout_info.upcoming_payout_journey'); ?>
                  </h2>
                 
                 <div class="journey-container">
@@ -1809,43 +1861,46 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <div class="journey-progress">
                             <div class="progress-track">
                                 <?php 
-                                $pending_members = array_filter($payout_queue, function($member) {
-                                    return $member['payout_status'] !== 'completed';
+                                $completed_members = array_filter($payout_queue, function($member) {
+                                    return $member['payout_status'] === 'completed';
                                 });
-                                $total_pending = count($pending_members);
-                                $current_index = 0;
+                                $total_members = count($payout_queue);
+                                $completed_count = count($completed_members);
+                                $current_member_position = 0;
                                 
-                                foreach ($pending_members as $index => $member) {
-                                    if ($member['payout_position'] == $payout_position) {
-                                        $current_index = $index;
+                                // Find current member's position in queue
+                                foreach ($payout_queue as $index => $member) {
+                                    if ($member['is_current_user']) {
+                                        $current_member_position = $index + 1;
                                         break;
                                     }
                                 }
-                                $progress_percentage = $total_pending > 0 ? (($current_index) / $total_pending) * 100 : 0;
+                                
+                                $progress_percentage = $total_members > 0 ? ($completed_count / $total_members) * 100 : 0;
                                 ?>
                                 <div class="progress-fill" style="width: <?php echo $progress_percentage; ?>%"></div>
                             </div>
                         </div>
                         <div class="journey-stats">
-                                                         <div class="stat-item">
-                                 <span class="stat-number"><?php echo $current_index + 1; ?></span>
-                                 <span class="stat-label"><?php echo t('payout.your_position_stat'); ?></span>
+                             <div class="stat-item">
+                                 <span class="stat-number"><?php echo $current_member_position; ?></span>
+                                 <span class="stat-label">Your Position</span>
                              </div>
                              <div class="stat-item">
-                                 <span class="stat-number"><?php echo $total_pending; ?></span>
-                                 <span class="stat-label"><?php echo t('payout.remaining_stat'); ?></span>
+                                 <span class="stat-number"><?php echo $completed_count; ?>/<?php echo $total_members; ?></span>
+                                 <span class="stat-label">Completed</span>
                              </div>
                         </div>
                     </div>
 
                     <!-- Journey Steps -->
-                    <div class="journey-steps">
+                                            <div class="journey-steps">
                         <?php 
                         $step_count = 0;
-                        foreach ($pending_members as $index => $queue_member): 
+                        foreach ($payout_queue as $index => $queue_member): 
                             $step_count++;
-                            $is_current = ($queue_member['payout_position'] == $payout_position);
-                            $is_next = ($step_count == 1 && !$is_current);
+                            $is_current = $queue_member['is_current_user'];
+                            $is_next = ($step_count == 1 && !$is_current && $queue_member['payout_status'] !== 'completed');
                             
                             // Calculate correct payout date using equb settings
                             $start_date = new DateTime($member['start_date']);
@@ -1866,21 +1921,24 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <?php elseif ($is_next): ?>
                                     <i class="fas fa-hourglass-half"></i>
                                 <?php else: ?>
-                                    <span class="step-number"><?php echo $step_count; ?></span>
+                                    <span class="step-number"><?php echo $queue_member['payout_position']; ?></span>
                                 <?php endif; ?>
                             </div>
                             <div class="step-content">
                                 <div class="step-member">
                                     <?php 
                                     if ($is_current) {
-                                        echo '<strong>👤 ' . htmlspecialchars($queue_member['first_name'] . ' ' . $queue_member['last_name']) . ' (You)</strong>';
+                                        echo '<strong>👤 ' . htmlspecialchars($queue_member['display_name']) . ' (You)</strong>';
                                     } else {
-                                        echo htmlspecialchars($queue_member['first_name'] . ' ' . $queue_member['last_name']);
+                                        echo htmlspecialchars($queue_member['display_name']);
+                                        if ($queue_member['is_anonymous']) {
+                                            echo ' <i class="fas fa-user-secret text-muted ms-1" title="' . t('payout_info.anonymous') . '"></i>';
+                                        }
                                     }
                                     ?>
                                 </div>
                                 <div class="step-amount">
-                                    £<?php echo number_format($total_equb_members * $queue_member['monthly_payment'], 2); ?>
+                                    £<?php echo number_format($queue_member['display_payout'], 2); ?>
                                 </div>
                                 <div class="step-date">
                                     <?php echo $member_payout_date->format('M j, Y'); ?>
@@ -1894,11 +1952,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                      </div>
                                  <?php elseif ($is_current): ?>
                                      <div class="step-status current-badge">
-                                         <i class="fas fa-star me-1"></i><?php echo t('payout.your_turn'); ?>
+                                         <i class="fas fa-star me-1"></i>Your Turn
                                      </div>
                                  <?php elseif ($is_next): ?>
                                      <div class="step-status next-badge">
-                                         <i class="fas fa-clock me-1"></i><?php echo t('payout.next_up'); ?>
+                                         <i class="fas fa-clock me-1"></i>Next Up
                                      </div>
                                  <?php endif; ?>
                             </div>
