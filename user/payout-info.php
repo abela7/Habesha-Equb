@@ -39,14 +39,41 @@ try {
                    WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
                    ELSE m.monthly_payment
                END as effective_monthly_payment,
-               -- EQUB Settings
-               es.equb_name, es.start_date, es.payout_day, es.duration_months, es.max_members, es.current_members,
+               CASE 
+                   WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                   ELSE m.monthly_payment
+               END as individual_contribution,
+               -- Enhanced EQUB Settings
+               es.equb_name, es.start_date, es.end_date, es.payout_day, es.duration_months, 
+               es.max_members, es.current_members, es.status as equb_status,
+               es.admin_fee, es.late_fee, es.grace_period_days, es.regular_payment_tier,
+               es.currency, es.description as equb_description,
+               -- Member Statistics
                (SELECT COUNT(*) FROM members WHERE equb_settings_id = m.equb_settings_id AND is_active = 1) as total_equb_members,
-               COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed
+               COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_contributed,
+               COUNT(p.id) as total_payments,
+               COALESCE(SUM(p.late_fee), 0) as total_late_fees,
+               MAX(p.payment_date) as last_payment_date,
+               -- Payout Statistics  
+               COUNT(po.id) as total_payouts_received,
+               COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as total_amount_received,
+               MAX(po.actual_payout_date) as last_payout_received_date,
+               -- EQUB Progress Calculations
+               CASE 
+                   WHEN es.start_date IS NOT NULL THEN 
+                       GREATEST(0, TIMESTAMPDIFF(MONTH, es.start_date, CURDATE()) + 1)
+                   ELSE 1
+               END as months_in_equb,
+               CASE 
+                   WHEN es.duration_months IS NOT NULL AND es.start_date IS NOT NULL THEN 
+                       GREATEST(0, es.duration_months - (TIMESTAMPDIFF(MONTH, es.start_date, CURDATE()) + 1))
+                   ELSE 0
+               END as remaining_months_in_equb
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         LEFT JOIN payments p ON m.id = p.member_id
+        LEFT JOIN payouts po ON m.id = po.member_id
         WHERE m.id = ? AND m.is_active = 1
         GROUP BY m.id
     ");
@@ -70,22 +97,78 @@ $monthly_contribution = (float)$member['effective_monthly_payment'];
 $payout_position = (int)$member['actual_payout_position'];
 $total_equb_members = (int)$member['total_equb_members'];
 
-// Use professional payout calculator for accurate calculations
-require_once '../includes/equb_payout_calculator.php';
-$payout_calculator = getEqubPayoutCalculator();
-$payout_calculation = $payout_calculator->calculateMemberPayoutAmount($user_id);
-
-if ($payout_calculation['success']) {
-    $expected_payout = $payout_calculation['net_payout'];
-    $gross_payout = $payout_calculation['gross_payout'];
-    $admin_fee = $payout_calculation['admin_fee'];
-    $calculation_details = $payout_calculation['calculation_details'];
-} else {
-    // Fallback calculation
-    $expected_payout = $monthly_contribution * (int)$member['expected_payment_months'];
-    $gross_payout = $expected_payout;
-    $admin_fee = 0;
-    $calculation_details = null;
+// GOLDEN LOGIC: Use EnhancedEqubCalculator for top-tier calculations
+require_once '../includes/enhanced_equb_calculator_final.php';
+try {
+    $enhanced_calculator = new EnhancedEqubCalculator($pdo);
+    $calculation_result = $enhanced_calculator->calculateMemberFriendlyPayout($user_id);
+    
+    if ($calculation_result['success']) {
+        $member_calculation = $calculation_result['calculation'];
+        $position_coefficient = $member_calculation['position_coefficient'];
+        $total_monthly_pool = $member_calculation['total_monthly_pool'];
+        $gross_payout = $member_calculation['gross_payout'];
+        $admin_fee = $member_calculation['admin_fee'];
+        $monthly_deduction = $member_calculation['monthly_deduction'];
+        $display_payout = $member_calculation['display_payout']; // gross - admin fee (what member sees)
+        $expected_payout = $display_payout; // For display purposes
+        $real_net_payout = $member_calculation['real_net_payout']; // gross - admin fee - monthly
+        $calculation_method = $member_calculation['calculation_method'] ?? 'enhanced';
+        $calculation_details = [
+            'position_coefficient' => $position_coefficient,
+            'total_monthly_pool' => $total_monthly_pool,
+            'gross_payout' => $gross_payout,
+            'admin_fee' => $admin_fee,
+            'monthly_deduction' => $monthly_deduction,
+            'display_payout' => $display_payout,
+            'real_net_payout' => $real_net_payout,
+            'calculation_method' => $calculation_method
+        ];
+    } else {
+        // Enhanced fallback calculation
+        $position_coefficient = $monthly_contribution / ($member['regular_payment_tier'] ?? 1000);
+        $total_monthly_pool = $monthly_contribution * $total_equb_members;
+        $gross_payout = $position_coefficient * $total_monthly_pool;
+        $admin_fee = (float)($member['admin_fee'] ?? 20);
+        $monthly_deduction = $monthly_contribution;
+        $display_payout = $gross_payout - $admin_fee;
+        $expected_payout = $display_payout;
+        $real_net_payout = $gross_payout - $admin_fee - $monthly_deduction;
+        $calculation_method = 'fallback';
+        $calculation_details = [
+            'position_coefficient' => $position_coefficient,
+            'total_monthly_pool' => $total_monthly_pool,
+            'gross_payout' => $gross_payout,
+            'admin_fee' => $admin_fee,
+            'monthly_deduction' => $monthly_deduction,
+            'display_payout' => $display_payout,
+            'real_net_payout' => $real_net_payout,
+            'calculation_method' => $calculation_method
+        ];
+        error_log("Enhanced calculation failed for user {$user_id}: " . ($calculation_result['error'] ?? 'Unknown error'));
+    }
+} catch (Exception $e) {
+    error_log("Enhanced calculator error: " . $e->getMessage());
+    // Basic fallback
+    $position_coefficient = 1;
+    $total_monthly_pool = $monthly_contribution * $total_equb_members;
+    $gross_payout = $total_monthly_pool;
+    $admin_fee = 20;
+    $monthly_deduction = $monthly_contribution;
+    $display_payout = $gross_payout - $admin_fee;
+    $expected_payout = $display_payout;
+    $real_net_payout = $gross_payout - $admin_fee - $monthly_deduction;
+    $calculation_method = 'error';
+    $calculation_details = [
+        'position_coefficient' => $position_coefficient,
+        'total_monthly_pool' => $total_monthly_pool,
+        'gross_payout' => $gross_payout,
+        'admin_fee' => $admin_fee,
+        'monthly_deduction' => $monthly_deduction,
+        'display_payout' => $display_payout,
+        'real_net_payout' => $real_net_payout,
+        'calculation_method' => $calculation_method
+    ];
 }
 
 // GET REAL PAYOUT INFORMATION using our top-tier sync service
@@ -1113,6 +1196,91 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 .payout-card, .journey-container, .table-container, .journey-step {
     will-change: transform;
 }
+
+/* Enhanced Info Grid Styles for Comprehensive Analytics */
+.info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(248, 250, 252, 0.6);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.info-item:hover {
+    background: rgba(248, 250, 252, 0.8);
+    border-color: rgba(218, 165, 32, 0.2);
+    transform: translateX(2px);
+}
+
+.info-label {
+    font-size: 13px;
+    color: var(--palette-dark-purple);
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.info-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--palette-deep-purple);
+}
+
+/* Enhanced card header styling for analytics section */
+.card-header h5 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+}
+
+.card-header .badge {
+    font-size: 0.7em;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* Responsive adjustments for enhanced info */
+@media (max-width: 991px) {
+    .info-grid {
+        gap: 8px;
+    }
+    
+    .info-item {
+        padding: 6px 10px;
+    }
+    
+    .info-label {
+        font-size: 12px;
+    }
+    
+    .info-value {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 767px) {
+    .card-header h5 {
+        font-size: 14px;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .info-value {
+        align-self: flex-end;
+    }
+}
 </style>
 
 </head>
@@ -1168,10 +1336,30 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <h3><?php echo t('payout.expected_payout'); ?></h3>
                          </div>
                     </div>
-                    <div class="payout-value">£<?php echo number_format($expected_payout, 2); ?></div>
+                    <div class="payout-value">£<?php echo number_format($display_payout, 2); ?></div>
                     <div class="payout-detail">
-                        <i class="fas fa-calculator text-warning me-1"></i>
-                        <?php echo $total_members; ?> × £<?php echo number_format($monthly_contribution, 2); ?>
+                        <i class="fas fa-info-circle text-info me-1"></i>
+                        <small><strong>Display Amount</strong> (Gross - Admin Fee)</small>
+                    </div>
+                    <div class="payout-detail mt-2" style="border-top: 1px solid #e9ecef; padding-top: 8px;">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <small class="text-muted d-block">Gross</small>
+                                <strong class="text-success">£<?php echo number_format($gross_payout, 2); ?></strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Admin Fee</small>
+                                <strong class="text-warning">-£<?php echo number_format($admin_fee, 2); ?></strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Real Net</small>
+                                <strong class="text-primary">£<?php echo number_format($real_net_payout, 2); ?></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="payout-detail mt-2">
+                        <i class="fas fa-calculator text-secondary me-1"></i>
+                        <small>Coefficient: <?php echo number_format($position_coefficient, 2); ?> × Pool: £<?php echo number_format($total_monthly_pool, 2); ?></small>
                     </div>
                 </div>
             </div>
@@ -1227,6 +1415,162 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      <?php endif; ?>
                     <div class="progress">
                         <div class="progress-bar" style="width: <?php echo ($payout_position / $total_equb_members) * 100; ?>%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GOLDEN LOGIC: Enhanced Member & EQUB Information -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card" style="border: 1px solid var(--palette-border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div class="card-header" style="background: linear-gradient(135deg, var(--palette-deep-purple) 0%, var(--palette-light-purple) 100%); color: white; border-radius: 12px 12px 0 0;">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Enhanced EQUB Analytics & Member Statistics
+                            <span class="badge bg-light text-dark ms-2" style="font-size: 0.7em;">
+                                Method: <?php echo ucfirst($calculation_method); ?>
+                            </span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Financial Breakdown -->
+                            <div class="col-lg-4">
+                                <h6 class="text-primary mb-3"><i class="fas fa-coins me-2"></i>Financial Breakdown</h6>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <span class="info-label">Position Coefficient</span>
+                                        <span class="info-value text-warning fw-bold"><?php echo number_format($position_coefficient, 3); ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Total Monthly Pool</span>
+                                        <span class="info-value text-success">£<?php echo number_format($total_monthly_pool, 2); ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Monthly Contribution</span>
+                                        <span class="info-value">£<?php echo number_format($monthly_contribution, 2); ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Individual Contribution</span>
+                                        <span class="info-value">£<?php echo number_format($member['individual_contribution'], 2); ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Total Contributed</span>
+                                        <span class="info-value text-success">£<?php echo number_format($member['total_contributed'], 2); ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Total Late Fees</span>
+                                        <span class="info-value text-danger">£<?php echo number_format($member['total_late_fees'], 2); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- EQUB Progress & Settings -->
+                            <div class="col-lg-4">
+                                <h6 class="text-info mb-3"><i class="fas fa-cogs me-2"></i>EQUB Progress & Settings</h6>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <span class="info-label">EQUB Name</span>
+                                        <span class="info-value"><?php echo htmlspecialchars($member['equb_name']); ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Start Date</span>
+                                        <span class="info-value"><?php echo $member['start_date'] ? date('M d, Y', strtotime($member['start_date'])) : 'Not set'; ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Duration</span>
+                                        <span class="info-value"><?php echo $member['duration_months']; ?> months</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Months in EQUB</span>
+                                        <span class="info-value text-primary"><?php echo $member['months_in_equb']; ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Remaining Months</span>
+                                        <span class="info-value text-warning"><?php echo $member['remaining_months_in_equb']; ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">EQUB Status</span>
+                                        <span class="info-value">
+                                            <span class="badge bg-<?php echo $member['equb_status'] === 'active' ? 'success' : 'secondary'; ?>">
+                                                <?php echo ucfirst($member['equb_status']); ?>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Payout & Member Info -->
+                            <div class="col-lg-4">
+                                <h6 class="text-warning mb-3"><i class="fas fa-user-check me-2"></i>Payout & Member Info</h6>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <span class="info-label">Membership Type</span>
+                                        <span class="info-value">
+                                            <span class="badge bg-<?php echo $member['membership_type'] === 'joint' ? 'info' : 'primary'; ?>">
+                                                <?php echo ucfirst($member['membership_type']); ?>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <?php if ($member['membership_type'] === 'joint'): ?>
+                                    <div class="info-item">
+                                        <span class="info-label">Joint Group</span>
+                                        <span class="info-value"><?php echo htmlspecialchars($member['joint_group_name']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="info-item">
+                                        <span class="info-label">Payout Position</span>
+                                        <span class="info-value text-primary fw-bold">#<?php echo $payout_position; ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Total Payments Made</span>
+                                        <span class="info-value"><?php echo $member['total_payments']; ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Payouts Received</span>
+                                        <span class="info-value"><?php echo $member['total_payouts_received']; ?></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Total Amount Received</span>
+                                        <span class="info-value text-success">£<?php echo number_format($member['total_amount_received'], 2); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- EQUB Settings Details -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="text-secondary mb-3"><i class="fas fa-sliders-h me-2"></i>EQUB Settings & Rules</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="info-item">
+                                            <span class="info-label">Admin Fee</span>
+                                            <span class="info-value text-warning">£<?php echo number_format($member['admin_fee'], 2); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="info-item">
+                                            <span class="info-label">Late Fee</span>
+                                            <span class="info-value text-danger">£<?php echo number_format($member['late_fee'], 2); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="info-item">
+                                            <span class="info-label">Grace Period</span>
+                                            <span class="info-value"><?php echo $member['grace_period_days']; ?> days</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="info-item">
+                                            <span class="info-label">Regular Payment Tier</span>
+                                            <span class="info-value">£<?php echo number_format($member['regular_payment_tier'], 2); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
