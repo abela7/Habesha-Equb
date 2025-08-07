@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 07, 2025 at 01:33 AM
+-- Generation Time: Aug 07, 2025 at 07:57 PM
 -- Server version: 10.11.13-MariaDB-cll-lve
 -- PHP Version: 8.3.23
 
@@ -36,15 +36,16 @@ CREATE TABLE `admins` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `language_preference` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Web language: 0=English, 1=Amharic',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `can_manage_swaps` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Permission to manage position swaps'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `admins`
 --
 
-INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`) VALUES
-(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-08-06 23:11:55');
+INSERT INTO `admins` (`id`, `username`, `email`, `phone`, `password`, `is_active`, `language_preference`, `created_at`, `updated_at`, `can_manage_swaps`) VALUES
+(8, 'abel', 'abelgoytom77@gmail.com', '+447360436171', '$2y$12$SSw//y2CE/4Q85XAxF4HEee4SX5QtzSifXBX4xHbiSC2X54lZP/eW', 1, 0, '2025-07-29 15:13:13', '2025-08-06 23:11:55', 1);
 
 -- --------------------------------------------------------
 
@@ -123,7 +124,7 @@ INSERT INTO `email_rate_limits` (`id`, `email_address`, `email_type`, `sent_coun
 (1, 'abelgtm77@gmail.com', 'account_approved', 4, '2025-08-02 08:53:48', '2025-08-03 07:53:35'),
 (2, 'abeldemessie77@gmail.com', 'account_approved', 2, '2025-08-02 09:14:56', '2025-08-03 07:56:36'),
 (3, 'abelgoytom77@gmail.com', 'account_approved', 10, '2025-08-05 19:31:08', '2025-08-03 08:27:16'),
-(11, 'abelgoytom77@gmail.com', 'otp_login', 51, '2025-08-06 23:31:28', '2025-08-02 10:30:05'),
+(11, 'abelgoytom77@gmail.com', 'otp_login', 61, '2025-08-07 17:24:06', '2025-08-02 10:30:05'),
 (16, 'abeldemessie77@gmail.com', 'otp_login', 1, '2025-08-02 09:46:53', '2025-08-02 10:46:53');
 
 -- --------------------------------------------------------
@@ -239,7 +240,7 @@ CREATE TABLE `equb_settings` (
 --
 
 INSERT INTO `equb_settings` (`id`, `equb_id`, `equb_name`, `equb_description`, `status`, `max_members`, `current_members`, `duration_months`, `start_date`, `end_date`, `payment_tiers`, `regular_payment_tier`, `calculated_positions`, `currency`, `payout_day`, `admin_fee`, `late_fee`, `grace_period_days`, `auto_assign_positions`, `position_assignment_method`, `terms_en`, `terms_am`, `special_rules`, `created_by_admin_id`, `managed_by_admin_id`, `approval_required`, `registration_start_date`, `registration_end_date`, `is_public`, `is_featured`, `total_pool_amount`, `collected_amount`, `distributed_amount`, `notes`, `created_at`, `updated_at`, `supports_joint_membership`, `max_joint_members_per_group`, `financial_status`, `last_financial_audit`) VALUES
-(2, 'EQB-2025-001', 'Selam Equb', 'A new Equb!', 'active', 11, 11, 10, '2025-07-01', '2026-05-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', 1000.00, 10, '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 100000.00, 2500.00, 17920.00, '', '2025-07-31 14:18:24', '2025-08-06 23:51:02', 1, 3, 'balanced', NULL);
+(2, 'EQB-2025-001', 'Habesha-Equb', 'A new Equb!', 'active', 11, 11, 10, '2025-07-01', '2026-05-01', '[{\"amount\":1000,\"tag\":\"Full\",\"description\":\"Full member\"},{\"amount\":500,\"tag\":\"Half\",\"description\":\"Half member\"},{\"amount\":1500,\"tag\":\"Full Plus\",\"description\":\"Full plus members \"}]', 1000.00, 10, '£', 5, 20.00, 20.00, 2, 1, 'custom', NULL, NULL, NULL, 8, NULL, 1, NULL, NULL, 1, 0, 100000.00, 2000.00, 17960.00, '', '2025-07-31 14:18:24', '2025-08-07 09:40:50', 1, 3, 'balanced', NULL);
 
 -- --------------------------------------------------------
 
@@ -368,25 +369,30 @@ CREATE TABLE `members` (
   `individual_contribution` decimal(10,2) DEFAULT NULL COMMENT 'Individual contribution amount for joint members',
   `joint_position_share` decimal(5,4) DEFAULT 1.0000 COMMENT 'Share of the joint position (0.5 for 50/50 split)',
   `primary_joint_member` tinyint(1) DEFAULT 1 COMMENT '1 if primary contact for joint membership',
-  `payout_split_method` enum('equal','proportional','custom') DEFAULT 'equal' COMMENT 'How to split payouts in joint membership'
+  `payout_split_method` enum('equal','proportional','custom') DEFAULT 'equal' COMMENT 'How to split payouts in joint membership',
+  `swap_requests_allowed` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Allow member to request position swaps',
+  `total_swaps_requested` int(11) DEFAULT 0 COMMENT 'Total swap requests made by member',
+  `total_swaps_completed` int(11) DEFAULT 0 COMMENT 'Total successful swaps for member',
+  `last_swap_date` timestamp NULL DEFAULT NULL COMMENT 'Date of last completed swap',
+  `swap_cooldown_until` timestamp NULL DEFAULT NULL COMMENT 'Member cannot request swaps until this date'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `members`
 --
 
-INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `position_coefficient`, `payout_month`, `total_contributed`, `display_payout_amount`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`, `membership_type`, `joint_group_id`, `joint_member_count`, `individual_contribution`, `joint_position_share`, `primary_joint_member`, `payout_split_method`) VALUES
-(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, 1.00, '2025-07-05', 2000.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-06 23:31:43', 'both', 1, 0, 1, '', '2025-08-02 11:37:05', '2025-08-07 00:06:18', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 7, 1.00, '2026-02-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-06 17:02:33', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, 1.00, '2025-07-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-06 17:02:33', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 10, 0.50, '2026-01-05', 0.00, 5000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-06 17:02:33', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 500.00, 0.5000, 1, 'equal'),
-(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 6, 1.00, '2026-03-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-06 17:02:33', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, 1.00, '2025-10-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-06 17:02:33', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 9, 1.50, '2025-08-05', 0.00, 15000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-06 17:02:33', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 1500.00, 0.5000, 1, 'equal'),
-(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 8, 0.50, '2026-04-05', 500.00, 5000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-06 23:12:17', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
-(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 5, 1.00, '2025-11-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 22:58:18', '2025-08-06 17:01:06', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal'),
-(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 8, 0.50, '2026-04-05', 0.00, 5000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-06 17:02:33', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal'),
-(20, 2, 'HEM-SS384', 'samyshafi01', 'Samson', 'Shafi', 'Samson Shafi', 'samyshafi01@gmail.com', '07543445583', 'active', 1000.00, 3, 1.00, '2025-12-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 16:36:28', '2025-08-06 17:02:33', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal');
+INSERT INTO `members` (`id`, `equb_settings_id`, `member_id`, `username`, `first_name`, `last_name`, `full_name`, `email`, `phone`, `status`, `monthly_payment`, `payout_position`, `position_coefficient`, `payout_month`, `total_contributed`, `display_payout_amount`, `has_received_payout`, `guarantor_first_name`, `guarantor_last_name`, `guarantor_phone`, `guarantor_email`, `guarantor_relationship`, `is_active`, `is_approved`, `email_verified`, `join_date`, `last_login`, `notification_preferences`, `go_public`, `language_preference`, `rules_agreed`, `notes`, `created_at`, `updated_at`, `email_notifications`, `payment_reminders`, `swap_terms_allowed`, `membership_type`, `joint_group_id`, `joint_member_count`, `individual_contribution`, `joint_position_share`, `primary_joint_member`, `payout_split_method`, `swap_requests_allowed`, `total_swaps_requested`, `total_swaps_completed`, `last_swap_date`, `swap_cooldown_until`) VALUES
+(7, 2, 'HEM-AD537', 'abelgoytom77', 'Abel', 'Demssie', 'Abel Demssie', 'abelgoytom77@gmail.com', '+447360436171', 'active', 1000.00, 1, 1.00, '2025-07-05', 2000.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 1, 1, '2025-08-02', '2025-08-07 17:24:21', 'both', 1, 1, 1, '', '2025-08-02 11:37:05', '2025-08-07 18:45:25', 1, 1, 1, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 2, 0, NULL, NULL),
+(8, 2, 'HEM-SF308', 'fisssaba', 'Sabella', 'Fisseha', 'Sabella Fisseha', 'fisssaba@gmail.com', '+447903095312', 'active', 1000.00, 8, 1.00, '2026-02-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 12:16:00', '2025-08-07 18:13:29', 1, 1, 1, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(10, 2, 'HEM-BD183', 'barnabasdagnachew25', 'Barnabas', 'Dagnachew', 'Barnabas Dagnachew', 'barnabasdagnachew25@gmail.com', '07904762565', 'active', 1000.00, 4, 1.00, '2025-10-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 13:24:34', '2025-08-07 18:13:21', 1, 1, 1, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(11, 2, 'HEM-KG456', 'koketabebe17', 'Koki', 'Garoma', 'Koki Garoma', 'koketabebe17@gmail.com', '07903146994', 'active', 500.00, 6, 0.50, '2025-12-05', 0.00, 5000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-02', NULL, 'both', 1, 1, 0, '', '2025-08-02 14:23:22', '2025-08-07 18:01:58', 1, 1, 1, 'joint', 'JNT-2025-002-115', 1, 500.00, 0.5000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(12, 2, 'HEM-BT451', 'biniamtsegay77', 'Biniam', 'Tsegaye', 'Biniam Tsegaye', 'biniamtsegay77@gmail.com', '+447514415491', 'active', 1000.00, 7, 1.00, '2026-01-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 11:27:46', '2025-08-07 18:02:00', 1, 1, 1, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(13, 2, 'HEM-MN293', 'marufnasirrrr', 'Maruf', 'Nasir', 'Maruf Nasir', 'marufnasirrrr@gmail.com', '07438324115', 'active', 1000.00, 2, 1.00, '2025-08-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 12:12:17', '2025-08-07 18:13:17', 1, 1, 1, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(14, 2, 'HEM-MW669', 'kagnew_s', 'Michael', 'Werkeneh', 'Michael Werkeneh', 'kagnew_s@yahoo.com', '+447415329333', 'active', 1500.00, 10, 1.50, '2026-04-05', 0.00, 15000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 14:47:16', '2025-08-07 10:52:19', 1, 1, 0, 'joint', 'JNT-2025-002-115', 1, 1500.00, 0.5000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(16, 2, 'HEM-EH112', 'haderaeldana', 'Eldana', 'Hadera', 'Eldana Hadera', 'haderaeldana@gmail.com', '+447507910126', 'active', 500.00, 9, 0.50, '2026-03-05', 0.00, 5000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 1, 1, 0, '', '2025-08-03 21:01:16', '2025-08-07 10:52:19', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(17, 2, 'HEM-EF442', 'eliasfriew616', 'ELIAS', 'FRIEW', 'ELIAS FRIEW', 'eliasfriew616@gmail.com', '+447480973939', 'active', 1000.00, 5, 1.00, '2025-11-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-03', NULL, 'both', 0, 1, 0, '', '2025-08-03 22:58:18', '2025-08-07 18:13:11', 1, 1, 1, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(18, 2, 'HEM-SW198', 'hagosmahleit', 'Sosina', 'Wendmagegn', 'Sosina Wendmagegn', 'hagosmahleit@gmail.com', '07438253791', 'active', 500.00, 9, 0.50, '2026-03-05', 0.00, 5000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 01:14:28', '2025-08-07 10:52:19', 1, 1, 0, 'joint', 'JNT-2025-002-902', 1, 500.00, 0.5000, 1, 'equal', 1, 0, 0, NULL, NULL),
+(20, 2, 'HEM-SS384', 'samyshafi01', 'Samson', 'Shafi', 'Samson Shafi', 'samyshafi01@gmail.com', '07543445583', 'active', 1000.00, 3, 1.00, '2025-09-05', 0.00, 10000.00, 0, 'Pending', 'Pending', 'Pending', '', '', 1, 0, 1, '2025-08-04', NULL, 'both', 1, 1, 0, '', '2025-08-04 16:36:28', '2025-08-07 10:51:32', 1, 1, 0, 'individual', NULL, 1, NULL, 1.0000, 1, 'equal', 1, 0, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -498,9 +504,8 @@ CREATE TABLE `payments` (
 --
 
 INSERT INTO `payments` (`id`, `payment_id`, `member_id`, `amount`, `payment_month`, `payment_date`, `status`, `payment_method`, `verified_by_admin`, `verified_by_admin_id`, `verification_date`, `receipt_number`, `notes`, `late_fee`, `created_at`, `updated_at`) VALUES
-(7, 'HEP-20250806-399', 7, 1000.00, '2025-07-01', '2025-07-01', 'paid', 'cash', 1, 8, '2025-08-06 22:18:54', 'HER-20250806-231803', '', 0.00, '2025-08-06 22:18:45', '2025-08-06 22:18:54'),
-(8, 'HEP-20250806-296', 16, 500.00, '2025-08-01', '2025-08-02', 'paid', 'cash', 1, 8, '2025-08-06 23:12:17', 'HER-20250806-231930', '', 0.00, '2025-08-06 22:19:47', '2025-08-06 23:12:17'),
-(9, 'HEP-20250807-401', 7, 1000.00, '2025-08-01', '2025-08-06', 'paid', 'cash', 1, 8, '2025-08-06 23:34:45', 'HER-20250807-003248', '', 20.00, '2025-08-06 23:33:06', '2025-08-06 23:34:45');
+(10, 'HEP-20250807-440', 7, 1000.00, '2025-07-01', '2025-07-01', 'paid', 'cash', 1, 8, '2025-08-07 01:26:07', 'HER-20250807-022549', '', 0.00, '2025-08-07 01:26:07', '2025-08-07 01:26:07'),
+(11, 'HEP-20250807-032', 7, 1000.00, '2025-08-01', '2025-08-01', 'paid', 'cash', 1, 8, '2025-08-07 01:26:47', 'HER-20250807-022615', '', 0.00, '2025-08-07 01:26:29', '2025-08-07 01:26:47');
 
 -- --------------------------------------------------------
 
@@ -528,6 +533,88 @@ CREATE TABLE `payouts` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `position_swap_history`
+--
+
+CREATE TABLE `position_swap_history` (
+  `id` int(11) NOT NULL,
+  `swap_request_id` int(11) NOT NULL,
+  `member_a_id` int(11) NOT NULL COMMENT 'First member in swap',
+  `member_b_id` int(11) NOT NULL COMMENT 'Second member in swap',
+  `position_a_before` int(11) NOT NULL COMMENT 'Member A position before swap',
+  `position_b_before` int(11) NOT NULL COMMENT 'Member B position before swap',
+  `position_a_after` int(11) NOT NULL COMMENT 'Member A position after swap',
+  `position_b_after` int(11) NOT NULL COMMENT 'Member B position after swap',
+  `swap_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `processed_by_admin_id` int(11) NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Audit trail for completed position swaps';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `position_swap_requests`
+--
+
+CREATE TABLE `position_swap_requests` (
+  `id` int(11) NOT NULL,
+  `request_id` varchar(20) NOT NULL COMMENT 'Unique request ID (PSR-YYYYMMDD-XXX)',
+  `member_id` int(11) NOT NULL COMMENT 'Member requesting the swap',
+  `current_position` int(11) NOT NULL COMMENT 'Member current payout position',
+  `requested_position` int(11) NOT NULL COMMENT 'Position they want to swap to',
+  `target_member_id` int(11) DEFAULT NULL COMMENT 'Member who currently holds requested position',
+  `reason` text DEFAULT NULL COMMENT 'Optional reason for swap request',
+  `request_type` enum('swap','specific_position') NOT NULL DEFAULT 'swap' COMMENT 'Type of request',
+  `status` enum('pending','approved','rejected','completed','cancelled') NOT NULL DEFAULT 'pending',
+  `requested_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `admin_response_date` timestamp NULL DEFAULT NULL,
+  `processed_by_admin_id` int(11) DEFAULT NULL COMMENT 'Admin who processed the request',
+  `admin_notes` text DEFAULT NULL COMMENT 'Admin notes about the decision',
+  `completion_date` timestamp NULL DEFAULT NULL,
+  `swap_fee` decimal(8,2) DEFAULT 0.00 COMMENT 'Fee charged for position swap (if any)',
+  `priority_level` enum('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
+  `member_email_sent` tinyint(1) DEFAULT 0 COMMENT 'Email notification sent to member',
+  `admin_email_sent` tinyint(1) DEFAULT 0 COMMENT 'Email notification sent to admin',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stores all position swap requests from members';
+
+--
+-- Dumping data for table `position_swap_requests`
+--
+
+INSERT INTO `position_swap_requests` (`id`, `request_id`, `member_id`, `current_position`, `requested_position`, `target_member_id`, `reason`, `request_type`, `status`, `requested_date`, `admin_response_date`, `processed_by_admin_id`, `admin_notes`, `completion_date`, `swap_fee`, `priority_level`, `member_email_sent`, `admin_email_sent`, `created_at`, `updated_at`) VALUES
+(2, 'PSR-20250807-001', 7, 1, 4, 10, 'Emergency', 'specific_position', 'pending', '2025-08-07 18:38:48', NULL, NULL, NULL, NULL, 0.00, 'medium', 0, 0, '2025-08-07 18:38:48', '2025-08-07 18:38:48');
+
+--
+-- Triggers `position_swap_requests`
+--
+DELIMITER $$
+CREATE TRIGGER `generate_swap_request_id` BEFORE INSERT ON `position_swap_requests` FOR EACH ROW BEGIN
+    DECLARE next_number INT;
+    DECLARE date_part VARCHAR(8);
+    
+    -- Get current date in YYYYMMDD format
+    SET date_part = DATE_FORMAT(NOW(), '%Y%m%d');
+    
+    -- Get next sequential number for today
+    SELECT COALESCE(MAX(CAST(SUBSTRING(request_id, -3) AS UNSIGNED)), 0) + 1 
+    INTO next_number 
+    FROM position_swap_requests 
+    WHERE request_id LIKE CONCAT('PSR-', date_part, '-%');
+    
+    -- Set the request_id if not provided
+    IF NEW.request_id IS NULL OR NEW.request_id = '' THEN
+        SET NEW.request_id = CONCAT('PSR-', date_part, '-', LPAD(next_number, 3, '0'));
+    END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -599,7 +686,7 @@ CREATE TABLE `user_otps` (
 --
 
 INSERT INTO `user_otps` (`id`, `user_id`, `email`, `otp_code`, `otp_type`, `expires_at`, `is_used`, `attempt_count`, `created_at`) VALUES
-(68, 7, 'abelgoytom77@gmail.com', '4609', 'otp_login', '2025-08-06 23:41:27', 1, 0, '2025-08-06 23:31:27');
+(78, 7, 'abelgoytom77@gmail.com', '2816', 'otp_login', '2025-08-07 17:34:06', 1, 0, '2025-08-07 17:24:06');
 
 --
 -- Indexes for dumped tables
@@ -773,6 +860,35 @@ ALTER TABLE `payouts`
   ADD KEY `processed_by_admin_id` (`processed_by_admin_id`);
 
 --
+-- Indexes for table `position_swap_history`
+--
+ALTER TABLE `position_swap_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `swap_request_id` (`swap_request_id`),
+  ADD KEY `member_a_id` (`member_a_id`),
+  ADD KEY `member_b_id` (`member_b_id`),
+  ADD KEY `swap_date` (`swap_date`),
+  ADD KEY `processed_by_admin_id` (`processed_by_admin_id`),
+  ADD KEY `idx_swap_history_members` (`member_a_id`,`member_b_id`);
+
+--
+-- Indexes for table `position_swap_requests`
+--
+ALTER TABLE `position_swap_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `request_id` (`request_id`),
+  ADD KEY `member_id` (`member_id`),
+  ADD KEY `target_member_id` (`target_member_id`),
+  ADD KEY `status` (`status`),
+  ADD KEY `requested_date` (`requested_date`),
+  ADD KEY `current_position` (`current_position`),
+  ADD KEY `requested_position` (`requested_position`),
+  ADD KEY `processed_by_admin_id` (`processed_by_admin_id`),
+  ADD KEY `idx_swap_requests_member_status` (`member_id`,`status`),
+  ADD KEY `idx_swap_requests_target_status` (`target_member_id`,`status`),
+  ADD KEY `idx_swap_requests_positions` (`current_position`,`requested_position`);
+
+--
 -- Indexes for table `system_settings`
 --
 ALTER TABLE `system_settings`
@@ -817,7 +933,7 @@ ALTER TABLE `email_preferences`
 -- AUTO_INCREMENT for table `email_rate_limits`
 --
 ALTER TABLE `email_rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
 
 --
 -- AUTO_INCREMENT for table `equb_financial_summary`
@@ -877,13 +993,25 @@ ALTER TABLE `notification_reads`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `payouts`
 --
 ALTER TABLE `payouts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `position_swap_history`
+--
+ALTER TABLE `position_swap_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `position_swap_requests`
+--
+ALTER TABLE `position_swap_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
@@ -895,7 +1023,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `user_otps`
 --
 ALTER TABLE `user_otps`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
 
 --
 -- Constraints for dumped tables
@@ -973,6 +1101,23 @@ ALTER TABLE `payments`
 ALTER TABLE `payouts`
   ADD CONSTRAINT `payouts_ibfk_1` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `payouts_ibfk_2` FOREIGN KEY (`processed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `position_swap_history`
+--
+ALTER TABLE `position_swap_history`
+  ADD CONSTRAINT `position_swap_history_ibfk_1` FOREIGN KEY (`swap_request_id`) REFERENCES `position_swap_requests` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `position_swap_history_ibfk_2` FOREIGN KEY (`member_a_id`) REFERENCES `members` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `position_swap_history_ibfk_3` FOREIGN KEY (`member_b_id`) REFERENCES `members` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `position_swap_history_ibfk_4` FOREIGN KEY (`processed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `position_swap_requests`
+--
+ALTER TABLE `position_swap_requests`
+  ADD CONSTRAINT `position_swap_requests_ibfk_1` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `position_swap_requests_ibfk_2` FOREIGN KEY (`target_member_id`) REFERENCES `members` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `position_swap_requests_ibfk_3` FOREIGN KEY (`processed_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `user_otps`
