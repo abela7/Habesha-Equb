@@ -161,13 +161,19 @@ try {
         ]);
     }
     
-    // Get total member count for statistics - all active members
+    // Get member statistics
     $stmt = $pdo->prepare("SELECT COUNT(*) as total_count FROM members WHERE is_active = 1");
     $stmt->execute();
     $total_members = $stmt->fetch(PDO::FETCH_ASSOC)['total_count'];
     
-    $public_count = count($public_members);
-    $private_count = $total_members - $public_count;
+    // Count public vs private members
+    $stmt = $pdo->prepare("SELECT COUNT(*) as public_count FROM members WHERE is_active = 1 AND go_public = 1");
+    $stmt->execute();
+    $public_count = $stmt->fetch(PDO::FETCH_ASSOC)['public_count'];
+    
+    $stmt = $pdo->prepare("SELECT COUNT(*) as private_count FROM members WHERE is_active = 1 AND go_public = 0");
+    $stmt->execute();
+    $private_count = $stmt->fetch(PDO::FETCH_ASSOC)['private_count'];
     
 } catch (PDOException $e) {
     die("❌ DATABASE ERROR: " . $e->getMessage());
@@ -953,9 +959,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         // Use display name (respects privacy settings)
                         $member_name = $member['display_name'];
                         
-                        // Generate initials - use first letters of display name or Anonymous symbol
+                        // Generate initials - use first letters of display name or A for Anonymous
                         if ($member['is_anonymous']) {
-                            $initials = '🔒'; // Lock symbol for anonymous members
+                            $initials = 'AN'; // Anonymous initials
                         } else {
                             $name_parts = explode(' ', $member_name);
                             if (count($name_parts) >= 2) {
@@ -981,7 +987,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             ? date('M Y', strtotime($member['expected_payout_date'])) 
                             : 'TBD';
                         ?>
-                        <div class="member-card <?php echo $member['is_current_user'] ? 'current-user' : ''; ?>" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
+                        <div class="member-card" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
                             <div class="member-header">
                                 <div class="member-avatar <?php echo $member['is_anonymous'] ? 'anonymous' : ''; ?>">
                                     <?php echo strtoupper($initials); ?>
@@ -989,9 +995,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="member-info">
                                     <h3>
                                         <?php echo htmlspecialchars($member_name, ENT_QUOTES); ?>
-                                        <?php if ($member['is_current_user']): ?>
-                                            <span class="badge bg-primary ms-1">You</span>
-                                        <?php endif; ?>
                                         <?php if (!$member['is_approved']): ?>
                                             <span class="badge bg-warning ms-1">Pending</span>
                                         <?php endif; ?>

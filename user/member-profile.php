@@ -192,9 +192,9 @@ try {
 // Calculate member data with privacy-aware display
 $profile_member_name = $display_name;
 
-// Generate initials - use first letters of display name or Anonymous symbol  
+// Generate initials - use first letters of display name or AN for Anonymous
 if ($is_anonymous) {
-    $initials = '🔒'; // Lock symbol for anonymous members
+    $initials = 'AN'; // Anonymous initials
 } else {
     $name_parts = explode(' ', $display_name);
     if (count($name_parts) >= 2) {
@@ -681,9 +681,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     <div class="profile-info">
                         <h2>
                             <?php echo htmlspecialchars($profile_member_name, ENT_QUOTES); ?>
-                            <?php if ($viewing_own_profile): ?>
-                                <span class="badge bg-primary ms-2">You</span>
-                            <?php endif; ?>
                             <?php if ($is_anonymous): ?>
                                 <i class="fas fa-user-secret text-muted ms-2" title="<?php echo t('payout_info.anonymous'); ?>"></i>
                             <?php endif; ?>
@@ -761,7 +758,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <div class="stat-value">£<?php echo number_format($display_payout, 0); ?></div>
                             <div class="stat-label"><?php echo t('members_directory.expected_payout'); ?></div>
                             <div class="stat-detail">
-                                <?php echo ucfirst($calculation_method); ?> - Coefficient: <?php echo number_format($position_coefficient, 2); ?>
+                                <?php echo t('payout_info.based_on_contribution'); ?>
                             </div>
                         </div>
                         
