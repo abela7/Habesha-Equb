@@ -1202,6 +1202,10 @@
     "upcoming_payout_journey": "Upcoming Payout Journey",
     "joint_equb": "Joint EQUB"
   },
+  "notifications": {
+    "no_notifications": "No notifications yet.",
+    "high": "High"
+  },
   "common": {
     "cancel": "Cancel",
     "confirm": "Confirm",

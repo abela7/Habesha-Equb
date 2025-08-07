@@ -21,6 +21,8 @@ $lang = getCurrentLanguage();
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><?php echo t('member_nav.notifications') ?: 'Notifications'; ?></title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/img/favicon-32x32.png" />
+    <link rel="icon" type="image/x-icon" href="../assets/img/favicon.ico" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css?v=<?php echo $cache_buster; ?>" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css?v=<?php echo $cache_buster; ?>" rel="stylesheet" crossorigin="anonymous" />
     <link href="../assets/css/style.css?v=<?php echo $cache_buster; ?>" rel="stylesheet" />
@@ -109,7 +111,7 @@ function renderNotifications(items) {
     const wrap = document.getElementById('notificationsList');
     wrap.innerHTML = '';
     if (!Array.isArray(items) || !items.length) {
-        wrap.innerHTML = `<div class=\"alert alert-info\"><i class=\"fas fa-info-circle me-1\"></i><?php echo t('common.no_data') ?: 'No notifications yet.'; ?></div>`;
+        wrap.innerHTML = `<div class=\"alert alert-info\"><i class=\"fas fa-info-circle me-1\"></i><?php echo t('notifications.no_notifications') ?: (t('common.no_data') ?: 'No notifications yet.'); ?></div>`;
         return;
     }
     items.forEach(n => {
@@ -133,7 +135,7 @@ function renderNotifications(items) {
             <div class=\"flex-fill\">
                 <div class=\"d-flex align-items-center gap-2\">
                     <h5 class=\"notif-title\">${escapeHtml(title)}</h5>
-                    ${n.priority==='high' ? '<span class=\"priority-high modal-priority\">HIGH</span>' : ''}
+                    ${n.priority==='high' ? '<span class=\"priority-high modal-priority\"><?php echo t('notifications.high') ?: 'High'; ?></span>' : ''}
                     ${isUnread ? '<span class=\"badge-unread\"><?php echo t('common.unread') ?: 'Unread'; ?></span>' : ''}
                 </div>
                 <div class=\"notif-meta\">${created ? escapeHtml(created) : ''}</div>

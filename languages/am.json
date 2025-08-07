@@ -1202,6 +1202,10 @@
     "upcoming_payout_journey": "የሚመጣው የክፍያ ሂደት",
     "joint_equb": "የጋራ እቁብ"
   },
+  "notifications": {
+    "no_notifications": "እስካሁን ማሳወቂያ የለም።",
+    "high": "ከፍተኛ"
+  },
   "common": {
     "cancel": "ይቅር",
     "confirm": "አረጋግጥ",
