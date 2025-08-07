@@ -720,8 +720,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         padding: 20px !important;
         font-family: 'Courier New', monospace !important;
         color: black !important;
-        font-size: 14px !important;
-        line-height: 1.4 !important;
+        font-size: 18px !important;
+        line-height: 1.6 !important;
         display: block !important;
     }
     
@@ -733,20 +733,20 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .receipt-title {
-        font-size: 20px !important;
+        font-size: 26px !important;
         font-weight: bold !important;
         margin-bottom: 5px !important;
         color: black !important;
     }
     
     .receipt-subtitle {
-        font-size: 16px !important;
+        font-size: 20px !important;
         margin-bottom: 10px !important;
         color: black !important;
     }
     
     .receipt-date {
-        font-size: 12px !important;
+        font-size: 16px !important;
         color: black !important;
     }
     
@@ -757,14 +757,14 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     .receipt-row {
         display: flex !important;
         justify-content: space-between !important;
-        margin: 8px 0 !important;
-        padding: 4px 0 !important;
+        margin: 10px 0 !important;
+        padding: 6px 0 !important;
         border-bottom: 1px dotted #ccc !important;
     }
     
     .receipt-row span {
         color: black !important;
-        font-size: 14px !important;
+        font-size: 18px !important;
     }
     
     .receipt-footer {
@@ -772,7 +772,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         text-align: center !important;
         border-top: 2px solid #000 !important;
         padding-top: 10px !important;
-        font-size: 12px !important;
+        font-size: 16px !important;
     }
     
     .receipt-footer p {
