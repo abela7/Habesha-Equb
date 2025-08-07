@@ -52,8 +52,9 @@ if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
 $admin_id = $_SESSION['admin_id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
-// CSRF token verification for POST requests
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action !== 'list') {
+// CSRF token verification for POST requests (except read-only operations)
+$read_only_actions = ['list', 'calculate', 'get', 'get_csrf_token'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($action, $read_only_actions)) {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         echo json_encode([
             'success' => false, 
