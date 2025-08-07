@@ -81,9 +81,9 @@ function submitSwapRequest($user_id) {
         return;
     }
     
-    // Get member data
+    // Get member data - DATABASE DRIVEN
     $stmt = $pdo->prepare("
-        SELECT m.*, es.max_members 
+        SELECT m.*, es.max_members, es.calculated_positions
         FROM members m
         JOIN equb_settings es ON m.equb_settings_id = es.id
         WHERE m.id = ? AND m.is_active = 1
@@ -97,17 +97,23 @@ function submitSwapRequest($user_id) {
         return;
     }
     
+    // Get total positions from database - NO HARDCODING!
+    $total_positions = (int)$member['calculated_positions'];
+    if ($total_positions <= 0) {
+        $total_positions = (int)$member['max_members']; // Fallback
+    }
+    
     // Validate position is within range
-    if ($requested_position > $member['max_members']) {
+    if ($requested_position > $total_positions) {
         ob_clean();
         echo json_encode(['success' => false, 'message' => 'Invalid position number']);
         return;
     }
     
-    // Check if member can request swaps
-    if (!$member['swap_requests_allowed']) {
+    // Check if member can request swaps - USE DATABASE COLUMN
+    if (!$member['swap_terms_allowed']) {
         ob_clean();
-        echo json_encode(['success' => false, 'message' => 'You are not allowed to request position swaps']);
+        echo json_encode(['success' => false, 'message' => 'Your swap permission is disabled. Contact admin to enable position swaps.']);
         return;
     }
     
@@ -141,13 +147,55 @@ function submitSwapRequest($user_id) {
         return;
     }
     
-    // Find target member (if position is occupied)
+    // Find target member(s) and check if position is locked
     $stmt = $pdo->prepare("
-        SELECT id FROM members 
+        SELECT id, swap_terms_allowed, membership_type, joint_group_id
+        FROM members 
         WHERE equb_settings_id = ? AND payout_position = ? AND is_active = 1 AND id != ?
     ");
     $stmt->execute([$member['equb_settings_id'], $requested_position, $user_id]);
-    $target_member_id = $stmt->fetchColumn();
+    $target_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $target_member_id = null;
+    $position_locked = false;
+    
+    if (!empty($target_members)) {
+        $target_member_id = $target_members[0]['id'];
+        
+        // Check if any target member has swap disabled
+        foreach ($target_members as $target_member) {
+            if (!$target_member['swap_terms_allowed']) {
+                $position_locked = true;
+                break;
+            }
+        }
+        
+        // For joint positions, check ALL joint members
+        if (!$position_locked && $target_members[0]['membership_type'] === 'joint') {
+            $joint_group_id = $target_members[0]['joint_group_id'];
+            
+            $stmt = $pdo->prepare("
+                SELECT swap_terms_allowed 
+                FROM members 
+                WHERE joint_group_id = ? AND is_active = 1
+            ");
+            $stmt->execute([$joint_group_id]);
+            $joint_permissions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($joint_permissions as $permission) {
+                if (!$permission) {
+                    $position_locked = true;
+                    break;
+                }
+            }
+        }
+        
+        if ($position_locked) {
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'This position is locked because one or more members have disabled swap permissions.']);
+            return;
+        }
+    }
     
     // Generate request ID will be handled by trigger
     $stmt = $pdo->prepare("
@@ -257,7 +305,7 @@ function cancelSwapRequest($user_id) {
 function getAvailablePositions($user_id) {
     global $pdo;
     
-    // Get member data
+    // Get member data - DATABASE DRIVEN
     $stmt = $pdo->prepare("
         SELECT m.*, es.* 
         FROM members m
@@ -273,9 +321,15 @@ function getAvailablePositions($user_id) {
         return;
     }
     
-    // Get all members in the same equb
+    // Get total positions from database - NO HARDCODING!
+    $total_positions = (int)$member['calculated_positions'];
+    if ($total_positions <= 0) {
+        $total_positions = (int)$member['max_members']; // Fallback
+    }
+    
+    // Get all members in the same equb with swap permissions
     $stmt = $pdo->prepare("
-        SELECT payout_position, first_name, last_name, go_public
+        SELECT payout_position, first_name, last_name, go_public, swap_terms_allowed, membership_type, joint_group_id
         FROM members 
         WHERE equb_settings_id = ? AND is_active = 1 AND id != ?
         ORDER BY payout_position ASC
@@ -288,7 +342,7 @@ function getAvailablePositions($user_id) {
     $equb_start = new DateTime($member['start_date']);
     $positions = [];
     
-    for ($pos = 1; $pos <= $member['max_members']; $pos++) {
+    for ($pos = 1; $pos <= $total_positions; $pos++) {
         if ($pos == $member['payout_position']) continue;
         
         // Calculate position date

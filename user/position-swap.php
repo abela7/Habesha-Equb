@@ -25,7 +25,7 @@ $user_id = get_current_user_id();
 $cache_buster = time() . '_' . rand(1000, 9999);
 
 try {
-    // Get current member data and EQUB settings
+    // Get current member data and EQUB settings - 100% DATABASE DRIVEN
     $stmt = $pdo->prepare("
         SELECT m.*, es.* 
         FROM members m
@@ -40,10 +40,10 @@ try {
         exit;
     }
 
-    // Check if member is allowed to request swaps
-    if (!$member['swap_requests_allowed']) {
+    // Check if member is allowed to request swaps - USE DATABASE COLUMN
+    if (!$member['swap_terms_allowed']) {
         $swap_disabled = true;
-        $disable_reason = "Your account is not eligible for position swaps.";
+        $disable_reason = "Your swap permission is disabled. Contact admin to enable position swaps.";
     }
 
     // Check if member has pending swap requests
@@ -67,10 +67,31 @@ try {
         $disable_reason = "You cannot request swaps until {$cooldown_date}.";
     }
 
-    // Get all members with their positions (excluding current user)
+    // GET TOTAL POSITIONS FROM DATABASE - NO HARDCODING!
+    $total_positions = (int)$member['calculated_positions']; // Dynamic from database
+    if ($total_positions <= 0) {
+        // Fallback to max_members if calculated_positions not set
+        $total_positions = (int)$member['max_members'];
+    }
+
+    // Get all position occupants with swap permissions
     $stmt = $pdo->prepare("
-        SELECT m.id, m.first_name, m.last_name, m.payout_position, m.payout_month, m.go_public
+        SELECT 
+            m.id, 
+            m.first_name, 
+            m.last_name, 
+            m.payout_position, 
+            m.payout_month, 
+            m.go_public,
+            m.swap_terms_allowed,
+            m.membership_type,
+            m.joint_group_id,
+            CASE 
+                WHEN m.membership_type = 'joint' THEN jmg.group_name
+                ELSE CONCAT(m.first_name, ' ', m.last_name)
+            END as display_name
         FROM members m
+        LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
         WHERE m.equb_settings_id = ? AND m.is_active = 1 AND m.id != ?
         ORDER BY m.payout_position ASC
     ");
@@ -82,10 +103,11 @@ try {
     $equb_start = new DateTime($member['start_date']);
     $available_positions = [];
     
-    for ($pos = 1; $pos <= $member['max_members']; $pos++) {
+    // Loop through ACTUAL database positions, not hardcoded numbers
+    for ($pos = 1; $pos <= $total_positions; $pos++) {
         if ($pos == $member['payout_position']) continue; // Skip current position
         
-        // Calculate position date
+        // Calculate position date based on EQUB settings
         $position_date = clone $equb_start;
         $position_date->add(new DateInterval('P' . ($pos - 1) . 'M'));
         $position_date->setDate(
@@ -96,11 +118,57 @@ try {
         
         // Only show future positions
         if ($position_date > $current_date) {
-            $occupant = null;
+            // Find occupant(s) of this position
+            $position_occupants = [];
+            $position_locked = false;
+            $position_available = true;
+            
             foreach ($all_members as $other_member) {
                 if ($other_member['payout_position'] == $pos) {
-                    $occupant = $other_member;
-                    break;
+                    $position_occupants[] = $other_member;
+                    $position_available = false;
+                    
+                    // JOINT MEMBERSHIP LOGIC: If ANY member in joint position has swap disabled, LOCK THE POSITION
+                    if (!$other_member['swap_terms_allowed']) {
+                        $position_locked = true;
+                    }
+                }
+            }
+            
+            // For joint positions, check if ALL joint members have swap enabled
+            if (!empty($position_occupants) && $position_occupants[0]['membership_type'] === 'joint') {
+                $joint_group_id = $position_occupants[0]['joint_group_id'];
+                
+                // Get all members in this joint group
+                $stmt = $pdo->prepare("
+                    SELECT swap_terms_allowed 
+                    FROM members 
+                    WHERE joint_group_id = ? AND is_active = 1
+                ");
+                $stmt->execute([$joint_group_id]);
+                $joint_members_permissions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                // If ANY joint member has swap disabled, lock the position
+                foreach ($joint_members_permissions as $permission) {
+                    if (!$permission) {
+                        $position_locked = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Determine occupant display name
+            $occupant_name = null;
+            if (!empty($position_occupants)) {
+                if (count($position_occupants) > 1 || $position_occupants[0]['membership_type'] === 'joint') {
+                    // Joint position
+                    $occupant_name = $position_occupants[0]['display_name'] ?: 'Joint Members';
+                } else {
+                    // Individual position
+                    $occupant = $position_occupants[0];
+                    $occupant_name = $occupant['go_public'] ? 
+                        $occupant['first_name'] . ' ' . $occupant['last_name'] : 
+                        t('position_swap.anonymous');
                 }
             }
             
@@ -108,12 +176,11 @@ try {
                 'position' => $pos,
                 'date' => $position_date,
                 'month_name' => $position_date->format('M Y'),
-                'is_available' => !$occupant,
-                'occupant' => $occupant,
-                'occupant_name' => $occupant ? 
-                    ($occupant['go_public'] || $occupant['id'] == $user_id ? 
-                        $occupant['first_name'] . ' ' . $occupant['last_name'] : 
-                        t('position_swap.anonymous')) : null
+                'is_available' => $position_available && !$position_locked,
+                'is_locked' => $position_locked,
+                'occupants' => $position_occupants,
+                'occupant_name' => $occupant_name,
+                'lock_reason' => $position_locked ? 'Position locked - swap permission disabled' : null
             ];
         }
     }
@@ -223,6 +290,18 @@ $current_payout_date->setDate(
         opacity: 0.6;
     }
 
+    .position-item.locked {
+        background: #fff3cd;
+        border-color: #ffeaa7;
+        cursor: not-allowed;
+        opacity: 0.8;
+    }
+
+    .position-item.locked:hover {
+        border-color: #ffeaa7;
+        transform: none;
+    }
+
     .position-number {
         display: inline-block;
         background: var(--color-gold);
@@ -265,6 +344,11 @@ $current_payout_date->setDate(
     .status-your {
         background: var(--color-gold);
         color: var(--color-white);
+    }
+
+    .status-locked {
+        background: #856404;
+        color: #fff3cd;
     }
 
     .swap-rules {
@@ -442,16 +526,40 @@ $current_payout_date->setDate(
                 <?php else: ?>
                     <div class="position-grid">
                         <?php foreach ($available_positions as $pos): ?>
-                            <div class="position-item <?php echo $pos['is_available'] ? 'available' : 'unavailable'; ?>" 
+                            <?php 
+                            $item_class = 'position-item';
+                            if ($pos['is_available']) {
+                                $item_class .= ' available';
+                            } elseif ($pos['is_locked']) {
+                                $item_class .= ' locked';
+                            } else {
+                                $item_class .= ' unavailable';
+                            }
+                            ?>
+                            <div class="<?php echo $item_class; ?>" 
                                  data-position="<?php echo $pos['position']; ?>"
                                  data-month="<?php echo $pos['month_name']; ?>"
-                                 data-date="<?php echo $pos['date']->format('Y-m-d'); ?>">
+                                 data-date="<?php echo $pos['date']->format('Y-m-d'); ?>"
+                                 <?php if ($pos['is_locked']): ?>
+                                    title="<?php echo htmlspecialchars($pos['lock_reason']); ?>"
+                                 <?php endif; ?>>
                                 <div class="position-number"><?php echo $pos['position']; ?></div>
                                 <div class="position-month"><?php echo $pos['month_name']; ?></div>
-                                <div class="position-status <?php echo $pos['is_available'] ? 'status-available' : 'status-taken'; ?>">
+                                <div class="position-status <?php 
+                                    if ($pos['is_available']) {
+                                        echo 'status-available';
+                                    } elseif ($pos['is_locked']) {
+                                        echo 'status-locked';
+                                    } else {
+                                        echo 'status-taken';
+                                    }
+                                ?>">
                                     <?php if ($pos['is_available']): ?>
                                         <i class="fas fa-check-circle me-1"></i>
                                         <?php echo t('position_swap.available'); ?>
+                                    <?php elseif ($pos['is_locked']): ?>
+                                        <i class="fas fa-lock me-1"></i>
+                                        Locked
                                     <?php else: ?>
                                         <i class="fas fa-user me-1"></i>
                                         <?php echo $pos['occupant_name']; ?>
@@ -592,7 +700,7 @@ $current_payout_date->setDate(
     
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Position selection handling
+        // Position selection handling - ONLY AVAILABLE POSITIONS
         const positionItems = document.querySelectorAll('.position-item.available');
         const requestForm = document.getElementById('requestForm');
         const selectedPositionInput = document.getElementById('selectedPosition');
@@ -601,6 +709,11 @@ $current_payout_date->setDate(
         
         positionItems.forEach(item => {
             item.addEventListener('click', function() {
+                // Check if position is actually available (double check)
+                if (this.classList.contains('locked') || this.classList.contains('unavailable')) {
+                    return; // Prevent selection of locked/unavailable positions
+                }
+                
                 // Remove previous selection
                 positionItems.forEach(p => p.classList.remove('selected'));
                 
@@ -619,6 +732,18 @@ $current_payout_date->setDate(
                 // Show form
                 requestForm.style.display = 'block';
                 requestForm.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+        
+        // Add click handlers for locked/unavailable positions to show message
+        const lockedItems = document.querySelectorAll('.position-item.locked, .position-item.unavailable');
+        lockedItems.forEach(item => {
+            item.addEventListener('click', function() {
+                if (this.classList.contains('locked')) {
+                    showAlert('This position is locked because one or more members have disabled swap permissions.', 'warning');
+                } else {
+                    showAlert('This position is already taken by another member.', 'info');
+                }
             });
         });
         

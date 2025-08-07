@@ -62,8 +62,8 @@ CREATE TABLE IF NOT EXISTS `position_swap_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Add swap-related columns to members table (if not exists)
+-- Note: swap_terms_allowed already exists in members table, so we only add the new tracking columns
 ALTER TABLE `members` 
-ADD COLUMN IF NOT EXISTS `swap_requests_allowed` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Allow member to request position swaps',
 ADD COLUMN IF NOT EXISTS `total_swaps_requested` int(11) DEFAULT 0 COMMENT 'Total swap requests made by member',
 ADD COLUMN IF NOT EXISTS `total_swaps_completed` int(11) DEFAULT 0 COMMENT 'Total successful swaps for member',
 ADD COLUMN IF NOT EXISTS `last_swap_date` timestamp NULL DEFAULT NULL COMMENT 'Date of last completed swap',
