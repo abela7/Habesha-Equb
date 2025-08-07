@@ -1692,48 +1692,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 <body>
     <!-- Include Member Navigation -->
     <?php include 'includes/navigation.php'; ?>
-    
-    <!-- Admin Impersonation Banner (Testing Only) -->
-    <?php if (isset($_SESSION['admin_impersonation']) && $_SESSION['admin_impersonation']): ?>
-        <div class="admin-impersonation-banner" style="
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-            padding: 12px 20px;
-            text-align: center;
-            z-index: 9999;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            font-weight: 600;
-        ">
-            <i class="fas fa-vial"></i>
-            <strong>ADMIN TESTING MODE:</strong> 
-            You are impersonating <?php echo htmlspecialchars($_SESSION['member_name']); ?> 
-            as admin <?php echo htmlspecialchars($_SESSION['impersonating_admin_username']); ?>
-            
-            <a href="../admin/dashboard.php" style="
-                background: rgba(255,255,255,0.2);
-                color: white;
-                padding: 6px 12px;
-                border-radius: 20px;
-                text-decoration: none;
-                margin-left: 15px;
-                font-size: 0.9rem;
-                transition: all 0.3s ease;
-            " onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
-               onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                <i class="fas fa-arrow-left"></i> Return to Admin
-            </a>
-        </div>
-        
-        <style>
-        .main-content {
-            margin-top: 60px !important;
-        }
-        </style>
-    <?php endif; ?>
 
     <!-- Dashboard Content -->
     <div class="container-fluid">

@@ -945,19 +945,6 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Security Settings</span>
             </a>
-            
-            <!-- Development Tools -->
-            <div style="margin: 15px 0; border-top: 1px dashed #ff6b6b; opacity: 0.3;"></div>
-            <a href="member-testing.php" class="nav-item <?php echo ($current_page === 'member-testing.php') ? 'active' : ''; ?>" style="border: 2px dashed #ff6b6b; background: rgba(255, 107, 107, 0.1); margin: 5px 10px; border-radius: 10px;">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #ff6b6b;">
-                    <path d="M9 11H7a2 2 0 0 0 0 4h2"/>
-                    <path d="M13 11h2a2 2 0 0 1 0 4h-2"/>
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-                <span class="nav-text" style="color: #ff6b6b; font-weight: 600;">🧪 Member Testing</span>
-            </a>
 
             
             <!-- Language Selector -->
@@ -1011,8 +998,7 @@ body.no-scroll {
                     'notifications.php' => t('navigation.notifications'),
                     'rules.php' => t('navigation.rules'),
                     'settings.php' => t('navigation.settings'),
-                    'security-settings.php' => 'Security Settings',
-                    'member-testing.php' => '🧪 Member Testing Tool'
+                    'security-settings.php' => 'Security Settings'
                 ];
                 echo $page_titles[$current_page] ?? 'HabeshaEqub Admin';
                 ?>

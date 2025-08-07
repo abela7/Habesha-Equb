@@ -170,8 +170,8 @@ function generateReceiptHTML($data, $type) {
                 padding: 20px;
                 background: #fff;
                 color: #333;
-                font-size: 16px;
-                line-height: 1.6;
+                font-size: 20px;
+                line-height: 1.7;
             }
             
             .receipt {
@@ -189,7 +189,7 @@ function generateReceiptHTML($data, $type) {
             }
             
             .company-name {
-                font-size: 28px;
+                font-size: 36px;
                 font-weight: bold;
                 color: #13665C;
                 margin-bottom: 10px;
@@ -200,7 +200,7 @@ function generateReceiptHTML($data, $type) {
                 color: white;
                 padding: 12px 24px;
                 border-radius: 5px;
-                font-size: 22px;
+                font-size: 28px;
                 font-weight: bold;
                 margin: 15px 0;
             }
@@ -212,9 +212,9 @@ function generateReceiptHTML($data, $type) {
             .row {
                 display: flex;
                 justify-content: space-between;
-                padding: 10px 0;
+                padding: 12px 0;
                 border-bottom: 1px solid #f0f0f0;
-                font-size: 16px;
+                font-size: 20px;
             }
             
             .row:last-child {
@@ -224,12 +224,12 @@ function generateReceiptHTML($data, $type) {
             .label {
                 font-weight: 600;
                 color: #555;
-                font-size: 16px;
+                font-size: 20px;
             }
             
             .value {
                 color: #333;
-                font-size: 16px;
+                font-size: 20px;
                 font-weight: 500;
             }
             
@@ -244,8 +244,8 @@ function generateReceiptHTML($data, $type) {
             .amount-row {
                 display: flex;
                 justify-content: space-between;
-                margin: 8px 0;
-                font-size: 16px;
+                margin: 10px 0;
+                font-size: 20px;
             }
             
             .total-row {
@@ -253,7 +253,7 @@ function generateReceiptHTML($data, $type) {
                 margin-top: 12px;
                 padding-top: 12px;
                 font-weight: bold;
-                font-size: 20px;
+                font-size: 24px;
                 color: #13665C;
             }
             
@@ -262,7 +262,7 @@ function generateReceiptHTML($data, $type) {
                 margin-top: 30px;
                 padding-top: 20px;
                 border-top: 1px solid #ddd;
-                font-size: 14px;
+                font-size: 18px;
                 color: #666;
             }
             
