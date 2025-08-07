@@ -237,20 +237,24 @@ try {
                 if ($calc_result['success']) {
                     $gross_payout = $calc_result['calculation']['gross_payout'];
                     $display_payout = $calc_result['calculation']['display_payout'];
+                    $net_payout = $calc_result['calculation']['real_net_payout'];
                 } else {
                     // Fallback calculation
                     $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
                     $display_payout = $gross_payout - $member['admin_fee'];
+                    $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
                 }
             } else {
                 // Fallback calculation if calculator not available
                 $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
                 $display_payout = $gross_payout - $member['admin_fee'];
+                $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
             }
         } catch (Exception $e) {
             // Fallback calculation
             $gross_payout = $queue_member['position_coefficient'] * $total_monthly_pool;
             $display_payout = $gross_payout - $member['admin_fee'];
+            $net_payout = $gross_payout - $member['admin_fee'] - $queue_member['monthly_payment'];
             error_log("Calculator error for member {$queue_member['id']}: " . $e->getMessage());
         }
         
@@ -268,6 +272,7 @@ try {
             'received_date' => $queue_member['received_date'],
             'gross_payout' => $gross_payout,
             'display_payout' => $display_payout,
+            'net_payout' => $net_payout,
             'received_amount' => $queue_member['net_amount'],
             'payout_record_status' => $queue_member['payout_record_status']
         ];
@@ -1955,7 +1960,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     ?>
                                 </div>
                                 <div class="step-amount">
-                                    £<?php echo number_format($queue_member['display_payout'], 2); ?>
+                                    £<?php echo number_format($queue_member['net_payout'], 2); ?>
                                 </div>
                                 <div class="step-date">
                                     <?php echo $member_payout_date->format('M j, Y'); ?>
