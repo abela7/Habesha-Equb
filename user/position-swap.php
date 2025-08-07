@@ -191,13 +191,13 @@ try {
         }
     }
 
-    // Get member's swap request history - ONLY show approved/rejected (not cancelled by member)
+    // Get member's swap request history - Show PENDING (so they can cancel) + approved/rejected (for records)
     $stmt = $pdo->prepare("
         SELECT psr.*, 
                CONCAT(tm.first_name, ' ', tm.last_name) as target_member_name
         FROM position_swap_requests psr
         LEFT JOIN members tm ON psr.target_member_id = tm.id
-        WHERE psr.member_id = ? AND psr.status IN ('approved', 'rejected')
+        WHERE psr.member_id = ? AND psr.status IN ('pending', 'approved', 'rejected')
         ORDER BY psr.requested_date DESC
         LIMIT 10
     ");

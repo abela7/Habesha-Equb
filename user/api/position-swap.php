@@ -384,4 +384,56 @@ function getAvailablePositions($user_id) {
         'available_positions' => $positions
     ]);
 }
+
+/**
+ * Cancel a pending position swap request
+ */
+function cancelSwapRequest($user_id) {
+    global $pdo;
+    
+    // Get request ID from POST data
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    $request_id = $data['request_id'] ?? '';
+    
+    if (empty($request_id)) {
+        ob_clean();
+        echo json_encode(['success' => false, 'message' => 'Request ID is required']);
+        return;
+    }
+    
+    try {
+        // Verify the request belongs to the user and is pending
+        $stmt = $pdo->prepare("
+            SELECT id, status 
+            FROM position_swap_requests 
+            WHERE request_id = ? AND member_id = ? AND status = 'pending'
+        ");
+        $stmt->execute([$request_id, $user_id]);
+        $request = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$request) {
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'Request not found or cannot be cancelled']);
+            return;
+        }
+        
+        // Delete the pending request (we don't keep cancelled requests in history)
+        $delete_stmt = $pdo->prepare("DELETE FROM position_swap_requests WHERE request_id = ? AND member_id = ?");
+        $result = $delete_stmt->execute([$request_id, $user_id]);
+        
+        if ($result) {
+            ob_clean();
+            echo json_encode(['success' => true, 'message' => 'Request cancelled successfully']);
+        } else {
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'Failed to cancel request']);
+        }
+        
+    } catch (PDOException $e) {
+        ob_clean();
+        error_log("Cancel request error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
+}
 ?>

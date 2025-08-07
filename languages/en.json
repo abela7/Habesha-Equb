@@ -1031,7 +1031,7 @@
     "swap_rules": "Swap Rules",
     "rule_1": "You can only request positions that are in future months",
     "rule_2": "Swap requests are subject to admin approval",
-    "rule_3": "There may be a fee associated with position swaps",
+    "rule_3": "There is no any fee associated with position swaps",
     "rule_4": "You cannot request a swap if you have pending requests",
     "current_payout_date": "Current Payout Date",
     "requested_payout_date": "Requested Payout Date",
