@@ -12,15 +12,29 @@ require_once 'includes/admin_auth_guard.php';
 $admin_id = get_current_admin_id();
 $admin_username = get_current_admin_username() ?? 'Admin';
 
-// Get members data - SIMPLIFIED for directory view
+// Get members data - SIMPLIFIED and CLEAN
 try {
     $stmt = $pdo->query("
-        SELECT m.id, m.member_id, m.first_name, m.last_name, 
-               m.membership_type, m.is_active, m.monthly_payment,
+        SELECT m.id, m.member_id, m.first_name, m.last_name, m.email, m.phone, 
+               m.membership_type, m.is_active, m.created_at, m.monthly_payment,
                m.payout_position, m.received_payout,
-               jmg.group_name
+               jmg.group_name,
+               COUNT(p.id) as payment_count,
+               MAX(p.payment_date) as last_payment,
+               COUNT(po.id) as payout_count,
+               MAX(po.actual_payout_date) as last_payout,
+               dt.last_login
         FROM members m 
         LEFT JOIN joint_membership_groups jmg ON m.joint_group_id = jmg.joint_group_id
+        LEFT JOIN payments p ON m.id = p.member_id AND p.status = 'completed'
+        LEFT JOIN payouts po ON m.id = po.member_id AND po.status = 'completed'
+        LEFT JOIN (
+            SELECT user_id, MAX(last_login) as last_login 
+            FROM device_tracking 
+            WHERE user_type = 'member' AND is_active = 1 
+            GROUP BY user_id
+        ) dt ON m.id = dt.user_id
+        GROUP BY m.id 
         ORDER BY m.is_active DESC, m.payout_position ASC, m.created_at DESC
     ");
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -371,8 +385,12 @@ $individual_members = $total_members - $joint_members;
                                 <span class="detail-value">#<?php echo $member['payout_position']; ?></span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">Monthly</span>
+                                <span class="detail-label">Monthly Payment</span>
                                 <span class="detail-value">£<?php echo number_format($member['monthly_payment'], 0); ?></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Total Payments</span>
+                                <span class="detail-value"><?php echo $member['payment_count']; ?></span>
                             </div>
                             <?php if ($member['membership_type'] === 'joint' && $member['group_name']): ?>
                                 <div class="detail-row">
@@ -380,6 +398,12 @@ $individual_members = $total_members - $joint_members;
                                     <span class="detail-value"><?php echo htmlspecialchars($member['group_name']); ?></span>
                                 </div>
                             <?php endif; ?>
+                            <div class="detail-row">
+                                <span class="detail-label">Last Login</span>
+                                <span class="detail-value">
+                                    <?php echo $member['last_login'] ? date('M d, Y', strtotime($member['last_login'])) : 'Never'; ?>
+                                </span>
+                            </div>
                         </div>
                     </a>
                 <?php endforeach; ?>
