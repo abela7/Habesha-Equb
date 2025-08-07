@@ -58,18 +58,37 @@ try {
             $pdo->beginTransaction();
             
             try {
-                // 1. Update the member's position
-                $update_stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
-                $result = $update_stmt->execute([
+                // 1. PROPER SWAP LOGIC - Both members exchange positions!
+                
+                // First, get the target member (who owns the requested position)
+                $target_stmt = $pdo->prepare("SELECT id, payout_position FROM members WHERE payout_position = ? AND id != ?");
+                $target_stmt->execute([$swap_request['requested_position'], $swap_request['member_id']]);
+                $target_member = $target_stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$target_member) {
+                    throw new Exception('Target position member not found');
+                }
+                
+                // Now do the SWAP:
+                // Member A (requester) gets position B
+                $update1_stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
+                $result1 = $update1_stmt->execute([
                     $swap_request['requested_position'], 
                     $swap_request['member_id']
                 ]);
                 
-                if (!$result) {
-                    throw new Exception('Failed to update member position');
+                // Member B (target) gets position A
+                $update2_stmt = $pdo->prepare("UPDATE members SET payout_position = ? WHERE id = ?");
+                $result2 = $update2_stmt->execute([
+                    $swap_request['current_position'],
+                    $target_member['id']
+                ]);
+                
+                if (!$result1 || !$result2) {
+                    throw new Exception('Failed to swap member positions');
                 }
                 
-                // 2. Add to position_swap_history (using correct table structure)
+                // 2. Add to position_swap_history (PROPER SWAP RECORD)
                 $history_stmt = $pdo->prepare("
                     INSERT INTO position_swap_history 
                     (swap_request_id, member_a_id, member_b_id, position_a_before, position_b_before, position_a_after, position_b_after, processed_by_admin_id, notes)
@@ -81,12 +100,12 @@ try {
                 
                 $history_stmt->execute([
                     $request_numeric_id,
-                    $swap_request['member_id'],
-                    $swap_request['target_member_id'] ?? $swap_request['member_id'], // If no target, use same member
-                    $swap_request['current_position'],
-                    $swap_request['target_member_id'] ? 0 : 0, // Position before for target (0 if no target)
-                    $swap_request['requested_position'],
-                    $swap_request['target_member_id'] ? 0 : 0, // Position after for target (0 if no target)
+                    $swap_request['member_id'],          // Member A (requester)
+                    $target_member['id'],                // Member B (target)
+                    $swap_request['current_position'],   // A's position before
+                    $target_member['payout_position'],   // B's position before  
+                    $swap_request['requested_position'], // A's position after
+                    $swap_request['current_position'],   // B's position after
                     $admin_id,
                     $admin_notes
                 ]);
@@ -101,7 +120,7 @@ try {
                 ob_clean();
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Position swap approved! Member position updated and request completed.'
+                    'message' => 'Position swap completed! Both members have exchanged positions successfully.'
                 ]);
                 
             } catch (Exception $e) {
