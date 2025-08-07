@@ -760,7 +760,7 @@
     "payment_due_month": "ክፍያ የሚከፈልበት ወር %s",
     "due_by": "የሚከፈልበት ቀን",
     "next_payment_amount": "ቀጣይ ክፍያ:",
-    "due_date_with_days": "የሚከፈልበት ቀን {date} ({days} ቀናት)",
+    "due_date_with_days": "የሚከፈልበት ቀን %s (%d ቀናት)",
     "payment_schedule": "የክፍያ መርሃግብር:",
             "monthly_on": "ወርሃዊ በ %s",
     "payments_remaining": "ቀሪ ክፍያዎች",

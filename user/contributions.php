@@ -148,8 +148,25 @@ function ordinal($number) {
     }
 }
 
+// Enhanced due date calculation based on EQUB settings
+$current_date = new DateTime();
+$current_day = (int)$current_date->format('d');
+
+// Get payment due day (default to 1st if not set)
+$payment_due_day = 1; // EQUB payments are due on 1st of month
+$grace_period_days = (int)($member['grace_period_days'] ?? 5);
+
 // Calculate next payment due date
-$next_due_date = date('Y-m-01', strtotime('first day of next month'));
+if ($current_day <= $payment_due_day) {
+    // If before due day this month, due date is this month
+    $next_due_date = $current_date->format('Y-m-') . sprintf('%02d', $payment_due_day);
+} else {
+    // If after due day, next due date is next month
+    $next_month = clone $current_date;
+    $next_month->modify('first day of next month');
+    $next_due_date = $next_month->format('Y-m-') . sprintf('%02d', $payment_due_day);
+}
+
 $days_until_due = max(0, floor((strtotime($next_due_date) - time()) / (60 * 60 * 24)));
 
 // Get comprehensive payment history

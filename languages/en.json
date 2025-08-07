@@ -735,7 +735,7 @@
     "payment_due_month": "Payment Due %s",
     "due_by": "Due by",
     "next_payment_amount": "Next Payment:",
-    "due_date_with_days": "Due {date} ({days} days)",
+    "due_date_with_days": "Due %s (%d days)",
     "payment_schedule": "Payment Schedule:",
             "monthly_on": "Monthly on %s",
     "payments_remaining": "payments remaining",
