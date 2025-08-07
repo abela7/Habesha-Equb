@@ -55,7 +55,15 @@ try {
     echo "<div style='background: red; color: white; padding: 10px; margin: 10px;'>";
     echo "DEBUG: Found " . count($swap_requests) . " requests<br>";
     if (count($swap_requests) > 0) {
-        echo "First request: " . print_r($swap_requests[0], true);
+        echo "First request: <pre>" . print_r($swap_requests[0], true) . "</pre>";
+    } else {
+        echo "NO REQUESTS IN ARRAY - But count showed 1 record exists!<br>";
+        // Try direct query
+        $direct_query = $pdo->query("SELECT * FROM position_swap_requests LIMIT 1");
+        $direct_result = $direct_query->fetch(PDO::FETCH_ASSOC);
+        if ($direct_result) {
+            echo "DIRECT QUERY RESULT: <pre>" . print_r($direct_result, true) . "</pre>";
+        }
     }
     echo "</div>";
     
