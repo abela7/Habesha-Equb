@@ -285,8 +285,8 @@ $current_payout_date->setDate(
 
     .position-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
+        grid-template-columns: 1fr;
+        gap: 16px;
         margin-top: 20px;
     }
 
@@ -544,14 +544,162 @@ $current_payout_date->setDate(
         text-align: center;
     }
 
-    @media (max-width: 768px) {
+    /* Mobile First - Enhanced Responsive Design */
+    
+    /* Mobile (default) - up to 576px */
+    .position-card {
+        padding: 20px 16px;
+        margin-bottom: 16px;
+        border-radius: 16px;
+    }
+    
+    .position-item {
+        padding: 18px 14px;
+        border-radius: 12px;
+    }
+    
+    .position-number {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .position-month {
+        font-size: 15px;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    
+    .position-status {
+        font-size: 11px;
+        padding: 6px 10px;
+        border-radius: 14px;
+    }
+    
+    .request-form {
+        padding: 20px 16px;
+        border-radius: 16px;
+    }
+    
+    .history-table .table thead th {
+        font-size: 11px;
+        padding: 10px 6px;
+    }
+    
+    .history-table .table tbody td {
+        padding: 10px 6px;
+        font-size: 12px;
+    }
+    
+    .status-badge {
+        font-size: 9px;
+        padding: 4px 8px;
+    }
+    
+    /* Small tablets - 576px and up */
+    @media (min-width: 576px) {
         .position-grid {
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
         }
         
         .position-card {
-            padding: 16px;
+            padding: 24px 20px;
+        }
+        
+        .position-item {
+            padding: 20px 16px;
+        }
+        
+        .position-number {
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+        }
+        
+        .position-month {
+            font-size: 16px;
+        }
+        
+        .history-table .table thead th {
+            font-size: 12px;
+            padding: 12px 8px;
+        }
+        
+        .history-table .table tbody td {
+            font-size: 13px;
+            padding: 12px 8px;
+        }
+    }
+    
+    /* Tablets - 768px and up */
+    @media (min-width: 768px) {
+        .position-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .position-card {
+            padding: 28px 24px;
+        }
+        
+        .position-item {
+            padding: 22px 18px;
+        }
+        
+        .position-number {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+        }
+        
+        .position-month {
+            font-size: 17px;
+        }
+        
+        .request-form {
+            padding: 28px 24px;
+        }
+        
+        .history-table .table thead th {
+            font-size: 13px;
+            padding: 14px 10px;
+        }
+        
+        .history-table .table tbody td {
+            font-size: 14px;
+            padding: 14px 10px;
+        }
+    }
+    
+    /* Desktop - 992px and up */
+    @media (min-width: 992px) {
+        .position-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+        }
+        
+        .position-card {
+            padding: 32px 28px;
+        }
+        
+        .position-item {
+            padding: 24px 20px;
+        }
+        
+        .request-form {
+            padding: 32px 28px;
+        }
+        
+        .history-table .table thead th {
+            font-size: 14px;
+            padding: 16px 12px;
+        }
+        
+        .history-table .table tbody td {
+            font-size: 14px;
+            padding: 16px 12px;
         }
     }
     </style>

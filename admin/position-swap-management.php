@@ -56,6 +56,25 @@ try {
     ");
     $stmt->execute();
     $swap_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Debug: Log the number of requests found
+    error_log("DEBUG: Found " . count($swap_requests) . " swap requests");
+    
+    // Debug: If no requests, check if table exists
+    if (empty($swap_requests)) {
+        $test_stmt = $pdo->prepare("SHOW TABLES LIKE 'position_swap_requests'");
+        $test_stmt->execute();
+        $table_exists = $test_stmt->fetch();
+        error_log("DEBUG: Table exists check: " . ($table_exists ? "YES" : "NO"));
+        
+        if ($table_exists) {
+            // Check total records in table
+            $count_stmt = $pdo->prepare("SELECT COUNT(*) as total FROM position_swap_requests");
+            $count_stmt->execute();
+            $total_records = $count_stmt->fetch(PDO::FETCH_ASSOC);
+            error_log("DEBUG: Total records in position_swap_requests: " . $total_records['total']);
+        }
+    }
 
     // Get recent swap history
     $stmt = $pdo->prepare("
@@ -76,7 +95,7 @@ try {
 
 } catch (PDOException $e) {
     error_log("Swap management page error: " . $e->getMessage());
-    $error_message = "Database error occurred. Please try again later.";
+    $error_message = "Database error occurred: " . $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
@@ -431,6 +450,20 @@ try {
                 <?php echo $error_message; ?>
             </div>
         <?php endif; ?>
+        
+        <!-- Debug Info -->
+        <div class="alert alert-info">
+            <strong>Debug Info:</strong><br>
+            Total requests found: <?php echo count($swap_requests); ?><br>
+            Database connection: <?php echo $pdo ? "✅ Connected" : "❌ Failed"; ?><br>
+            <?php if (empty($swap_requests)): ?>
+                <em>No swap requests found. This could mean:</em><br>
+                • No requests have been submitted yet<br>
+                • Database tables haven't been created<br>
+                • Database connection issue<br>
+                <strong>First, submit a test request from the member portal to verify the system.</strong>
+            <?php endif; ?>
+        </div>
 
         <!-- Statistics -->
         <div class="stats-grid">
