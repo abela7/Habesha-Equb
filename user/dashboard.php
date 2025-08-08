@@ -2095,42 +2095,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         <?php endif; ?>
     </div>
 
-    <!-- Floating Quick Menu (Dashboard only) -->
-    <style>
-      :root {
-        --fab-bg: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%);
-        --fab-icon: #ffffff;
-        --fab-item-bg: #ffffff;
-        --fab-item-text: #301934;
-        --fab-item-icon: #DAA520;
-      }
-      .fab-container { position: fixed; right: 18px; bottom: 18px; z-index: 12000; pointer-events: auto; }
-      .fab-button {
-        width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-        background: var(--fab-bg);
-        color: var(--fab-icon); box-shadow: 0 8px 24px rgba(48,25,52,.2); display: flex; align-items: center; justify-content: center; position: relative;
-        transition: transform .25s ease, box-shadow .25s ease;
-      }
-      .fab-button:focus { outline: none; box-shadow: 0 0 0 4px rgba(218,165,32,.25); }
-      .fab-button:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(48,25,52,.28); }
-      .fab-icon { font-size: 22px; transition: transform .25s ease; }
-      .fab-open .fab-icon { transform: rotate(45deg); }
-      .fab-attention .fab-button { animation: fabPulse 2.2s ease-out infinite; }
-      @keyframes fabPulse { 0% { box-shadow: 0 0 0 0 rgba(231,111,81,.55); transform: scale(1);} 70% { box-shadow: 0 0 0 14px rgba(231,111,81,0); transform: scale(1.03);} 100% { box-shadow: 0 0 0 0 rgba(231,111,81,0);} }
-      .fab-badge { position:absolute; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background:#E76F51; color:#fff; font-size: 11px; font-weight: 700; display:none; align-items:center; justify-content:center; top:-4px; right:-4px; border:2px solid #fff; line-height: 18px; }
-
-      .fab-menu { position: absolute; right: 0; bottom: 72px; display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
-      .fab-open .fab-menu { display: flex; }
-      .fab-item { background: var(--fab-item-bg); color: var(--fab-item-text); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; 
-        box-shadow: 0 8px 24px rgba(48,25,52,.12); padding: 8px 12px; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
-      .fab-item i { color: var(--fab-item-icon); }
-      .fab-item:hover { text-decoration: none; border-color: rgba(218,165,32,.35); box-shadow: 0 10px 28px rgba(48,25,52,.18); }
-      .fab-item .label { font-size: 13px; font-weight: 600; }
-      @media (max-width: 576px) {
-        .fab-item { padding: 8px 10px; }
-        .fab-item .label { display: none; }
-      }
-    </style>
+    <?php // Floating Quick Menu styles removed; FAB is provided globally via include ?>
     <div class="fab-container" id="quickFab">
       <div class="fab-menu" id="quickFabMenu" aria-hidden="true">
         <a href="dashboard.php" class="fab-item" title="<?php echo t('member_nav.dashboard'); ?>">
