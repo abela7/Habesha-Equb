@@ -420,8 +420,75 @@ function verifyPayment() {
         WHERE id = ?
     ");
     $stmt->execute([$payment['amount'], $payment['member_id']]);
-    
-    echo json_encode(['success' => true, 'message' => 'Payment verified successfully']);
+
+    // Build WhatsApp-ready text and create in-app notification (no email)
+    try {
+        // Member basics
+        $stmt = $pdo->prepare("SELECT m.id, m.first_name, m.last_name, m.equb_settings_id, m.language_preference, m.email_notifications FROM members m WHERE m.id = ? LIMIT 1");
+        $stmt->execute([$payment['member_id']]);
+        $member = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        // Payment stats
+        $stmt = $pdo->prepare("SELECT COUNT(*) AS paid_months, COALESCE(SUM(amount),0) AS total_paid FROM payments WHERE member_id = ? AND status IN ('paid','completed')");
+        $stmt->execute([$payment['member_id']]);
+        $payStats = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['paid_months'=>0,'total_paid'=>0];
+
+        // Equb duration
+        $durationMonths = null;
+        if (!empty($member['equb_settings_id'])) {
+            $stmt = $pdo->prepare("SELECT duration_months FROM equb_settings WHERE id = ?");
+            $stmt->execute([$member['equb_settings_id']]);
+            $durationMonths = (int)($stmt->fetchColumn() ?: 0);
+        }
+        $paidMonths = (int)$payStats['paid_months'];
+        $monthsLeft = $durationMonths ? max($durationMonths - $paidMonths, 0) : null;
+
+        // Compose message
+        $memberFirst = trim($member['first_name'] ?? '');
+        $monthText = '';
+        if (!empty($payment['payment_month']) && $payment['payment_month'] !== '0000-00-00') {
+            $monthText = date('F Y', strtotime($payment['payment_month']));
+        } elseif (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') {
+            $monthText = date('F Y', strtotime($payment['payment_date']));
+        }
+        $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
+        $totalPaidFormatted = '£' . number_format((float)$payStats['total_paid'], 2);
+        $monthsLine = $durationMonths ? ("Months completed: {$paidMonths} of {$durationMonths}" . ($monthsLeft !== null ? " ({$monthsLeft} left)" : '')) : ("Months completed: {$paidMonths}");
+        $dashboardUrl = 'https://habeshaequb.com/user/dashboard.php';
+
+        $whatsappText = "Dear {$memberFirst}, your payment for {$monthText} has been verified. Thanks for your payment!\n\n"
+            . "- Amount: {$amountFormatted}\n"
+            . "- Total paid so far: {$totalPaidFormatted}\n"
+            . "- {$monthsLine}\n\n"
+            . "You can access your HabeshaEqub dashboard here: {$dashboardUrl}";
+
+        // Create notification record (English copy reused; no email send)
+        $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
+        $chk = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
+        $chk->execute([$code]);
+        while ($chk->fetch()) {
+            $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
+            $chk->execute([$code]);
+        }
+        $title_en = ($monthText ? ($monthText . ' payment') : 'Payment');
+        $title_am = $title_en;
+        $body_en  = $whatsappText;
+        $body_am  = $body_en;
+        $insNotif = $pdo->prepare("INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,'normal','sent',NOW(),NOW(),NOW())");
+        $insNotif->execute([$code, $admin_id, 'members', ($member['equb_settings_id'] ?? null), $title_en, $title_am, $body_en, $body_am]);
+        $notificationId = (int)$pdo->lastInsertId();
+        if ($notificationId && !empty($member['id'])) {
+            $insRec = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+            $insRec->execute([$notificationId, (int)$member['id']]);
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Payment verified successfully', 'whatsapp_text' => $whatsappText]);
+        return;
+    } catch (Throwable $e) {
+        error_log('verifyPayment post-actions error: ' . $e->getMessage());
+        echo json_encode(['success' => true, 'message' => 'Payment verified successfully']);
+        return;
+    }
 }
 
 /**
