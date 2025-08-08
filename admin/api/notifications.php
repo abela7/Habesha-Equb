@@ -170,7 +170,9 @@ function createNotification(int $admin_id): void {
                                    AND m.email IS NOT NULL AND m.email != ''");
             $q->execute([$notificationId]);
             while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
-                $isAm = (int)($row['language_preference'] ?? 0) === 1;
+                // To reduce spam flagging due to mixed non-ASCII subjects, send English-only subject/body if desired
+                $forceEnglish = true; // fallback: force English version to improve deliverability
+                $isAm = !$forceEnglish && ((int)($row['language_preference'] ?? 0) === 1);
                 $subject = $isAm ? $title_am : $title_en;
                 $body = $isAm ? $body_am : $body_en;
                 $vars = [

@@ -198,26 +198,35 @@ class EmailService {
             }
             
             // Email headers and content
-            $message = "From: {$this->smtp_config['from_name']} <{$this->smtp_config['from_email']}>\r\n";
+            // Encode non-ASCII safely per RFC 2047
+            $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+            $fromNameSafe = preg_replace('/[^\x20-\x7E]/', '', $this->smtp_config['from_name']); // ASCII-only display name
+
+            $message = "From: {$fromNameSafe} <{$this->smtp_config['from_email']}>\r\n";
             $message .= "To: {$to_name} <{$to_email}>\r\n";
-            $message .= "Subject: {$subject}\r\n";
+            $message .= "Subject: {$encodedSubject}\r\n";
             
             // Generate unique Message-ID to prevent email threading/grouping
             $unique_id = uniqid('', true) . '.' . time() . '.habeshaequb@' . ($_SERVER['HTTP_HOST'] ?? 'habeshaequb.com');
             $message .= "Message-ID: <{$unique_id}>\r\n";
             
             $message .= "MIME-Version: 1.0\r\n";
-            $message .= "Content-Type: multipart/alternative; boundary=\"boundary123\"\r\n";
+            $message .= "Content-Type: multipart/alternative; boundary=\"boundary123\"; charset=UTF-8\r\n";
             $message .= "List-Unsubscribe: <mailto:unsubscribe@habeshaequb.com>\r\n";
+            $message .= "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
+            $message .= "X-Mailer: HabeshaEqub Mailer\r\n";
+            $message .= "Auto-Submitted: auto-generated\r\n";
             $message .= "\r\n";
             
             // Multipart content
             $message .= "--boundary123\r\n";
-            $message .= "Content-Type: text/plain; charset=UTF-8\r\n\r\n";
+            $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $message .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
             $message .= $text_content . "\r\n";
             
             $message .= "--boundary123\r\n";
-            $message .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
+            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $message .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
             $message .= $html_content . "\r\n";
             
             $message .= "--boundary123--\r\n";
