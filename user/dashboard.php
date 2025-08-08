@@ -2177,12 +2177,13 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         if (!container || !toggleBtn || !menu) return;
         function closeMenu(){ container.classList.remove('fab-open'); toggleBtn.setAttribute('aria-expanded','false'); menu.setAttribute('aria-hidden','true'); }
         function openMenu(){ container.classList.add('fab-open'); toggleBtn.setAttribute('aria-expanded','true'); menu.setAttribute('aria-hidden','false'); }
+        let justToggled = false;
         function toggle(e){ if(e) e.stopPropagation();
           if (container.classList.contains('fab-open')) { closeMenu(); } else { openMenu(); }
+          justToggled = true; setTimeout(()=>{ justToggled = false; }, 150);
         }
-        toggleBtn.addEventListener('click', toggle);
-        toggleBtn.addEventListener('touchend', toggle, {passive:true});
-        document.addEventListener('click', function(e){ if (!container.contains(e.target)) closeMenu(); });
+        toggleBtn.addEventListener('click', toggle, {passive:false});
+        document.addEventListener('click', function(e){ if (justToggled) return; if (!container.contains(e.target)) closeMenu(); }, true);
         document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
         menu.querySelectorAll('a').forEach(a=>a.addEventListener('click', closeMenu));
       });
