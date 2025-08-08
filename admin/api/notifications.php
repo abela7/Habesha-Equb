@@ -163,7 +163,11 @@ function createNotification(int $admin_id): void {
             $q = $pdo->prepare("SELECT m.id, m.first_name, m.last_name, m.email, m.language_preference
                                  FROM members m
                                  INNER JOIN notification_recipients nr ON nr.member_id = m.id
-                                 WHERE nr.notification_id = ? AND m.is_active = 1 AND COALESCE(m.email_notifications,1) = 1 AND m.email IS NOT NULL AND m.email != ''");
+                                 WHERE nr.notification_id = ?
+                                   AND m.is_active = 1
+                                   AND COALESCE(m.is_approved,0) = 1
+                                   AND COALESCE(m.email_notifications,1) = 1
+                                   AND m.email IS NOT NULL AND m.email != ''");
             $q->execute([$notificationId]);
             while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
                 $isAm = (int)($row['language_preference'] ?? 0) === 1;
