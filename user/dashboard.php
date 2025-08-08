@@ -2104,7 +2104,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         --fab-item-text: #301934;
         --fab-item-icon: #DAA520;
       }
-      .fab-container { position: fixed; right: 18px; bottom: 18px; z-index: 1060; }
+      .fab-container { position: fixed; right: 18px; bottom: 18px; z-index: 12000; pointer-events: auto; }
       .fab-button {
         width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
         background: var(--fab-bg);
@@ -2153,7 +2153,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
     <!-- Scripts -->
     <script>
-      (function(){
+      document.addEventListener('DOMContentLoaded', function(){
         const container = document.getElementById('quickFab');
         const toggleBtn = document.getElementById('quickFabToggle');
         const menu = document.getElementById('quickFabMenu');
@@ -2174,13 +2174,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         if (!container || !toggleBtn || !menu) return;
         function closeMenu(){ container.classList.remove('fab-open'); toggleBtn.setAttribute('aria-expanded','false'); menu.setAttribute('aria-hidden','true'); }
         function openMenu(){ container.classList.add('fab-open'); toggleBtn.setAttribute('aria-expanded','true'); menu.setAttribute('aria-hidden','false'); }
-        toggleBtn.addEventListener('click', function(e){ e.stopPropagation();
+        function toggle(e){ if(e) e.stopPropagation();
           if (container.classList.contains('fab-open')) { closeMenu(); } else { openMenu(); }
-        });
+        }
+        toggleBtn.addEventListener('click', toggle);
+        toggleBtn.addEventListener('touchend', toggle, {passive:true});
         document.addEventListener('click', function(e){ if (!container.contains(e.target)) closeMenu(); });
         document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
         menu.querySelectorAll('a').forEach(a=>a.addEventListener('click', closeMenu));
-      })();
+      });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
 </body>
