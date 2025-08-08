@@ -1198,5 +1198,4 @@ function handleLogout() {
 }
 </script> 
 
-<?php // Global member footer across pages ?>
-<?php include 'footer.php'; ?>
+<!-- Footer is included by each page at the end of content to ensure it renders after page content. -->

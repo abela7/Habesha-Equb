@@ -2173,7 +2173,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         </div>
     </div>
 
+    <?php include 'includes/footer.php'; ?>
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
 </body>
-</html> 
+</html>
