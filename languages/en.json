@@ -1206,6 +1206,23 @@
     "no_notifications": "No notifications yet.",
     "high": "High"
   },
+  "footer": {
+    "quick_links": "Quick Links",
+    "resources": "Resources",
+    "support": "Support",
+    "dashboard": "Dashboard",
+    "payments": "Payments",
+    "payout_info": "Payout Info",
+    "position_swap": "Position Swap",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "equb_rules": "Equb Rules",
+    "help_center": "Help Center",
+    "contact_support": "Contact Support",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "copyright": "All rights reserved"
+  },
   "common": {
     "cancel": "Cancel",
     "confirm": "Confirm",

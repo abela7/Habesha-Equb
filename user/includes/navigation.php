@@ -1197,3 +1197,6 @@ function handleLogout() {
     }
 }
 </script> 
+
+<?php // Global member footer across pages ?>
+<?php include 'footer.php'; ?>

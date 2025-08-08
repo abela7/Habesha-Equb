@@ -1206,6 +1206,23 @@
     "no_notifications": "እስካሁን ምንም አይነት ማሳወቂያ የለም።",
     "high": "ከፍተኛ"
   },
+  "footer": {
+    "quick_links": "ፈጣን ሊንኮች",
+    "resources": "ሀብቶች",
+    "support": "ድጋፍ",
+    "dashboard": "ዳሽቦርድ",
+    "payments": "ክፍያዎች",
+    "payout_info": "ስለ እቁብ መረጃ",
+    "position_swap": "ቦታ መቀያየር",
+    "notifications": "ማሳወቂያዎች",
+    "settings": "ማስተካከያዎች",
+    "equb_rules": "የእቁብ ህጎች",
+    "help_center": "የእርዳታ ማዕከል",
+    "contact_support": "ድጋፍ ያግኙ",
+    "privacy": "የግላዊነት ፖሊሲ",
+    "terms": "የአገልግሎት ውሎች",
+    "copyright": "ሁሉም መብቶች የተጠበቁ ናቸው"
+  },
   "common": {
     "cancel": "ይቅር",
     "confirm": "አረጋግጥ",
