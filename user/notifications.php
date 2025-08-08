@@ -33,12 +33,16 @@ $lang = getCurrentLanguage();
         .notif-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(48,25,52,0.12); }
         .notif-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink:0; box-shadow: 0 8px 20px rgba(42,157,143,0.25); background: linear-gradient(135deg, var(--color-teal), #0F766E); }
         .notif-meta { font-size: 12px; color: var(--text-secondary); }
-        .notif-title { font-weight:700; color: var(--text-primary); margin:0; }
-        .notif-body { color: var(--text-primary); margin: 8px 0 0; white-space: pre-wrap; }
+        .notif-title { font-weight:700; color: var(--text-primary); margin:0; word-break: break-word; overflow-wrap: anywhere; }
+        .notif-body { color: var(--text-primary); margin: 8px 0 0; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
         .notif-unread { border-left: 4px solid var(--color-gold); }
         .badge-unread { background: var(--color-coral); color:#fff; border-radius: 999px; font-size: 11px; padding:4px 8px; }
         .priority-high { background: linear-gradient(135deg, var(--color-coral), #e76f51); color:#fff; border-radius:8px; padding:2px 8px; font-size:11px; font-weight:700; }
         .list-wrap { display:grid; gap:12px; }
+        /* Prevent flex children from overflowing the card */
+        .notif-card .flex-fill { min-width: 0; }
+        /* Allow the title/badges row to wrap on small screens */
+        .notif-card .d-flex.align-items-center { flex-wrap: wrap; }
         /* Modal styling */
         .modal-content { border-radius: 16px; border: 1px solid var(--border-light); }
         .modal-header { border-bottom: 1px solid var(--border-light); background: linear-gradient(135deg, var(--color-cream), #fff); }
@@ -151,7 +155,7 @@ function renderNotifications(items) {
                     ${isUnread ? '<span class=\"badge-unread\"><?php echo t('common.unread') ?: 'Unread'; ?></span>' : ''}
                 </div>
                 <div class=\"notif-meta\">${created ? escapeHtml(created) : ''}</div>
-                <div class=\"notif-body text-truncate\" style=\"-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;\">${escapeHtml(body)}</div>
+                <div class=\"notif-body\" style=\"-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;\">${escapeHtml(body)}</div>
             </div>
         `;
         wrap.appendChild(el);
