@@ -310,8 +310,11 @@ function listPayouts() {
     global $pdo;
     
     try {
-        // Enhanced query with better error handling
-        $stmt = $pdo->prepare("
+        $search = trim($_GET['search'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $memberId = intval($_GET['member_id'] ?? 0);
+
+        $query = "
             SELECT 
                 p.*,
                 m.first_name,
@@ -322,36 +325,38 @@ function listPayouts() {
             FROM payouts p
             LEFT JOIN members m ON p.member_id = m.id
             LEFT JOIN admins a ON p.processed_by_admin_id = a.id
-            ORDER BY p.created_at DESC
-        ");
-        
-        $stmt->execute();
+            WHERE 1=1
+        ";
+        $params = [];
+        if ($search !== '') {
+            $query .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR p.payout_id LIKE ?)";
+            $s = "%$search%";
+            array_push($params, $s, $s, $s, $s);
+        }
+        if ($status !== '') {
+            $query .= " AND p.status = ?";
+            $params[] = $status;
+        }
+        if ($memberId > 0) {
+            $query .= " AND p.member_id = ?";
+            $params[] = $memberId;
+        }
+
+        $query .= " ORDER BY p.scheduled_date DESC, p.created_at DESC";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
         $payouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Debug logging
-        error_log("Payouts found: " . count($payouts));
-        
+
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'payouts' => $payouts,
-            'count' => count($payouts),
-            'debug' => [
-                'query_executed' => true,
-                'result_count' => count($payouts)
-            ]
+            'count' => count($payouts)
         ]);
-        
     } catch (Exception $e) {
-        error_log("List Payouts Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+        error_log("List Payouts Error: " . $e->getMessage());
         http_response_code(500);
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Failed to fetch payouts: ' . $e->getMessage(),
-            'debug' => [
-                'error_line' => $e->getLine(),
-                'error_file' => basename($e->getFile())
-            ]
-        ]);
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch payouts']);
     }
 }
 
