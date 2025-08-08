@@ -452,15 +452,11 @@ function verifyPayment() {
             $monthText = date('F Y', strtotime($payment['payment_date']));
         }
         $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
-        $totalPaidFormatted = '£' . number_format((float)$payStats['total_paid'], 2);
-        $monthsLine = $durationMonths ? ("Months completed: {$paidMonths} of {$durationMonths}" . ($monthsLeft !== null ? " ({$monthsLeft} left)" : '')) : ("Months completed: {$paidMonths}");
-        $dashboardUrl = 'https://habeshaequb.com/user/dashboard.php';
 
+        // Concise notification body for members
         $whatsappText = "Dear {$memberFirst}, your payment for {$monthText} has been verified. Thanks for your payment!\n\n"
-            . "- Amount: {$amountFormatted}\n"
-            . "- Total paid so far: {$totalPaidFormatted}\n"
-            . "- {$monthsLine}\n\n"
-            . "You can access your HabeshaEqub dashboard here: {$dashboardUrl}";
+            . "- Amount: {$amountFormatted}\n\n"
+            . "You can go to your dashboard to access and download your receipt.";
 
         // Create notification record (English copy reused; no email send)
         $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
