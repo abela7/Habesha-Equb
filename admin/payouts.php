@@ -727,6 +727,11 @@ $csrf_token = generate_csrf_token();
                                             <i class="fas fa-check"></i>
                                         </button>
                                     <?php endif; ?>
+                                    <?php if ($payout['status'] === 'completed'): ?>
+                                        <button class="btn btn-action btn-process" onclick="editPayout(<?php echo $payout['id']; ?>, true)" title="Edit Actual Payout Date">
+                                            <i class="fas fa-calendar-day"></i>
+                                        </button>
+                                    <?php endif; ?>
                                     <button class="btn btn-action btn-delete" onclick="deletePayout(<?php echo $payout['id']; ?>)" title="<?php echo t('payouts.delete_payout'); ?>">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -1039,7 +1044,7 @@ $csrf_token = generate_csrf_token();
     }
 
     // Edit payout
-    function editPayout(id) {
+    function editPayout(id, focusDate = false) {
         isEditMode = true;
         currentPayoutId = id;
         document.getElementById('payoutModalLabel').textContent = '<?php echo t('payouts.edit_payout'); ?>';
@@ -1065,8 +1070,13 @@ $csrf_token = generate_csrf_token();
                     document.getElementById('status').value = payout.status || 'scheduled';
                     document.getElementById('actualPayoutDate').value = payout.actual_payout_date || '';
                     document.getElementById('payoutNotes').value = payout.payout_notes || '';
+                    // Ensure Actual Payout Date is editable for completed status
+                    updateActualDateFieldState();
                     
                     new bootstrap.Modal(document.getElementById('payoutModal')).show();
+                    if (focusDate) {
+                        setTimeout(() => document.getElementById('actualPayoutDate').focus(), 300);
+                    }
                 } else {
                     alert('Error fetching payout data: ' + data.message);
                 }
@@ -1392,35 +1402,27 @@ $csrf_token = generate_csrf_token();
     }
     
     // Status change handler - manage actual date field based on status
-    document.getElementById('status').addEventListener('change', function() {
+    document.getElementById('status').addEventListener('change', updateActualDateFieldState);
+
+    function updateActualDateFieldState() {
+        const statusValue = document.getElementById('status').value;
         const actualDateField = document.getElementById('actualPayoutDate');
-        const statusValue = this.value;
-        
         if (statusValue !== 'completed') {
-            // Clear and disable the actual date field when status is not completed
             actualDateField.value = '';
             actualDateField.disabled = true;
             actualDateField.style.backgroundColor = '#f8f9fa';
         } else {
-            // Enable the field when status is completed
             actualDateField.disabled = false;
             actualDateField.style.backgroundColor = '';
-            // Set to today's date if empty
             if (!actualDateField.value) {
                 actualDateField.value = new Date().toISOString().split('T')[0];
             }
         }
-    });
+    }
     
     // Initialize the field state on page load
     document.addEventListener('DOMContentLoaded', function() {
-        const statusField = document.getElementById('status');
-        const actualDateField = document.getElementById('actualPayoutDate');
-        
-        if (statusField.value !== 'completed') {
-            actualDateField.disabled = true;
-            actualDateField.style.backgroundColor = '#f8f9fa';
-        }
+        updateActualDateFieldState();
     });
 
     // 🚀 ENHANCED: Calculate payout for selected member
