@@ -2165,12 +2165,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
           if (count > 0) { bell.classList.add('fa-shake'); bell.style.setProperty('color','#E76F51','important'); }
           else { bell.classList.remove('fa-shake'); bell.style.removeProperty('color'); }
         }
-        try {
-          const r = await fetch('api/notifications.php?action=count_unread');
-          const d = await r.json();
-          const u = d && d.success ? Number(d.unread) : 0;
-          setUnreadDot(u);
-        } catch(_){}
+        async function loadUnread(){
+          try {
+            const r = await fetch('api/notifications.php?action=count_unread');
+            const d = await r.json();
+            const u = d && d.success ? Number(d.unread) : 0;
+            setUnreadDot(u);
+          } catch(_){}
+        }
+        loadUnread();
         if (!container || !toggleBtn || !menu) return;
         function closeMenu(){ container.classList.remove('fab-open'); toggleBtn.setAttribute('aria-expanded','false'); menu.setAttribute('aria-hidden','true'); }
         function openMenu(){ container.classList.add('fab-open'); toggleBtn.setAttribute('aria-expanded','true'); menu.setAttribute('aria-hidden','false'); }
