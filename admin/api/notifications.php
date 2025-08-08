@@ -194,6 +194,12 @@ function createNotification(int $admin_id): void {
 
 function listNotifications(): void {
     global $pdo;
+    $scope = $_GET['scope'] ?? 'all';
+    $where = '';
+    if ($scope === 'single') {
+        // only notifications targeted to exactly one member
+        $where = "WHERE (SELECT COUNT(*) FROM notification_recipients nr WHERE nr.notification_id = n.id) = 1";
+    }
     $sql = "
         SELECT 
             n.id,
@@ -210,8 +216,9 @@ function listNotifications(): void {
             (SELECT COUNT(*) FROM notification_recipients nr WHERE nr.notification_id = n.id) AS recipients_count
         FROM program_notifications n
         LEFT JOIN admins a ON n.created_by_admin_id = a.id
+        $where
         ORDER BY n.created_at DESC
-        LIMIT 100
+        LIMIT 500
     ";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
