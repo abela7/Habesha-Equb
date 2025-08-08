@@ -37,7 +37,7 @@
 <div class="fab-container" id="quickFab">
   <div class="fab-menu" id="quickFabMenu" aria-hidden="true">
     <a href="dashboard.php" class="fab-item" title="<?php echo t('member_nav.dashboard'); ?>">
-      <i class="fas fa-gauge"></i><span class="label"><?php echo t('member_nav.dashboard'); ?></span>
+      <i class="fas fa-house"></i><span class="label"><?php echo t('member_nav.dashboard'); ?></span>
     </a>
     <a href="contributions.php" class="fab-item" title="<?php echo t('footer.payments'); ?>">
       <i class="fas fa-wallet"></i><span class="label"><?php echo t('footer.payments'); ?></span>
