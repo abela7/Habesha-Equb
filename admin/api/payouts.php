@@ -588,7 +588,7 @@ function processPayout() {
 }
 
 /**
- * SYNC MEMBER PAYOUT FLAG - Update member's received_payout status
+ * SYNC MEMBER PAYOUT FLAG - Update member's has_received_payout status
  */
 function syncMemberPayoutFlag($member_id) {
     global $pdo;
@@ -596,7 +596,7 @@ function syncMemberPayoutFlag($member_id) {
     try {
         $stmt = $pdo->prepare("
             UPDATE members 
-            SET received_payout = 1,
+            SET has_received_payout = 1,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ");

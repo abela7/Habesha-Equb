@@ -29,6 +29,7 @@ if (!function_exists('t')) {
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $current_user_id = get_current_user_id();
+$lang = getCurrentLanguage();
 
 // Get ALL APPROVED, ACTIVE members with enhanced privacy logic and dynamic calculations
 try {
@@ -373,6 +374,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     cursor: pointer;
     position: relative;
     overflow: hidden;
+}
+
+/* Highlight cards for members who have already taken the payout */
+.member-card.payout-taken {
+    border: 2px solid var(--color-gold);
 }
 
 .member-card::before {
@@ -987,7 +993,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             ? date('M Y', strtotime($member['expected_payout_date'])) 
                             : 'TBD';
                         ?>
-                        <div class="member-card" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
+                        <div class="member-card <?php echo ($member['total_payouts_received'] > 0) ? 'payout-taken' : ''; ?>" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
                             <div class="member-header">
                                 <div class="member-avatar <?php echo $member['is_anonymous'] ? 'anonymous' : ''; ?>">
                                     <?php echo strtoupper($initials); ?>
@@ -995,9 +1001,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 <div class="member-info">
                                     <h3>
                                         <?php echo htmlspecialchars($member_name, ENT_QUOTES); ?>
-                                        <?php if (!$member['is_approved']): ?>
-                                            <span class="badge bg-warning ms-1">Pending</span>
-                                        <?php endif; ?>
                                         <?php if ($member['is_anonymous']): ?>
                                             <i class="fas fa-user-secret text-muted ms-1" title="<?php echo t('payout_info.anonymous'); ?>"></i>
                                         <?php endif; ?>
@@ -1028,7 +1031,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <div class="stat-value">£<?php echo number_format($member['total_contributed'], 0); ?></div>
                                 </div>
                                 <div class="stat-block">
-                                    <div class="stat-label"><?php echo t('members_directory.expected'); ?></div>
+                                    <div class="stat-label"><?php echo ($member['total_payouts_received'] > 0) ? ($lang === 'am' ? 'የወሰደው መጠን' : 'Taken') : t('members_directory.expected'); ?></div>
                                     <div class="stat-value">
                                         <?php if ($member['display_payout'] > 0): ?>
                                             £<?php echo number_format($member['display_payout'], 0); ?>
@@ -1038,7 +1041,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     </div>
                                 </div>
                                 <div class="stat-block">
-                                    <div class="stat-label"><?php echo t('members_directory.payout_date'); ?></div>
+                                    <div class="stat-label"><?php echo ($lang === 'am' ? 'የእቁብ ወር' : 'Payout Month'); ?></div>
                                     <div class="stat-value"><?php echo $expected_payout_formatted; ?></div>
                                 </div>
                             </div>
@@ -1110,7 +1113,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                                 <div class="mobile-stat">
                                     <div class="mobile-stat-value"><?php echo $expected_payout_formatted; ?></div>
-                                    <div class="mobile-stat-label"><?php echo t('members_directory.payout_date'); ?></div>
+                                    <div class="mobile-stat-label"><?php echo ($lang === 'am' ? 'የእቁብ ወር' : 'Payout Month'); ?></div>
                                 </div>
                             </div>
                             
