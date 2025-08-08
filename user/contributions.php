@@ -1345,7 +1345,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         
                  <div class="receipt-details">
                               <div class="receipt-row">
-                     <span><strong><?php echo t('common.member'); ?>:</strong></span>
+                     <span><strong><?php echo t('member_nav.member'); ?>:</strong></span>
                      <span id="receipt-member-name"></span>
                  </div>
                  <div class="receipt-row">
