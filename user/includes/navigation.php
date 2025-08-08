@@ -938,10 +938,6 @@ $csrf_token = generate_csrf_token();
         </div>
         
         <div class="topbar-right">
-            <button class="language-toggle" id="memberNotifBell" title="Notifications" onclick="window.location.href='notifications.php'" style="display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-bell"></i>
-                <span class="current-lang" id="memberNotifBadgeTop" style="display:none;">0</span>
-            </button>
             <!-- Language Selector -->
             <div class="language-menu" id="languageMenu">
                 <button class="language-toggle" id="languageToggle">

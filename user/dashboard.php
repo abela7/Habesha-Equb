@@ -2097,11 +2097,18 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
     <!-- Floating Quick Menu (Dashboard only) -->
     <style>
+      :root {
+        --fab-bg: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%);
+        --fab-icon: #ffffff;
+        --fab-item-bg: #ffffff;
+        --fab-item-text: #301934;
+        --fab-item-icon: #DAA520;
+      }
       .fab-container { position: fixed; right: 18px; bottom: 18px; z-index: 1060; }
       .fab-button {
         width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-        background: linear-gradient(135deg, var(--palette-gold) 0%, var(--palette-light-gold) 100%);
-        color: #fff; box-shadow: 0 8px 24px rgba(48,25,52,.2); display: flex; align-items: center; justify-content: center;
+        background: var(--fab-bg);
+        color: var(--fab-icon); box-shadow: 0 8px 24px rgba(48,25,52,.2); display: flex; align-items: center; justify-content: center;
         transition: transform .25s ease, box-shadow .25s ease;
       }
       .fab-button:focus { outline: none; box-shadow: 0 0 0 4px rgba(218,165,32,.25); }
@@ -2111,9 +2118,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
       .fab-menu { position: absolute; right: 0; bottom: 72px; display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
       .fab-open .fab-menu { display: flex; }
-      .fab-item { background: #fff; color: var(--palette-deep-purple); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; 
+      .fab-item { background: var(--fab-item-bg); color: var(--fab-item-text); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; 
         box-shadow: 0 8px 24px rgba(48,25,52,.12); padding: 8px 12px; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
-      .fab-item i { color: var(--palette-gold); }
+      .fab-item i { color: var(--fab-item-icon); }
       .fab-item:hover { text-decoration: none; border-color: rgba(218,165,32,.35); box-shadow: 0 10px 28px rgba(48,25,52,.18); }
       .fab-item .label { font-size: 13px; font-weight: 600; }
       @media (max-width: 576px) {
@@ -2123,23 +2130,20 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     </style>
     <div class="fab-container" id="quickFab">
       <div class="fab-menu" id="quickFabMenu" aria-hidden="true">
+        <a href="dashboard.php" class="fab-item" title="<?php echo t('member_nav.dashboard'); ?>">
+          <i class="fas fa-gauge"></i><span class="label"><?php echo t('member_nav.dashboard'); ?></span>
+        </a>
         <a href="contributions.php" class="fab-item" title="<?php echo t('footer.payments'); ?>">
-          <i class="fas fa-credit-card"></i><span class="label"><?php echo t('footer.payments'); ?></span>
+          <i class="fas fa-wallet"></i><span class="label"><?php echo t('footer.payments'); ?></span>
         </a>
         <a href="payout-info.php" class="fab-item" title="<?php echo t('footer.payout_info'); ?>">
-          <i class="fas fa-money-bill-wave"></i><span class="label"><?php echo t('footer.payout_info'); ?></span>
-        </a>
-        <a href="members.php" class="fab-item" title="<?php echo t('member_nav.equb_members'); ?>">
-          <i class="fas fa-users"></i><span class="label"><?php echo t('member_nav.equb_members'); ?></span>
-        </a>
-        <a href="position-swap.php" class="fab-item" title="<?php echo t('position_swap.page_title'); ?>">
-          <i class="fas fa-exchange-alt"></i><span class="label"><?php echo t('position_swap.page_title'); ?></span>
+          <i class="fas fa-sack-dollar"></i><span class="label"><?php echo t('footer.payout_info'); ?></span>
         </a>
         <a href="notifications.php" class="fab-item" title="<?php echo t('member_nav.notifications'); ?>">
           <i class="fas fa-bell"></i><span class="label"><?php echo t('member_nav.notifications'); ?></span>
         </a>
         <a href="settings.php" class="fab-item" title="<?php echo t('footer.settings'); ?>">
-          <i class="fas fa-sliders-h"></i><span class="label"><?php echo t('footer.settings'); ?></span>
+          <i class="fas fa-gear"></i><span class="label"><?php echo t('footer.settings'); ?></span>
         </a>
       </div>
       <button class="fab-button" id="quickFabToggle" aria-controls="quickFabMenu" aria-expanded="false" aria-label="Quick menu">
@@ -2153,6 +2157,20 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         const container = document.getElementById('quickFab');
         const toggleBtn = document.getElementById('quickFabToggle');
         const menu = document.getElementById('quickFabMenu');
+        // unread badge provider (re-uses member API)
+        async function setUnreadDot(count){
+          // add a small dot on bell icon item
+          const bell = menu.querySelector('a[href="notifications.php"] i');
+          if (!bell) return;
+          if (count > 0) { bell.classList.add('fa-shake'); bell.style.setProperty('color','#E76F51','important'); }
+          else { bell.classList.remove('fa-shake'); bell.style.removeProperty('color'); }
+        }
+        try {
+          const r = await fetch('api/notifications.php?action=count_unread');
+          const d = await r.json();
+          const u = d && d.success ? Number(d.unread) : 0;
+          setUnreadDot(u);
+        } catch(_){}
         if (!container || !toggleBtn || !menu) return;
         function closeMenu(){ container.classList.remove('fab-open'); toggleBtn.setAttribute('aria-expanded','false'); menu.setAttribute('aria-hidden','true'); }
         function openMenu(){ container.classList.add('fab-open'); toggleBtn.setAttribute('aria-expanded','true'); menu.setAttribute('aria-hidden','false'); }
