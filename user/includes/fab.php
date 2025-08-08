@@ -81,10 +81,12 @@
 
   async function loadUnread(){
     try {
-      const r = await fetch('api/notifications.php?action=count_unread');
+      const r = await fetch('api/notifications.php?action=count_unread', { cache: 'no-store' });
       const d = await r.json();
-      const u = d && d.success ? Number(d.unread) : 0;
-      setUnreadDot(u);
+      const u = d && d.success ? Math.max(0, Number(d.unread)) : 0;
+      // Defensive: if API returns NaN or an unexpectedly large stale value, clamp it
+      const safeU = Number.isFinite(u) ? Math.min(u, 9999) : 0;
+      setUnreadDot(safeU);
     } catch(e) { /* silent */ }
   }
 

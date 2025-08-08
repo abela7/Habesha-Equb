@@ -91,7 +91,13 @@ function markAllRead(int $user_id): void {
 
 function countUnread(int $user_id): void {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT COUNT(*) AS unread FROM notification_recipients WHERE member_id = ? AND read_flag = 0");
+    // Count only recipients that have a valid program_notification row (avoids orphan rows)
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) AS unread
+         FROM notification_recipients nr
+         INNER JOIN program_notifications n ON n.id = nr.notification_id
+         WHERE nr.member_id = ? AND nr.read_flag = 0"
+    );
     $stmt->execute([$user_id]);
     $count = (int)$stmt->fetchColumn();
     echo json_encode(['success' => true, 'unread' => $count]);
