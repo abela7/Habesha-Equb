@@ -28,6 +28,7 @@ if (!function_exists('t')) {
 // Secure authentication check
 require_once 'includes/auth_guard.php';
 $user_id = get_current_user_id();
+$lang = getCurrentLanguage();
 
 // Get REAL member data and payout information with equb details
 try {
@@ -1717,10 +1718,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      $has_received_payout = $member['total_payouts_received'] > 0;
                      $actual_payout_date = $member['last_payout_received_date'];
                      
-                     if ($has_received_payout && $actual_payout_date) {
+                      if ($has_received_payout && $actual_payout_date) {
                          // Member has received payout - show actual date
                          $display_date = date('M d, Y', strtotime($actual_payout_date));
-                         $days_info = '<i class="fas fa-check-circle text-success me-1"></i>Payout Completed';
+                          $days_info = '<i class="fas fa-check-circle text-success me-1"></i>' . ($lang==='am' ? 'እቁቡን ወስደዋል' : 'Payout Completed');
                          $value_class = 'text-success';
                          } else {
                          // Member hasn't received payout yet - show scheduled date
@@ -1730,7 +1731,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                          $is_future = $payout_target_date > $current_date;
                          
                          if ($is_future) {
-                             $days_info = '<i class="fas fa-clock text-info me-1"></i>' . $days_until . ' days remaining';
+                              $days_info = '<i class="fas fa-clock text-info me-1"></i>' . ($lang==='am' ? 'እቁቡን በቀጣይ ወራት ይወስዳሉ' : ($days_until . ' days remaining'));
                              $value_class = '';
                          } else {
                              $days_info = '<i class="fas fa-exclamation-triangle text-warning me-1"></i>Due ' . $days_until . ' days ago';
