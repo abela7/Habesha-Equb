@@ -873,10 +873,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     </div>
                                     <div style="text-align: right;">
                                         <div class="payment-amount" style="color: var(--palette-gold);">
-                                            £<?php echo number_format($payout['net_amount'], 0); ?>
-                                        </div>
-                                        <div style="font-size: 12px; color: var(--palette-dark-purple); opacity: 0.6;">
-                                            (<?php echo t('members_directory.total'); ?>: £<?php echo number_format($payout['total_amount'], 0); ?>)
+                                            £<?php echo number_format($payout['total_amount'], 0); ?>
                                         </div>
                                     </div>
                                 </div>
