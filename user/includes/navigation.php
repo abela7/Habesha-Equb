@@ -1193,3 +1193,7 @@ function handleLogout() {
     }
 }
 </script> 
+
+<?php // Global Floating Action Button on all member pages
+include __DIR__ . '/fab.php';
+?>
