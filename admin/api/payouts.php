@@ -188,7 +188,7 @@ function addPayout() {
     
     try {
         // Verify member
-        $stmt = $pdo->prepare("SELECT id, first_name, last_name, is_active FROM members WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, first_name, last_name, is_active, equb_settings_id FROM members WHERE id = ?");
     $stmt->execute([$member_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -253,6 +253,35 @@ function addPayout() {
             $payout_id, $member_id, $gross_payout, $total_amount, $net_amount, $scheduled_date,
             $actual_date, $status, $payout_method, $admin_fee, $admin_id, $payout_notes
         ]);
+        
+        // Create concise notification to the specific member
+        try {
+            $memberFirst = trim($member['first_name'] ?? '');
+            $amountFormatted = '£' . number_format((float)$net_amount, 2);
+            $dateHuman = date('F j, Y', strtotime($scheduled_date));
+            $title_en = 'Payout scheduled';
+            $title_am = $title_en; // reuse
+            $body_en = "Dear {$memberFirst}, your payout of {$amountFormatted} has been scheduled for {$dateHuman}.\n\nYou can go to your dashboard to access and download your receipt.";
+            $body_am = $body_en;
+
+            // Generate unique notification code
+            $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
+            $chk = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
+            $chk->execute([$code]);
+            while ($chk->fetch()) {
+                $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
+                $chk->execute([$code]);
+            }
+            $insNotif = $pdo->prepare("INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,'normal','sent',NOW(),NOW(),NOW())");
+            $insNotif->execute([$code, $admin_id, 'members', ($member['equb_settings_id'] ?? null), $title_en, $title_am, $body_en, $body_am]);
+            $notificationId = (int)$pdo->lastInsertId();
+            if ($notificationId) {
+                $insRec = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+                $insRec->execute([$notificationId, (int)$member_id]);
+            }
+        } catch (Throwable $e) {
+            error_log('addPayout notify error: '.$e->getMessage());
+        }
         
         echo json_encode([
             'success' => true,
@@ -509,6 +538,31 @@ function processPayout() {
         
         // Update member's payout flag
     syncMemberPayoutFlag($payout['member_id']);
+        
+        // Send concise notification to that specific member
+        try {
+            $q = $pdo->prepare("SELECT first_name, equb_settings_id FROM members WHERE id = ? LIMIT 1");
+            $q->execute([$payout['member_id']]);
+            $m = $q->fetch(PDO::FETCH_ASSOC) ?: [];
+            $first = trim($m['first_name'] ?? '');
+            $title_en = 'Payout completed';
+            $title_am = $title_en;
+            $body_en = "Dear {$first}, your payout has been completed and recorded.\n\nYou can go to your dashboard to access and download your receipt.";
+            $body_am = $body_en;
+            $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
+            $chk = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
+            $chk->execute([$code]);
+            while ($chk->fetch()) { $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT); $chk->execute([$code]); }
+            $ins = $pdo->prepare("INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,'normal','sent',NOW(),NOW(),NOW())");
+            $ins->execute([$code, get_current_admin_id(), 'members', ($m['equb_settings_id'] ?? null), $title_en, $title_am, $body_en, $body_am]);
+            $nid = (int)$pdo->lastInsertId();
+            if ($nid) {
+                $ir = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+                $ir->execute([$nid, (int)$payout['member_id']]);
+            }
+        } catch (Throwable $e) {
+            error_log('processPayout notify error: '.$e->getMessage());
+        }
     
     echo json_encode([
         'success' => true, 
