@@ -152,7 +152,37 @@ function createNotification(int $admin_id): void {
         }
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'message' => 'Notification sent', 'notification_id' => $notificationId, 'notification_code' => $code]);
+
+        // OPTIONAL EMAIL DISPATCH to members who opted-in (email_notifications = 1)
+        // Fire-and-forget: run after DB commit; collect simple stats
+        $sent = 0; $failed = 0;
+        try {
+            require_once '../../includes/email/EmailService.php';
+            $mailer = new EmailService($pdo);
+            // Select recipients with opt-in and language
+            $q = $pdo->prepare("SELECT m.id, m.first_name, m.last_name, m.email, m.language_preference
+                                 FROM members m
+                                 INNER JOIN notification_recipients nr ON nr.member_id = m.id
+                                 WHERE nr.notification_id = ? AND m.is_active = 1 AND COALESCE(m.email_notifications,1) = 1 AND m.email IS NOT NULL AND m.email != ''");
+            $q->execute([$notificationId]);
+            while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
+                $isAm = (int)($row['language_preference'] ?? 0) === 1;
+                $subject = $isAm ? $title_am : $title_en;
+                $body = $isAm ? $body_am : $body_en;
+                $vars = [
+                    'subject' => $subject,
+                    'title' => $subject,
+                    'body' => nl2br($body),
+                    'app_name' => 'HabeshaEqub'
+                ];
+                $res = $mailer->send('program_notification', $row['email'], trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? '')), $vars);
+                if (!empty($res['success'])) { $sent++; } else { $failed++; }
+            }
+        } catch (Throwable $e) {
+            error_log('Notification email dispatch error: '.$e->getMessage());
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Notification sent', 'notification_id' => $notificationId, 'notification_code' => $code, 'email_result' => ['sent' => $sent, 'failed' => $failed]]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         error_log('Create Notification Error: ' . $e->getMessage());
