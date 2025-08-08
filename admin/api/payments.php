@@ -453,10 +453,10 @@ function verifyPayment() {
         }
         $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
 
-        // Concise notification body for members
+        // Concise notification body for members with formatted amount line
         $whatsappText = "Dear {$memberFirst}, your payment for {$monthText} has been verified. Thanks for your payment!\n\n"
-            . "- Amount: {$amountFormatted}\n\n"
-            . "You can go to your dashboard to access and download your receipt.";
+            . "- Payment amount: {$amountFormatted}\n\n"
+            . "For more information, including accessing the receipt, please check the HabeshaEqub dashboard.";
 
         // Create notification record (English copy reused; no email send)
         $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);

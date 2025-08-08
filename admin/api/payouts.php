@@ -261,7 +261,7 @@ function addPayout() {
             $dateHuman = date('F j, Y', strtotime($scheduled_date));
             $title_en = 'Payout scheduled';
             $title_am = $title_en; // reuse
-            $body_en = "Dear {$memberFirst}, your payout of {$amountFormatted} has been scheduled for {$dateHuman}.\n\nYou can go to your dashboard to access and download your receipt.";
+            $body_en = "Dear {$memberFirst}, your payout has been scheduled for {$dateHuman}.\n\n- Payout amount: {$amountFormatted}\n\nFor more information, including accessing the receipt, please check the HabeshaEqub dashboard.";
             $body_am = $body_en;
 
             // Generate unique notification code
@@ -545,9 +545,14 @@ function processPayout() {
             $q->execute([$payout['member_id']]);
             $m = $q->fetch(PDO::FETCH_ASSOC) ?: [];
             $first = trim($m['first_name'] ?? '');
+            // Load payout amounts for this payout
+            $amtQ = $pdo->prepare("SELECT net_amount FROM payouts WHERE id = ?");
+            $amtQ->execute([$payout_id]);
+            $netAmt = (float)($amtQ->fetchColumn() ?: 0);
+            $amountFormatted = '£' . number_format($netAmt, 2);
             $title_en = 'Payout completed';
             $title_am = $title_en;
-            $body_en = "Dear {$first}, your payout has been completed and recorded.\n\nYou can go to your dashboard to access and download your receipt.";
+            $body_en = "Dear {$first}, your payout has been completed and recorded.\n\n- Payout amount: {$amountFormatted}\n\nFor more information, including accessing the receipt, please check the HabeshaEqub dashboard.";
             $body_am = $body_en;
             $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
             $chk = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
