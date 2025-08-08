@@ -521,7 +521,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 }
 
 /* Compact Table Column Widths */
-.table th:nth-child(1), .table td:nth-child(1) { width: 18%; } /* Payment ID */
+.table th:nth-child(1), .table td:nth-child(1) { width: 10%; } /* # */
 .table th:nth-child(2), .table td:nth-child(2) { width: 32%; } /* Payment Month */
 .table th:nth-child(3), .table td:nth-child(3) { width: 20%; } /* Amount */
 .table th:nth-child(4), .table td:nth-child(4) { width: 18%; } /* Status */
@@ -1205,7 +1205,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 <table class="table table-hover mb-0" id="paymentsTable">
                     <thead>
                         <tr>
-                            <th><?php echo t('contributions.payment_id'); ?></th>
+                            <th>#</th>
                             <th><?php echo t('contributions.payment_month'); ?></th>
                             <th><?php echo t('contributions.amount'); ?></th>
                             <th><?php echo t('contributions.status'); ?></th>
@@ -1213,10 +1213,10 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($payments as $payment): ?>
+                        <?php $rowIndex = 1; foreach ($payments as $payment): ?>
                         <tr>
                             <td>
-                                <code class="small"><?php echo htmlspecialchars($payment['payment_id'] ?? ''); ?></code>
+                                <?php echo $rowIndex++; ?>
                             </td>
                             <td class="fw-semibold">
                                 <?php 
