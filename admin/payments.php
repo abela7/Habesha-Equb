@@ -87,7 +87,7 @@ try {
 
 // Calculate payment statistics
 $total_payments = count($payments);
-$completed_payments = count(array_filter($payments, fn($p) => $p['status'] === 'completed'));
+    $completed_payments = count(array_filter($payments, fn($p) => $p['status'] === 'paid'));
 $pending_payments = count(array_filter($payments, fn($p) => $p['status'] === 'pending'));
 $total_amount = array_sum(array_column(array_filter($payments, fn($p) => $p['status'] === 'completed'), 'amount'));
 
@@ -788,9 +788,10 @@ $csrf_token = generate_csrf_token();
                         <div class="filter-group">
                             <select id="statusFilter" class="filter-select" onchange="filterPayments()">
                                 <option value=""><?php echo t('payments.all_status'); ?></option>
-                                <option value="completed"><?php echo t('payments.completed'); ?></option>
+                                <option value="paid"><?php echo t('payments.paid'); ?></option>
                                 <option value="pending"><?php echo t('payments.pending'); ?></option>
-                                <option value="failed"><?php echo t('payments.failed'); ?></option>
+                                <option value="late"><?php echo t('payments.late'); ?></option>
+                                <option value="missed"><?php echo t('payments.missed'); ?></option>
                             </select>
                             <select id="memberFilter" class="filter-select" onchange="filterPayments()">
                                 <option value=""><?php echo t('payments.all_members'); ?></option>
@@ -802,121 +803,18 @@ $csrf_token = generate_csrf_token();
                             </select>
                             <select id="monthFilter" class="filter-select" onchange="filterPayments()">
                                 <option value=""><?php echo t('payments.all_months'); ?></option>
-                                <?php
-                                $months = ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06', 
-                                          '2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12'];
-                                foreach ($months as $month) {
-                                    $formatted = date('F Y', strtotime($month . '-01'));
-                                    echo "<option value=\"{$month}\">{$formatted}</option>";
-                                }
-                                ?>
                             </select>
                         </div>
                     </div>
                 </div>
             </div>
 
-                <!-- Payments Table -->
+                <!-- Payments Grouped by Month -->
                 <div class="payments-table-container">
                     <div class="table-header">
                         <h3 class="table-title"><?php echo t('payments.all_payments'); ?></h3>
                     </div>
-                    <div class="table-responsive">
-                        <table class="payments-table">
-                            <thead>
-                                <tr>
-                                    <th><?php echo t('payments.member'); ?></th>
-                                    <th><?php echo t('payments.payment_details'); ?></th>
-                                    <th><?php echo t('payments.amount'); ?></th>
-                                    <th><?php echo t('payments.date_month'); ?></th>
-                                    <th><?php echo t('payments.status'); ?></th>
-                                    <th><?php echo t('payments.verification'); ?></th>
-                                    <th><?php echo t('payments.actions'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody id="paymentsTableBody">
-                                <?php foreach ($payments as $payment): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="member-info">
-                                                <div class="member-avatar">
-                                                    <?php echo strtoupper(substr($payment['first_name'], 0, 1) . substr($payment['last_name'], 0, 1)); ?>
-                                                </div>
-                                                <div class="member-details">
-                                                    <div class="member-name">
-                                                        <a href="member-profile.php?id=<?php echo $payment['member_db_id']; ?>" class="member-name-link">
-                                                            <?php echo htmlspecialchars($payment['first_name'] . ' ' . $payment['last_name']); ?>
-                                                        </a>
-                                                    </div>
-                                                    <div class="member-id"><?php echo htmlspecialchars($payment['member_id']); ?></div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="payment-id"><?php echo htmlspecialchars($payment['payment_id']); ?></div>
-                                            <div class="payment-method"><?php echo ucfirst($payment['payment_method'] ?? 'bank_transfer'); ?></div>
-                                        </td>
-                                        <td>
-                                            <div class="payment-amount">£<?php echo number_format($payment['amount'], 0); ?></div>
-                                            <div class="payment-date">
-                                                <?php 
-                                                    if ($payment['payment_month'] && $payment['payment_month'] !== '0000-00-00') {
-                                                        echo date('M Y', strtotime($payment['payment_month'] . '-01'));
-                                                    } else {
-                                                        echo t('payments.not_set');
-                                                    }
-                                                ?>
-                                            </div>
-                                        </td>
-                                                                <td>
-                            <div class="payment-date">
-                                <?php 
-                                    if ($payment['payment_date'] && $payment['payment_date'] !== '0000-00-00') {
-                                        echo date('M d, Y', strtotime($payment['payment_date']));
-                                    } else {
-                                        echo '<span class="text-muted">Not Set</span>';
-                                    }
-                                ?>
-                            </div>
-                        </td>
-                                                                <td>
-                            <?php 
-                                $status = $payment['status'] ?: 'pending'; // Default to 'pending' if empty
-                            ?>
-                            <span class="status-badge status-<?php echo $status; ?>">
-                                <?php echo t('payments.' . $status); ?>
-                            </span>
-                        </td>
-                                        <td>
-                                            <?php if ($payment['verified_by_admin']): ?>
-                                                <span class="verified-badge verified-yes"><?php echo t('payments.verified'); ?></span>
-                                            <?php else: ?>
-                                                <span class="verified-badge verified-no"><?php echo t('payments.unverified'); ?></span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <button class="btn btn-action btn-edit" onclick="editPayment(<?php echo $payment['id']; ?>)" title="<?php echo t('payments.edit_payment'); ?>">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-action btn-receipt" onclick="generateReceipt('payment', <?php echo $payment['id']; ?>)" title="<?php echo t('payments.generate_receipt'); ?>">
-                                                    <i class="fas fa-receipt"></i>
-                                                </button>
-                                                <?php if ($payment['status'] === 'pending'): ?>
-                                                    <button class="btn btn-action btn-verify" onclick="verifyPayment(<?php echo $payment['id']; ?>)" title="<?php echo t('payments.verify_payment'); ?>">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                <?php endif; ?>
-                                                <button class="btn btn-action btn-delete" onclick="deletePayment(<?php echo $payment['id']; ?>)" title="<?php echo t('payments.delete_payment'); ?>">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                    <div id="paymentsAccordion" class="accordion"></div>
                 </div>
 
                 <?php if (empty($payments)): ?>
@@ -1421,54 +1319,57 @@ $csrf_token = generate_csrf_token();
 
         // Update payments table
         function updatePaymentsTable(payments) {
-            const tbody = document.getElementById('paymentsTableBody');
-            tbody.innerHTML = '';
+            const acc = document.getElementById('paymentsAccordion');
+            acc.innerHTML = '';
             
-            if (payments.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center py-4">
-                            <span style="color: var(--text-secondary);">No payments found matching the current filters.</span>
-                        </td>
-                    </tr>
-                `;
+            if (!payments || payments.length === 0) {
+                acc.innerHTML = '<div class="p-4 text-center text-muted">No payments found matching the current filters.</div>';
                 return;
             }
             
-            payments.forEach(payment => {
-
+            // Build month groups dynamically
+            const monthMap = new Map(); // key: YYYY-MM, value: array of payments
+            payments.forEach(p => {
+                let key = '';
+                if (p.payment_month && p.payment_month !== '0000-00-00') {
+                    key = p.payment_month.toString().slice(0,7);
+                } else if (p.payment_date && p.payment_date !== '0000-00-00') {
+                    key = p.payment_date.toString().slice(0,7);
+                } else {
+                    key = 'Unknown';
+                }
+                if (!monthMap.has(key)) monthMap.set(key, []);
+                monthMap.get(key).push(p);
+            });
+            
+            // Populate month filter dynamically
+            populateMonthFilter(Array.from(monthMap.keys()));
+            
+            // Sort months descending
+            const sortedKeys = Array.from(monthMap.keys()).sort((a,b)=> (a>b?-1:1));
+            
+            sortedKeys.forEach((key, idx) => {
+                const group = monthMap.get(key);
+                const label = key === 'Unknown' ? 'Not Set' : new Date(key + '-01').toLocaleDateString('en-US',{year:'numeric',month:'long'});
+                const itemId = `paymon-${key.replace(/[^\dA-Za-z]/g,'')}-${idx}`;
+                
+                let rowsHtml = '';
+                group.forEach(payment => {
                 const initials = payment.first_name.charAt(0) + payment.last_name.charAt(0);
                 const paymentDate = (payment.payment_date && payment.payment_date !== '0000-00-00') 
-                    ? new Date(payment.payment_date).toLocaleDateString('en-US', {
-                        year: 'numeric', month: 'short', day: 'numeric'
-                    })
+                        ? new Date(payment.payment_date).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
                     : '<span class="text-muted">Not Set</span>';
-                const paymentMonth = (payment.payment_month && payment.payment_month !== '0000-00-00') 
-                    ? new Date(payment.payment_month + '-01').toLocaleDateString('en-US', {
-                        year: 'numeric', month: 'short'
-                    })
-                    : 'Not Set';
-                
                 const verifyButton = payment.status === 'pending' ? 
-                    `<button class="btn btn-action btn-verify" onclick="verifyPayment(${payment.id})" title="Verify Payment">
-                        <i class="fas fa-check"></i>
-                    </button>` : '';
-
+                        `<button class="btn btn-action btn-verify" onclick="verifyPayment(${payment.id})" title="Verify Payment"><i class=\"fas fa-check\"></i></button>` : '';
                 const verifiedBadge = payment.verified_by_admin ? 
-                    '<span class="verified-badge verified-yes">Verified</span>' : 
-                    '<span class="verified-badge verified-no">Unverified</span>';
-                
-                tbody.innerHTML += `
+                        '<span class="verified-badge verified-yes">Verified</span>' : '<span class="verified-badge verified-no">Unverified</span>';
+                    rowsHtml += `
                     <tr>
                         <td>
                             <div class="member-info">
                                 <div class="member-avatar">${initials}</div>
                                 <div class="member-details">
-                                    <div class="member-name">
-                                        <a href="member-profile.php?id=${payment.member_db_id}" class="member-name-link">
-                                            ${payment.first_name} ${payment.last_name}
-                                        </a>
-                                    </div>
+                                        <div class="member-name"><a href="member-profile.php?id=${payment.member_db_id}" class="member-name-link">${payment.first_name} ${payment.last_name}</a></div>
                                     <div class="member-id">${payment.member_code}</div>
                                 </div>
                             </div>
@@ -1477,32 +1378,69 @@ $csrf_token = generate_csrf_token();
                             <div class="payment-id">${payment.payment_id}</div>
                             <div class="payment-method">${payment.payment_method ? payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Bank Transfer'}</div>
                         </td>
-                        <td>
-                            <div class="payment-amount">£${parseFloat(payment.amount).toLocaleString()}</div>
-                            <div class="payment-date">${paymentMonth}</div>
-                        </td>
-                        <td>
-                            <div class="payment-date">${paymentDate}</div>
-                        </td>
+                            <td><div class="payment-amount">£${parseFloat(payment.amount).toLocaleString()}</div></td>
+                            <td><div class="payment-date">${paymentDate}</div></td>
                         <td><span class="status-badge status-${payment.status || 'pending'}">${getStatusTranslation(payment.status || 'pending')}</span></td>
                         <td>${verifiedBadge}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-action btn-edit" onclick="editPayment(${payment.id})" title="Edit Payment">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-action btn-receipt" onclick="generateReceipt('payment', ${payment.id})" title="Generate Receipt">
-                                    <i class="fas fa-receipt"></i>
-                                </button>
+                                    <button class="btn btn-action btn-edit" onclick="editPayment(${payment.id})" title="Edit Payment"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-action btn-receipt" onclick="generateReceipt('payment', ${payment.id})" title="Generate Receipt"><i class="fas fa-receipt"></i></button>
                                 ${verifyButton}
-                                <button class="btn btn-action btn-delete" onclick="deletePayment(${payment.id})" title="Delete Payment">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                    <button class="btn btn-action btn-delete" onclick="deletePayment(${payment.id})" title="Delete Payment"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
+                        </tr>`;
+                });
+                
+                acc.innerHTML += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="h-${itemId}">
+                            <button class="accordion-button ${idx>0?'collapsed':''}" type="button" data-bs-toggle="collapse" data-bs-target="#c-${itemId}" aria-expanded="${idx===0?'true':'false'}" aria-controls="c-${itemId}">
+                                ${label} <span class="ms-2 text-muted">(${group.length})</span>
+                            </button>
+                        </h2>
+                        <div id="c-${itemId}" class="accordion-collapse collapse ${idx===0?'show':''}" aria-labelledby="h-${itemId}">
+                            <div class="accordion-body p-0">
+                                <div class="table-responsive">
+                                    <table class="payments-table m-0">
+                                        <thead>
+                                            <tr>
+                                                <th><?php echo t('payments.member'); ?></th>
+                                                <th><?php echo t('payments.payment_details'); ?></th>
+                                                <th><?php echo t('payments.amount'); ?></th>
+                                                <th><?php echo t('payments.date'); ?></th>
+                                                <th><?php echo t('payments.status'); ?></th>
+                                                <th><?php echo t('payments.verification'); ?></th>
+                                                <th><?php echo t('payments.actions'); ?></th>
                     </tr>
-                `;
+                                        </thead>
+                                        <tbody>${rowsHtml}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
             });
+        }
+
+        function populateMonthFilter(monthKeys) {
+            const sel = document.getElementById('monthFilter');
+            if (!sel) return;
+            const current = sel.value;
+            // Build unique months from keys (ignore 'Unknown')
+            const keys = monthKeys.filter(k=>k && k !== 'Unknown');
+            keys.sort((a,b)=> (a>b?-1:1));
+            sel.innerHTML = `<option value=""><?php echo t('payments.all_months'); ?></option>`;
+            keys.forEach(k => {
+                const label = new Date(k + '-01').toLocaleDateString('en-US', {year:'numeric', month:'long'});
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
+            // Restore selection if still present
+            if (current && keys.includes(current)) sel.value = current;
         }
 
         // Filter payments
