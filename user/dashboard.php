@@ -2095,7 +2095,75 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         <?php endif; ?>
     </div>
 
+    <!-- Floating Quick Menu (Dashboard only) -->
+    <style>
+      .fab-container { position: fixed; right: 18px; bottom: 18px; z-index: 1060; }
+      .fab-button {
+        width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+        background: linear-gradient(135deg, var(--palette-gold) 0%, var(--palette-light-gold) 100%);
+        color: #fff; box-shadow: 0 8px 24px rgba(48,25,52,.2); display: flex; align-items: center; justify-content: center;
+        transition: transform .25s ease, box-shadow .25s ease;
+      }
+      .fab-button:focus { outline: none; box-shadow: 0 0 0 4px rgba(218,165,32,.25); }
+      .fab-button:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(48,25,52,.28); }
+      .fab-icon { font-size: 22px; transition: transform .25s ease; }
+      .fab-open .fab-icon { transform: rotate(45deg); }
+
+      .fab-menu { position: absolute; right: 0; bottom: 72px; display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
+      .fab-open .fab-menu { display: flex; }
+      .fab-item { background: #fff; color: var(--palette-deep-purple); border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; 
+        box-shadow: 0 8px 24px rgba(48,25,52,.12); padding: 8px 12px; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+      .fab-item i { color: var(--palette-gold); }
+      .fab-item:hover { text-decoration: none; border-color: rgba(218,165,32,.35); box-shadow: 0 10px 28px rgba(48,25,52,.18); }
+      .fab-item .label { font-size: 13px; font-weight: 600; }
+      @media (max-width: 576px) {
+        .fab-item { padding: 8px 10px; }
+        .fab-item .label { display: none; }
+      }
+    </style>
+    <div class="fab-container" id="quickFab">
+      <div class="fab-menu" id="quickFabMenu" aria-hidden="true">
+        <a href="contributions.php" class="fab-item" title="<?php echo t('footer.payments'); ?>">
+          <i class="fas fa-credit-card"></i><span class="label"><?php echo t('footer.payments'); ?></span>
+        </a>
+        <a href="payout-info.php" class="fab-item" title="<?php echo t('footer.payout_info'); ?>">
+          <i class="fas fa-money-bill-wave"></i><span class="label"><?php echo t('footer.payout_info'); ?></span>
+        </a>
+        <a href="members.php" class="fab-item" title="<?php echo t('member_nav.equb_members'); ?>">
+          <i class="fas fa-users"></i><span class="label"><?php echo t('member_nav.equb_members'); ?></span>
+        </a>
+        <a href="position-swap.php" class="fab-item" title="<?php echo t('position_swap.page_title'); ?>">
+          <i class="fas fa-exchange-alt"></i><span class="label"><?php echo t('position_swap.page_title'); ?></span>
+        </a>
+        <a href="notifications.php" class="fab-item" title="<?php echo t('member_nav.notifications'); ?>">
+          <i class="fas fa-bell"></i><span class="label"><?php echo t('member_nav.notifications'); ?></span>
+        </a>
+        <a href="settings.php" class="fab-item" title="<?php echo t('footer.settings'); ?>">
+          <i class="fas fa-sliders-h"></i><span class="label"><?php echo t('footer.settings'); ?></span>
+        </a>
+      </div>
+      <button class="fab-button" id="quickFabToggle" aria-controls="quickFabMenu" aria-expanded="false" aria-label="Quick menu">
+        <i class="fas fa-plus fab-icon"></i>
+      </button>
+    </div>
+
     <!-- Scripts -->
+    <script>
+      (function(){
+        const container = document.getElementById('quickFab');
+        const toggleBtn = document.getElementById('quickFabToggle');
+        const menu = document.getElementById('quickFabMenu');
+        if (!container || !toggleBtn || !menu) return;
+        function closeMenu(){ container.classList.remove('fab-open'); toggleBtn.setAttribute('aria-expanded','false'); menu.setAttribute('aria-hidden','true'); }
+        function openMenu(){ container.classList.add('fab-open'); toggleBtn.setAttribute('aria-expanded','true'); menu.setAttribute('aria-hidden','false'); }
+        toggleBtn.addEventListener('click', function(e){ e.stopPropagation();
+          if (container.classList.contains('fab-open')) { closeMenu(); } else { openMenu(); }
+        });
+        document.addEventListener('click', function(e){ if (!container.contains(e.target)) closeMenu(); });
+        document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
+        menu.querySelectorAll('a').forEach(a=>a.addEventListener('click', closeMenu));
+      })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
 </body>
 </html>
