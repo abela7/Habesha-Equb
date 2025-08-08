@@ -146,7 +146,12 @@ function createNotification(int $admin_id): void {
             $ins = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
             foreach ($member_ids as $mid) {
                 if ($mid > 0) {
-                    $ins->execute([$notificationId, $mid]);
+                    // ensure member exists and is active/approved & opted-in
+                    $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1 AND is_approved = 1 AND COALESCE(email_notifications,1) = 1');
+                    $chk->execute([$mid]);
+                    if ($chk->fetchColumn()) {
+                        $ins->execute([$notificationId, $mid]);
+                    }
                 }
             }
         }
@@ -170,10 +175,9 @@ function createNotification(int $admin_id): void {
                                    AND m.email IS NOT NULL AND m.email != ''");
             $q->execute([$notificationId]);
             while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
-                // To reduce spam flagging due to mixed non-ASCII subjects, send English-only subject/body if desired
-                $forceEnglish = true; // fallback: force English version to improve deliverability
-                $isAm = !$forceEnglish && ((int)($row['language_preference'] ?? 0) === 1);
-                $subject = $isAm ? $title_am : $title_en;
+                // Always use English subject; choose body by user preference
+                $subject = $title_en;
+                $isAm = ((int)($row['language_preference'] ?? 0) === 1);
                 $body = $isAm ? $body_am : $body_en;
                 $vars = [
                     'subject' => $subject,
