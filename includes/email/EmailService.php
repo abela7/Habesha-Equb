@@ -13,6 +13,30 @@ class EmailService {
         $this->loadSMTPConfig();
     }
     
+    /**
+     * Build and send a program notification email to a member with enforced rules:
+     * - Subject is ALWAYS the English title
+     * - Body is based on member language preference (Amharic for 1, English otherwise)
+     */
+    public function sendProgramNotificationToMember(array $memberRow, string $title_en, string $title_am, string $body_en, string $body_am)
+    {
+        $toEmail = $memberRow['email'] ?? '';
+        $toName = trim(($memberRow['first_name'] ?? '') . ' ' . ($memberRow['last_name'] ?? ''));
+        $isAmharic = (int)($memberRow['language_preference'] ?? 0) === 1;
+
+        $subject = $title_en; // always English subject for deliverability
+        $body = $isAmharic ? $body_am : $body_en;
+
+        $vars = [
+            'subject' => $subject,
+            'title' => $subject,
+            'body' => nl2br($body),
+            'app_name' => 'HabeshaEqub'
+        ];
+
+        return $this->send('program_notification', $toEmail, $toName, $vars);
+    }
+
     private function loadSMTPConfig() {
         $stmt = $this->pdo->prepare("SELECT setting_key, setting_value FROM system_settings WHERE setting_category = 'email'");
         $stmt->execute();

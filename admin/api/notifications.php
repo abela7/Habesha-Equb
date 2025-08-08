@@ -175,17 +175,8 @@ function createNotification(int $admin_id): void {
                                    AND m.email IS NOT NULL AND m.email != ''");
             $q->execute([$notificationId]);
             while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
-                // Always use English subject; choose body by user preference
-                $subject = $title_en;
-                $isAm = ((int)($row['language_preference'] ?? 0) === 1);
-                $body = $isAm ? $body_am : $body_en;
-                $vars = [
-                    'subject' => $subject,
-                    'title' => $subject,
-                    'body' => nl2br($body),
-                    'app_name' => 'HabeshaEqub'
-                ];
-                $res = $mailer->send('program_notification', $row['email'], trim(($row['first_name'] ?? '').' '.($row['last_name'] ?? '')), $vars);
+                // Use dedicated builder to enforce subject/body rules and template filling
+                $res = $mailer->sendProgramNotificationToMember($row, $title_en, $title_am, $body_en, $body_am);
                 if (!empty($res['success'])) { $sent++; } else { $failed++; }
             }
         } catch (Throwable $e) {
