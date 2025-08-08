@@ -1197,5 +1197,3 @@ function handleLogout() {
     }
 }
 </script> 
-
-<!-- Footer is included by each page at the end of content to ensure it renders after page content. -->
