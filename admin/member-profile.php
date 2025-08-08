@@ -5,6 +5,7 @@
  */
 
 require_once '../includes/db.php';
+require_once '../includes/payout_sync_service.php';
 
 // Secure admin authentication check
 require_once 'includes/admin_auth_guard.php';
@@ -32,11 +33,11 @@ try {
                es.admin_fee as equb_admin_fee,
                es.regular_payment_tier,
                COUNT(p.id) as total_payments,
-               COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0) as total_paid,
-               MAX(p.payment_date) as last_payment_date,
+               COALESCE(SUM(CASE WHEN p.status IN ('paid','completed') THEN p.amount ELSE 0 END), 0) as total_paid,
+               MAX(CASE WHEN p.status IN ('paid','completed') THEN p.payment_date END) as last_payment_date,
                COUNT(po.id) as total_payouts,
                COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as total_received,
-               MAX(po.actual_payout_date) as last_payout_date
+               MAX(CASE WHEN po.status = 'completed' THEN po.actual_payout_date END) as last_payout_date
         FROM members m 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         LEFT JOIN payments p ON m.id = p.member_id
@@ -92,13 +93,17 @@ try {
         $member['real_net_payout'] = $member_calculation['real_net_payout']; // gross - admin fee - monthly
         $member['calculation_method'] = $member_calculation['calculation_method'] ?? 'enhanced';
     } else {
-        // Fallback calculation
-        $member['position_coefficient'] = ($member['monthly_payment'] ?? 1000) / ($member['regular_payment_tier'] ?? 1000);
-        $member['total_monthly_pool'] = 0; // Will calculate in display
+        // Dynamic-only fallback (no hardcoded constants)
+        if (!empty($member['regular_payment_tier']) && !empty($member['monthly_payment'])) {
+            $member['position_coefficient'] = (float)$member['monthly_payment'] / (float)$member['regular_payment_tier'];
+        } else {
+            $member['position_coefficient'] = null;
+        }
+        $member['total_monthly_pool'] = 0;
         $member['gross_payout'] = 0;
         $member['display_payout'] = 0;
         $member['real_net_payout'] = 0;
-        $member['calculation_method'] = 'fallback';
+        $member['calculation_method'] = 'unavailable';
         error_log("Enhanced calculation failed for member {$member_id}: " . ($calculation_result['error'] ?? 'Unknown error'));
     }
 } catch (Exception $e) {
@@ -144,14 +149,31 @@ try {
     $payouts = [];
 }
 
-// Calculate next payment date (assuming monthly payments)
+// Dynamic payout and next payment information
+$payout_service = getPayoutSyncService();
+$payout_info = $payout_service->getMemberPayoutStatus($member_id);
+$calculated_payout_date = null;
+$days_until_payout = null;
+if (is_array($payout_info) && empty($payout_info['error'])) {
+    $calculated_payout_date = $payout_info['calculated_payout_date'] ?? null;
+    $days_until_payout = $payout_info['days_until_payout'] ?? null;
+}
+
 $next_payment_date = null;
-if ($member['last_payment_date']) {
-    $last_payment = new DateTime($member['last_payment_date']);
-    $next_payment_date = $last_payment->add(new DateInterval('P1M'));
-} else {
-    $join_date = new DateTime($member['join_date']);
-    $next_payment_date = $join_date->add(new DateInterval('P1M'));
+try {
+    if (!empty($member['equb_start_date'])) {
+        $equb_start = new DateTime($member['equb_start_date']);
+        $now = new DateTime();
+        $diff = $now->diff($equb_start);
+        $months_since_start = $diff->m + ($diff->y * 12);
+        $current_month_date = (clone $equb_start)->modify("+{$months_since_start} months");
+        $due_day = 1; // due day is the 1st per system rule
+        $grace_days = (int)($member['grace_period_days'] ?? 0);
+        $deadline = (clone $current_month_date)->setDate((int)$current_month_date->format('Y'), (int)$current_month_date->format('m'), $due_day)->modify("+{$grace_days} days");
+        $next_payment_date = $deadline;
+    }
+} catch (Throwable $e) {
+    $next_payment_date = null;
 }
 
 // Generate CSRF token
@@ -602,12 +624,18 @@ $csrf_token = generate_csrf_token();
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Payout Month</span>
-                                <span class="info-value"><?php echo date('M Y', strtotime($member['payout_month'] . '-01')); ?></span>
+                                <span class="info-value"><?php echo !empty($calculated_payout_date) ? date('M Y', strtotime($calculated_payout_date)) : (isset($member['payout_month']) && $member['payout_month'] ? date('M Y', strtotime($member['payout_month'].'-01')) : '—'); ?></span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Next Payment Due</span>
                                 <span class="info-value warning"><?php echo $next_payment_date ? $next_payment_date->format('M d, Y') : 'Not calculated'; ?></span>
                             </div>
+                            <?php if ($calculated_payout_date): ?>
+                            <div class="info-row">
+                                <span class="info-label">Expected Payout Date</span>
+                                <span class="info-value success"><?php echo date('M d, Y', strtotime($calculated_payout_date)); ?><?php echo is_numeric($days_until_payout) ? ' ('.($days_until_payout >= 0 ? $days_until_payout.' days' : abs($days_until_payout).' days overdue').')' : ''; ?></span>
+                            </div>
+                            <?php endif; ?>
                             
                             <!-- Enhanced EQUB Calculation Information -->
                             <div class="info-row" style="border-top: 1px solid #e0e0e0; margin-top: 12px; padding-top: 12px;">
@@ -749,6 +777,18 @@ $csrf_token = generate_csrf_token();
                             <div class="info-row">
                                 <span class="info-label">Total Payments</span>
                                 <span class="info-value"><?php echo $member['total_payments']; ?> payments</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Language Preference</span>
+                                <span class="info-value"><?php echo ((int)($member['language_preference'] ?? 0) === 1) ? 'Amharic' : 'English'; ?></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email Notifications</span>
+                                <span class="info-value"><?php echo ((int)($member['email_notifications'] ?? 1) === 1) ? 'Enabled' : 'Disabled'; ?></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Swap Terms Allowed</span>
+                                <span class="info-value"><?php echo ((int)($member['swap_terms_allowed'] ?? 0) === 1) ? 'Yes' : 'No'; ?></span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Notifications</span>
