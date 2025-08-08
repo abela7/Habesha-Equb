@@ -270,6 +270,18 @@ $csrf_token = generate_csrf_token();
         }
     }
 
+    function showToast(message, type='success'){
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-bg-${type==='success'?'success':'danger'} border-0 position-fixed`;
+        toast.style.cssText = 'right:20px; top:20px; z-index:20000;';
+        toast.setAttribute('role','alert');
+        toast.innerHTML = `<div class="d-flex"><div class="toast-body">${escapeHtml(message)}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
+        document.body.appendChild(toast);
+        const t = new bootstrap.Toast(toast, { delay: 4000 });
+        t.show();
+        toast.addEventListener('hidden.bs.toast', ()=>toast.remove());
+    }
+
     async function onSubmit(e) {
         e.preventDefault();
         const form = e.target;
@@ -280,14 +292,15 @@ $csrf_token = generate_csrf_token();
             const resp = await fetch(apiBase, { method: 'POST', body: formData });
             const data = await resp.json();
             if (data.success) {
-                alert('Notification sent successfully');
+                const stats = data.email_result ? `Email: sent ${data.email_result.sent || 0}, failed ${data.email_result.failed || 0}` : 'Sent';
+                showToast(`Notification sent successfully. ${stats}`, 'success');
                 form.reset();
                 document.getElementById('selectedMembers').innerHTML = '';
                 loadNotifications();
             } else {
-                alert(data.message || 'Failed to send');
+                showToast(data.message || 'Failed to send', 'danger');
             }
-        } catch (e) { alert('Network error'); }
+        } catch (e) { showToast('Network error', 'danger'); }
     }
 
     async function searchMembers() {
