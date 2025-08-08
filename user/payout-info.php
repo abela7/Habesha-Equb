@@ -917,6 +917,53 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     box-shadow: 0 2px 8px rgba(218, 165, 32, 0.3);
 }
 
+/* Countdown Styles */
+.countdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.countdown .cd-box {
+    background: rgba(218, 165, 32, 0.08);
+    border: 1px solid rgba(218, 165, 32, 0.2);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.countdown .cd-num {
+    display: block;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--palette-deep-purple);
+    line-height: 1;
+}
+
+.countdown .cd-label {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--palette-dark-purple);
+    opacity: 0.8;
+    text-transform: uppercase;
+}
+
+.time-progress { 
+    margin-top: 10px; 
+    height: 8px; 
+    border-radius: 10px; 
+    background: rgba(218,165,32,0.12); 
+    overflow: hidden;
+}
+.time-progress-fill { 
+    height: 100%; 
+    width: 0%; 
+    background: linear-gradient(90deg, var(--palette-gold) 0%, var(--palette-light-gold) 100%); 
+    transition: width .6s ease; 
+}
+
 /* Enhanced Mobile Responsive Design */
 @media (max-width: 768px) {
     .container-fluid {
@@ -1743,6 +1790,33 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      <div class="payout-detail">
                          <?php echo $days_info; ?>
                      </div>
+                     <?php if (!$has_received_payout): ?>
+                     <div id="payoutCountdown" 
+                          class="countdown"
+                          data-target-ts="<?php echo strtotime($payout_target_date->format('Y-m-d') . ' 23:59:59'); ?>"
+                          data-start-ts="<?php echo strtotime(($member['start_date'] ?? date('Y-m-d')) . ' 00:00:00'); ?>"
+                          data-now-ts="<?php echo time(); ?>">
+                         <div class="cd-box">
+                             <span class="cd-num" id="cd-days">0</span>
+                             <span class="cd-label"><?php echo t('payout_info.days'); ?></span>
+                         </div>
+                         <div class="cd-box">
+                             <span class="cd-num" id="cd-hours">0</span>
+                             <span class="cd-label"><?php echo t('payout_info.hours'); ?></span>
+                         </div>
+                         <div class="cd-box">
+                             <span class="cd-num" id="cd-mins">0</span>
+                             <span class="cd-label"><?php echo t('payout_info.minutes'); ?></span>
+                         </div>
+                         <div class="cd-box">
+                             <span class="cd-num" id="cd-secs">0</span>
+                             <span class="cd-label"><?php echo t('payout_info.seconds'); ?></span>
+                         </div>
+                     </div>
+                     <div class="time-progress">
+                         <div class="time-progress-fill" id="cd-progress"></div>
+                     </div>
+                     <?php endif; ?>
                 </div>
             </div>
 
@@ -2176,5 +2250,48 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
+    <script>
+    (function() {
+        const el = document.getElementById('payoutCountdown');
+        if (!el) return;
+        const targetTs = parseInt(el.getAttribute('data-target-ts'), 10) * 1000;
+        const startTs = parseInt(el.getAttribute('data-start-ts'), 10) * 1000;
+        let nowTs = parseInt(el.getAttribute('data-now-ts'), 10) * 1000;
+
+        const daysEl = document.getElementById('cd-days');
+        const hoursEl = document.getElementById('cd-hours');
+        const minsEl = document.getElementById('cd-mins');
+        const secsEl = document.getElementById('cd-secs');
+        const progressEl = document.getElementById('cd-progress');
+
+        const totalDuration = Math.max(0, targetTs - startTs);
+
+        function update() {
+            nowTs = Date.now();
+            const remaining = Math.max(0, targetTs - nowTs);
+            const d = Math.floor(remaining / (1000 * 60 * 60 * 24));
+            const h = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((remaining % (1000 * 60)) / 1000);
+
+            if (daysEl) daysEl.textContent = String(d);
+            if (hoursEl) hoursEl.textContent = String(h).padStart(2, '0');
+            if (minsEl) minsEl.textContent = String(m).padStart(2, '0');
+            if (secsEl) secsEl.textContent = String(s).padStart(2, '0');
+
+            // Time-based progress from equb start to target payout date
+            let elapsed = Math.max(0, nowTs - startTs);
+            const ratio = totalDuration > 0 ? Math.min(1, elapsed / totalDuration) : 0;
+            if (progressEl) progressEl.style.width = (ratio * 100).toFixed(1) + '%';
+
+            if (remaining <= 0) {
+                clearInterval(timer);
+            }
+        }
+
+        update();
+        const timer = setInterval(update, 1000);
+    })();
+    </script>
 </body>
 </html>
