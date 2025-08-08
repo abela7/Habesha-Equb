@@ -2095,76 +2095,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         <?php endif; ?>
     </div>
 
-    <?php // Floating Quick Menu styles removed; FAB is provided globally via include ?>
-    <div class="fab-container" id="quickFab">
-      <div class="fab-menu" id="quickFabMenu" aria-hidden="true">
-        <a href="dashboard.php" class="fab-item" title="<?php echo t('member_nav.dashboard'); ?>">
-          <i class="fas fa-gauge"></i><span class="label"><?php echo t('member_nav.dashboard'); ?></span>
-        </a>
-        <a href="contributions.php" class="fab-item" title="<?php echo t('footer.payments'); ?>">
-          <i class="fas fa-wallet"></i><span class="label"><?php echo t('footer.payments'); ?></span>
-        </a>
-        <a href="payout-info.php" class="fab-item" title="<?php echo t('footer.payout_info'); ?>">
-          <i class="fas fa-sack-dollar"></i><span class="label"><?php echo t('footer.payout_info'); ?></span>
-        </a>
-        <a href="notifications.php" class="fab-item" title="<?php echo t('member_nav.notifications'); ?>">
-          <i class="fas fa-bell"></i><span class="label"><?php echo t('member_nav.notifications'); ?></span>
-        </a>
-        <a href="settings.php" class="fab-item" title="<?php echo t('footer.settings'); ?>">
-          <i class="fas fa-gear"></i><span class="label"><?php echo t('footer.settings'); ?></span>
-        </a>
-      </div>
-      <button class="fab-button" id="quickFabToggle" aria-controls="quickFabMenu" aria-expanded="false" aria-label="Quick menu">
-        <span class="fab-badge" id="fabUnreadBadge">0</span>
-        <i class="fas fa-plus fab-icon"></i>
-      </button>
-    </div>
+    <?php // FAB provided globally via user/includes/navigation.php ?>
 
     <!-- Scripts -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function(){
-        const container = document.getElementById('quickFab');
-        const toggleBtn = document.getElementById('quickFabToggle');
-        const menu = document.getElementById('quickFabMenu');
-        // unread badge provider (re-uses member API)
-        async function setUnreadDot(count){
-          // on bell item
-          const bell = menu.querySelector('a[href="notifications.php"] i');
-          const fabBadge = document.getElementById('fabUnreadBadge');
-          const fabContainer = document.getElementById('quickFab');
-          if (count > 0) {
-            if (bell) { bell.classList.add('fa-shake'); bell.style.setProperty('color','#E76F51','important'); }
-            if (fabBadge) { fabBadge.style.display = 'inline-flex'; fabBadge.textContent = count > 99 ? '99+' : String(count); }
-            if (fabContainer) fabContainer.classList.add('fab-attention');
-          } else {
-            if (bell) { bell.classList.remove('fa-shake'); bell.style.removeProperty('color'); }
-            if (fabBadge) { fabBadge.style.display = 'none'; fabBadge.textContent = '0'; }
-            if (fabContainer) fabContainer.classList.remove('fab-attention');
-          }
-        }
-        async function loadUnread(){
-          try {
-            const r = await fetch('api/notifications.php?action=count_unread');
-            const d = await r.json();
-            const u = d && d.success ? Number(d.unread) : 0;
-            setUnreadDot(u);
-          } catch(_){}
-        }
-        loadUnread();
-        if (!container || !toggleBtn || !menu) return;
-        function closeMenu(){ container.classList.remove('fab-open'); toggleBtn.setAttribute('aria-expanded','false'); menu.setAttribute('aria-hidden','true'); }
-        function openMenu(){ container.classList.add('fab-open'); toggleBtn.setAttribute('aria-expanded','true'); menu.setAttribute('aria-hidden','false'); }
-        let justToggled = false;
-        function toggle(e){ if(e) e.stopPropagation();
-          if (container.classList.contains('fab-open')) { closeMenu(); } else { openMenu(); }
-          justToggled = true; setTimeout(()=>{ justToggled = false; }, 150);
-        }
-        toggleBtn.addEventListener('click', toggle, {passive:false});
-        document.addEventListener('click', function(e){ if (justToggled) return; if (!container.contains(e.target)) closeMenu(); }, true);
-        document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeMenu(); });
-        menu.querySelectorAll('a').forEach(a=>a.addEventListener('click', closeMenu));
-      });
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js?v=<?php echo $cache_buster; ?>"></script>
 </body>
 </html>
