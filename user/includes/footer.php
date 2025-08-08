@@ -7,21 +7,24 @@ require_once '../languages/translator.php';
 <style>
 .member-footer {
   margin: 0; /* no space around */
-  width: 100vw; /* full bleed */
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  width: 100%; /* respect layout to avoid side-nav overlap */
   background: linear-gradient(180deg, #2a2031 0%, #1e1726 100%);
   color: rgba(255,255,255,0.9);
   border-top: 1px solid rgba(255,255,255,0.12);
-  padding: 8px 0; /* compact height */
+  padding: 10px 12px; /* compact height */
   font-size: 12px;
+  box-sizing: border-box;
+  clear: both;
 }
-.footer-inner { width: 100%; padding: 0 8px; }
+.footer-inner { width: 100%; }
 .footer-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
+.footer-links-row { display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
+.footer-links-row a { color: rgba(255,255,255,0.9); text-decoration:none; }
+.footer-links-row a:hover { color:#DAA520; }
 .footer-section-title {
   font-size: 10px;
   font-weight: 700;
@@ -67,20 +70,20 @@ require_once '../languages/translator.php';
     </div>
     <div>
       <div class="footer-section-title"><?php echo t('footer.quick_links'); ?></div>
-      <div class="footer-links">
-        <a href="dashboard.php"><i class="fas fa-gauge"></i> <?php echo t('footer.dashboard'); ?></a>
-        <a href="contributions.php"><i class="fas fa-file-invoice-dollar"></i> <?php echo t('footer.payments'); ?></a>
-        <a href="payout-info.php"><i class="fas fa-money-bill-wave"></i> <?php echo t('footer.payout_info'); ?></a>
-        <a href="settings.php"><i class="fas fa-sliders-h"></i> <?php echo t('footer.settings'); ?></a>
+      <div class="footer-links-row">
+        <a href="dashboard.php"><?php echo t('footer.dashboard'); ?></a>
+        <a href="contributions.php"><?php echo t('footer.payments'); ?></a>
+        <a href="payout-info.php"><?php echo t('footer.payout_info'); ?></a>
+        <a href="settings.php"><?php echo t('footer.settings'); ?></a>
       </div>
     </div>
     <div>
       <div class="footer-section-title"><?php echo t('footer.resources_support'); ?></div>
-      <div class="footer-links">
-        <a href="rules.php"><i class="fas fa-scroll"></i> <?php echo t('footer.rules'); ?></a>
-        <a href="privacy-policy.php" target="_blank"><i class="fas fa-user-shield"></i> <?php echo t('footer.privacy_policy'); ?></a>
-        <a href="terms-of-service.php" target="_blank"><i class="fas fa-file-contract"></i> <?php echo t('footer.terms_of_service'); ?></a>
-        <a href="tel:07360436171"><i class="fas fa-headset"></i> <?php echo t('footer.contact_us'); ?></a>
+      <div class="footer-links-row">
+        <a href="rules.php"><?php echo t('footer.rules'); ?></a>
+        <a href="privacy-policy.php" target="_blank"><?php echo t('footer.privacy_policy'); ?></a>
+        <a href="terms-of-service.php" target="_blank"><?php echo t('footer.terms_of_service'); ?></a>
+        <a href="tel:07360436171"><?php echo t('footer.contact_us'); ?></a>
       </div>
     </div>
     </div>
