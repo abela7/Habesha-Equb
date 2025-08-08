@@ -2108,13 +2108,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
       .fab-button {
         width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
         background: var(--fab-bg);
-        color: var(--fab-icon); box-shadow: 0 8px 24px rgba(48,25,52,.2); display: flex; align-items: center; justify-content: center;
+        color: var(--fab-icon); box-shadow: 0 8px 24px rgba(48,25,52,.2); display: flex; align-items: center; justify-content: center; position: relative;
         transition: transform .25s ease, box-shadow .25s ease;
       }
       .fab-button:focus { outline: none; box-shadow: 0 0 0 4px rgba(218,165,32,.25); }
       .fab-button:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(48,25,52,.28); }
       .fab-icon { font-size: 22px; transition: transform .25s ease; }
       .fab-open .fab-icon { transform: rotate(45deg); }
+      .fab-attention .fab-button { animation: fabPulse 2.2s ease-out infinite; }
+      @keyframes fabPulse { 0% { box-shadow: 0 0 0 0 rgba(231,111,81,.55); transform: scale(1);} 70% { box-shadow: 0 0 0 14px rgba(231,111,81,0); transform: scale(1.03);} 100% { box-shadow: 0 0 0 0 rgba(231,111,81,0);} }
+      .fab-dot { position:absolute; width: 10px; height: 10px; border-radius: 50%; background:#E76F51; border:2px solid #fff; top:6px; right:6px; display:none; }
 
       .fab-menu { position: absolute; right: 0; bottom: 72px; display: none; flex-direction: column; align-items: flex-end; gap: 10px; }
       .fab-open .fab-menu { display: flex; }
@@ -2147,6 +2150,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         </a>
       </div>
       <button class="fab-button" id="quickFabToggle" aria-controls="quickFabMenu" aria-expanded="false" aria-label="Quick menu">
+        <span class="fab-dot" id="fabUnreadDot"></span>
         <i class="fas fa-plus fab-icon"></i>
       </button>
     </div>
@@ -2159,11 +2163,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         const menu = document.getElementById('quickFabMenu');
         // unread badge provider (re-uses member API)
         async function setUnreadDot(count){
-          // add a small dot on bell icon item
+          // on bell item
           const bell = menu.querySelector('a[href="notifications.php"] i');
-          if (!bell) return;
-          if (count > 0) { bell.classList.add('fa-shake'); bell.style.setProperty('color','#E76F51','important'); }
-          else { bell.classList.remove('fa-shake'); bell.style.removeProperty('color'); }
+          const fabDot = document.getElementById('fabUnreadDot');
+          const fabContainer = document.getElementById('quickFab');
+          if (count > 0) {
+            if (bell) { bell.classList.add('fa-shake'); bell.style.setProperty('color','#E76F51','important'); }
+            if (fabDot) fabDot.style.display = 'block';
+            if (fabContainer) fabContainer.classList.add('fab-attention');
+          } else {
+            if (bell) { bell.classList.remove('fa-shake'); bell.style.removeProperty('color'); }
+            if (fabDot) fabDot.style.display = 'none';
+            if (fabContainer) fabContainer.classList.remove('fab-attention');
+          }
         }
         async function loadUnread(){
           try {
