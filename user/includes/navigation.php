@@ -896,7 +896,7 @@ $csrf_token = generate_csrf_token();
         <!-- Support Section -->
         <div class="nav-section">
             <div class="nav-section-title"><?php echo t('member_nav.support'); ?></div>
-            <a href="tel:07360436171" class="nav-item">
+            <a href="tel:07960336541" class="nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
@@ -904,7 +904,7 @@ $csrf_token = generate_csrf_token();
                 </svg>
                 <span class="nav-text"><?php echo t('member_nav.help'); ?></span>
             </a>
-            <a href="tel:07360436171" class="nav-item">
+            <a href="tel:07960336541" class="nav-item">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2z"/>
                     <polyline points="22,6 12,13 2,6"/>
