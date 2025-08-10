@@ -107,6 +107,8 @@ function addMember() {
         $guarantor_relationship = sanitize_input($_POST['guarantor_relationship'] ?? '');
         $notes = sanitize_input($_POST['notes'] ?? '');
         $payout_month = $_POST['payout_month'] ?? null;
+        $go_public = isset($_POST['go_public']) ? 1 : 0;
+        $swap_terms_allowed = isset($_POST['swap_terms_allowed']) ? 1 : 0;
         
         // Joint membership fields
         $membership_type = sanitize_input($_POST['membership_type'] ?? 'individual');
@@ -313,6 +315,14 @@ function addMember() {
         ]);
         
         if ($result) {
+            // Set privacy and permission flags explicitly based on admin input
+            try {
+                $new_member_id = (int)$pdo->lastInsertId();
+                $up = $pdo->prepare("UPDATE members SET go_public = ?, swap_terms_allowed = ?, updated_at = NOW() WHERE id = ?");
+                $up->execute([$go_public, $swap_terms_allowed, $new_member_id]);
+            } catch (Exception $e) {
+                // continue; not fatal
+            }
             // Update current_members count in equb_settings
             $stmt = $pdo->prepare("
                 UPDATE equb_settings 
@@ -472,6 +482,8 @@ function updateMember() {
         $guarantor_relationship = sanitize_input($_POST['guarantor_relationship'] ?? '');
         $notes = sanitize_input($_POST['notes'] ?? '');
         $payout_month = $_POST['payout_month'] ?? null;
+        $go_public = isset($_POST['go_public']) ? 1 : 0;
+        $swap_terms_allowed = isset($_POST['swap_terms_allowed']) ? 1 : 0;
         
         // Validate email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -535,7 +547,7 @@ function updateMember() {
                 monthly_payment = ?, payout_position = ?, payout_month = ?,
                 guarantor_first_name = ?, guarantor_last_name = ?, 
                 guarantor_phone = ?, guarantor_email = ?, guarantor_relationship = ?, 
-                notes = ?, updated_at = NOW()
+                notes = ?, go_public = ?, swap_terms_allowed = ?, updated_at = NOW()
             WHERE id = ?
         ");
         
@@ -543,7 +555,7 @@ function updateMember() {
             $new_equb_settings_id, $first_name, $last_name, $email, $phone, 
             $monthly_payment, $payout_position, $payout_month_date,
             $guarantor_first_name, $guarantor_last_name, $guarantor_phone, 
-            $guarantor_email, $guarantor_relationship, $notes, $member_id
+            $guarantor_email, $guarantor_relationship, $notes, $go_public, $swap_terms_allowed, $member_id
         ]);
         
         if ($result) {

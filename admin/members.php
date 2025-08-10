@@ -1754,6 +1754,23 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                             </div>
                         </div>
                         
+                        <!-- Privacy & Permissions -->
+                        <h6 class="text-primary mb-3 mt-4"><i class="fas fa-shield-alt text-warning"></i> Privacy & Permissions</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="goPublic" name="go_public">
+                                    <label class="form-check-label" for="goPublic">Public Profile (show in members directory)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="swapAllowed" name="swap_terms_allowed">
+                                    <label class="form-check-label" for="swapAllowed">Allow Position Swap Requests</label>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Notes -->
                         <div class="mb-3">
                             <label for="notes" class="form-label"><?php echo t('members.notes'); ?></label>
@@ -2234,6 +2251,10 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                         document.getElementById('existingJointGroupField').style.display = 'none';
                     }
                     
+                    // Privacy & permissions
+                    document.getElementById('goPublic').checked = (parseInt(member.go_public || 0, 10) === 1);
+                    document.getElementById('swapAllowed').checked = (parseInt(member.swap_terms_allowed || 0, 10) === 1);
+
                     // Guarantor information
                     document.getElementById('guarantorFirstName').value = member.guarantor_first_name || '';
                     document.getElementById('guarantorLastName').value = member.guarantor_last_name || '';

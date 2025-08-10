@@ -434,7 +434,7 @@
     "no_payment_history": "ምንም የክፍያ ታሪክ የለም",
     "no_payment_history_message": "ይህ አባል እስካሁን ምንም ክፍያ አላደረገም።",
     "payout_history": "የእቁብ ሁኔታ",
-    "payout": "የእቁብ ወር",
+    "payout": "እቁብ የሚወስዱበት ወር",
     "received_on": "እቁብ የወሰዱበት ቀን",
     "paid_on": "የተከፈለበት ቀን",
     "total": "ጠቅላላ",
@@ -464,7 +464,7 @@
     "not_available": "አልተገኘም",
     "last": "የመጨረሻ",
     "paid_out": "በዚህ ቀን",
-    "expected": "እቁብን በመጠበቅ ላይ ያሉ"
+    "expected": "የሚወስዱት የእቁብ መጠን"
   },
   "user_auth": {
     "page_title": "እንኳን ወደ ሐበሻ እቁብ በደህና መጡ!",

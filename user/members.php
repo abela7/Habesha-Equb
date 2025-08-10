@@ -1064,7 +1064,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     </div>
                                 </div>
                                 <div class="stat-block">
-                                    <div class="stat-label"><?php echo ($lang === 'am' ? 'የእቁብ ወር' : 'Payout Month'); ?></div>
+                                    <div class="stat-label"><?php echo ($lang === 'am' ? 'እቁብ የሚወስዱበት ወር' : 'Payout Month'); ?></div>
                                     <div class="stat-value"><?php echo $expected_payout_formatted; ?></div>
                                 </div>
                             </div>
@@ -1165,7 +1165,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                                 <div class="mobile-stat">
                                     <div class="mobile-stat-value"><?php echo $expected_payout_formatted; ?></div>
-                                    <div class="mobile-stat-label"><?php echo ($lang === 'am' ? 'የእቁብ ወር' : 'Payout Month'); ?></div>
+                                    <div class="mobile-stat-label"><?php echo ($lang === 'am' ? 'እቁብ የሚወስዱበት ወር' : 'Payout Month'); ?></div>
                                 </div>
                             </div>
 
