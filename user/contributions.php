@@ -122,16 +122,32 @@ if ($payout_calculation['success']) {
 $payout_service = getPayoutSyncService();
 $payout_info = $payout_service->getMemberPayoutStatus($user_id);
 
-// Calculate current month payment status
+// Determine payment coverage: latest month paid FOR (respects prepayments)
 $current_month = date('Y-m');
 $current_month_start = $current_month . '-01';
 
 try {
     $stmt = $pdo->prepare("
-        SELECT * FROM payments 
-        WHERE member_id = ? AND payment_month = ? 
-        ORDER BY created_at DESC LIMIT 1
+        SELECT 
+            MAX(
+                CASE 
+                    WHEN payment_month IS NOT NULL AND payment_month <> '0000-00-00' THEN payment_month
+                    WHEN payment_date IS NOT NULL AND payment_date <> '0000-00-00' THEN DATE_FORMAT(payment_date, '%Y-%m-01')
+                    ELSE DATE_FORMAT(created_at, '%Y-%m-01')
+                END
+            ) AS latest_paid_month
+        FROM payments 
+        WHERE member_id = ? AND status IN ('paid','completed')
     ");
+    $stmt->execute([$user_id]);
+    $latest_paid_month = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    $latest_paid_month = null;
+}
+
+// Fetch explicit current-month payment (for exact amount/date display if needed)
+try {
+    $stmt = $pdo->prepare("SELECT * FROM payments WHERE member_id = ? AND payment_month = ? ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([$user_id, $current_month_start]);
     $current_payment = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -148,7 +164,7 @@ function ordinal($number) {
     }
 }
 
-// Enhanced due date calculation based on EQUB settings
+// Enhanced due date calculation based on latest covered month
 $current_date = new DateTime();
 $current_day = (int)$current_date->format('d');
 
@@ -156,15 +172,25 @@ $current_day = (int)$current_date->format('d');
 $payment_due_day = 1; // EQUB payments are due on 1st of month
 $grace_period_days = (int)($member['grace_period_days'] ?? 5);
 
-// Calculate next payment due date
-if ($current_day <= $payment_due_day) {
-    // If before due day this month, due date is this month
-    $next_due_date = $current_date->format('Y-m-') . sprintf('%02d', $payment_due_day);
-} else {
-    // If after due day, next due date is next month
-    $next_month = clone $current_date;
-    $next_month->modify('first day of next month');
-    $next_due_date = $next_month->format('Y-m-') . sprintf('%02d', $payment_due_day);
+// If member prepaid, set next due date to month after the latest paid month
+if (!empty($latest_paid_month)) {
+    $paid_through = DateTime::createFromFormat('Y-m-d', $latest_paid_month);
+    if ($paid_through) {
+        $due_base = clone $paid_through;
+        $due_base->modify('first day of next month');
+        $next_due_date = $due_base->format('Y-m-') . sprintf('%02d', $payment_due_day);
+    }
+}
+
+// Fallback to current cycle if latest_paid_month not available
+if (empty($next_due_date)) {
+    if ($current_day <= $payment_due_day) {
+        $next_due_date = $current_date->format('Y-m-') . sprintf('%02d', $payment_due_day);
+    } else {
+        $next_month = clone $current_date;
+        $next_month->modify('first day of next month');
+        $next_due_date = $next_month->format('Y-m-') . sprintf('%02d', $payment_due_day);
+    }
 }
 
 $days_until_due = max(0, floor((strtotime($next_due_date) - time()) / (60 * 60 * 24)));
@@ -1072,8 +1098,16 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                              <i class="fas fa-<?php echo $current_payment && $current_payment['status'] === 'paid' ? 'check-circle' : 'clock'; ?>"></i>
                          </div>
                          <div class="financial-title">
-                             <?php if ($current_payment && $current_payment['status'] === 'paid'): ?>
-                                 <h3><?php echo t('contributions.payment_complete'); ?> <?php echo date('F Y'); ?></h3>
+                      <?php 
+                          $is_current_or_prepaid = false;
+                          $paid_through_label = '';
+                          if (!empty($latest_paid_month)) {
+                              $is_current_or_prepaid = (strtotime($latest_paid_month) >= strtotime($current_month_start));
+                              $paid_through_label = date('F Y', strtotime($latest_paid_month));
+                          }
+                      ?>
+                      <?php if ($is_current_or_prepaid): ?>
+                          <h3><?php echo t('contributions.payment_complete'); ?> <?php echo htmlspecialchars($paid_through_label); ?></h3>
                                  <div class="description"><?php echo t('contributions.current_month_payment_verified'); ?></div>
                              <?php else: ?>
                                  <h3>£<?php echo number_format($monthly_contribution, 2); ?> <?php echo sprintf(t('contributions.due_in_days'), $days_until_due); ?></h3>
