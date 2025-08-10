@@ -1246,6 +1246,8 @@
     "mark_all_read": "Mark all as read",
     "mark_read": "Mark as read",
     "unread": "Unread",
-    "no_data": "No data available"
+    "no_data": "No data available",
+    "on": "on",
+    "of": "of"
   }
 } 
