@@ -1079,28 +1079,55 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <div><?php echo t('members_directory.actions'); ?></div>
                     </div>
                     
-                                            <?php foreach ($public_members as $member): ?>
+                    <?php foreach ($public_members as $member): ?>
                         <?php
-                        $member_name = trim($member['first_name'] . ' ' . $member['last_name']);
-                        $initials = substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1);
-                        $payout_status = $member['total_payouts_received'] > 0 ? 'received' : 'pending';
-                        $expected_payout_formatted = date('M Y', strtotime($member['expected_payout_date']));
+                        // Respect privacy for name in list view as well
+                        $member_name = $member['display_name'];
+                        // Build initials using privacy-aware name
+                        if (!empty($member['is_anonymous']) && $member['is_anonymous']) {
+                            $initials = 'AN';
+                        } else {
+                            $name_parts = explode(' ', trim($member_name));
+                            $initials = count($name_parts) >= 2
+                                ? substr($name_parts[0], 0, 1) . substr($name_parts[1], 0, 1)
+                                : substr($member_name, 0, 2);
+                        }
+                        // Status and payout month formatting (consistent with grid)
+                        if ($member['total_payouts_received'] > 0) {
+                            $payout_status = 'received';
+                        } elseif ((int)$member['payout_position'] === 0) {
+                            $payout_status = 'new_member';
+                        } elseif ((int)$member['payout_position'] === 1) {
+                            $payout_status = 'pending';
+                        } else {
+                            $payout_status = 'upcoming';
+                        }
+                        $expected_payout_formatted = ($member['expected_payout_date'] && (int)$member['payout_position'] > 0)
+                            ? date('M Y', strtotime($member['expected_payout_date']))
+                            : 'TBD';
                         ?>
-                        <div class="list-item" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
+                        <div class="list-item <?php echo $member['is_current_user'] ? 'current-user' : ''; ?>" data-member-id="<?php echo $member['id']; ?>" data-name="<?php echo strtolower($member_name); ?>" data-position="<?php echo $member['payout_position']; ?>">
                             <div class="list-member-info">
-                                <div class="list-avatar">
+                                <div class="list-avatar <?php echo $member['is_anonymous'] ? 'anonymous' : ''; ?>">
                                     <?php echo strtoupper($initials); ?>
                                 </div>
                                 <div class="list-member-details">
-                                    <h4><?php echo htmlspecialchars($member_name, ENT_QUOTES); ?></h4>
-                                    <span><?php echo t('members_directory.position'); ?> #<?php echo $member['payout_position']; ?></span>
+                                    <h4>
+                                        <?php echo htmlspecialchars($member_name, ENT_QUOTES); ?>
+                                        <?php if ($member['is_anonymous']): ?>
+                                            <i class="fas fa-user-secret text-muted ms-1" title="<?php echo t('payout_info.anonymous'); ?>"></i>
+                                        <?php endif; ?>
+                                    </h4>
+                                    <span><?php echo t('members_directory.position'); ?> #<?php echo (int)$member['payout_position']; ?></span>
                                 </div>
                             </div>
-                            
+
                             <!-- Mobile Stats Grid for Mobile View -->
                             <div class="mobile-stats-grid d-md-none">
                                 <div class="mobile-stat">
-                                    <div class="mobile-stat-value">£<?php echo number_format($member['monthly_payment'], 0); ?></div>
+                                    <div class="mobile-stat-value">
+                                        <?php echo ($member['monthly_payment'] > 0) ? '£' . number_format($member['monthly_payment'], 0) : 'TBD'; ?>
+                                    </div>
                                     <div class="mobile-stat-label"><?php echo t('members_directory.monthly'); ?></div>
                                 </div>
                                 <div class="mobile-stat">
@@ -1108,19 +1135,25 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <div class="mobile-stat-label"><?php echo t('members_directory.paid_total'); ?></div>
                                 </div>
                                 <div class="mobile-stat">
-                                    <div class="mobile-stat-value">£<?php echo number_format($member['expected_payout'], 0); ?></div>
-                                    <div class="mobile-stat-label"><?php echo t('members_directory.expected'); ?></div>
+                                    <div class="mobile-stat-value">
+                                        <?php echo ($member['display_payout'] > 0) ? '£' . number_format($member['display_payout'], 0) : 'TBD'; ?>
+                                    </div>
+                                    <div class="mobile-stat-label"><?php echo ($member['total_payouts_received'] > 0) ? ($lang === 'am' ? 'የወሰደው መጠን' : 'Taken') : t('members_directory.expected'); ?></div>
                                 </div>
                                 <div class="mobile-stat">
                                     <div class="mobile-stat-value"><?php echo $expected_payout_formatted; ?></div>
                                     <div class="mobile-stat-label"><?php echo ($lang === 'am' ? 'የእቁብ ወር' : 'Payout Month'); ?></div>
                                 </div>
                             </div>
-                            
+
                             <!-- Desktop Stats for Desktop View -->
-                            <div class="list-stat d-none d-md-block">£<?php echo number_format($member['monthly_payment'], 0); ?></div>
+                            <div class="list-stat d-none d-md-block">
+                                <?php echo ($member['monthly_payment'] > 0) ? '£' . number_format($member['monthly_payment'], 0) : 'TBD'; ?>
+                            </div>
                             <div class="list-stat d-none d-md-block">£<?php echo number_format($member['total_contributed'], 0); ?></div>
-                            <div class="list-stat d-none d-md-block">£<?php echo number_format($member['expected_payout'], 0); ?></div>
+                            <div class="list-stat d-none d-md-block">
+                                <?php echo ($member['display_payout'] > 0) ? '£' . number_format($member['display_payout'], 0) : 'TBD'; ?>
+                            </div>
                             <div class="list-actions">
                                 <button class="action-btn primary" onclick="openMemberProfile(<?php echo $member['id']; ?>)" title="View Profile">
                                     <i class="fas fa-eye"></i>
