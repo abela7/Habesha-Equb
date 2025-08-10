@@ -159,14 +159,26 @@ try {
     // Legacy variable for compatibility (but we'll use display_payout instead)
     $expected_payout = $display_payout;
 
-    // Get member's recent payment history (last 6 months)
+    // Get member's recent payment history (last 6 payments), showing the month being paid FOR
     $stmt = $pdo->prepare("
         SELECT p.*, 
-               DATE_FORMAT(p.payment_date, '%M %Y') as payment_month_name,
-               DATE_FORMAT(p.payment_date, '%d %M %Y') as formatted_date
+               CASE 
+                   WHEN p.payment_month IS NOT NULL AND p.payment_month <> '0000-00-00' THEN DATE_FORMAT(p.payment_month, '%M %Y')
+                   WHEN p.payment_date IS NOT NULL AND p.payment_date <> '0000-00-00' THEN DATE_FORMAT(p.payment_date, '%M %Y')
+                   ELSE DATE_FORMAT(p.created_at, '%M %Y')
+               END AS payment_month_name,
+               CASE 
+                   WHEN p.payment_date IS NOT NULL AND p.payment_date <> '0000-00-00' THEN DATE_FORMAT(p.payment_date, '%d %M %Y')
+                   ELSE DATE_FORMAT(p.created_at, '%d %M %Y')
+               END AS formatted_date
         FROM payments p 
         WHERE p.member_id = ? AND p.status IN ('paid', 'completed')
-        ORDER BY p.payment_date DESC 
+        ORDER BY 
+            CASE 
+                WHEN p.payment_month IS NOT NULL AND p.payment_month <> '0000-00-00' THEN p.payment_month 
+                ELSE p.payment_date 
+            END DESC,
+            p.created_at DESC
         LIMIT 6
     ");
     $stmt->execute([$member_id]);
