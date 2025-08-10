@@ -584,7 +584,11 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 .list-member-details span {
     font-size: 12px;
     color: var(--color-gold);
-    font-weight: 500;
+    font-weight: 600;
+    display: inline-block;
+    background: rgba(218, 165, 32, 0.15);
+    padding: 3px 8px;
+    border-radius: 10px;
 }
 
 .list-stat {
@@ -750,35 +754,41 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     .mobile-stats-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        gap: 10px;
         margin: 12px 0;
     }
     
     .mobile-stat {
         text-align: center;
-        padding: 8px;
+        padding: 10px;
         background: var(--color-cream);
-        border-radius: 6px;
+        border-radius: 8px;
     }
     
     .mobile-stat-value {
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 18px;
+        font-weight: 700;
         color: var(--color-deep-purple);
         margin-bottom: 2px;
     }
     
     .mobile-stat-label {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--color-dark-purple);
         text-transform: uppercase;
         letter-spacing: 0.3px;
-        font-weight: 500;
+        font-weight: 600;
     }
     
     .list-actions {
         justify-content: center;
-        margin-top: 12px;
+        margin-top: 14px;
+    }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
     }
 }
 
@@ -855,7 +865,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     }
     
     .mobile-stat-value {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
     }
     
@@ -863,6 +873,19 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         font-size: 13px;
     }
 }
+
+/* Status chip for list view (mobile and desktop) */
+.status-chip {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.chip-received { background: linear-gradient(135deg, var(--color-gold), var(--color-light-gold)); color: var(--color-deep-purple); }
+.chip-pending { background: linear-gradient(135deg, var(--color-cream), #e6f4f1); color: var(--color-deep-purple); }
+.chip-upcoming { background: rgba(77,64,82,0.08); color: var(--color-deep-purple); }
 
 @media (max-width: 480px) {
     .member-card h3 {
@@ -1144,6 +1167,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <div class="mobile-stat-value"><?php echo $expected_payout_formatted; ?></div>
                                     <div class="mobile-stat-label"><?php echo ($lang === 'am' ? 'የእቁብ ወር' : 'Payout Month'); ?></div>
                                 </div>
+                            </div>
+
+                            <!-- Optional status chip under name for readability on mobile -->
+                            <div class="d-md-none">
+                                <?php
+                                $chipClass = ($payout_status === 'received') ? 'chip-received' : (($payout_status === 'pending') ? 'chip-pending' : 'chip-upcoming');
+                                $chipText = ($payout_status === 'received') ? t('members_directory.received') : (($payout_status === 'pending') ? t('members_directory.current') : t('members_directory.upcoming'));
+                                ?>
+                                <span class="status-chip <?php echo $chipClass; ?>"><?php echo $chipText; ?></span>
                             </div>
 
                             <!-- Desktop Stats for Desktop View -->
