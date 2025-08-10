@@ -1198,6 +1198,9 @@
     "rules": "ደንቦች",
     "not_set": "አልተዘጋጀም",
     "days": "ቀናት",
+    "hours": "ሰዓት",
+    "minutes": "ደቂቃ",
+    "seconds": "ሰከንድ",
     "anonymous": "ስሙ እንዲጠቀስ ያልፈለግ",
     "upcoming_payout_journey": "የሚመጣው የክፍያ ሂደት",
     "joint_equb": "የጋራ እቁብ"

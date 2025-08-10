@@ -921,15 +921,15 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 .countdown {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-top: 14px;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .countdown .cd-box {
-    background: rgba(218, 165, 32, 0.08);
-    border: 1px solid rgba(218, 165, 32, 0.2);
-    border-radius: 10px;
-    padding: 10px 8px;
+    background: rgba(218, 165, 32, 0.07);
+    border: 1px solid rgba(218, 165, 32, 0.18);
+    border-radius: 12px;
+    padding: 10px 6px;
     text-align: center;
 }
 
@@ -943,11 +943,12 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
 .countdown .cd-label {
     display: block;
-    margin-top: 2px;
-    font-size: 11px;
+    margin-top: 4px;
+    font-size: 10px;
     color: var(--palette-dark-purple);
     opacity: 0.8;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .time-progress { 
