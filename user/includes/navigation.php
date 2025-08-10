@@ -131,7 +131,10 @@ $csrf_token = generate_csrf_token();
 .sidebar-nav {
     flex: 1;
     padding: 20px 0;
-    overflow-y: hidden;
+    /* Make sidebar scrollable */
+    overflow-y: auto;
+    height: calc(100vh - 70px);
+    -webkit-overflow-scrolling: touch;
 }
 
 .nav-section {
@@ -611,6 +614,9 @@ $csrf_token = generate_csrf_token();
     .app-sidebar .sidebar-nav {
         background: white !important;
         color: var(--text-primary) !important;
+        height: calc(100vh - 70px) !important; /* ensure scroll area fits viewport on mobile */
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
     
     /* Enhanced mobile typography */
@@ -663,7 +669,7 @@ $csrf_token = generate_csrf_token();
     
          /* Enhanced mobile sidebar */
      .sidebar-nav {
-         padding-bottom: 20px; /* Normal spacing */
+         padding-bottom: 80px; /* keep last item above bottom edge/FAB */
      }
     
     .nav-item {
