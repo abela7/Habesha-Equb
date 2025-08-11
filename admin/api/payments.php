@@ -49,6 +49,9 @@ try {
         case 'list':
             listPayments();
             break;
+        case 'get_receipt_token':
+            getReceiptToken();
+            break;
         case 'get_csrf_token':
             echo json_encode([
                 'success' => true, 
@@ -556,6 +559,44 @@ function listPayments() {
 
     
     echo json_encode(['success' => true, 'payments' => $payments]);
+}
+
+/**
+ * Ensure a public receipt token exists for the given payment and return its URL
+ */
+function getReceiptToken() {
+    global $pdo;
+    $payment_id = intval($_GET['payment_id'] ?? $_POST['payment_id'] ?? 0);
+    if (!$payment_id) { echo json_encode(['success'=>false,'message'=>'Payment ID is required']); return; }
+    // Validate payment exists
+    $chk = $pdo->prepare("SELECT id FROM payments WHERE id = ? LIMIT 1");
+    $chk->execute([$payment_id]);
+    if (!$chk->fetchColumn()) { echo json_encode(['success'=>false,'message'=>'Payment not found']); return; }
+    try {
+        // Ensure table
+        $pdo->prepare("CREATE TABLE IF NOT EXISTS payment_receipts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            payment_id INT NOT NULL,
+            token VARCHAR(64) NOT NULL UNIQUE,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_payment (payment_id),
+            CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")->execute();
+        // Try get existing
+        $sel = $pdo->prepare("SELECT token FROM payment_receipts WHERE payment_id = ? LIMIT 1");
+        $sel->execute([$payment_id]);
+        $token = $sel->fetchColumn();
+        if (!$token) {
+            $token = bin2hex(random_bytes(16));
+            // Insert new mapping
+            $ins = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
+            $ins->execute([$payment_id, $token]);
+        }
+        echo json_encode(['success'=>true,'token'=>$token,'receipt_url'=>'/receipt.php?rt='.$token]);
+    } catch (Throwable $e) {
+        error_log('getReceiptToken error: '.$e->getMessage());
+        echo json_encode(['success'=>false,'message'=>'Failed to generate receipt link']);
+    }
 }
 
 /**

@@ -1442,6 +1442,7 @@ $csrf_token = generate_csrf_token();
                                     <button class="btn btn-action btn-receipt" onclick="generateReceipt('payment', ${payment.id})" title="Generate Receipt"><i class="fas fa-receipt"></i></button>
                                 ${verifyButton}
                                     <button class="btn btn-action btn-delete" onclick="deletePayment(${payment.id})" title="Delete Payment"><i class="fas fa-trash"></i></button>
+                                    <button class="btn btn-action btn-receipt" onclick="openPublicReceipt(${payment.id})" title="Open Public Receipt"><i class="fas fa-external-link-alt"></i></button>
                             </div>
                         </td>
                         </tr>`;
@@ -1546,6 +1547,20 @@ $csrf_token = generate_csrf_token();
             } else {
                 showToast('Receipt generated successfully!', 'success');
             }
+        }
+
+        // Open consistent public receipt (same as member notification link)
+        function openPublicReceipt(paymentId){
+            fetch('api/payments.php?action=get_receipt_token&payment_id=' + encodeURIComponent(paymentId))
+                .then(r=>r.json())
+                .then(d=>{
+                    if (d && d.success && d.receipt_url){
+                        window.open(d.receipt_url, '_blank');
+                    } else {
+                        alert(d && d.message ? d.message : 'Could not open receipt');
+                    }
+                })
+                .catch(()=> alert('Network error'));
         }
 
         // Helper function to get CSRF token
