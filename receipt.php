@@ -36,6 +36,13 @@ try {
     exit;
 }
 
+// Choose branding logo
+$brandLogo = '/assets/img/logo.png';
+if (!file_exists(__DIR__ . $brandLogo)) {
+    $fallback = '/Pictures/Icon/apple-icon-180x180.png';
+    if (file_exists(__DIR__ . $fallback)) { $brandLogo = $fallback; }
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,8 +52,13 @@ try {
   <style>
     body { font-family: Arial, sans-serif; background:#f6f8fb; color:#301934; margin:0; padding:20px; }
     .card { max-width: 680px; margin: 0 auto; background:#fff; border:1px solid #ececec; border-radius:14px; box-shadow:0 8px 24px rgba(48,25,52,.08); overflow:hidden; }
-    .header { padding:20px 24px; background:linear-gradient(135deg,#F8F7F4 0%,#FFFFFF 100%); border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; }
-    .title { font-size:18px; font-weight:800; margin:0; }
+    .brand { padding:16px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; background:#ffffff; }
+    .brand .left { display:flex; align-items:center; gap:12px; }
+    .brand .logo { width:44px; height:44px; border-radius:8px; object-fit:contain; border:1px solid #ececec; }
+    .brand .name { font-weight:800; font-size:18px; letter-spacing:.2px; }
+    .brand .meta { font-size:12px; color:#6b7280; }
+    .header { padding:16px 24px; background:linear-gradient(135deg,#F8F7F4 0%,#FFFFFF 100%); border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; }
+    .title { font-size:18px; font-weight:800; margin:0; letter-spacing:.2px; }
     .body { padding:24px; }
     .row { display:flex; justify-content:space-between; margin-bottom:10px; }
     .label { color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
@@ -58,6 +70,16 @@ try {
 </head>
 <body>
   <div class="card">
+    <div class="brand">
+      <div class="left">
+        <img class="logo" src="<?php echo htmlspecialchars($brandLogo); ?>" alt="HabeshaEqub" />
+        <div>
+          <div class="name">HabeshaEqub</div>
+          <div class="meta">Payment Receipt • Secure download</div>
+        </div>
+      </div>
+      <div class="meta">Generated on <?php echo date('Y-m-d H:i'); ?></div>
+    </div>
     <div class="header">
       <h1 class="title">Payment Receipt</h1>
       <span><?php echo htmlspecialchars($paymentId); ?></span>
