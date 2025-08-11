@@ -171,6 +171,7 @@ function createNotification(int $admin_id): void {
     $body_en = trim($_POST['body_en'] ?? '');
     $body_am = trim($_POST['body_am'] ?? '');
     $send_email = sanitize_bool($_POST['send_email'] ?? 0);
+    $export_whatsapp = sanitize_bool($_POST['export_whatsapp'] ?? 0);
 
     if ($title_en==='' || $title_am==='' || $body_en==='' || $body_am==='') {
         http_response_code(400);
@@ -201,6 +202,8 @@ function createNotification(int $admin_id): void {
     $notification_code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
 
     $sent_emails = 0; $failed_emails = 0; $inserted = 0;
+    $wa_texts = [];
+    $wa_broadcast = [];
 
     if ($audience === 'all_members') {
         // single broadcast row
@@ -215,6 +218,12 @@ function createNotification(int $admin_id): void {
                 if (send_email_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_emails++; } else { $failed_emails++; }
             }
         }
+        if ($export_whatsapp) {
+            $wa_broadcast = [
+                'en' => trim($title_en . "\n\n" . $body_en),
+                'am' => trim($title_am . "\n\n" . $body_am),
+            ];
+        }
     } else { // specific members
         $ins = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?, 'sent', ?, ?, ?, ?)");
         foreach ($targets as $m) {
@@ -223,10 +232,41 @@ function createNotification(int $admin_id): void {
             if ($send_email && (int)$m['is_active']===1 && (int)$m['is_approved']===1 && (int)$m['email_notifications']===1 && !empty($m['email'])) {
                 if (send_email_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_emails++; } else { $failed_emails++; }
             }
+            if ($export_whatsapp) {
+                $first = trim(($m['first_name'] ?? ''));
+                $isAm = (int)($m['language_preference'] ?? 0) === 1;
+                if ($isAm) {
+                    $txt = trim((($first!==''? ('ውድ ' . $first . ' ሆይ፣\n\n') : '')) . $body_am . "\n\n" . $title_am);
+                } else {
+                    $txt = trim((($first!==''? ('Dear ' . $first . ',\n\n') : '')) . $body_en . "\n\n" . $title_en);
+                }
+                $wa_texts[] = [
+                    'member_id' => (int)$m['id'],
+                    'name' => trim(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? '')),
+                    'language' => $isAm ? 'am' : 'en',
+                    'text' => $txt,
+                ];
+            }
         }
     }
 
-    echo json_encode(['success'=>true,'inserted'=>$inserted,'email_result'=>['sent'=>$sent_emails,'failed'=>$failed_emails],'notification_code'=>$notification_code]);
+    $resp = [
+        'success'=>true,
+        'inserted'=>$inserted,
+        'email_result'=>['sent'=>$sent_emails,'failed'=>$failed_emails],
+        'notification_code'=>$notification_code,
+        'email_preview'=>[
+            'title_en'=>$title_en,
+            'title_am'=>$title_am,
+            'body_en'=>$body_en,
+            'body_am'=>$body_am,
+        ]
+    ];
+    if ($export_whatsapp) {
+        if (!empty($wa_texts)) { $resp['whatsapp_texts'] = $wa_texts; }
+        if (!empty($wa_broadcast)) { $resp['whatsapp_broadcast'] = $wa_broadcast; }
+    }
+    echo json_encode($resp);
 }
 
 ?>

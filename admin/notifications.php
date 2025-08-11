@@ -88,6 +88,12 @@ $csrf = generate_csrf_token();
                 <label class="form-check-label" for="sendEmail">Send email copy to eligible members</label>
               </div>
             </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="exportWhatsapp" name="export_whatsapp" value="1">
+                <label class="form-check-label" for="exportWhatsapp">Export WhatsApp text (copy after sending)</label>
+              </div>
+            </div>
 
             <div class="col-12">
               <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane me-1"></i>Send</button>
@@ -219,7 +225,38 @@ document.addEventListener('DOMContentLoaded',()=>{
     const resp = await fetch(api, { method:'POST', body: fd });
     const data = await resp.json();
     if (data.success){
-      alert(`Sent. Emails: ${data.email_result.sent||0}/${(data.email_result.sent||0)+(data.email_result.failed||0)}`);
+      const totalEmails = (data.email_result?.sent||0)+(data.email_result?.failed||0);
+      let msg = `Sent. Emails: ${data.email_result?.sent||0}/${totalEmails}`;
+      const pieces = [];
+      // Email copy preview
+      if (document.getElementById('sendEmail').checked) {
+        pieces.push(`\n\nEmail copy (EN):\n${data.email_preview?.title_en || ''}\n\n${data.email_preview?.body_en || ''}`);
+        pieces.push(`\n\nEmail copy (AM):\n${data.email_preview?.title_am || ''}\n\n${data.email_preview?.body_am || ''}`);
+      }
+      // WhatsApp export
+      if (document.getElementById('exportWhatsapp').checked) {
+        if (Array.isArray(data.whatsapp_texts) && data.whatsapp_texts.length){
+          pieces.push('\n\nWhatsApp (per member):');
+          data.whatsapp_texts.forEach(w=>{
+            pieces.push(`\n- ${w.name} [${w.language.toUpperCase()}]:\n${w.text}`);
+          });
+        }
+        if (data.whatsapp_broadcast){
+          pieces.push(`\n\nWhatsApp broadcast (EN):\n${data.whatsapp_broadcast.en || ''}`);
+          pieces.push(`\n\nWhatsApp broadcast (AM):\n${data.whatsapp_broadcast.am || ''}`);
+        }
+      }
+      if (pieces.length){ msg += pieces.join(''); }
+      // Show in a modal-like simple window for easy copy
+      const win = window.open('', '_blank', 'width=600,height=700');
+      if (win) {
+        win.document.write('<pre style="white-space:pre-wrap;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;padding:16px">'+
+          (msg.replaceAll('<','&lt;').replaceAll('>','&gt;')) +
+          '</pre>');
+        win.document.title = 'Notification Result & Copy';
+      } else {
+        alert(msg);
+      }
       form.reset();
       document.getElementById('selectedMembers').innerHTML='';
       setAudienceUI();
