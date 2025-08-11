@@ -87,84 +87,29 @@ $csrf_token = generate_csrf_token();
             </div>
             <?php endif; ?>
 
-            <!-- Login form -->
-            <form id="loginForm" novalidate>
-                <!-- CSRF Protection -->
+            <!-- OTP Login form (email only) -->
+            <form id="otpForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                <input type="hidden" name="action" value="login">
-                
-                <!-- Username field -->
-                <div class="form-group">
-                    <label for="username" class="form-label">Username</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        class="form-control" 
-                        placeholder="Enter your username"
-                        autocomplete="username"
-                        required
-                        maxlength="50"
-                    >
-                    <div class="error-message" id="usernameError"></div>
-                </div>
-
-                <!-- Password field -->
-                <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <div class="password-input-wrapper">
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            class="form-control password-input" 
-                            placeholder="Enter your password"
-                            autocomplete="current-password"
-                            required
-                            minlength="6"
-                        >
-                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-                            <span class="password-icon" id="passwordIcon">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                            </span>
-                        </button>
+                <div id="stepEmail">
+                    <div class="form-group">
+                        <label for="adminEmail" class="form-label">Admin Email</label>
+                        <input type="email" id="adminEmail" name="email" class="form-control" placeholder="name@company.com" autocomplete="email" required>
+                        <div class="error-message" id="emailError"></div>
                     </div>
-                    <div class="error-message" id="passwordError"></div>
+                    <button type="button" class="btn btn-primary btn-block" id="btnRequestOtp">Send Login Code</button>
                 </div>
-
-                <!-- Remember me option -->
-                <div class="form-group">
-                    <div class="d-flex" style="align-items: center;">
-                        <input 
-                            type="checkbox" 
-                            id="remember_me" 
-                            name="remember_me" 
-                            style="margin-right: 8px;"
-                        >
-                        <label for="remember_me" style="margin: 0; font-size: 14px; color: var(--text-secondary);">
-                            Keep me logged in
-                        </label>
+                <div id="stepCode" style="display:none;">
+                    <div class="form-group">
+                        <label for="otpCode" class="form-label">Enter 6-digit Code</label>
+                        <input type="text" id="otpCode" name="otp_code" class="form-control" inputmode="numeric" pattern="\\d{6}" maxlength="6" placeholder="000000" required>
+                        <div class="error-message" id="otpError"></div>
                     </div>
+                    <button type="button" class="btn btn-primary btn-block" id="btnVerifyOtp">Verify & Login</button>
+                    <button type="button" class="btn btn-secondary btn-block" id="btnResend" style="margin-top:8px;">Resend Code</button>
                 </div>
-
-                <!-- Submit button -->
-                <button type="submit" class="btn btn-primary btn-block">
-                    Sign In to Admin Panel
-                </button>
             </form>
 
-            <!-- Additional links -->
-            <div class="auth-links">
-                <p style="margin-bottom: 12px;">
-                    <a href="register.php">Need an admin account? Register here</a>
-                </p>
-                <p style="margin-bottom: 0;">
-                    <a href="../member/login.php">Member Login →</a>
-                </p>
-            </div>
+            <!-- Additional links removed for security -->
 
         </div>
     </div>
@@ -181,10 +126,31 @@ $csrf_token = generate_csrf_token();
         
         // Focus first input on page load (accessibility)
         document.addEventListener('DOMContentLoaded', function() {
-            const firstInput = document.getElementById('username');
+            const firstInput = document.getElementById('adminEmail');
             if (firstInput) {
                 setTimeout(() => firstInput.focus(), 100);
             }
+            const api = 'api/auth.php';
+            const csrf = '<?php echo htmlspecialchars($csrf_token); ?>';
+            const stepEmail = document.getElementById('stepEmail');
+            const stepCode = document.getElementById('stepCode');
+            const btnReq = document.getElementById('btnRequestOtp');
+            const btnVer = document.getElementById('btnVerifyOtp');
+            const btnRes = document.getElementById('btnResend');
+            btnReq.addEventListener('click', async ()=>{
+                const email = document.getElementById('adminEmail').value.trim();
+                if (!email) { alert('Enter your admin email'); return; }
+                const fd = new FormData(); fd.append('action','request_otp'); fd.append('csrf_token', csrf); fd.append('email', email);
+                const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json();
+                if (d && d.success){ stepEmail.style.display='none'; stepCode.style.display='block'; document.getElementById('otpCode').focus(); } else { alert(d.message||'Failed'); }
+            });
+            btnVer.addEventListener('click', async ()=>{
+                const code = document.getElementById('otpCode').value.trim(); if (!code) { alert('Enter the code'); return; }
+                const fd = new FormData(); fd.append('action','verify_otp'); fd.append('csrf_token', csrf); fd.append('otp_code', code);
+                const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json();
+                if (d && d.success){ window.location.href = d.data && d.data.redirect ? d.data.redirect : 'welcome_admin.php'; } else { alert(d.message||'Invalid code'); }
+            });
+            btnRes.addEventListener('click', ()=>{ btnReq.click(); });
         });
     </script>
 

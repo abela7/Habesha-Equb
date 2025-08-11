@@ -339,7 +339,12 @@ class EmailService {
      * Generate OTP code
      */
     public function generateOTP($user_id, $email, $type = 'email_verification') {
-        $otp_code = sprintf('%04d', mt_rand(1000, 9999));
+        // Use 6-digit codes for admin login for extra security; 4-digit for others to preserve UX
+        if ($type === 'admin_login') {
+            $otp_code = sprintf('%06d', mt_rand(100000, 999999));
+        } else {
+            $otp_code = sprintf('%04d', mt_rand(1000, 9999));
+        }
         
         error_log("Generating OTP - User ID: $user_id, Email: $email, Code: $otp_code, Type: $type");
         
