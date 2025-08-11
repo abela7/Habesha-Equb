@@ -816,7 +816,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;">
                         <i class="fas fa-users"></i>
                     </div>
-                    <div class="metric-value"><?php echo $financial_summary['total_positions']; ?></div>
+                    <div id="metric-total-positions" class="metric-value"><?php echo $financial_summary['total_positions'] ?? 0; ?></div>
                     <div class="metric-label">Total Positions</div>
                     <div class="metric-change change-neutral">
                         <i class="fas fa-user me-1"></i>
@@ -830,7 +830,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #10B981, #34D399); color: white;">
                         <i class="fas fa-coins"></i>
                     </div>
-                    <div class="metric-value">£<?php echo number_format($financial_summary['total_expected_contributions'], 0); ?></div>
+                    <div id="metric-expected-total" class="metric-value">£<?php echo isset($financial_summary['total_expected_contributions']) ? number_format($financial_summary['total_expected_contributions'], 0) : '0'; ?></div>
                     <div class="metric-label">Expected Total Pool</div>
                     <div class="metric-change change-positive">
                         <i class="fas fa-calendar me-1"></i>
@@ -843,7 +843,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;">
                         <i class="fas fa-percentage"></i>
                     </div>
-                    <div class="metric-value"><?php echo number_format($financial_summary['collection_percentage'], 1); ?>%</div>
+                    <div id="metric-collection-rate" class="metric-value"><?php echo isset($financial_summary['collection_percentage']) ? number_format($financial_summary['collection_percentage'], 1) : '0'; ?>%</div>
                     <div class="metric-label">Collection Rate</div>
                     <div class="metric-change <?php echo $financial_summary['collection_percentage'] >= 80 ? 'change-positive' : 'change-negative'; ?>">
                         <i class="fas fa-pound-sign me-1"></i>
@@ -856,7 +856,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #F59E0B, #FCD34D); color: white;">
                         <i class="fas fa-chart-pie"></i>
                     </div>
-                    <div class="metric-value">£<?php echo number_format($financial_summary['admin_revenue'], 0); ?></div>
+                    <div id="metric-admin-revenue" class="metric-value">£<?php echo isset($financial_summary['admin_revenue']) ? number_format($financial_summary['admin_revenue'], 0) : '0'; ?></div>
                     <div class="metric-label">Total Admin Revenue</div>
                     <div class="metric-change change-positive">
                         <i class="fas fa-calculator me-1"></i>
@@ -869,7 +869,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #EF4444, #F87171); color: white;">
                         <i class="fas fa-money-bill-transfer"></i>
                     </div>
-                    <div class="metric-value"><?php echo $financial_summary['completed_payouts']; ?>/<?php echo $financial_summary['total_positions']; ?></div>
+                    <div id="metric-payouts-completed" class="metric-value"><?php echo ($financial_summary['completed_payouts'] ?? 0) . '/' . ($financial_summary['total_positions'] ?? 0); ?></div>
                     <div class="metric-label">Payouts Completed</div>
                     <div class="metric-change change-neutral">
                         <i class="fas fa-clock me-1"></i>
@@ -882,7 +882,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #059669, #10B981); color: white;">
                         <i class="fas fa-hand-holding-dollar"></i>
                     </div>
-                    <div class="metric-value">£<?php echo number_format($financial_summary['total_net_payouts'], 0); ?></div>
+                    <div id="metric-total-net-payouts" class="metric-value">£<?php echo isset($financial_summary['total_net_payouts']) ? number_format($financial_summary['total_net_payouts'], 0) : '0'; ?></div>
                     <div class="metric-label">Total Net Payouts</div>
                     <div class="metric-change change-positive">
                         <i class="fas fa-minus me-1"></i>
@@ -897,7 +897,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white;">
                         <i class="fas fa-calendar-day"></i>
                     </div>
-                    <div class="metric-value">£<?php echo number_format($financial_summary['monthly_pool'], 0); ?></div>
+                    <div id="metric-monthly-pool" class="metric-value">£<?php echo isset($financial_summary['monthly_pool']) ? number_format($financial_summary['monthly_pool'], 0) : '0'; ?></div>
                     <div class="metric-label">Monthly Pool (Real-Time)</div>
                     <div class="metric-change change-positive">
                         <i class="fas fa-database me-1"></i>
@@ -910,7 +910,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #DC2626, #F87171); color: white;">
                         <i class="fas fa-piggy-bank"></i>
                     </div>
-                    <div class="metric-value">£<?php echo number_format($financial_summary['total_pool_value'], 0); ?></div>
+                    <div id="metric-total-pool" class="metric-value">£<?php echo isset($financial_summary['total_pool_value']) ? number_format($financial_summary['total_pool_value'], 0) : '0'; ?></div>
                     <div class="metric-label">Total Pool Value (Lifetime)</div>
                     <div class="metric-change change-positive">
                         <i class="fas fa-times me-1"></i>
@@ -923,7 +923,7 @@ $csrf_token = generate_csrf_token();
                     <div class="metric-icon" style="background: linear-gradient(135deg, #0891B2, #06B6D4); color: white;">
                         <i class="fas fa-balance-scale"></i>
                     </div>
-                    <div class="metric-value">£<?php echo number_format($financial_summary['average_payout'], 0); ?></div>
+                    <div id="metric-average-payout" class="metric-value">£<?php echo isset($financial_summary['average_payout']) ? number_format($financial_summary['average_payout'], 0) : '0'; ?></div>
                     <div class="metric-label">Average Payout/Position</div>
                     <div class="metric-change change-neutral">
                         <i class="fas fa-equals me-1"></i>
@@ -941,6 +941,7 @@ $csrf_token = generate_csrf_token();
                         Payout Distribution
                     </h3>
                     <canvas id="payoutChart"></canvas>
+                    <div class="text-center small text-muted mt-2" id="payoutChartSummary"></div>
                 </div>
 
                 <!-- Monthly Timeline Chart -->
@@ -950,6 +951,7 @@ $csrf_token = generate_csrf_token();
                         Monthly Payout Timeline
                     </h3>
                     <canvas id="timelineChart"></canvas>
+                    <div class="text-center small text-muted mt-2" id="timelineChartSummary"></div>
                 </div>
             </div>
 
@@ -1137,15 +1139,14 @@ $csrf_token = generate_csrf_token();
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <?php if ($equb_data && !empty($member_payouts)): ?>
     <script>
         // Chart.js Configuration
         Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
         Chart.defaults.color = '#6B7280';
 
-        // Payout Distribution Pie Chart
+        // Payout Distribution Pie Chart (initialized empty, filled by API)
         const payoutCtx = document.getElementById('payoutChart').getContext('2d');
-        new Chart(payoutCtx, {
+        let payoutChartInstance = new Chart(payoutCtx, {
             type: 'doughnut',
             data: {
                 labels: [
@@ -1154,11 +1155,7 @@ $csrf_token = generate_csrf_token();
                     'Admin Revenue'
                 ],
                 datasets: [{
-                    data: [
-                        <?php echo array_sum(array_column(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'individual'), 'net_payout')); ?>,
-                        <?php echo array_sum(array_column(array_filter($member_payouts, fn($p) => $p['membership_type'] === 'joint'), 'net_payout')); ?>,
-                        <?php echo $financial_summary['admin_revenue']; ?>
-                    ],
+                    data: [0,0,0],
                     backgroundColor: [
                         '#3B82F6',
                         '#8B5CF6',
@@ -1195,15 +1192,15 @@ $csrf_token = generate_csrf_token();
             }
         });
 
-        // Monthly Timeline Bar Chart
+        // Monthly Timeline Bar Chart (initialized empty)
         const timelineCtx = document.getElementById('timelineChart').getContext('2d');
-        new Chart(timelineCtx, {
+        let timelineChartInstance = new Chart(timelineCtx, {
             type: 'bar',
             data: {
-                labels: [<?php echo '"' . implode('", "', array_column($position_timeline, 'month_year')) . '"'; ?>],
+                labels: [],
                 datasets: [{
                     label: 'Net Payouts',
-                    data: [<?php echo implode(', ', array_column($position_timeline, 'total_payout')); ?>],
+                    data: [],
                     backgroundColor: '#10B981',
                     borderColor: '#059669',
                     borderWidth: 2,
@@ -1211,7 +1208,7 @@ $csrf_token = generate_csrf_token();
                     borderSkipped: false,
                 }, {
                     label: 'Admin Fees',
-                    data: [<?php echo implode(', ', array_column($position_timeline, 'admin_fee')); ?>],
+                    data: [],
                     backgroundColor: '#EF4444',
                     borderColor: '#DC2626',
                     borderWidth: 2,
@@ -1282,12 +1279,50 @@ $csrf_token = generate_csrf_token();
             window.URL.revokeObjectURL(url);
         }
 
-        // Real-time updates (optional)
-        setInterval(() => {
-            // Add any real-time update logic here
-        }, 30000); // Update every 30 seconds
+        // Live data: fetch analytics via API
+        async function loadAnalytics() {
+            try {
+                const params = new URLSearchParams({ action: 'summary', equb_id: '<?php echo (int)$selected_equb_id; ?>', _t: Date.now() });
+                const res = await fetch('api/analytics.php?' + params, { cache: 'no-store' });
+                const d = await res.json();
+                if (!d || !d.success) return;
+
+                // Update metrics
+                const fmt = n => '£' + Number(n||0).toLocaleString();
+                const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+                el('metric-total-positions', d.summary.total_positions);
+                el('metric-expected-total', fmt(d.summary.expected_total));
+                el('metric-collection-rate', (Number(d.summary.collection_rate||0).toFixed(1)) + '%');
+                el('metric-admin-revenue', fmt(d.summary.admin_revenue_collected));
+                el('metric-payouts-completed', `${d.summary.payouts_completed}/${d.summary.total_positions}`);
+                el('metric-total-net-payouts', fmt(d.summary.net_payouts_total));
+                el('metric-monthly-pool', fmt(d.summary.monthly_pool));
+                el('metric-total-pool', fmt(d.summary.total_pool_value));
+                el('metric-average-payout', fmt(d.summary.average_payout));
+
+                // Update charts
+                payoutChartInstance.data.datasets[0].data = [
+                    d.charts.payout_distribution.individual,
+                    d.charts.payout_distribution.joint,
+                    d.charts.payout_distribution.admin_revenue
+                ];
+                payoutChartInstance.update();
+                const pSum = d.charts.payout_distribution;
+                const pcs = document.getElementById('payoutChartSummary');
+                if (pcs) pcs.textContent = `Individuals: ${fmt(pSum.individual)} • Joints: ${fmt(pSum.joint)} • Admin: ${fmt(pSum.admin_revenue)}`;
+
+                timelineChartInstance.data.labels = d.charts.timeline.labels;
+                timelineChartInstance.data.datasets[0].data = d.charts.timeline.net_payouts;
+                timelineChartInstance.data.datasets[1].data = d.charts.timeline.admin_fees;
+                timelineChartInstance.update();
+                const tcs = document.getElementById('timelineChartSummary');
+                if (tcs) tcs.textContent = `Period: ${d.charts.timeline.labels[0] || ''} — ${d.charts.timeline.labels.at(-1) || ''}`;
+            } catch(e) { console.error('Analytics load failed', e); }
+        }
+
+        loadAnalytics();
+        setInterval(loadAnalytics, 45000); // refresh every 45s
     </script>
-    <?php endif; ?>
 
 </body>
 </html>
