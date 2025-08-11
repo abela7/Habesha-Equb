@@ -348,8 +348,8 @@ class EmailService {
         
         error_log("Generating OTP - User ID: $user_id, Email: $email, Code: $otp_code, Type: $type");
         
-        // Clean up old OTPs
-        $stmt = $this->pdo->prepare("DELETE FROM user_otps WHERE email = ? AND otp_type = ?");
+        // Clean up only expired/used OTPs to avoid race conditions
+        $stmt = $this->pdo->prepare("DELETE FROM user_otps WHERE email = ? AND otp_type = ? AND (expires_at < NOW() OR is_used = 1)");
         $stmt->execute([$email, $type]);
         
         // Insert new OTP using database NOW() + INTERVAL to avoid timezone issues

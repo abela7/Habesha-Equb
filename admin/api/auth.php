@@ -56,7 +56,8 @@ switch ($action) {
             if (!$admin) { json_response(false, 'Admin account not found or inactive'); }
             require_once '../../includes/email/EmailService.php';
             $mailer = new EmailService($pdo);
-            $otp = $mailer->generateOTP($admin['id'], $admin['email'], 'admin_login');
+            // Store admin OTP without linking to members table to avoid FK conflicts
+            $otp = $mailer->generateOTP(null, $admin['email'], 'admin_login');
             // Send email using a minimal template
             $res = $mailer->send('otp_login', $admin['email'], $admin['username'] ?? 'Admin', [
                 'first_name' => $admin['username'] ?? 'Admin',
