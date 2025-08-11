@@ -469,7 +469,7 @@ function verifyPayment() {
             $subject_am = ($monthText ? ('የ ' . $monthText . ' ወር ክፍያ ማረጋገጫ') : 'የክፍያ ማረጋገጫ');
             // No generic dashboard link to avoid spam flags. Include unique receipt link only.
             $body_en = "Dear {$memberFirst}, you have successfully paid this month's Equb payment for {$monthText} on {$dateText}.\n\nYou can Access and Download your receipt on: {$receiptUrl}\n\nThanks for your payment.";
-            $body_am = "ውድ {$memberFirst} የዚህ ወር የእቁብ ክፍያዎን ለ{$monthText} በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።\n\nደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን ይጎብኙ፦ {$receiptUrl}\n\nስለ ክፍያዎ እናመሰግናለን።";
+            $body_am = "ውድ {$memberFirst} የ {$monthText} ወር የእቁብ ክፍያዎን  በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።\n\nደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦ {$receiptUrl}\n\nስለ ክፍያዎ እናመሰግናለን።";
             $useSubj = $isAmharic ? $subject_am : $subject_en;
             $useBody = $isAmharic ? $body_am : $body_en;
 
