@@ -915,10 +915,7 @@ body.no-scroll {
         <div class="nav-section">
             <div class="nav-section-title">Communication</div>
             <a href="notifications.php" class="nav-item <?php echo ($current_page === 'notifications.php') ? 'active' : ''; ?>">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
+                <i class="fas fa-bell nav-icon"></i>
                 <span class="nav-text">Notifications</span>
             </a>
         </div>
