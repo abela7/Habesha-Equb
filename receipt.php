@@ -11,24 +11,43 @@ if ($token === '') {
 }
 
 try {
-    // Resolve token to payment
-    $stmt = $pdo->prepare("SELECT p.*, m.first_name, m.last_name, m.member_id AS member_code
+    // First try resolve as payment receipt
+    $stmt = $pdo->prepare("SELECT p.*, m.first_name, m.last_name, m.member_id AS member_code, 'payment' AS receipt_kind
                            FROM payment_receipts pr
                            JOIN payments p ON pr.payment_id = p.id
                            LEFT JOIN members m ON p.member_id = m.id
                            WHERE pr.token = ? LIMIT 1");
     $stmt->execute([$token]);
-    $pay = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$pay) { http_response_code(404); echo 'Receipt not found or expired.'; exit; }
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        // Fallback: resolve as payout receipt
+        $stmt2 = $pdo->prepare("SELECT po.*, m.first_name, m.last_name, m.member_id AS member_code, 'payout' AS receipt_kind
+                                FROM payout_receipts pr
+                                JOIN payouts po ON pr.payout_id = po.id
+                                LEFT JOIN members m ON po.member_id = m.id
+                                WHERE pr.token = ? LIMIT 1");
+        $stmt2->execute([$token]);
+        $row = $stmt2->fetch(PDO::FETCH_ASSOC);
+    }
+    if (!$row) { http_response_code(404); echo 'Receipt not found or expired.'; exit; }
 
-    $amount = number_format((float)$pay['amount'], 2);
-    $date = ($pay['payment_date'] && $pay['payment_date'] !== '0000-00-00') ? date('F j, Y', strtotime($pay['payment_date'])) : date('F j, Y', strtotime($pay['created_at']));
-    $month = ($pay['payment_month'] && $pay['payment_month'] !== '0000-00-00') ? date('F Y', strtotime($pay['payment_month'])) : ($date);
-    $memberName = trim(($pay['first_name'] ?? '') . ' ' . ($pay['last_name'] ?? ''));
-    $memberCode = $pay['member_code'] ?? '';
-    $paymentId = $pay['payment_id'] ?? ('PAY-' . $pay['id']);
-    $method = $pay['payment_method'] ? ucwords(str_replace('_',' ',$pay['payment_method'])) : 'N/A';
-    $lateFee = isset($pay['late_fee']) ? number_format((float)$pay['late_fee'], 2) : '0.00';
+    $kind = $row['receipt_kind'];
+    $memberName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+    $memberCode = $row['member_code'] ?? '';
+    if ($kind === 'payment') {
+        $amount = number_format((float)$row['amount'], 2);
+        $date = ($row['payment_date'] && $row['payment_date'] !== '0000-00-00') ? date('F j, Y', strtotime($row['payment_date'])) : date('F j, Y', strtotime($row['created_at']));
+        $month = ($row['payment_month'] && $row['payment_month'] !== '0000-00-00') ? date('F Y', strtotime($row['payment_month'])) : ($date);
+        $method = $row['payment_method'] ? ucwords(str_replace('_',' ', $row['payment_method'])) : 'N/A';
+        $lateFee = isset($row['late_fee']) ? number_format((float)$row['late_fee'], 2) : '0.00';
+    } else {
+        // payout
+        $amount = number_format((float)$row['total_amount'], 2);
+        $date = ($row['actual_payout_date'] && $row['actual_payout_date'] !== '0000-00-00') ? date('F j, Y', strtotime($row['actual_payout_date'])) : date('F j, Y', strtotime($row['created_at']));
+        $month = date('F Y', strtotime($date));
+        $method = $row['payout_method'] ? ucwords(str_replace('_',' ', $row['payout_method'])) : 'N/A';
+        $lateFee = null; // not applicable for payout
+    }
 
 } catch (Throwable $e) {
     http_response_code(500);
@@ -48,7 +67,7 @@ if (!file_exists(__DIR__ . $brandLogo)) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Receipt <?php echo htmlspecialchars($paymentId); ?></title>
+  <title><?php echo ($kind === 'payment') ? 'Payment Receipt' : 'Payout Receipt'; ?></title>
   <style>
     body { font-family: Arial, sans-serif; background:#f6f8fb; color:#301934; margin:0; padding:20px; }
     .card { max-width: 680px; margin: 0 auto; background:#fff; border:1px solid #ececec; border-radius:14px; box-shadow:0 8px 24px rgba(48,25,52,.08); overflow:hidden; }
@@ -78,36 +97,44 @@ if (!file_exists(__DIR__ . $brandLogo)) {
         <img class="logo" src="<?php echo htmlspecialchars($brandLogo); ?>" alt="HabeshaEqub" />
         <div>
           <div class="name">HabeshaEqub</div>
-          <div class="meta">Payment Receipt</div>
+          <div class="meta"><?php echo ($kind === 'payment') ? 'Payment Receipt' : 'Payout Receipt'; ?></div>
         </div>
       </div>
       <div class="meta">Generated on <?php echo date('Y-m-d H:i'); ?></div>
     </div>
     <div class="header">
-      <h1 class="title">Payment Receipt</h1>
+      <h1 class="title"><?php echo ($kind === 'payment') ? 'Payment Receipt' : 'Payout Receipt'; ?></h1>
     </div>
     <div class="body">
       <div class="row"><div class="label">Member</div><div class="value"><?php echo htmlspecialchars($memberName); ?> (<?php echo htmlspecialchars($memberCode); ?>)</div></div>
-      <div class="row"><div class="label">Payment Month</div><div class="value"><?php echo htmlspecialchars($month); ?></div></div>
-      <div class="row"><div class="label">Amount</div><div class="value">£<?php echo $amount; ?></div></div>
-      <div class="row"><div class="label">Payment Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
-      <?php if ((float)$lateFee > 0): ?>
-      <div class="row"><div class="label">Late Fee</div><div class="value">£<?php echo $lateFee; ?></div></div>
+      <?php if ($kind === 'payment'): ?>
+        <div class="row"><div class="label">Payment Month</div><div class="value"><?php echo htmlspecialchars($month); ?></div></div>
+        <div class="row"><div class="label">Amount</div><div class="value">£<?php echo $amount; ?></div></div>
+        <div class="row"><div class="label">Payment Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
+        <?php if ((float)$lateFee > 0): ?>
+        <div class="row"><div class="label">Late Fee</div><div class="value">£<?php echo $lateFee; ?></div></div>
+        <?php endif; ?>
+        <div class="row"><div class="label">Paid On</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
+        <?php
+          $verificationText = '';
+          if (isset($row['verified_by_admin']) && (int)$row['verified_by_admin'] === 1) {
+              $verificationText = 'Verified';
+          } elseif (in_array(strtolower((string)($row['status'] ?? '')), ['paid','completed'], true)) {
+              $verificationText = 'Pending Verification';
+          } else {
+              $verificationText = 'Not Verified';
+          }
+          $statusText = ucfirst(strtolower((string)($row['status'] ?? '')));
+        ?>
+        <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars($statusText); ?></div></div>
+        <div class="row"><div class="label">Verification</div><div class="value"><?php echo htmlspecialchars($verificationText); ?></div></div>
+      <?php else: ?>
+        <div class="row"><div class="label">Payout Amount</div><div class="value">£<?php echo $amount; ?></div></div>
+        <div class="row"><div class="label">Payout Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
+        <div class="row"><div class="label">Payout Date</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
+        <?php $statusText = ucfirst(strtolower((string)($row['status'] ?? ''))); ?>
+        <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars($statusText); ?></div></div>
       <?php endif; ?>
-      <div class="row"><div class="label">Paid On</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
-      <?php
-        $verificationText = '';
-        if ((int)($pay['verified_by_admin'] ?? 0) === 1) {
-            $verificationText = 'Verified';
-        } elseif (in_array(strtolower((string)($pay['status'] ?? '')), ['paid','completed'], true)) {
-            $verificationText = 'Pending Verification';
-        } else {
-            $verificationText = 'Not Verified';
-        }
-        $statusText = ucfirst(strtolower((string)($pay['status'] ?? '')));
-      ?>
-      <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars($statusText); ?></div></div>
-      <div class="row"><div class="label">Verification</div><div class="value"><?php echo htmlspecialchars($verificationText); ?></div></div>
       <div class="no-print" style="margin-top:16px;">
         <div class="btns">
           <a class="btn" href="#" onclick="window.print();return false;">Print / Save</a>

@@ -546,21 +546,64 @@ function processPayout() {
         
         // Send concise notification to that specific member and build WhatsApp text
         try {
-            $q = $pdo->prepare("SELECT first_name, equb_settings_id FROM members WHERE id = ? LIMIT 1");
+            $q = $pdo->prepare("SELECT first_name, last_name, language_preference, email, is_active, is_approved, email_notifications, equb_settings_id FROM members WHERE id = ? LIMIT 1");
             $q->execute([$payout['member_id']]);
             $m = $q->fetch(PDO::FETCH_ASSOC) ?: [];
             $first = trim($m['first_name'] ?? '');
             // Load payout amounts for this payout
-            $amtQ = $pdo->prepare("SELECT net_amount FROM payouts WHERE id = ?");
+            $amtQ = $pdo->prepare("SELECT total_amount, net_amount, admin_fee, payout_method, COALESCE(actual_payout_date, CURDATE()) as actual_dt FROM payouts WHERE id = ?");
             $amtQ->execute([$payout_id]);
-            $netAmt = (float)($amtQ->fetchColumn() ?: 0);
-            $amountFormatted = '£' . number_format($netAmt, 2);
-            $title_en = 'Payout completed';
-            $title_am = $title_en;
-            $body_en = "Dear {$first}, your payout has been completed and recorded.\n\n- Payout amount: {$amountFormatted}\n\nFor more information, including accessing the receipt, please check the HabeshaEqub dashboard.";
-            $body_am = $body_en;
+            $pinfo = $amtQ->fetch(PDO::FETCH_ASSOC) ?: [];
+            $totalAmt = (float)($pinfo['total_amount'] ?? 0);
+            $adminFee = (float)($pinfo['admin_fee'] ?? 0);
+            $method = (string)($pinfo['payout_method'] ?? 'bank_transfer');
+            $actualDate = $pinfo['actual_dt'] ?? date('Y-m-d');
+            $dateText = date('F j, Y', strtotime($actualDate));
+            $amountFormatted = '£' . number_format($totalAmt, 2);
+
+            // Ensure payout receipt token exists
+            $receiptUrl = '';
+            try {
+                $pdo->prepare("CREATE TABLE IF NOT EXISTS payout_receipts (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    payout_id INT NOT NULL,
+                    token VARCHAR(64) NOT NULL UNIQUE,
+                    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_payout (payout_id),
+                    CONSTRAINT fk_receipt_payout FOREIGN KEY (payout_id) REFERENCES payouts(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")
+                ->execute();
+                // Try get existing
+                $selTok = $pdo->prepare("SELECT token FROM payout_receipts WHERE payout_id = ? LIMIT 1");
+                $selTok->execute([$payout_id]);
+                $tok = $selTok->fetchColumn();
+                if (!$tok) {
+                    $tok = bin2hex(random_bytes(16));
+                    $insTok = $pdo->prepare("INSERT INTO payout_receipts (payout_id, token) VALUES (?, ?)");
+                    $insTok->execute([$payout_id, $tok]);
+                }
+                $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $tok;
+            } catch (Throwable $te) {
+                error_log('Payout receipt token generation failed: ' . $te->getMessage());
+            }
+
+            // Titles and bodies (bilingual)
+            $title_en = 'Congratulations — Your Equb payout is completed!';
+            $title_am = 'እንኳን ደስ አላችሁ — እቁቡ ተጠናቋል!';
+            $body_en = "Dear {$first}, your Equb payout has been successfully completed on {$dateText}.\n\n- Payout amount: {$amountFormatted}\n\nYou can view and download your payout receipt here: {$receiptUrl}\n\nThank you.";
+            $body_am = "ውድ {$first} የእቁብ መክፈያዎ በ{$dateText} በተሳካ ሁኔታ ተጠናቋል።\n\n- የወሰዱት መጠን: {$amountFormatted}\n\nደረሰኙን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦ {$receiptUrl}\n\nእናመሰግናለን።";
+
+            $isAmharic = (int)($m['language_preference'] ?? 0) === 1;
+            $useSubj = $isAmharic ? $title_am : $title_en;
+            $useBody = $isAmharic ? $body_am : $body_en;
+
+            // Insert into legacy notifications so it appears in member dashboard
+            $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
+            $insLegacy = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?, 'sent', NOW(), NOW(), NOW(), ?)");
+            $insLegacy->execute([$code, 'member', (int)$payout['member_id'], 'general', 'system', $useSubj, $useBody, ($isAmharic ? 'am' : 'en'), get_current_admin_id()]);
+
             // WhatsApp-ready text
-            $whatsappText = "Dear {$first}, your payout has been completed.\nPayout amount: {$amountFormatted}.\nThank you.";
+            $whatsappText = $useBody;
             $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
             $chk = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
             $chk->execute([$code]);
