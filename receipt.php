@@ -78,18 +78,16 @@ if (!file_exists(__DIR__ . $brandLogo)) {
         <img class="logo" src="<?php echo htmlspecialchars($brandLogo); ?>" alt="HabeshaEqub" />
         <div>
           <div class="name">HabeshaEqub</div>
-          <div class="meta">Payment Receipt • Secure download</div>
+          <div class="meta">Payment Receipt</div>
         </div>
       </div>
       <div class="meta">Generated on <?php echo date('Y-m-d H:i'); ?></div>
     </div>
     <div class="header">
       <h1 class="title">Payment Receipt</h1>
-      <span><?php echo htmlspecialchars($paymentId); ?></span>
     </div>
     <div class="body">
       <div class="row"><div class="label">Member</div><div class="value"><?php echo htmlspecialchars($memberName); ?> (<?php echo htmlspecialchars($memberCode); ?>)</div></div>
-      <div class="row"><div class="label">Payment ID</div><div class="value"><?php echo htmlspecialchars($paymentId); ?></div></div>
       <div class="row"><div class="label">Payment Month</div><div class="value"><?php echo htmlspecialchars($month); ?></div></div>
       <div class="row"><div class="label">Amount</div><div class="value">£<?php echo $amount; ?></div></div>
       <div class="row"><div class="label">Payment Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
