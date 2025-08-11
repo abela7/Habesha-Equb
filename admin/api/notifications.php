@@ -73,6 +73,10 @@ try {
     echo json_encode(['success' => false, 'message' => 'Server error']);
 }
 
+function tableExists(PDO $pdo, string $table): bool {
+    try { $pdo->query("SELECT 1 FROM `{$table}` LIMIT 1"); return true; } catch (Throwable $e) { return false; }
+}
+
 function createNotification(int $admin_id): void {
     global $pdo;
 
@@ -125,45 +129,86 @@ function createNotification(int $admin_id): void {
     $pdo->beginTransaction();
     try {
         $code = 'NTF-' . date('Ymd') . '-' . sprintf('%03d', random_int(100, 999));
-        $stmt = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
-        $stmt->execute([$code]);
-        while ($stmt->fetch()) {
-            $code = 'NTF-' . date('Ymd') . '-' . sprintf('%03d', random_int(100, 999));
+        if (tableExists($pdo, 'program_notifications')) {
+            $stmt = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
             $stmt->execute([$code]);
+            while ($stmt->fetch()) {
+                $code = 'NTF-' . date('Ymd') . '-' . sprintf('%03d', random_int(100, 999));
+                $stmt->execute([$code]);
+            }
         }
 
-        $insert = $pdo->prepare('INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?, NOW(), NOW(), NOW())');
-        $insert->execute([$code, $admin_id, $audience_type, $equb_settings_id, $title_en, $title_am, $body_en, $body_am, $priority, 'sent']);
-        $notificationId = (int)$pdo->lastInsertId();
+        $useLegacy = !tableExists($pdo, 'program_notifications') || !tableExists($pdo, 'notification_recipients');
+        $notificationId = 0;
+        $recipients_count = 0;
 
-        if ($audience_type === 'all') {
-            $sql = 'INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.is_active = 1';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$notificationId]);
-        } elseif ($audience_type === 'equb') {
-            $sql = 'INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.is_active = 1 AND m.equb_settings_id = ?';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$notificationId, $equb_settings_id]);
-        } else {
-            // Target specific members: create in-app recipients for ACTIVE members (email checks are for email send only)
-            $ins = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
-            $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1');
-            foreach ($member_ids as $mid) {
-                if ($mid > 0) {
-                    $chk->execute([$mid]);
-                    if ($chk->fetchColumn()) {
-                        $ins->execute([$notificationId, $mid]);
+        if (!$useLegacy) {
+            $insert = $pdo->prepare('INSERT INTO program_notifications (notification_code, created_by_admin_id, audience_type, equb_settings_id, title_en, title_am, body_en, body_am, priority, status, sent_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?, NOW(), NOW(), NOW())');
+            $insert->execute([$code, $admin_id, $audience_type, $equb_settings_id, $title_en, $title_am, $body_en, $body_am, $priority, 'sent']);
+            $notificationId = (int)$pdo->lastInsertId();
+        }
+
+        if (!$useLegacy) {
+            if ($audience_type === 'all') {
+                $sql = 'INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.is_active = 1';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$notificationId]);
+            } elseif ($audience_type === 'equb') {
+                $sql = 'INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.is_active = 1 AND m.equb_settings_id = ?';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([$notificationId, $equb_settings_id]);
+            } else {
+                // Target specific members: create in-app recipients for ACTIVE members (email checks are for email send only)
+                $ins = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+                $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1');
+                foreach ($member_ids as $mid) {
+                    if ($mid > 0) {
+                        $chk->execute([$mid]);
+                        if ($chk->fetchColumn()) {
+                            $ins->execute([$notificationId, $mid]);
+                        }
                     }
                 }
+            }
+        } else {
+            // LEGACY SCHEMA: write into notifications table
+            $now = date('Y-m-d H:i:s');
+            if ($audience_type === 'all') {
+                $ins = $pdo->prepare('INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?,"sent", ?, ?, ?, ?)');
+                $ins->execute([$code, 'all_members', null, 'general', 'email', $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
+                // estimate recipients as active members count
+                $c = $pdo->query('SELECT COUNT(*) FROM members WHERE is_active = 1');
+                $recipients_count = (int)($c ? $c->fetchColumn() : 0);
+                $notificationId = (int)$pdo->lastInsertId();
+            } elseif ($audience_type === 'equb') {
+                $sel = $pdo->prepare('SELECT id FROM members WHERE is_active = 1 AND equb_settings_id = ?');
+                $sel->execute([$equb_settings_id]);
+                $ids = $sel->fetchAll(PDO::FETCH_COLUMN);
+                $ins = $pdo->prepare('INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?,"sent", ?, ?, ?, ?)');
+                foreach ($ids as $mid) {
+                    $ins->execute([$code, 'member', (int)$mid, 'general', 'email', $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
+                    $recipients_count++;
+                }
+                $notificationId = (int)$pdo->lastInsertId();
+            } else {
+                $now = date('Y-m-d H:i:s');
+                $ins = $pdo->prepare('INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?,"sent", ?, ?, ?, ?)');
+                foreach ($member_ids as $mid) {
+                    $ins->execute([$code, 'member', (int)$mid, 'general', 'email', $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
+                    $recipients_count++;
+                }
+                $notificationId = (int)$pdo->lastInsertId();
             }
         }
 
         $pdo->commit();
 
-        // Compute recipients count and log
-        $rc = $pdo->prepare('SELECT COUNT(*) FROM notification_recipients WHERE notification_id = ?');
-        $rc->execute([$notificationId]);
-        $recipients_count = (int)$rc->fetchColumn();
+        if (!$useLegacy) {
+            // Compute recipients count and log
+            $rc = $pdo->prepare('SELECT COUNT(*) FROM notification_recipients WHERE notification_id = ?');
+            $rc->execute([$notificationId]);
+            $recipients_count = (int)$rc->fetchColumn();
+        }
         error_log('Notification created: id=' . $notificationId . ' code=' . $code . ' recipients_count=' . $recipients_count . ' audience=' . $audience_type);
 
         // OPTIONAL EMAIL DISPATCH to members who opted-in (email_notifications = 1)
@@ -172,16 +217,32 @@ function createNotification(int $admin_id): void {
         try {
             require_once '../../includes/email/EmailService.php';
             $mailer = new EmailService($pdo);
-            // Select recipients with opt-in and language
-            $q = $pdo->prepare("SELECT m.id, m.first_name, m.last_name, m.email, m.language_preference
-                                 FROM members m
-                                 INNER JOIN notification_recipients nr ON nr.member_id = m.id
-                                 WHERE nr.notification_id = ?
-                                   AND m.is_active = 1
-                                   AND COALESCE(m.is_approved,0) = 1
-                                   AND COALESCE(m.email_notifications,1) = 1
-                                   AND m.email IS NOT NULL AND m.email != ''");
-            $q->execute([$notificationId]);
+            if (!$useLegacy) {
+                // Select recipients with opt-in and language
+                $q = $pdo->prepare("SELECT m.id, m.first_name, m.last_name, m.email, m.language_preference
+                                     FROM members m
+                                     INNER JOIN notification_recipients nr ON nr.member_id = m.id
+                                     WHERE nr.notification_id = ?
+                                       AND m.is_active = 1
+                                       AND COALESCE(m.is_approved,0) = 1
+                                       AND COALESCE(m.email_notifications,1) = 1
+                                       AND m.email IS NOT NULL AND m.email != ''");
+                $q->execute([$notificationId]);
+            } else {
+                // Build recipient set for legacy
+                if ($audience_type === 'all') {
+                    $q = $pdo->prepare("SELECT id, first_name, last_name, email, language_preference FROM members WHERE is_active = 1 AND COALESCE(is_approved,0)=1 AND COALESCE(email_notifications,1)=1 AND email IS NOT NULL AND email != ''");
+                    $q->execute();
+                } elseif ($audience_type === 'equb') {
+                    $q = $pdo->prepare("SELECT id, first_name, last_name, email, language_preference FROM members WHERE is_active = 1 AND equb_settings_id = ? AND COALESCE(is_approved,0)=1 AND COALESCE(email_notifications,1)=1 AND email IS NOT NULL AND email != ''");
+                    $q->execute([$equb_settings_id]);
+                } else {
+                    // specific members
+                    $in = str_repeat('?,', count($member_ids)-1) . '?';
+                    $q = $pdo->prepare("SELECT id, first_name, last_name, email, language_preference FROM members WHERE id IN ($in) AND is_active = 1 AND COALESCE(is_approved,0)=1 AND COALESCE(email_notifications,1)=1 AND email IS NOT NULL AND email != ''");
+                    $q->execute($member_ids);
+                }
+            }
             while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
                 // Use dedicated builder to enforce subject/body rules and template filling
                 $res = $mailer->sendProgramNotificationToMember($row, $title_en, $title_am, $body_en, $body_am);
