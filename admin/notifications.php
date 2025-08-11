@@ -30,7 +30,7 @@ $csrf = generate_csrf_token();
 <?php include 'includes/navigation.php'; ?>
 <div class="app-content container-fluid">
   <div class="row g-3">
-    <div class="col-12 col-xl-6">
+    <div class="col-12">
       <div class="card card-modern">
         <div class="card-header d-flex align-items-center justify-content-between">
           <h5 class="mb-0"><i class="fas fa-bell me-2 text-warning"></i>Create Notification</h5>
@@ -97,15 +97,19 @@ $csrf = generate_csrf_token();
       </div>
     </div>
 
-    <div class="col-12 col-xl-6">
+    <div class="col-12">
       <div class="card card-modern">
         <div class="card-header d-flex align-items-center justify-content-between">
           <h5 class="mb-0"><i class="fas fa-inbox me-2 text-primary"></i>Recent Notifications</h5>
           <button class="btn btn-sm btn-outline-secondary" id="btnRefresh"><i class="fas fa-rotate"></i></button>
         </div>
         <div class="card-body">
+          <div class="d-flex gap-2 mb-2">
+            <button class="btn btn-sm btn-outline-primary" id="btnMarkAll"><i class="fas fa-check-double me-1"></i>Mark all as read</button>
+            <button class="btn btn-sm btn-outline-danger" id="btnDeleteAll"><i class="fas fa-trash me-1"></i>Delete all</button>
+          </div>
           <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table align-middle" id="notifTable">
               <thead>
                 <tr>
                   <th>Code</th>
@@ -113,6 +117,7 @@ $csrf = generate_csrf_token();
                   <th>Audience</th>
                   <th>Sent</th>
                   <th>Email</th>
+                  <th style="width:110px;">Actions</th>
                 </tr>
               </thead>
               <tbody id="listBody"></tbody>
@@ -185,9 +190,15 @@ async function loadList(){
         <td>${escapeHtml(n.subject || '')}</td>
         <td><span class="aud-pill">${n.recipient_type}</span></td>
         <td>${n.sent_at ? n.sent_at : ''}</td>
-        <td>${n.email_provider_response ? '<span class="text-success">logged</span>' : '-'}</td>`;
+        <td>${n.email_provider_response ? '<span class="text-success">logged</span>' : '-'}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${n.id}"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${n.id}"><i class="fas fa-trash"></i></button>
+        </td>`;
       tbody.appendChild(tr);
     });
+    document.querySelectorAll('#notifTable [data-action="delete"]').forEach(btn=>btn.addEventListener('click', ()=>deleteOne(btn.dataset.id)));
+    document.querySelectorAll('#notifTable [data-action="edit"]').forEach(btn=>btn.addEventListener('click', ()=>editOne(btn.dataset.id)));
   }
 }
 
@@ -217,7 +228,31 @@ document.addEventListener('DOMContentLoaded',()=>{
       alert(data.message || 'Failed');
     }
   });
+  document.getElementById('btnMarkAll').addEventListener('click', async ()=>{
+    if (!confirm('Mark all notifications as read for all members?')) return;
+    const fd = new FormData(); fd.append('action','mark_all_read'); fd.append('csrf_token','<?php echo htmlspecialchars($csrf); ?>');
+    const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json(); if (d && d.success){ loadList(); }
+  });
+  document.getElementById('btnDeleteAll').addEventListener('click', async ()=>{
+    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    const fd = new FormData(); fd.append('action','delete_all'); fd.append('csrf_token','<?php echo htmlspecialchars($csrf); ?>');
+    const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json(); if (d && d.success){ loadList(); }
+  });
 });
+
+async function deleteOne(id){
+  if (!confirm('Delete this notification?')) return;
+  const fd = new FormData(); fd.append('action','delete'); fd.append('id', String(id)); fd.append('csrf_token','<?php echo htmlspecialchars($csrf); ?>');
+  const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json(); if (d && d.success){ loadList(); }
+}
+async function editOne(id){
+  const resp = await fetch(`${api}?action=get&id=${id}`); const d = await resp.json();
+  if (!d || !d.success) return alert('Load failed');
+  const subject = prompt('Edit subject', d.notification.subject || ''); if (subject===null) return;
+  const message = prompt('Edit message', d.notification.message || ''); if (message===null) return;
+  const fd = new FormData(); fd.append('action','update'); fd.append('id', String(id)); fd.append('subject', subject); fd.append('message', message); fd.append('csrf_token','<?php echo htmlspecialchars($csrf); ?>');
+  const r = await fetch(api, { method:'POST', body: fd }); const j = await r.json(); if (j && j.success){ loadList(); }
+}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

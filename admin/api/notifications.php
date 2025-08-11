@@ -41,11 +41,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 try {
     switch ($action) {
         case 'create':
-            if (!csrf_ok()) {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Invalid security token']);
-                break;
-            }
+            if (!csrf_ok()) { http_response_code(403); echo json_encode(['success' => false, 'message' => 'Invalid security token']); break; }
             createNotification($admin_id);
             break;
         case 'list':
@@ -53,6 +49,25 @@ try {
             break;
         case 'search_members':
             searchMembers();
+            break;
+        case 'get':
+            getNotification();
+            break;
+        case 'update':
+            if (!csrf_ok()) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Invalid security token']); break; }
+            updateNotification();
+            break;
+        case 'delete':
+            if (!csrf_ok()) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Invalid security token']); break; }
+            deleteNotification();
+            break;
+        case 'delete_all':
+            if (!csrf_ok()) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Invalid security token']); break; }
+            deleteAllNotifications();
+            break;
+        case 'mark_all_read':
+            if (!csrf_ok()) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Invalid security token']); break; }
+            markAllRead();
             break;
         case 'get_csrf_token':
             echo json_encode(['success'=>true,'csrf_token'=>generate_csrf_token()]);
@@ -73,6 +88,64 @@ function listNotifications(): void {
     $stmt = $pdo->prepare("SELECT id, notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, email_provider_response FROM notifications ORDER BY created_at DESC LIMIT 200");
     $stmt->execute();
     echo json_encode(['success'=>true,'notifications'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+}
+
+function getNotification(): void {
+    global $pdo;
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'ID required']); return; }
+    $st = $pdo->prepare("SELECT id, subject, message, recipient_type, recipient_id, sent_at, created_at FROM notifications WHERE id = ? LIMIT 1");
+    $st->execute([$id]);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Not found']); return; }
+    echo json_encode(['success'=>true,'notification'=>$row]);
+}
+
+function updateNotification(): void {
+    global $pdo;
+    $id = (int)($_POST['id'] ?? 0);
+    $subject = trim($_POST['subject'] ?? '');
+    $message = trim($_POST['message'] ?? '');
+    if (!$id || $subject==='' || $message==='') { http_response_code(400); echo json_encode(['success'=>false,'message'=>'ID, subject and message are required']); return; }
+    $st = $pdo->prepare("UPDATE notifications SET subject = ?, message = ?, updated_at = NOW() WHERE id = ?");
+    $st->execute([$subject, $message, $id]);
+    echo json_encode(['success'=>true]);
+}
+
+function deleteNotification(): void {
+    global $pdo;
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'ID required']); return; }
+    // Cascade to notification_reads via FK
+    $st = $pdo->prepare("DELETE FROM notifications WHERE id = ?");
+    $st->execute([$id]);
+    echo json_encode(['success'=>true, 'deleted'=>$st->rowCount()]);
+}
+
+function deleteAllNotifications(): void {
+    global $pdo;
+    $st = $pdo->prepare("DELETE FROM notifications");
+    $st->execute();
+    echo json_encode(['success'=>true, 'deleted'=>$st->rowCount()]);
+}
+
+function markAllRead(): void {
+    global $pdo;
+    // Mark broadcast for all active members
+    $ins1 = $pdo->prepare("INSERT INTO notification_reads (notification_id, member_id, is_read, read_at, created_at)
+                           SELECT n.id, m.id, 1, NOW(), NOW()
+                           FROM notifications n
+                           JOIN members m ON n.recipient_type = 'all_members' AND m.is_active = 1
+                           ON DUPLICATE KEY UPDATE is_read = 1, read_at = NOW()");
+    $ins1->execute();
+    // Member-specific
+    $ins2 = $pdo->prepare("INSERT INTO notification_reads (notification_id, member_id, is_read, read_at, created_at)
+                           SELECT n.id, n.recipient_id, 1, NOW(), NOW()
+                           FROM notifications n
+                           WHERE n.recipient_type = 'member'
+                           ON DUPLICATE KEY UPDATE is_read = 1, read_at = NOW()");
+    $ins2->execute();
+    echo json_encode(['success'=>true]);
 }
 
 function searchMembers(): void {

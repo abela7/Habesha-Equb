@@ -108,6 +108,8 @@
   // Initial unread and periodic refresh
   loadUnread();
   setInterval(loadUnread, 60000);
+  // Live update when notifications change without page reload
+  window.addEventListener('notifications-updated', loadUnread);
 })();
 </script>
 

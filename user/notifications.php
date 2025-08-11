@@ -136,7 +136,12 @@ async function openNotif(n, wasUnread, cardEl){
   if (modal) modal.show();
   if (wasUnread){
     const ok = await markRead(n.notification_id);
-    if (ok && cardEl){ cardEl.classList.remove('notif-unread'); const chip = cardEl.querySelector('.chip'); if (chip) chip.remove(); }
+    if (ok && cardEl){
+      cardEl.classList.remove('notif-unread');
+      const pill = cardEl.querySelector('.chip'); if (pill) pill.remove();
+      // Immediately update FAB and top badges via events
+      try { window.dispatchEvent(new CustomEvent('notifications-updated')); } catch(e){}
+    }
     refreshTopBadge();
   }
 }
