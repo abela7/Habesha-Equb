@@ -28,7 +28,9 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $read_only = ['list', 'get', 'search_members', 'get_equb_terms', 'get_csrf_token'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($action, $read_only)) {
-    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+    // Accept token from form or X-C SRF-Token header to avoid false negatives
+    $providedToken = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    if ($providedToken === '' || !verify_csrf_token($providedToken)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Invalid security token']);
         exit;
@@ -143,11 +145,11 @@ function createNotification(int $admin_id): void {
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$notificationId, $equb_settings_id]);
         } else {
+            // Target specific members: create in-app recipients for ACTIVE members (email checks are for email send only)
             $ins = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+            $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1');
             foreach ($member_ids as $mid) {
                 if ($mid > 0) {
-                    // ensure member exists and is active/approved & opted-in
-                    $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1 AND is_approved = 1 AND COALESCE(email_notifications,1) = 1');
                     $chk->execute([$mid]);
                     if ($chk->fetchColumn()) {
                         $ins->execute([$notificationId, $mid]);
@@ -157,6 +159,12 @@ function createNotification(int $admin_id): void {
         }
 
         $pdo->commit();
+
+        // Compute recipients count and log
+        $rc = $pdo->prepare('SELECT COUNT(*) FROM notification_recipients WHERE notification_id = ?');
+        $rc->execute([$notificationId]);
+        $recipients_count = (int)$rc->fetchColumn();
+        error_log('Notification created: id=' . $notificationId . ' code=' . $code . ' recipients_count=' . $recipients_count . ' audience=' . $audience_type);
 
         // OPTIONAL EMAIL DISPATCH to members who opted-in (email_notifications = 1)
         // Fire-and-forget: run after DB commit; collect simple stats
@@ -183,7 +191,7 @@ function createNotification(int $admin_id): void {
             error_log('Notification email dispatch error: '.$e->getMessage());
         }
 
-        echo json_encode(['success' => true, 'message' => 'Notification sent', 'notification_id' => $notificationId, 'notification_code' => $code, 'email_result' => ['sent' => $sent, 'failed' => $failed]]);
+        echo json_encode(['success' => true, 'message' => 'Notification sent', 'notification_id' => $notificationId, 'notification_code' => $code, 'recipients_count' => $recipients_count, 'email_result' => ['sent' => $sent, 'failed' => $failed]]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         error_log('Create Notification Error: ' . $e->getMessage());
