@@ -426,6 +426,7 @@ function verifyPayment() {
     $export_whatsapp = isset($_POST['export_whatsapp']) ? (int)$_POST['export_whatsapp'] : 0;
 
     $whatsappText = '';
+    $receiptUrl = '';
     if ($send_notif) {
         try {
             // Member basics
@@ -442,13 +443,30 @@ function verifyPayment() {
             }
             $dateText = (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') ? date('F j, Y', strtotime($payment['payment_date'])) : date('F j, Y');
             $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
-            $receiptUrl = 'https://habeshaequb.com/user/contributions.php';
+            // Ensure unique receipt token and URL
+            try {
+                $token = bin2hex(random_bytes(16));
+                $pdo->prepare("CREATE TABLE IF NOT EXISTS payment_receipts (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    payment_id INT NOT NULL,
+                    token VARCHAR(64) NOT NULL UNIQUE,
+                    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_payment (payment_id),
+                    CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")->execute();
+                $insTok = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?) ON DUPLICATE KEY UPDATE token = VALUES(token)");
+                $insTok->execute([$payment_id, $token]);
+                $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
+            } catch (Throwable $te) {
+                error_log('Receipt token generation failed: ' . $te->getMessage());
+            }
             $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
 
             $subject_en = 'Payment verified';
             $subject_am = 'ክፍያ ተረጋገጠ';
-            $body_en = "Dear {$memberFirst}, you have successfully paid this month's contribution for {$monthText} on {$dateText}.\n\nAmount paid: {$amountFormatted}.\n\nTo access your receipt, open your dashboard: {$receiptUrl}";
-            $body_am = "ውድ {$memberFirst} ሆይ፣ የዚህ ወር ክፍያዎ ለ{$monthText} በ{$dateText} ተረጋግጧል።\n\nየከፈሉት መጠን: {$amountFormatted}።\n\nደረሰኝዎን ለማየት ዳሽቦርድ ይግቡ፡ {$receiptUrl}";
+            // No generic dashboard link to avoid spam flags. Include unique receipt link only.
+            $body_en = "Dear {$memberFirst}, you have successfully paid this month's contribution for {$monthText} on {$dateText}.\n\nAmount paid: {$amountFormatted}.\n\nDownload your receipt: {$receiptUrl}\n\nThanks for your payment.";
+            $body_am = "ውድ {$memberFirst} ሆይ፣ የዚህ ወር ክፍያዎ ለ{$monthText} በ{$dateText} ተረጋግጧል።\n\nየከፈሉት መጠን: {$amountFormatted}።\n\nደረሰኝዎን ያውርዱ፡ {$receiptUrl}\n\nእናመሰግናለን።";
             $useSubj = $isAmharic ? $subject_am : $subject_en;
             $useBody = $isAmharic ? $body_am : $body_en;
 
