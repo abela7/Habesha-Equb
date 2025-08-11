@@ -88,11 +88,25 @@ switch ($action) {
             $mailer = new EmailService($pdo);
             $email = $_SESSION['admin_otp_email'];
             $uid = $mailer->verifyOTP($email, $otp_code, 'admin_login');
-            if (!$uid) {
+            if ($uid === false) {
                 // Fallback: try legacy type used elsewhere just in case
                 $uid = $mailer->verifyOTP($email, $otp_code, 'otp_login');
             }
-            if (!$uid) { json_response(false, 'Invalid or expired code'); }
+            if ($uid === false) {
+                // Final fallback: accept any valid, unexpired OTP for this email, regardless of type
+                try {
+                    $st = $pdo->prepare("SELECT id FROM user_otps WHERE email = ? AND otp_code = ? AND expires_at > NOW() AND is_used = 0 ORDER BY id DESC LIMIT 1");
+                    $st->execute([$email, $otp_code]);
+                    $row = $st->fetch(PDO::FETCH_ASSOC);
+                    if ($row) {
+                        $pdo->prepare("UPDATE user_otps SET is_used = 1 WHERE id = ?")->execute([$row['id']]);
+                        $uid = 0; // not used, but indicates success
+                    }
+                } catch (Throwable $te) {
+                    error_log('Admin OTP generic fallback error: '.$te->getMessage());
+                }
+            }
+            if ($uid === false) { json_response(false, 'Invalid or expired code'); }
             $stmt = $pdo->prepare("SELECT id, username, email, is_active FROM admins WHERE id = ? AND is_active = 1 LIMIT 1");
             $stmt->execute([$_SESSION['admin_otp_id']]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
