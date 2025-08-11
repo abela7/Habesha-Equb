@@ -21,11 +21,11 @@ $cache_buster = time().'_'.rand(1000,9999);
   <style>
     .page-wrap { padding: 16px; }
     .notif-list { display: grid; gap: 10px; }
-    .notif-card { background: #fff; border:1px solid var(--border-light); border-radius: 14px; padding: 14px; display:flex; gap:12px; align-items:flex-start; }
-    .notif-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; background: var(--color-teal); color:#fff; flex-shrink:0; }
-    .notif-title { font-weight:700; margin:0; color: var(--text-primary); }
+    .notif-card { background: #fff; border:1px solid var(--border-light); border-radius: 14px; padding: 12px 14px; display:flex; gap:10px; align-items:flex-start; }
+    .notif-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; background: var(--color-teal); color:#fff; flex-shrink:0; }
+    .notif-title { font-weight:700; margin:0; color: var(--text-primary); font-size: 18px; }
     .notif-meta { font-size:12px; color: var(--text-secondary); }
-    .notif-body { margin-top:6px; white-space: pre-wrap; color: var(--text-primary); }
+    .notif-body { margin-top:6px; white-space: normal; color: var(--text-primary); word-break: break-word; overflow-wrap: anywhere; }
     .notif-unread { border-left:4px solid var(--color-gold); }
     .chip { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; background: var(--secondary-bg); border-radius:999px; font-size:11px; font-weight:600; }
     @media (max-width: 576px) { .page-wrap { padding: 12px; } .notif-card { padding: 12px; } }
@@ -89,13 +89,15 @@ function render(items){
       <div class="notif-icon"><i class="fas fa-bell"></i></div>
       <div class="flex-fill">
         <div class="d-flex align-items-center gap-2 flex-wrap">
-          <h5 class="notif-title m-0">${esc(title)}</h5>
+          <h5 class="notif-title m-0" style="display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">${esc(title)}</h5>
           ${n.priority==='high' ? '<span class="chip text-danger">High</span>' : ''}
           ${isUnread ? '<span class="chip" style="background:#FFE8E0;color:#C2410C">Unread</span>' : ''}
         </div>
         <div class="notif-meta">${esc(created)}</div>
         <div class="notif-body" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;">${linkify(body)}</div>
       </div>`;
+    // Allow link clicks without opening modal
+    card.querySelectorAll('a').forEach(a=> a.addEventListener('click', (e)=>{ e.stopPropagation(); }));
     card.addEventListener('click', ()=> openNotif(n, isUnread, card));
     wrap.appendChild(card);
   });
@@ -140,7 +142,7 @@ async function openNotif(n, wasUnread, cardEl){
   const b = currentLang()==='am' ? (n.body_am || n.body_en) : (n.body_en || n.body_am);
   const created = n.sent_at || n.created_at || '';
   document.getElementById('mTitle').textContent = t;
-  document.getElementById('mBody').textContent = b;
+  document.getElementById('mBody').innerHTML = linkify(b);
   document.getElementById('mMeta').textContent = created;
   if (modal) modal.show();
   if (wasUnread){
