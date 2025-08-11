@@ -51,18 +51,31 @@ function summary(int $equb_id): array {
     $m->execute([$equb_id]);
     $mrow = $m->fetch(PDO::FETCH_ASSOC) ?: ['total_positions'=>0,'sum_monthly'=>0];
 
-    $expected_total = (float)($mrow['sum_monthly'] ?? 0) * (int)($equb['duration_months'] ?? 0);
+    $sum_monthly = (float)($mrow['sum_monthly'] ?? 0);
+    $duration = (int)($equb['duration_months'] ?? 0);
+    $expected_total = $sum_monthly * $duration;
 
     // Collected contributions to date (paid)
     $col = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status IN ('paid','completed') AND member_id IN (SELECT id FROM members WHERE equb_settings_id = ?)");
     $col->execute([$equb_id]);
     $collected = (float)$col->fetchColumn();
 
+    // Current month collected vs target
+    $ym = date('Y-m');
+    $cm = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status IN ('paid','completed') AND payment_month LIKE CONCAT(?, '%') AND member_id IN (SELECT id FROM members WHERE equb_settings_id = ?)");
+    $cm->execute([$ym, $equb_id]);
+    $collected_current_month = (float)$cm->fetchColumn();
+
     // Net payouts and admin fees to date
     $p = $pdo->prepare("SELECT COALESCE(SUM(net_amount),0) AS net_total, COALESCE(SUM(admin_fee),0) AS fee_total, COUNT(*) AS cnt
                         FROM payouts WHERE member_id IN (SELECT id FROM members WHERE equb_settings_id = ?) AND status='completed'");
     $p->execute([$equb_id]);
     $prow = $p->fetch(PDO::FETCH_ASSOC) ?: ['net_total'=>0,'fee_total'=>0,'cnt'=>0];
+
+    // Scheduled payouts count
+    $ps = $pdo->prepare("SELECT COUNT(*) FROM payouts WHERE member_id IN (SELECT id FROM members WHERE equb_settings_id = ?) AND status='scheduled'");
+    $ps->execute([$equb_id]);
+    $scheduledCount = (int)$ps->fetchColumn();
 
     // Monthly timeline last 12 months based on actual payout_date and payments
     $tl = $pdo->prepare("SELECT DATE_FORMAT(COALESCE(actual_payout_date, created_at), '%Y-%m') ym,
@@ -95,6 +108,60 @@ function summary(int $equb_id): array {
 
     $collection_rate = $expected_total > 0 ? ($collected / $expected_total) * 100 : 0;
 
+    // Outstanding balance
+    $outstanding = max($expected_total - $collected, 0);
+
+    // Overdue members (no paid record for current month)
+    $ov = $pdo->prepare("SELECT COUNT(*)
+                         FROM members m
+                         WHERE m.equb_settings_id = ? AND m.is_active=1
+                         AND NOT EXISTS (
+                           SELECT 1 FROM payments p
+                           WHERE p.member_id = m.id AND p.status IN ('paid','completed')
+                           AND p.payment_month LIKE CONCAT(?, '%')
+                         )");
+    $ov->execute([$equb_id, $ym]);
+    $overdue_members = (int)$ov->fetchColumn();
+
+    // Top debtors: remaining months = duration - distinct months paid
+    $top = $pdo->prepare("SELECT m.id, CONCAT(m.first_name,' ',m.last_name) AS name, m.member_id AS code,
+                                 GREATEST(?, 0) - COUNT(DISTINCT DATE_FORMAT(p.payment_month,'%Y-%m')) AS remaining
+                          FROM members m
+                          LEFT JOIN payments p ON p.member_id = m.id AND p.status IN ('paid','completed')
+                          WHERE m.equb_settings_id = ? AND m.is_active=1
+                          GROUP BY m.id
+                          HAVING remaining > 0
+                          ORDER BY remaining DESC, name ASC
+                          LIMIT 5");
+    $top->execute([$duration, $equb_id]);
+    $top_debtors = $top->fetchAll(PDO::FETCH_ASSOC);
+
+    // Payments by month (last 12 months inflow)
+    $pbm = $pdo->prepare("SELECT DATE_FORMAT(COALESCE(payment_date, created_at), '%Y-%m') ym, COALESCE(SUM(amount),0) amt
+                          FROM payments
+                          WHERE status IN ('paid','completed') AND member_id IN (SELECT id FROM members WHERE equb_settings_id = ?)
+                          GROUP BY ym ORDER BY ym ASC");
+    $pbm->execute([$equb_id]);
+    $pay_labels=[]; $pay_values=[];
+    while ($r=$pbm->fetch(PDO::FETCH_ASSOC)) { $pay_labels[] = date('M Y', strtotime($r['ym'].'-01')); $pay_values[] = (float)$r['amt']; }
+
+    // Upcoming payouts (next 5)
+    $up = $pdo->prepare("SELECT po.id, po.total_amount, po.scheduled_date, CONCAT(m.first_name,' ',m.last_name) as name
+                         FROM payouts po
+                         JOIN members m ON m.id = po.member_id
+                         WHERE m.equb_settings_id = ? AND po.status='scheduled' AND po.scheduled_date >= CURDATE()
+                         ORDER BY po.scheduled_date ASC LIMIT 5");
+    $up->execute([$equb_id]);
+    $upcoming = [];
+    while ($r=$up->fetch(PDO::FETCH_ASSOC)) {
+        $upcoming[] = [
+            'id' => (int)$r['id'],
+            'name' => $r['name'],
+            'scheduled_date' => date('M j, Y', strtotime($r['scheduled_date'])),
+            'amount' => (float)$r['total_amount'],
+        ];
+    }
+
     return [
         'success' => true,
         'summary' => [
@@ -103,10 +170,16 @@ function summary(int $equb_id): array {
             'collection_rate' => $collection_rate,
             'admin_revenue_collected' => (float)$prow['fee_total'],
             'payouts_completed' => (int)$prow['cnt'],
+            'payouts_scheduled' => $scheduledCount,
             'net_payouts_total' => (float)$prow['net_total'],
-            'monthly_pool' => (float)($mrow['sum_monthly'] ?? 0),
-            'total_pool_value' => (float)($mrow['sum_monthly'] ?? 0) * (int)($equb['duration_months'] ?? 0),
-            'average_payout' => (float)($mrow['sum_monthly'] ?? 0),
+            'monthly_pool' => $sum_monthly,
+            'total_pool_value' => $sum_monthly * $duration,
+            'average_payout' => $sum_monthly,
+            'collected_total' => $collected,
+            'collected_current_month' => $collected_current_month,
+            'current_month_target' => $sum_monthly,
+            'outstanding_balance' => $outstanding,
+            'overdue_members' => $overdue_members,
         ],
         'charts' => [
             'payout_distribution' => [
@@ -118,7 +191,15 @@ function summary(int $equb_id): array {
                 'labels' => $labels,
                 'net_payouts' => $net,
                 'admin_fees' => $fees,
+            ],
+            'inflows' => [
+                'labels' => $pay_labels,
+                'payments' => $pay_values,
             ]
+        ],
+        'tables' => [
+            'top_debtors' => $top_debtors,
+            'upcoming_payouts' => $upcoming,
         ]
     ];
 }

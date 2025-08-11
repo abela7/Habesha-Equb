@@ -851,6 +851,32 @@ $csrf_token = generate_csrf_token();
                     </div>
                 </div>
 
+                <!-- Outstanding Balance -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #f87171); color: white;">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div id="metric-outstanding" class="metric-value">£0</div>
+                    <div class="metric-label">Outstanding Balance</div>
+                    <div class="metric-change change-negative">
+                        <i class="fas fa-users me-1"></i>
+                        <span id="metric-overdue-members">0</span> overdue members
+                    </div>
+                </div>
+
+                <!-- Current Month Collection -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #0ea5e9, #38bdf8); color: white;">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div id="metric-current-month" class="metric-value">£0</div>
+                    <div class="metric-label">Current Month Collected</div>
+                    <div class="metric-change change-neutral">
+                        <i class="fas fa-bullseye me-1"></i>
+                        Target: <span id="metric-current-target">£0</span>
+                    </div>
+                </div>
+
                 <!-- Admin Revenue -->
                 <div class="metric-card">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #F59E0B, #FCD34D); color: white;">
@@ -955,6 +981,15 @@ $csrf_token = generate_csrf_token();
                 </div>
             </div>
 
+            <!-- Inflows chart -->
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <i class="fas fa-wallet text-teal me-2"></i>
+                    Monthly Inflows (Payments)
+                </h3>
+                <canvas id="inflowChart"></canvas>
+            </div>
+
             <!-- Member Payout Analysis Table -->
             <div class="payout-table-container">
                 <div class="table-header">
@@ -1056,6 +1091,50 @@ $csrf_token = generate_csrf_token();
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Top Debtors and Upcoming Payouts -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <div class="payout-table-container">
+                        <div class="table-header">
+                            <h2 class="table-title"><i class="fas fa-user-minus text-danger"></i> Top Debtors</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Code</th>
+                                        <th>Remaining Months</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbl-top-debtors">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="payout-table-container">
+                        <div class="table-header">
+                            <h2 class="table-title"><i class="fas fa-hourglass-half text-warning"></i> Upcoming Payouts</h2>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Scheduled Date</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbl-upcoming-payouts">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1299,6 +1378,11 @@ $csrf_token = generate_csrf_token();
                 el('metric-monthly-pool', fmt(d.summary.monthly_pool));
                 el('metric-total-pool', fmt(d.summary.total_pool_value));
                 el('metric-average-payout', fmt(d.summary.average_payout));
+                // New KPIs
+                el('metric-outstanding', fmt(d.summary.outstanding_balance));
+                el('metric-overdue-members', d.summary.overdue_members);
+                el('metric-current-month', fmt(d.summary.collected_current_month));
+                el('metric-current-target', fmt(d.summary.current_month_target));
 
                 // Update charts
                 payoutChartInstance.data.datasets[0].data = [
@@ -1317,6 +1401,31 @@ $csrf_token = generate_csrf_token();
                 timelineChartInstance.update();
                 const tcs = document.getElementById('timelineChartSummary');
                 if (tcs) tcs.textContent = `Period: ${d.charts.timeline.labels[0] || ''} — ${d.charts.timeline.labels.at(-1) || ''}`;
+
+                // Inflows
+                const inflowCanvas = document.getElementById('inflowChart');
+                if (inflowCanvas && window.Chart) {
+                    if (!window._inflowChart) {
+                        window._inflowChart = new Chart(inflowCanvas.getContext('2d'), {
+                            type: 'line',
+                            data: { labels: [], datasets: [{ label: 'Payments', data: [], borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.15)', tension: 0.3, borderWidth: 2, fill: true }] },
+                            options: { responsive:true, maintainAspectRatio:true, aspectRatio:2, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'£'+Number(v).toLocaleString() } } } }
+                        });
+                    }
+                    window._inflowChart.data.labels = d.charts.inflows.labels;
+                    window._inflowChart.data.datasets[0].data = d.charts.inflows.payments;
+                    window._inflowChart.update();
+                }
+
+                // Tables
+                const td = document.getElementById('tbl-top-debtors');
+                if (td) {
+                    td.innerHTML = d.tables.top_debtors.map(r => `<tr><td>${r.name}</td><td>${r.code||''}</td><td>${r.remaining}</td></tr>`).join('') || '<tr><td colspan="3" class="text-center text-muted">No debtors</td></tr>';
+                }
+                const up = document.getElementById('tbl-upcoming-payouts');
+                if (up) {
+                    up.innerHTML = d.tables.upcoming_payouts.map(r => `<tr><td>${r.name}</td><td>${r.scheduled_date}</td><td>£${Number(r.amount).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" class="text-center text-muted">No upcoming payouts</td></tr>';
+                }
             } catch(e) { console.error('Analytics load failed', e); }
         }
 
