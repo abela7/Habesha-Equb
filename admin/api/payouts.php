@@ -556,10 +556,12 @@ function processPayout() {
             $pinfo = $amtQ->fetch(PDO::FETCH_ASSOC) ?: [];
             $totalAmt = (float)($pinfo['total_amount'] ?? 0);
             $adminFee = (float)($pinfo['admin_fee'] ?? 0);
+            $netAmt = (float)($pinfo['net_amount'] ?? 0);
             $method = (string)($pinfo['payout_method'] ?? 'bank_transfer');
             $actualDate = $pinfo['actual_dt'] ?? date('Y-m-d');
             $dateText = date('F j, Y', strtotime($actualDate));
-            $amountFormatted = '£' . number_format($totalAmt, 2);
+            $amountFormatted = '£' . number_format($netAmt, 2);
+            $adminFeeFormatted = '£' . number_format($adminFee, 2);
 
             // Ensure payout receipt token exists
             $receiptUrl = '';
@@ -590,8 +592,8 @@ function processPayout() {
             // Titles and bodies (bilingual)
             $title_en = 'Congratulations — Your Equb payout is completed!';
             $title_am = 'እንኳን ደስ አላችሁ — እቁቡ ተጠናቋል!';
-            $body_en = "Dear {$first}, your Equb payout has been successfully completed on {$dateText}.\n\n- Payout amount: {$amountFormatted}\n\nYou can view and download your payout receipt here: {$receiptUrl}\n\nThank you.";
-            $body_am = "ውድ {$first} የእቁብ መክፈያዎ በ{$dateText} በተሳካ ሁኔታ ተጠናቋል።\n\n- የወሰዱት መጠን: {$amountFormatted}\n\nደረሰኙን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦ {$receiptUrl}\n\nእናመሰግናለን።";
+            $body_en = "Dear {$first}, your Equb payout has been successfully completed on {$dateText}.\n\n- Net payout: {$amountFormatted}\n- Admin fee applied: {$adminFeeFormatted}\n\nYou can view and download your payout receipt here: {$receiptUrl}\n\nThank you.";
+            $body_am = "ውድ {$first} የእቁብ መክፈያዎ በ{$dateText} በተሳካ ሁኔታ ተጠናቋል።\n\n- የተቀበሉት መጠን (ኔት): {$amountFormatted}\n- የአስተዳደር ክፍያ ተተግብሯል: {$adminFeeFormatted}\n\nደረሰኙን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦ {$receiptUrl}\n\nእናመሰግናለን።";
 
             $isAmharic = (int)($m['language_preference'] ?? 0) === 1;
             $useSubj = $isAmharic ? $title_am : $title_en;

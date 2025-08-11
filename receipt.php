@@ -42,7 +42,9 @@ try {
         $lateFee = isset($row['late_fee']) ? number_format((float)$row['late_fee'], 2) : '0.00';
     } else {
         // payout
-        $amount = number_format((float)$row['total_amount'], 2);
+        $gross = number_format((float)$row['gross_payout'], 2);
+        $adminFee = number_format((float)$row['admin_fee'], 2);
+        $net = number_format((float)$row['net_amount'], 2);
         $date = ($row['actual_payout_date'] && $row['actual_payout_date'] !== '0000-00-00') ? date('F j, Y', strtotime($row['actual_payout_date'])) : date('F j, Y', strtotime($row['created_at']));
         $month = date('F Y', strtotime($date));
         $method = $row['payout_method'] ? ucwords(str_replace('_',' ', $row['payout_method'])) : 'N/A';
@@ -129,7 +131,9 @@ if (!file_exists(__DIR__ . $brandLogo)) {
         <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars($statusText); ?></div></div>
         <div class="row"><div class="label">Verification</div><div class="value"><?php echo htmlspecialchars($verificationText); ?></div></div>
       <?php else: ?>
-        <div class="row"><div class="label">Payout Amount</div><div class="value">£<?php echo $amount; ?></div></div>
+        <div class="row"><div class="label">Payout (Gross)</div><div class="value">£<?php echo $gross; ?></div></div>
+        <div class="row"><div class="label">Admin Fee</div><div class="value">£<?php echo $adminFee; ?></div></div>
+        <div class="row"><div class="label">Net Amount</div><div class="value">£<?php echo $net; ?></div></div>
         <div class="row"><div class="label">Payout Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
         <div class="row"><div class="label">Payout Date</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
         <?php $statusText = ucfirst(strtolower((string)($row['status'] ?? ''))); ?>
