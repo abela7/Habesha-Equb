@@ -28,7 +28,8 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $read_only = ['list', 'get', 'search_members', 'get_equb_terms', 'get_csrf_token'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($action, $read_only)) {
-    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+    $providedToken = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    if ($providedToken === '' || !verify_csrf_token($providedToken)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Invalid security token']);
         exit;
@@ -159,6 +160,30 @@ function createNotification(int $admin_id): void {
 
         $pdo->commit();
 
+        // Compute recipients count and run a safety fallback if none were inserted
+        $rc = $pdo->prepare('SELECT COUNT(*) FROM notification_recipients WHERE notification_id = ?');
+        $rc->execute([$notificationId]);
+        $recipients_count = (int)$rc->fetchColumn();
+
+        if ($recipients_count === 0) {
+            try {
+                if ($audience_type === 'all') {
+                    $stmt = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m');
+                    $stmt->execute([$notificationId]);
+                } elseif ($audience_type === 'equb' && $equb_settings_id) {
+                    $stmt = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) SELECT ?, m.id, NOW() FROM members m WHERE m.equb_settings_id = ?');
+                    $stmt->execute([$notificationId, $equb_settings_id]);
+                } elseif ($audience_type === 'members' && !empty($member_ids)) {
+                    $ins2 = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+                    foreach ($member_ids as $mid) { if ($mid > 0) { $ins2->execute([$notificationId, $mid]); } }
+                }
+                $rc->execute([$notificationId]);
+                $recipients_count = (int)$rc->fetchColumn();
+            } catch (Throwable $e) {
+                error_log('Recipients fallback insert failed: ' . $e->getMessage());
+            }
+        }
+
         // OPTIONAL EMAIL DISPATCH to members who opted-in (email_notifications = 1)
         // Fire-and-forget: run after DB commit; collect simple stats
         $sent = 0; $failed = 0;
@@ -184,7 +209,7 @@ function createNotification(int $admin_id): void {
             error_log('Notification email dispatch error: '.$e->getMessage());
         }
 
-        echo json_encode(['success' => true, 'message' => 'Notification sent', 'notification_id' => $notificationId, 'notification_code' => $code, 'email_result' => ['sent' => $sent, 'failed' => $failed]]);
+        echo json_encode(['success' => true, 'message' => 'Notification sent', 'notification_id' => $notificationId, 'notification_code' => $code, 'recipients_count' => $recipients_count, 'email_result' => ['sent' => $sent, 'failed' => $failed]]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         error_log('Create Notification Error: ' . $e->getMessage());
