@@ -1293,14 +1293,11 @@ $csrf_token = generate_csrf_token();
             const member = document.getElementById('memberFilter').value;
             const month = document.getElementById('monthFilter').value;
             
-            const params = new URLSearchParams({
-                action: 'list',
-                search: search,
-                status: status,
-                member_id: member,
-                month: month,
-                _t: Date.now() // Prevent caching
-            });
+            const params = new URLSearchParams({ action: 'list', _t: Date.now() });
+            if (search) params.set('search', search);
+            if (status) params.set('status', status);
+            if (member) params.set('member_id', member);
+            if (month) params.set('month', month);
             
             fetch(`api/payments.php?${params}`, {
                 cache: 'no-cache' // Ensure no caching
@@ -1323,7 +1320,9 @@ $csrf_token = generate_csrf_token();
             acc.innerHTML = '';
             
             if (!payments || payments.length === 0) {
-                acc.innerHTML = '<div class="p-4 text-center text-muted">No payments found matching the current filters.</div>';
+                // Show empty grouped container with month filter still populated
+                acc.innerHTML = '<div class="p-4 text-center text-muted">No payments found.</div>';
+                populateMonthFilter([]);
                 return;
             }
             
@@ -1342,7 +1341,7 @@ $csrf_token = generate_csrf_token();
                 monthMap.get(key).push(p);
             });
             
-            // Populate month filter dynamically
+            // Populate month filter dynamically (always, even before a filter is chosen)
             populateMonthFilter(Array.from(monthMap.keys()));
             
             // Sort months descending
