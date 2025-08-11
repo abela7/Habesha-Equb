@@ -102,8 +102,12 @@ function require_user_auth() {
         logout_and_redirect();
     }
 
-    // Check session timeout
-    if (check_session_timeout()) {
+    // Check session timeout. If user selected remember-device, extend to 7 days
+    $timeoutHours = 24;
+    if (!empty($_SESSION['auto_login']) || isset($_COOKIE['device_token'])) {
+        $timeoutHours = 24 * 7; // 7 days
+    }
+    if (check_session_timeout($timeoutHours)) {
         error_log("Auth Guard - Session timeout, redirecting to login");
         logout_and_redirect('Your session has expired. Please log in again.');
     }
@@ -122,7 +126,10 @@ function require_user_auth() {
         check_welcome_flow_completion();
     }
     
-    // Update last activity time
+    // Sliding session: refresh login time on activity if remembered device
+    if (!empty($_SESSION['auto_login']) || isset($_COOKIE['device_token'])) {
+        $_SESSION['user_login_time'] = time();
+    }
     $_SESSION['user_last_activity'] = time();
     
     return $user_id;

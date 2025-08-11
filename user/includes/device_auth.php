@@ -79,6 +79,9 @@ function checkRememberedDevice() {
             $_SESSION['user_name'] = $result['first_name'] . ' ' . $result['last_name'];
             $_SESSION['member_id'] = $result['member_id'];
             $_SESSION['auto_login'] = true; // Flag to indicate automatic login
+            // Ensure session timeouts work correctly with auth_guard
+            $_SESSION['user_login_time'] = time();
+            $_SESSION['user_last_activity'] = time();
             
             return true;
         } else {

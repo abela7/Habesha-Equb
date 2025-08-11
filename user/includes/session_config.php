@@ -11,11 +11,14 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', '1');
     ini_set('session.use_only_cookies', '1');
     ini_set('session.cookie_secure', isset($_SERVER['HTTPS']) ? '1' : '0');
-    ini_set('session.cookie_samesite', 'Strict');
+    // Use Lax to allow device_token cookie-assisted flows across redirects
+    ini_set('session.cookie_samesite', 'Lax');
     
     // Session timeout and security
-    ini_set('session.gc_maxlifetime', 86400); // 24 hours
-    ini_set('session.cookie_lifetime', 0); // Session cookie
+    // Keep server-side session available for 7 days to match remember-device
+    ini_set('session.gc_maxlifetime', 604800); // 7 days
+    // Keep browser session cookie until browser close; auto-login will re-establish
+    ini_set('session.cookie_lifetime', 0);
     
     session_start();
 }
