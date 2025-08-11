@@ -144,11 +144,15 @@ $csrf_token = generate_csrf_token();
                 const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json();
                 if (d && d.success){ stepEmail.style.display='none'; stepCode.style.display='block'; document.getElementById('otpCode').focus(); } else { alert(d.message||'Failed'); }
             });
-            btnVer.addEventListener('click', async ()=>{
+            async function verifyNow(){
                 const code = document.getElementById('otpCode').value.trim(); if (!code) { alert('Enter the code'); return; }
                 const fd = new FormData(); fd.append('action','verify_otp'); fd.append('csrf_token', csrf); fd.append('otp_code', code);
                 const r = await fetch(api, { method:'POST', body: fd }); const d = await r.json();
                 if (d && d.success){ window.location.href = d.data && d.data.redirect ? d.data.redirect : 'welcome_admin.php'; } else { alert(d.message||'Invalid code'); }
+            }
+            btnVer.addEventListener('click', verifyNow);
+            document.getElementById('otpCode').addEventListener('keydown', (e)=>{
+                if (e.key === 'Enter') { e.preventDefault(); verifyNow(); }
             });
             btnRes.addEventListener('click', ()=>{ btnReq.click(); });
         });

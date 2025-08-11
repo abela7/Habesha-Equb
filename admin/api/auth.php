@@ -65,6 +65,8 @@ switch ($action) {
             if (!empty($res['success'])) {
                 $_SESSION['admin_otp_id'] = $admin['id'];
                 $_SESSION['admin_otp_email'] = $admin['email'];
+                // Ensure session is written before response
+                session_write_close();
                 json_response(true, 'Verification code sent to your email');
             } else {
                 json_response(false, 'Failed to send verification email');
@@ -83,7 +85,12 @@ switch ($action) {
         try {
             require_once '../../includes/email/EmailService.php';
             $mailer = new EmailService($pdo);
-            $uid = $mailer->verifyOTP($_SESSION['admin_otp_email'], $otp_code, 'admin_login');
+            $email = $_SESSION['admin_otp_email'];
+            $uid = $mailer->verifyOTP($email, $otp_code, 'admin_login');
+            if (!$uid) {
+                // Fallback: try legacy type used elsewhere just in case
+                $uid = $mailer->verifyOTP($email, $otp_code, 'otp_login');
+            }
             if (!$uid) { json_response(false, 'Invalid or expired code'); }
             $stmt = $pdo->prepare("SELECT id, username, email, is_active FROM admins WHERE id = ? AND is_active = 1 LIMIT 1");
             $stmt->execute([$_SESSION['admin_otp_id']]);
