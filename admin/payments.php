@@ -1065,7 +1065,67 @@ $csrf_token = generate_csrf_token();
     <script src="../assets/js/auth.js"></script>
     
     <script>
-        // Navigation functions are handled by includes/navigation.php
+            // Navigation functions are handled by includes/navigation.php
+            // Reuse WhatsApp modal from notifications
+            if (typeof showWhatsappModal !== 'function') {
+                window.showWhatsappModal = function(summary, data){
+                    let modal = document.getElementById('waExportModal');
+                    if (!modal) {
+                      const html = `
+                      <div class="modal fade" id="waExportModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title"><i class="fas fa-paper-plane text-success me-2"></i>WhatsApp Export</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body" id="waExportBody"></div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>`;
+                      document.body.insertAdjacentHTML('beforeend', html);
+                      modal = document.getElementById('waExportModal');
+                    }
+                    const body = modal.querySelector('#waExportBody');
+                    const blocks = [];
+                    const normalize = s => (s||'').replace(/\r\n/g,'\n').replace(/\n/g,'\n');
+                    const toTextarea = (label, txt) => {
+                      const clean = normalize(txt).replace(/\\n/g,'\n');
+                      const url = 'https://wa.me/?text=' + encodeURIComponent(clean);
+                      return `
+                      <div class="mb-3 p-2 border rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <strong>${label}</strong>
+                          <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-copy="1">Copy</button>
+                            <a class="btn btn-sm btn-success" target="_blank" href="${url}"><i class="fab fa-whatsapp me-1"></i>Open in WhatsApp</a>
+                          </div>
+                        </div>
+                        <textarea class="form-control" rows="5">${clean}</textarea>
+                      </div>`;
+                    };
+                    blocks.push(`<div class="alert alert-info">${summary}</div>`);
+                    if (Array.isArray(data.whatsapp_texts) && data.whatsapp_texts.length){
+                      blocks.push(`<h6 class="mb-2">Per Member</h6>`);
+                      data.whatsapp_texts.forEach(w=>{ blocks.push(toTextarea(`${w.name||'Member'} [${String(w.language||'').toUpperCase()}]`, w.text||'')); });
+                    }
+                    if (data.whatsapp_broadcast){
+                      if (data.whatsapp_broadcast.en){ blocks.push(toTextarea('Broadcast (EN)', data.whatsapp_broadcast.en)); }
+                      if (data.whatsapp_broadcast.am){ blocks.push(toTextarea('Broadcast (AM)', data.whatsapp_broadcast.am)); }
+                    }
+                    body.innerHTML = blocks.join('');
+                    body.querySelectorAll('[data-copy]')?.forEach(btn=>{
+                      btn.addEventListener('click', ()=>{
+                        const ta = btn.closest('.mb-3')?.querySelector('textarea');
+                        if (!ta) return; ta.select(); ta.setSelectionRange(0, 99999); document.execCommand('copy'); btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200);
+                      });
+                    });
+                    const bsModal = new bootstrap.Modal(modal); bsModal.show();
+                }
+            }
 
         // Payment management functions
         let isEditMode = false;
@@ -1217,10 +1277,10 @@ $csrf_token = generate_csrf_token();
                 if (d && d.success){
                     showToast('Payment verified successfully!', 'success');
                     if (exportWhats && d.whatsapp_text){
-                        const wrap = document.getElementById('whatsappPreviewWrap');
-                        const ta = document.getElementById('whatsappPreview');
-                        ta.value = d.whatsapp_text;
-                        wrap.style.display = 'block';
+                        // Use the same WhatsApp export modal as notifications
+                        const data = { whatsapp_texts: [{ name: 'Member', language: 'en', text: d.whatsapp_text }], whatsapp_broadcast: null };
+                        showWhatsappModal('Payment verified. Email status not applicable.', data);
+                        _verifyModal.hide();
                     } else {
                         _verifyModal.hide();
                     }

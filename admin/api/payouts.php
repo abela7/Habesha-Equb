@@ -544,7 +544,7 @@ function processPayout() {
         // Update member's payout flag
     syncMemberPayoutFlag($payout['member_id']);
         
-        // Send concise notification to that specific member
+        // Send concise notification to that specific member and build WhatsApp text
         try {
             $q = $pdo->prepare("SELECT first_name, equb_settings_id FROM members WHERE id = ? LIMIT 1");
             $q->execute([$payout['member_id']]);
@@ -559,6 +559,8 @@ function processPayout() {
             $title_am = $title_en;
             $body_en = "Dear {$first}, your payout has been completed and recorded.\n\n- Payout amount: {$amountFormatted}\n\nFor more information, including accessing the receipt, please check the HabeshaEqub dashboard.";
             $body_am = $body_en;
+            // WhatsApp-ready text
+            $whatsappText = "Dear {$first}, your payout has been completed.\nPayout amount: {$amountFormatted}.\nThank you.";
             $code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
             $chk = $pdo->prepare('SELECT id FROM program_notifications WHERE notification_code = ?');
             $chk->execute([$code]);
@@ -574,10 +576,11 @@ function processPayout() {
             error_log('processPayout notify error: '.$e->getMessage());
         }
     
-    echo json_encode([
+        echo json_encode([
         'success' => true, 
         'message' => 'Payout processed successfully',
-            'payout_id' => $payout['payout_id']
+            'payout_id' => $payout['payout_id'],
+            'whatsapp_text' => $whatsappText
         ]);
         
     } catch (Exception $e) {
