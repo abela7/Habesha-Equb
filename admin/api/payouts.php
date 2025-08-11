@@ -75,6 +75,9 @@ try {
         case 'process':
             processPayout();
             break;
+        case 'get_payout_receipt_token':
+            getPayoutReceiptToken();
+            break;
         case 'get_csrf_token':
             echo json_encode(['success' => true, 'csrf_token' => generate_csrf_token()]);
             break;
@@ -632,6 +635,43 @@ function processPayout() {
         error_log("Process Payout Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to process payout: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Ensure a public receipt token exists for the given payout and return its URL
+ */
+function getPayoutReceiptToken() {
+    global $pdo;
+    $payout_id = intval($_GET['payout_id'] ?? $_POST['payout_id'] ?? 0);
+    if (!$payout_id) { echo json_encode(['success'=>false,'message'=>'Payout ID is required']); return; }
+    // Validate payout exists
+    $chk = $pdo->prepare("SELECT id FROM payouts WHERE id = ? LIMIT 1");
+    $chk->execute([$payout_id]);
+    if (!$chk->fetchColumn()) { echo json_encode(['success'=>false,'message'=>'Payout not found']); return; }
+    try {
+        // Ensure table
+        $pdo->prepare("CREATE TABLE IF NOT EXISTS payout_receipts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            payout_id INT NOT NULL,
+            token VARCHAR(64) NOT NULL UNIQUE,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_payout (payout_id),
+            CONSTRAINT fk_receipt_payout FOREIGN KEY (payout_id) REFERENCES payouts(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")->execute();
+        // Try get existing
+        $sel = $pdo->prepare("SELECT token FROM payout_receipts WHERE payout_id = ? LIMIT 1");
+        $sel->execute([$payout_id]);
+        $token = $sel->fetchColumn();
+        if (!$token) {
+            $token = bin2hex(random_bytes(16));
+            $ins = $pdo->prepare("INSERT INTO payout_receipts (payout_id, token) VALUES (?, ?)");
+            $ins->execute([$payout_id, $token]);
+        }
+        echo json_encode(['success'=>true,'token'=>$token,'receipt_url'=>'/receipt.php?rt='.$token]);
+    } catch (Throwable $e) {
+        error_log('getPayoutReceiptToken error: '.$e->getMessage());
+        echo json_encode(['success'=>false,'message'=>'Failed to generate receipt link']);
     }
 }
 

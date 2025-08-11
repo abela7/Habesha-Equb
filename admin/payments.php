@@ -1499,7 +1499,6 @@ $csrf_token = generate_csrf_token();
                         <td>
                             <div class="action-buttons">
                                     <button class="btn btn-action btn-edit" onclick="editPayment(${payment.id})" title="Edit Payment"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-action btn-receipt" onclick="generateReceipt('payment', ${payment.id})" title="Generate Receipt"><i class="fas fa-receipt"></i></button>
                                 ${verifyButton}
                                     <button class="btn btn-action btn-delete" onclick="deletePayment(${payment.id})" title="Delete Payment"><i class="fas fa-trash"></i></button>
                                     <button class="btn btn-action btn-receipt" onclick="openPublicReceipt(${payment.id})" title="Open Public Receipt"><i class="fas fa-external-link-alt"></i></button>

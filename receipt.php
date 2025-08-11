@@ -131,9 +131,8 @@ if (!file_exists(__DIR__ . $brandLogo)) {
         <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars($statusText); ?></div></div>
         <div class="row"><div class="label">Verification</div><div class="value"><?php echo htmlspecialchars($verificationText); ?></div></div>
       <?php else: ?>
-        <div class="row"><div class="label">Payout (Gross)</div><div class="value">£<?php echo $gross; ?></div></div>
-        <div class="row"><div class="label">Admin Fee</div><div class="value">£<?php echo $adminFee; ?></div></div>
         <div class="row"><div class="label">Net Amount</div><div class="value">£<?php echo $net; ?></div></div>
+        <div class="row"><div class="label">Admin Fee</div><div class="value">£<?php echo $adminFee; ?></div></div>
         <div class="row"><div class="label">Payout Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
         <div class="row"><div class="label">Payout Date</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
         <?php $statusText = ucfirst(strtolower((string)($row['status'] ?? ''))); ?>

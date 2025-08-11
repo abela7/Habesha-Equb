@@ -1317,8 +1317,8 @@ $csrf_token = generate_csrf_token();
                             <button class="btn btn-action btn-edit" onclick="editPayout(${payout.id})" title="<?php echo t('payouts.edit_payout'); ?>">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-action btn-receipt" onclick="generateReceipt('payout', ${payout.id})" title="<?php echo t('payouts.generate_receipt'); ?>">
-                                <i class="fas fa-receipt"></i>
+                            <button class="btn btn-action btn-receipt" onclick="openPublicPayoutReceipt(${payout.id})" title="<?php echo t('payouts.generate_receipt'); ?>">
+                                <i class="fas fa-external-link-alt"></i>
                             </button>
                             ${processButton}
                             <button class="btn btn-action btn-delete" onclick="deletePayout(${payout.id})" title="<?php echo t('payouts.delete_payout'); ?>">
@@ -1436,32 +1436,20 @@ $csrf_token = generate_csrf_token();
         }, 3000);
     }
 
-    // Generate receipt function
-    function generateReceipt(type, transactionId) {
-        // Get CSRF token
+    // Open public payout receipt via token (similar to payments)
+    function openPublicPayoutReceipt(payoutId){
         const csrfToken = getCSRFToken();
-        if (!csrfToken) {
-            if (confirm('Security token missing. Would you like to refresh the page and try again?')) {
-                window.location.reload();
+        if (!csrfToken) return;
+        fetch('api/payouts.php?action=get_payout_receipt_token&payout_id=' + encodeURIComponent(payoutId), {cache:'no-store'})
+          .then(r=>r.json())
+          .then(d=>{
+            if (d && d.success && d.receipt_url){
+                window.open(d.receipt_url, '_blank');
+            } else {
+                alert(d && d.message ? d.message : 'Could not open receipt');
             }
-            return;
-        }
-        
-        // Create receipt URL with parameters
-        const receiptUrl = 'receipt.php?' + new URLSearchParams({
-            type: type,
-            id: transactionId,
-            token: csrfToken
-        });
-        
-        // Open receipt in new window/tab
-        const receiptWindow = window.open(receiptUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
-        
-        if (!receiptWindow) {
-            alert('Please allow popups for this site to generate receipts.');
-        } else {
-            showToast('Receipt generated successfully!', 'success');
-        }
+          })
+          .catch(()=> alert('Network error'));
     }
 
     // Helper function to get CSRF token
