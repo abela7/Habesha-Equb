@@ -1538,11 +1538,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                      receiptRow.style.display = 'none';
                  }
                 
-                // Store data for printing
-                printBtn.dataset.paymentData = JSON.stringify({
-                    paymentId, paymentMonth, paymentDate, amount, lateFee, 
-                    method, status, verification, receipt, memberName
-                });
+                // No print flow; viewing public receipt instead
                 
                 // Show modal
                 paymentModal.show();
