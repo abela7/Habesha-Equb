@@ -27,6 +27,8 @@ try {
     $memberName = trim(($pay['first_name'] ?? '') . ' ' . ($pay['last_name'] ?? ''));
     $memberCode = $pay['member_code'] ?? '';
     $paymentId = $pay['payment_id'] ?? ('PAY-' . $pay['id']);
+    $method = $pay['payment_method'] ? ucwords(str_replace('_',' ',$pay['payment_method'])) : 'N/A';
+    $lateFee = isset($pay['late_fee']) ? number_format((float)$pay['late_fee'], 2) : '0.00';
 
 } catch (Throwable $e) {
     http_response_code(500);
@@ -64,6 +66,8 @@ try {
       <div class="row"><div class="label">Member</div><div class="value"><?php echo htmlspecialchars($memberName); ?> (<?php echo htmlspecialchars($memberCode); ?>)</div></div>
       <div class="row"><div class="label">Payment Month</div><div class="value"><?php echo htmlspecialchars($month); ?></div></div>
       <div class="row"><div class="label">Amount</div><div class="value">£<?php echo $amount; ?></div></div>
+      <div class="row"><div class="label">Payment Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
+      <div class="row"><div class="label">Late Fee</div><div class="value">£<?php echo $lateFee; ?></div></div>
       <div class="row"><div class="label">Paid On</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
       <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars(strtoupper($pay['status'])); ?></div></div>
       <div class="no-print" style="margin-top:16px;">

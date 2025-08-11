@@ -462,8 +462,9 @@ function verifyPayment() {
             }
             $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
 
-            $subject_en = 'Payment verified';
-            $subject_am = 'ክፍያ ተረጋገጠ';
+            // Title as month-specific confirmation
+            $subject_en = ($monthText ? ($monthText . ' Payment Confirmation') : 'Payment Confirmation');
+            $subject_am = ($monthText ? ('የ ' . $monthText . ' ወር ክፍያ ማረጋገጫ') : 'የክፍያ ማረጋገጫ');
             // No generic dashboard link to avoid spam flags. Include unique receipt link only.
             $body_en = "Dear {$memberFirst}, you have successfully paid this month's contribution for {$monthText} on {$dateText}.\n\nAmount paid: {$amountFormatted}.\n\nDownload your receipt: {$receiptUrl}\n\nThanks for your payment.";
             $body_am = "ውድ {$memberFirst} ሆይ፣ የዚህ ወር ክፍያዎ ለ{$monthText} በ{$dateText} ተረጋግጧል።\n\nየከፈሉት መጠን: {$amountFormatted}።\n\nደረሰኝዎን ያውርዱ፡ {$receiptUrl}\n\nእናመሰግናለን።";

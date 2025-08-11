@@ -66,6 +66,11 @@ function currentLang(){ return '<?php echo $lang; ?>'; }
 
 function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
 
+function linkify(text){
+  const urlRegex = /(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)/gi;
+  return esc(text).replace(urlRegex, (url)=>`<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+}
+
 function render(items){
   const wrap = document.getElementById('list');
   wrap.innerHTML = '';
@@ -89,7 +94,7 @@ function render(items){
           ${isUnread ? '<span class="chip" style="background:#FFE8E0;color:#C2410C">Unread</span>' : ''}
         </div>
         <div class="notif-meta">${esc(created)}</div>
-        <div class="notif-body">${esc(body)}</div>
+        <div class="notif-body" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;">${linkify(body)}</div>
       </div>`;
     card.addEventListener('click', ()=> openNotif(n, isUnread, card));
     wrap.appendChild(card);
