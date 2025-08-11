@@ -64,7 +64,10 @@ if (!file_exists(__DIR__ . $brandLogo)) {
     .label { color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
     .value { font-weight:700; }
     .footer { padding:16px 24px; border-top:1px solid #f0f0f0; background:#fafbfc; font-size:12px; color:#6b7280; text-align:center; }
-    .btn { display:inline-block; padding:10px 16px; background:#DAA520; color:#301934; border-radius:8px; text-decoration:none; font-weight:700; }
+    .btn { display:inline-block; padding:10px 16px; background:#DAA520; color:#301934; border-radius:8px; text-decoration:none; font-weight:700; border:0; }
+    .btn-secondary { background:#ffffff; color:#DAA520; border:1px solid #DAA520; }
+    .btns { display:flex; gap:10px; flex-wrap:wrap; }
+    .btns .btn { flex:1 1 auto; text-align:center; }
     @media print { .no-print { display:none; } body{background:#fff;} .card{box-shadow:none; border:none;} }
   </style>
 </head>
@@ -86,14 +89,35 @@ if (!file_exists(__DIR__ . $brandLogo)) {
     </div>
     <div class="body">
       <div class="row"><div class="label">Member</div><div class="value"><?php echo htmlspecialchars($memberName); ?> (<?php echo htmlspecialchars($memberCode); ?>)</div></div>
+      <div class="row"><div class="label">Payment ID</div><div class="value"><?php echo htmlspecialchars($paymentId); ?></div></div>
       <div class="row"><div class="label">Payment Month</div><div class="value"><?php echo htmlspecialchars($month); ?></div></div>
       <div class="row"><div class="label">Amount</div><div class="value">£<?php echo $amount; ?></div></div>
       <div class="row"><div class="label">Payment Method</div><div class="value"><?php echo htmlspecialchars($method); ?></div></div>
+      <?php if ((float)$lateFee > 0): ?>
       <div class="row"><div class="label">Late Fee</div><div class="value">£<?php echo $lateFee; ?></div></div>
+      <?php endif; ?>
       <div class="row"><div class="label">Paid On</div><div class="value"><?php echo htmlspecialchars($date); ?></div></div>
-      <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars(strtoupper($pay['status'])); ?></div></div>
+      <?php
+        $verificationText = '';
+        if ((int)($pay['verified_by_admin'] ?? 0) === 1) {
+            $verificationText = 'Verified';
+        } elseif (in_array(strtolower((string)($pay['status'] ?? '')), ['paid','completed'], true)) {
+            $verificationText = 'Pending Verification';
+        } else {
+            $verificationText = 'Not Verified';
+        }
+        $statusText = ucfirst(strtolower((string)($pay['status'] ?? '')));
+      ?>
+      <div class="row"><div class="label">Status</div><div class="value"><?php echo htmlspecialchars($statusText); ?></div></div>
+      <div class="row"><div class="label">Verification</div><div class="value"><?php echo htmlspecialchars($verificationText); ?></div></div>
       <div class="no-print" style="margin-top:16px;">
-        <a class="btn" href="#" onclick="window.print();return false;">Print / Save</a>
+        <div class="btns">
+          <a class="btn" href="#" onclick="window.print();return false;">Print / Save</a>
+          <a class="btn btn-secondary" href="/user/dashboard.php">Back to Dashboard</a>
+        </div>
+        <div style="margin-top:10px; text-align:center;">
+          <a href="/user/dashboard.php" style="color:#4D4052; text-decoration:underline;">Return to Dashboard</a>
+        </div>
       </div>
     </div>
     <div class="footer">© <?php echo date('Y'); ?> HabeshaEqub • This secure link can be used to view your receipt.</div>
