@@ -440,8 +440,10 @@ function verifyPayment() {
                 $monthText = date('F Y', strtotime($payment['payment_month']));
             } elseif (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') {
                 $monthText = date('F Y', strtotime($payment['payment_date']));
+            } else {
+                $monthText = date('F Y');
             }
-            $dateText = (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') ? date('F j, Y', strtotime($payment['payment_date'])) : date('F j, Y');
+            $dateText = (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') ? date('F j, Y', strtotime($payment['payment_date'])) : date('F j, Y', strtotime($payment['created_at'] ?? 'now'));
             $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
             // Ensure unique receipt token and URL
             try {
