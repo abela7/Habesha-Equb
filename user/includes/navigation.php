@@ -1200,11 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 topBadge.textContent = count > 99 ? '99+' : String(count);
                 topBadge.style.display = count > 0 ? 'inline-flex' : 'none';
             }
-            // Optionally hide the notifications nav link if zero (simplify UX)
-            const sideLink = document.querySelector('a.nav-item[href="notifications.php"]');
-            if (sideLink) {
-                sideLink.style.display = count > 0 ? '' : 'none';
-            }
+            // Keep side nav link always visible so members can access their inbox anytime
         } catch (e) { /* silent */ }
     }
     refreshTopbarNotifications();

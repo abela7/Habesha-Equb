@@ -37,10 +37,14 @@ $cache_buster = time().'_'.rand(1000,9999);
 <div class="container-fluid page-wrap">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="m-0" style="font-weight:700; color:var(--text-primary)"><i class="fas fa-bell text-warning"></i> <?php echo t('member_nav.notifications') ?: 'Notifications'; ?></h2>
-    <div class="d-flex gap-2">
+    <div class="d-none d-sm-flex gap-2">
       <button class="btn btn-sm btn-outline-secondary" id="btnRefresh"><i class="fas fa-rotate"></i></button>
       <button class="btn btn-sm btn-outline-primary" id="btnMarkAll"><?php echo t('common.mark_all_read') ?: 'Mark all as read'; ?></button>
     </div>
+  </div>
+  <div class="d-flex d-sm-none gap-2 mb-2">
+    <button class="btn btn-outline-secondary w-50" id="btnRefreshMobile"><i class="fas fa-rotate me-2"></i><?php echo t('common.refresh') ?: 'Refresh'; ?></button>
+    <button class="btn btn-outline-primary w-50" id="btnMarkAllMobile"><i class="fas fa-check-double me-2"></i><?php echo t('common.mark_all_read') ?: 'Mark all as read'; ?></button>
   </div>
   <div id="list" class="notif-list"></div>
 </div>
@@ -149,6 +153,8 @@ async function openNotif(n, wasUnread, cardEl){
 document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('btnRefresh').addEventListener('click', loadList);
   document.getElementById('btnMarkAll').addEventListener('click', markAll);
+  const rM = document.getElementById('btnRefreshMobile'); if (rM) rM.addEventListener('click', loadList);
+  const mM = document.getElementById('btnMarkAllMobile'); if (mM) mM.addEventListener('click', markAll);
   loadList();
   setInterval(loadList, 60000);
 });
