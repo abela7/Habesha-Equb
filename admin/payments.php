@@ -1025,6 +1025,41 @@ $csrf_token = generate_csrf_token();
         </div>
     </div>
 
+    <!-- Verify Options Modal -->
+    <div class="modal fade" id="verifyOptionsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-check me-2 text-success"></i>Verify Payment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="optSendNotif" checked>
+              <label class="form-check-label" for="optSendNotif">Send in-app notification</label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="optEmailCopy" checked>
+              <label class="form-check-label" for="optEmailCopy">Send email copy (only to active + approved + opted-in)</label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="optWhatsapp" checked>
+              <label class="form-check-label" for="optWhatsapp">Return WhatsApp text to copy</label>
+            </div>
+            <div id="whatsappPreviewWrap" style="display:none;">
+              <label class="form-label mt-2">WhatsApp text</label>
+              <textarea class="form-control" id="whatsappPreview" rows="5" readonly></textarea>
+              <button class="btn btn-sm btn-outline-secondary mt-2" type="button" onclick="copyWhatsappText()"><i class="fas fa-copy me-1"></i>Copy</button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary" id="btnConfirmVerify"><i class="fas fa-check me-1"></i>Verify</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/auth.js"></script>
@@ -1155,38 +1190,52 @@ $csrf_token = generate_csrf_token();
                 });
         }
 
-        function verifyPayment(id) {
-            if (confirm('Are you sure you want to verify this payment?')) {
-                // Get CSRF token with fallback
-                const csrfToken = getCSRFToken();
-                if (!csrfToken) return; // Exit if no token available
-                
-                fetch('api/payments.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=verify&payment_id=${id}&csrf_token=${encodeURIComponent(csrfToken)}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Payment verified successfully!', 'success');
-                        loadPayments();
+        let _verifyPaymentId = null;
+        let _verifyModal;
+        function openVerifyOptions(id){
+            _verifyPaymentId = id;
+            _verifyModal = new bootstrap.Modal(document.getElementById('verifyOptionsModal'));
+            document.getElementById('whatsappPreviewWrap').style.display = 'none';
+            document.getElementById('whatsappPreview').value = '';
+            _verifyModal.show();
+        }
+
+        document.getElementById('btnConfirmVerify').addEventListener('click', function(){
+            if (!_verifyPaymentId) return;
+            const csrfToken = getCSRFToken(); if (!csrfToken) return;
+            const sendNotif = document.getElementById('optSendNotif').checked ? 1 : 0;
+            const sendEmail = document.getElementById('optEmailCopy').checked ? 1 : 0;
+            const exportWhats = document.getElementById('optWhatsapp').checked ? 1 : 0;
+
+            fetch('api/payments.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=verify&payment_id=${_verifyPaymentId}&csrf_token=${encodeURIComponent(csrfToken)}&send_notif=${sendNotif}&send_email_copy=${sendEmail}&export_whatsapp=${exportWhats}`
+            })
+            .then(r=>r.json())
+            .then(d=>{
+                if (d && d.success){
+                    showToast('Payment verified successfully!', 'success');
+                    if (exportWhats && d.whatsapp_text){
+                        const wrap = document.getElementById('whatsappPreviewWrap');
+                        const ta = document.getElementById('whatsappPreview');
+                        ta.value = d.whatsapp_text;
+                        wrap.style.display = 'block';
                     } else {
-                        // Check if it's a CSRF token error
-                        if (data.message && data.message.includes('security token')) {
-                            if (confirm('Security token expired. Would you like to refresh the page and try again?')) {
-                                window.location.reload();
-                            }
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
+                        _verifyModal.hide();
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while verifying payment');
-                });
-            }
+                    loadPayments();
+                } else {
+                    alert(d && d.message ? d.message : 'Verification failed');
+                }
+            })
+            .catch(err=>{ console.error(err); alert('Network error'); });
+        });
+
+        function copyWhatsappText(){
+            const ta = document.getElementById('whatsappPreview');
+            ta.select(); ta.setSelectionRange(0, 99999);
+            try { document.execCommand('copy'); showToast('Copied to clipboard','success'); } catch(e){}
         }
 
         function deletePayment(id) {
@@ -1365,7 +1414,7 @@ $csrf_token = generate_csrf_token();
                         ? new Date(payment.payment_date).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
                     : '<span class="text-muted">Not Set</span>';
                 const verifyButton = payment.status === 'pending' ? 
-                        `<button class="btn btn-action btn-verify" onclick="verifyPayment(${payment.id})" title="Verify Payment"><i class=\"fas fa-check\"></i></button>` : '';
+                        `<button class=\"btn btn-action btn-verify\" onclick=\"openVerifyOptions(${payment.id})\" title=\"Verify Payment\"><i class=\"fas fa-check\"></i></button>` : '';
                 const verifiedBadge = payment.verified_by_admin ? 
                         '<span class="verified-badge verified-yes">Verified</span>' : '<span class="verified-badge verified-no">Unverified</span>';
                     rowsHtml += `
