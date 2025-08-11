@@ -28,8 +28,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $read_only = ['list', 'get', 'search_members', 'get_equb_terms', 'get_csrf_token'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !in_array($action, $read_only)) {
-    $providedToken = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
-    if ($providedToken === '' || !verify_csrf_token($providedToken)) {
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Invalid security token']);
         exit;
