@@ -812,7 +812,13 @@ $csrf_token = generate_csrf_token();
                 <!-- Payments Grouped by Month -->
                 <div class="payments-table-container">
                     <div class="table-header">
-                        <h3 class="table-title"><?php echo t('payments.all_payments'); ?></h3>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="table-title m-0"><?php echo t('payments.all_payments'); ?></h3>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-secondary" id="btnCollapseAll" type="button"><i class="fas fa-compress me-1"></i>Collapse All</button>
+                                <button class="btn btn-sm btn-outline-secondary" id="btnExpandAll" type="button"><i class="fas fa-expand me-1"></i>Expand All</button>
+                            </div>
+                        </div>
                     </div>
                     <div id="paymentsAccordion" class="accordion"></div>
                 </div>
@@ -1594,6 +1600,20 @@ $csrf_token = generate_csrf_token();
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Initial load of all payments
+            loadPayments();
+
+            // Expand/Collapse controls
+            const acc = document.getElementById('paymentsAccordion');
+            const btnExpandAll = document.getElementById('btnExpandAll');
+            const btnCollapseAll = document.getElementById('btnCollapseAll');
+            if (btnExpandAll) btnExpandAll.addEventListener('click', ()=>{
+                acc.querySelectorAll('.accordion-collapse').forEach(c=> new bootstrap.Collapse(c, { show: true }));
+            });
+            if (btnCollapseAll) btnCollapseAll.addEventListener('click', ()=>{
+                acc.querySelectorAll('.accordion-collapse.show').forEach(c=> new bootstrap.Collapse(c, { toggle: true }));
             });
         });
 
