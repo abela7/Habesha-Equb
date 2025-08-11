@@ -100,6 +100,7 @@ function listNotifications(int $user_id): void {
                     (n.recipient_type = 'member' AND n.recipient_id = ?)
                     OR n.recipient_type = 'all_members'
                 )
+                  AND (n.type IS NULL OR n.type <> 'approval')
                 ORDER BY n.created_at DESC
                 LIMIT 100";
         $stmt2 = $pdo->prepare($sql);
@@ -115,12 +116,25 @@ function listNotifications(int $user_id): void {
         return strcmp($bd, $ad);
     });
 
-    // Limit to 100 for UI
-    if (count($results) > 100) {
-        $results = array_slice($results, 0, 100);
+    // De-duplicate by code+created_at+title to avoid repeated legacy items (e.g., many account approved rows)
+    $seen = [];
+    $deduped = [];
+    foreach ($results as $row) {
+        $code = isset($row['notification_code']) ? (string)$row['notification_code'] : '';
+        $created = isset($row['created_at']) ? (string)$row['created_at'] : (isset($row['sent_at']) ? (string)$row['sent_at'] : '');
+        $title = isset($row['title_en']) ? (string)$row['title_en'] : '';
+        $key = $code . '|' . $created . '|' . $title;
+        if (isset($seen[$key])) { continue; }
+        $seen[$key] = true;
+        $deduped[] = $row;
     }
 
-    echo json_encode(['success' => true, 'notifications' => $results]);
+    // Limit to 100 for UI
+    if (count($deduped) > 100) {
+        $deduped = array_slice($deduped, 0, 100);
+    }
+
+    echo json_encode(['success' => true, 'notifications' => $deduped]);
 }
 
 function markRead(int $user_id): void {
@@ -200,6 +214,7 @@ function countUnread(int $user_id): void {
                 FROM notifications n
                 LEFT JOIN notification_reads nr ON nr.notification_id = n.id AND nr.member_id = ?
                 WHERE (n.recipient_type = 'all_members' OR (n.recipient_type='member' AND n.recipient_id = ?))
+                  AND (n.type IS NULL OR n.type <> 'approval')
                   AND COALESCE(nr.is_read, 0) = 0";
         $s = $pdo->prepare($sql);
         $s->execute([$user_id, $user_id]);
