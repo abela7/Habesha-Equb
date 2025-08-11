@@ -143,11 +143,12 @@ function createNotification(int $admin_id): void {
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$notificationId, $equb_settings_id]);
         } else {
+            // Target specific members: always create in-app recipients for ACTIVE members.
+            // Email opt-in/approval are enforced only during the email dispatch step below.
             $ins = $pdo->prepare('INSERT IGNORE INTO notification_recipients (notification_id, member_id, created_at) VALUES (?, ?, NOW())');
+            $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1');
             foreach ($member_ids as $mid) {
                 if ($mid > 0) {
-                    // ensure member exists and is active/approved & opted-in
-                    $chk = $pdo->prepare('SELECT id FROM members WHERE id = ? AND is_active = 1 AND is_approved = 1 AND COALESCE(email_notifications,1) = 1');
                     $chk->execute([$mid]);
                     if ($chk->fetchColumn()) {
                         $ins->execute([$notificationId, $mid]);
