@@ -975,6 +975,7 @@ $csrf_token = generate_csrf_token();
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6,9 12,15 18,9"/>
                 </svg>
+                <span class="nav-badge" id="memberNotifBadgeTop" style="display:none; margin-left:6px;">0</span>
                 
                 <div class="user-dropdown" id="userDropdown">
                     <a href="profile.php" class="dropdown-item">
@@ -1187,9 +1188,27 @@ async function updateMemberUnreadBadges() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateMemberUnreadBadges();
-    // also refresh every 60s like modern apps
-    setInterval(updateMemberUnreadBadges, 60000);
+    // Fetch unread count and manage bell visibility on topbar only (no FAB badge)
+    async function refreshTopbarNotifications(){
+        try {
+            const resp = await fetch('api/notifications.php?action=count_unread', { cache: 'no-store' });
+            const data = await resp.json();
+            const count = data && data.success ? Number(data.unread) : 0;
+            const topBadge = document.getElementById('memberNotifBadgeTop');
+            // Show badge only if unread > 0; else hide the badge entirely
+            if (topBadge) {
+                topBadge.textContent = count > 99 ? '99+' : String(count);
+                topBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
+            // Optionally hide the notifications nav link if zero (simplify UX)
+            const sideLink = document.querySelector('a.nav-item[href="notifications.php"]');
+            if (sideLink) {
+                sideLink.style.display = count > 0 ? '' : 'none';
+            }
+        } catch (e) { /* silent */ }
+    }
+    refreshTopbarNotifications();
+    setInterval(refreshTopbarNotifications, 45000);
 });
 
 // Logout function
