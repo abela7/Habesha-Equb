@@ -1284,7 +1284,8 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                          data-verification="<?php echo $payment['verification_status']; ?>"
                                          data-receipt="<?php echo $payment['receipt_number'] ?? ''; ?>"
                                          data-created="<?php echo $payment['created_at'] ?? ''; ?>"
-                                         data-member-name="<?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>">
+                                         data-member-name="<?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>"
+                                         data-payment-db-id="<?php echo (int)$payment['id']; ?>">
                                      <i class="fas fa-eye"></i>
                                  </button>
                              </td>
@@ -1471,6 +1472,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         const paymentModal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
         const detailButtons = document.querySelectorAll('.payment-details-btn');
         const printBtn = document.getElementById('printReceiptBtn');
+        let currentPaymentDbId = null;
         
         detailButtons.forEach(button => {
             button.addEventListener('click', function() {
@@ -1485,6 +1487,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                 const verification = this.dataset.verification;
                 const receipt = this.dataset.receipt;
                 const memberName = this.dataset.memberName;
+                currentPaymentDbId = parseInt(this.dataset.paymentDbId || '0', 10) || null;
                 
                 // Populate modal fields
                 document.getElementById('modal-payment-id').textContent = paymentId || '-';
@@ -1546,7 +1549,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             });
         });
         
-                 // Print Receipt Functionality
+        // Print/Save and Open Public Receipt Functionality
          printBtn.addEventListener('click', function() {
              const paymentData = JSON.parse(this.dataset.paymentData);
              
@@ -1587,7 +1590,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
              document.getElementById('receipt-print-date').textContent = now.toLocaleDateString();
              document.getElementById('receipt-generated-date').textContent = now.toLocaleString();
              
-             // Show receipt temporarily for printing
+              // Show receipt temporarily for printing
              const receiptTemplate = document.getElementById('receiptTemplate');
              receiptTemplate.style.display = 'block';
              
@@ -1601,6 +1604,32 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                  receiptTemplate.style.display = 'none';
              }, 500);
          });
+
+        // If user prefers the identical public receipt view, open in new tab when clicking a small link inside modal (optional future enhancement)
+        // Auto-inject a link once per modal open
+        const modalFooter = document.querySelector('#paymentDetailsModal .modal-footer');
+        if (modalFooter && !document.getElementById('openPublicReceiptBtn')) {
+            const linkBtn = document.createElement('button');
+            linkBtn.type='button';
+            linkBtn.className='btn btn-primary';
+            linkBtn.id='openPublicReceiptBtn';
+            linkBtn.style.marginLeft='8px';
+            linkBtn.innerHTML='<i class="fas fa-external-link-alt me-2"></i><?php echo t('contributions.view_online_receipt'); ?>';
+            linkBtn.addEventListener('click', function(){
+                if (!currentPaymentDbId) return;
+                fetch('api/receipt.php?action=get_receipt_token&payment_id=' + encodeURIComponent(currentPaymentDbId))
+                    .then(r=>r.json())
+                    .then(d=>{
+                        if (d && d.success && d.receipt_url) {
+                            window.open(d.receipt_url, '_blank');
+                        } else {
+                            alert(d && d.message ? d.message : 'Could not open receipt');
+                        }
+                    })
+                    .catch(()=> alert('Network error'));
+            });
+            modalFooter.appendChild(linkBtn);
+        }
     });
     </script>
 </body>
