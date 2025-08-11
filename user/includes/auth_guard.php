@@ -104,11 +104,32 @@ function require_user_auth() {
 
     // Check session timeout. If user selected remember-device, extend to 7 days
     $timeoutHours = 24;
-    if (!empty($_SESSION['auto_login']) || isset($_COOKIE['device_token'])) {
-        $timeoutHours = 24 * 7; // 7 days
-    }
+    $hasRemember = (!empty($_SESSION['auto_login']) || isset($_COOKIE['device_token']));
+    if ($hasRemember) { $timeoutHours = 24 * 7; }
     if (check_session_timeout($timeoutHours)) {
         error_log("Auth Guard - Session timeout, redirecting to login");
+        // If a device token exists, clear it server-side and client-side to prevent blank loops
+        if (isset($_COOKIE['device_token'])) {
+            require_once __DIR__ . '/device_auth.php';
+            revokeDeviceToken($_COOKIE['device_token']);
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            setcookie('device_token', '', [
+                'expires' => time() - 3600,
+                'path' => '/',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            if ($isSecure === false) {
+                setcookie('device_token', '', [
+                    'expires' => time() - 3600,
+                    'path' => '/',
+                    'secure' => true,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]);
+            }
+        }
         logout_and_redirect('Your session has expired. Please log in again.');
     }
     
@@ -127,7 +148,7 @@ function require_user_auth() {
     }
     
     // Sliding session: refresh login time on activity if remembered device
-    if (!empty($_SESSION['auto_login']) || isset($_COOKIE['device_token'])) {
+    if ($hasRemember) {
         $_SESSION['user_login_time'] = time();
     }
     $_SESSION['user_last_activity'] = time();

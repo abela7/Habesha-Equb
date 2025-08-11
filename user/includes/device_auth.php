@@ -37,7 +37,25 @@ function checkRememberedDevice() {
         
         if (!$has_device_token) {
             // Database not updated, remove invalid cookie and skip check
-            setcookie('device_token', '', time() - 3600, '/', '', true, true);
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            // Remove cookie (best-effort for both secure flags)
+            setcookie('device_token', '', [
+                'expires' => time() - 3600,
+                'path' => '/',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            if ($isSecure === false) {
+                // Also attempt secure variant removal in case it was set as secure earlier
+                setcookie('device_token', '', [
+                    'expires' => time() - 3600,
+                    'path' => '/',
+                    'secure' => true,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]);
+            }
             return false;
         }
         
@@ -85,8 +103,24 @@ function checkRememberedDevice() {
             
             return true;
         } else {
-            // Token is invalid or expired, remove cookie
-            setcookie('device_token', '', time() - 3600, '/', '', true, true);
+            // Token is invalid or expired, remove cookie (robustly)
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            setcookie('device_token', '', [
+                'expires' => time() - 3600,
+                'path' => '/',
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            if ($isSecure === false) {
+                setcookie('device_token', '', [
+                    'expires' => time() - 3600,
+                    'path' => '/',
+                    'secure' => true,
+                    'httponly' => true,
+                    'samesite' => 'Lax'
+                ]);
+            }
             return false;
         }
         
