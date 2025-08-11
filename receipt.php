@@ -115,9 +115,6 @@ if (!file_exists(__DIR__ . $brandLogo)) {
           <a class="btn" href="#" onclick="window.print();return false;">Print / Save</a>
           <a class="btn btn-secondary" href="/user/dashboard.php">Back to Dashboard</a>
         </div>
-        <div style="margin-top:10px; text-align:center;">
-          <a href="/user/dashboard.php" style="color:#4D4052; text-decoration:underline;">Return to Dashboard</a>
-        </div>
       </div>
     </div>
     <div class="footer">© <?php echo date('Y'); ?> HabeshaEqub • This secure link can be used to view your receipt.</div>

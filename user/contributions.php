@@ -1361,9 +1361,9 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                         <i class="fas fa-times me-2"></i>
                         <?php echo t('common.cancel'); ?>
                     </button>
-                                                             <button type="button" class="btn btn-warning" id="printReceiptBtn" style="background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); border: 2px solid var(--color-light-gold); color: var(--color-deep-purple);">
-                        <i class="fas fa-print me-2"></i>
-                        <?php echo t('contributions.print_statement'); ?>
+                    <button type="button" class="btn btn-primary" id="openPublicReceiptBtn">
+                        <i class="fas fa-external-link-alt me-2"></i>
+                        <?php echo t('contributions.view_receipt'); ?>
                     </button>
                 </div>
             </div>
@@ -1471,7 +1471,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
         // Payment Details Modal
         const paymentModal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
         const detailButtons = document.querySelectorAll('.payment-details-btn');
-        const printBtn = document.getElementById('printReceiptBtn');
+        const openPublicBtn = document.getElementById('openPublicReceiptBtn');
         let currentPaymentDbId = null;
         
         detailButtons.forEach(button => {
@@ -1549,87 +1549,22 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             });
         });
         
-        // Print/Save and Open Public Receipt Functionality
-         printBtn.addEventListener('click', function() {
-             const paymentData = JSON.parse(this.dataset.paymentData);
-             
-             // Populate print template
-             document.getElementById('receipt-member-name').textContent = paymentData.memberName;
-             document.getElementById('receipt-payment-id').textContent = paymentData.paymentId;
-             document.getElementById('receipt-payment-month').textContent = paymentData.paymentMonth;
-             document.getElementById('receipt-payment-date').textContent = paymentData.paymentDate || '<?php echo t("contributions.not_specified"); ?>';
-             document.getElementById('receipt-payment-method').textContent = paymentData.method;
-             document.getElementById('receipt-amount').textContent = '£' + paymentData.amount;
-             
-             // Handle late fee in receipt
-             const receiptLateFeeRow = document.getElementById('receipt-late-fee-row');
-             if (paymentData.lateFee && parseFloat(paymentData.lateFee) > 0) {
-                 document.getElementById('receipt-late-fee').textContent = '£' + paymentData.lateFee;
-                 receiptLateFeeRow.style.display = 'block';
-             } else {
-                 receiptLateFeeRow.style.display = 'none';
-             }
-             
-             // Set status based on verification
-             let receiptStatus = '';
-             if (paymentData.verification === 'verified') {
-                 receiptStatus = '<?php echo t("contributions.paid"); ?> - <?php echo t("contributions.verified"); ?>';
-             } else if (paymentData.verification === 'pending_verification') {
-                 receiptStatus = '<?php echo t("contributions.paid"); ?> - <?php echo t("contributions.pending_verification"); ?>';
-             } else {
-                 receiptStatus = '<?php echo t("contributions.not_paid"); ?>';
-             }
-             
-             document.getElementById('receipt-status').textContent = receiptStatus;
-             document.getElementById('receipt-verification').textContent = 
-                 paymentData.verification === 'verified' ? '<?php echo t("contributions.verified"); ?>' : 
-                 paymentData.verification === 'pending_verification' ? '<?php echo t("contributions.pending"); ?>' : '<?php echo t("contributions.not_verified"); ?>';
-             
-             // Set dates
-             const now = new Date();
-             document.getElementById('receipt-print-date').textContent = now.toLocaleDateString();
-             document.getElementById('receipt-generated-date').textContent = now.toLocaleString();
-             
-              // Show receipt temporarily for printing
-             const receiptTemplate = document.getElementById('receiptTemplate');
-             receiptTemplate.style.display = 'block';
-             
-             // Hide modal and print
-             paymentModal.hide();
-             
-             // Small delay to ensure modal is hidden and receipt is visible
-             setTimeout(() => {
-                 window.print();
-                 // Hide receipt again after printing
-                 receiptTemplate.style.display = 'none';
-             }, 500);
-         });
+        // Open Public Receipt (identical to notification/admin)
+        openPublicBtn.addEventListener('click', function(){
+            if (!currentPaymentDbId) return;
+            fetch('api/receipt.php?action=get_receipt_token&payment_id=' + encodeURIComponent(currentPaymentDbId))
+                .then(r=>r.json())
+                .then(d=>{
+                    if (d && d.success && d.receipt_url) {
+                        window.open(d.receipt_url, '_blank');
+                    } else {
+                        alert(d && d.message ? d.message : 'Could not open receipt');
+                    }
+                })
+                .catch(()=> alert('Network error'));
+        });
 
-        // If user prefers the identical public receipt view, open in new tab when clicking a small link inside modal (optional future enhancement)
-        // Auto-inject a link once per modal open
-        const modalFooter = document.querySelector('#paymentDetailsModal .modal-footer');
-        if (modalFooter && !document.getElementById('openPublicReceiptBtn')) {
-            const linkBtn = document.createElement('button');
-            linkBtn.type='button';
-            linkBtn.className='btn btn-primary';
-            linkBtn.id='openPublicReceiptBtn';
-            linkBtn.style.marginLeft='8px';
-            linkBtn.innerHTML='<i class="fas fa-external-link-alt me-2"></i><?php echo t('contributions.view_online_receipt'); ?>';
-            linkBtn.addEventListener('click', function(){
-                if (!currentPaymentDbId) return;
-                fetch('api/receipt.php?action=get_receipt_token&payment_id=' + encodeURIComponent(currentPaymentDbId))
-                    .then(r=>r.json())
-                    .then(d=>{
-                        if (d && d.success && d.receipt_url) {
-                            window.open(d.receipt_url, '_blank');
-                        } else {
-                            alert(d && d.message ? d.message : 'Could not open receipt');
-                        }
-                    })
-                    .catch(()=> alert('Network error'));
-            });
-            modalFooter.appendChild(linkBtn);
-        }
+        // removed inline injection; using a static translated button instead
     });
     </script>
 </body>
