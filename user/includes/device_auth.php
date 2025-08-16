@@ -69,11 +69,14 @@ function checkRememberedDevice() {
         }
         
         // Check if device token is valid and not expired
+        // IMPORTANT: Only check non-NULL tokens to avoid matching old records
         $stmt = $database->prepare("
             SELECT dt.email, m.id, m.member_id, m.first_name, m.last_name, m.email as member_email
             FROM device_tracking dt
             JOIN members m ON dt.email = m.email
             WHERE dt.device_token = ? 
+            AND dt.device_token IS NOT NULL
+            AND dt.expires_at IS NOT NULL
             AND dt.expires_at > NOW() 
             AND m.is_approved = 1 
             AND m.is_active = 1
