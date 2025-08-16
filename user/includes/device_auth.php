@@ -18,8 +18,27 @@ function checkRememberedDevice() {
         return true;
     }
     
+    // SAFETY: Prevent infinite loops by tracking attempts
+    if (!isset($_SESSION['device_check_attempts'])) {
+        $_SESSION['device_check_attempts'] = 0;
+    }
+    $_SESSION['device_check_attempts']++;
+    
+    // If we've tried more than 3 times, clear everything and stop
+    if ($_SESSION['device_check_attempts'] > 3) {
+        // Aggressive cookie clearing
+        setcookie('device_token', '', time() - 3600, '/', '', false, true);
+        setcookie('device_token', '', time() - 3600, '/', '', true, true);
+        setcookie('device_token', '', time() - 3600, '/');
+        setcookie('device_token', '');
+        unset($_COOKIE['device_token']);
+        unset($_SESSION['device_check_attempts']);
+        return false;
+    }
+    
     // Check if device token exists
     if (!isset($_COOKIE['device_token']) || empty($_COOKIE['device_token'])) {
+        unset($_SESSION['device_check_attempts']); // Reset counter on success
         return false;
     }
     
@@ -37,25 +56,15 @@ function checkRememberedDevice() {
         
         if (!$has_device_token) {
             // Database not updated, remove invalid cookie and skip check
-            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-            // Remove cookie (best-effort for both secure flags)
-            setcookie('device_token', '', [
-                'expires' => time() - 3600,
-                'path' => '/',
-                'secure' => $isSecure,
-                'httponly' => true,
-                'samesite' => 'Lax'
-            ]);
-            if ($isSecure === false) {
-                // Also attempt secure variant removal in case it was set as secure earlier
-                setcookie('device_token', '', [
-                    'expires' => time() - 3600,
-                    'path' => '/',
-                    'secure' => true,
-                    'httponly' => true,
-                    'samesite' => 'Lax'
-                ]);
-            }
+            // AGGRESSIVE cookie clearing to prevent infinite loops
+            setcookie('device_token', '', time() - 3600, '/', '', false, true);
+            setcookie('device_token', '', time() - 3600, '/', '', true, true);
+            setcookie('device_token', '', time() - 3600, '/');
+            setcookie('device_token', '');
+            
+            // Also clear from $_COOKIE superglobal to prevent same-request loops
+            unset($_COOKIE['device_token']);
+            
             return false;
         }
         
@@ -101,31 +110,32 @@ function checkRememberedDevice() {
             $_SESSION['user_login_time'] = time();
             $_SESSION['user_last_activity'] = time();
             
+            // Reset device check attempts on successful login
+            unset($_SESSION['device_check_attempts']);
+            
             return true;
         } else {
-            // Token is invalid or expired, remove cookie (robustly)
-            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-            setcookie('device_token', '', [
-                'expires' => time() - 3600,
-                'path' => '/',
-                'secure' => $isSecure,
-                'httponly' => true,
-                'samesite' => 'Lax'
-            ]);
-            if ($isSecure === false) {
-                setcookie('device_token', '', [
-                    'expires' => time() - 3600,
-                    'path' => '/',
-                    'secure' => true,
-                    'httponly' => true,
-                    'samesite' => 'Lax'
-                ]);
-            }
+            // Token is invalid or expired, remove cookie (AGGRESSIVELY)
+            // Multiple attempts to ensure cookie is cleared on all browsers/devices
+            setcookie('device_token', '', time() - 3600, '/', '', false, true);
+            setcookie('device_token', '', time() - 3600, '/', '', true, true);
+            setcookie('device_token', '', time() - 3600, '/');
+            setcookie('device_token', '');
+            
+            // Also clear from $_COOKIE superglobal to prevent same-request loops
+            unset($_COOKIE['device_token']);
+            
             return false;
         }
         
     } catch (Exception $e) {
         error_log("Device authentication error: " . $e->getMessage());
+        // Clear cookies on any error to prevent loops
+        setcookie('device_token', '', time() - 3600, '/', '', false, true);
+        setcookie('device_token', '', time() - 3600, '/', '', true, true);
+        setcookie('device_token', '', time() - 3600, '/');
+        setcookie('device_token', '');
+        unset($_COOKIE['device_token']);
         return false;
     }
 }
