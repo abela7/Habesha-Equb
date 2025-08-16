@@ -669,20 +669,66 @@ function deleteMember() {
         $result = $stmt->execute([$member_id]);
         
         if ($result) {
-            // Update equb member count if member was assigned to an equb
+            // Update equb member count and RECALCULATE ALL VALUES if member was assigned to an equb
             if ($member_data['equb_settings_id']) {
-                $stmt = $pdo->prepare("
-                    UPDATE equb_settings 
-                    SET current_members = current_members - 1,
-                        updated_at = NOW()
-                    WHERE id = ?
-                ");
-                $stmt->execute([$member_data['equb_settings_id']]);
+                // Include the enhanced calculator for automatic recalculation
+                require_once '../../includes/enhanced_equb_calculator.php';
+                $calculator = getEnhancedEqubCalculator();
+                
+                // Recalculate the affected equb
+                $calculation_result = $calculator->calculateEqubPositions($member_data['equb_settings_id']);
+                
+                if ($calculation_result['success']) {
+                    $monthly_pool = $calculation_result['total_monthly_pool'];
+                    $stmt = $pdo->prepare("SELECT duration_months FROM equb_settings WHERE id = ?");
+                    $stmt->execute([$member_data['equb_settings_id']]);
+                    $duration = $stmt->fetchColumn();
+                    $new_total_pool = $monthly_pool * $duration;
+                    
+                    // Update equb settings with recalculated values
+                    $stmt = $pdo->prepare("
+                        UPDATE equb_settings 
+                        SET 
+                            current_members = (SELECT COUNT(*) FROM members WHERE equb_settings_id = ? AND is_active = 1),
+                            total_pool_amount = ?,
+                            updated_at = NOW()
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$member_data['equb_settings_id'], $new_total_pool, $member_data['equb_settings_id']]);
+                    
+                    // Update remaining members' expected payouts
+                    foreach ($calculation_result['position_analysis'] as $member_analysis) {
+                        $stmt = $pdo->prepare("
+                            UPDATE members 
+                            SET 
+                                expected_payout = ?,
+                                position_coefficient = ?,
+                                updated_at = NOW()
+                            WHERE id = ?
+                        ");
+                        $stmt->execute([
+                            $member_analysis['expected_payout'],
+                            $member_analysis['position_coefficient'],
+                            $member_analysis['member_id']
+                        ]);
+                    }
+                    
+                    // Update payout positions if they exist
+                    $stmt = $pdo->prepare("
+                        UPDATE payout_positions pp
+                        JOIN members m ON pp.member_id = m.id
+                        SET 
+                            pp.expected_payout = m.expected_payout,
+                            pp.updated_at = NOW()
+                        WHERE m.equb_settings_id = ?
+                    ");
+                    $stmt->execute([$member_data['equb_settings_id']]);
+                }
             }
             
             // Commit transaction
             $pdo->commit();
-            echo json_encode(['success' => true, 'message' => 'Member deleted successfully']);
+            echo json_encode(['success' => true, 'message' => 'Member deleted successfully and equb values recalculated for remaining members']);
         } else {
             $pdo->rollback();
             echo json_encode(['success' => false, 'message' => 'Failed to delete member']);
@@ -710,12 +756,63 @@ function toggleMemberStatus() {
     }
     
     try {
+        // Get member's equb assignment for recalculation
+        $stmt = $pdo->prepare("SELECT equb_settings_id FROM members WHERE id = ?");
+        $stmt->execute([$member_id]);
+        $member_data = $stmt->fetch();
+        
         $stmt = $pdo->prepare("UPDATE members SET is_active = ?, updated_at = NOW() WHERE id = ?");
         $result = $stmt->execute([$status, $member_id]);
         
         if ($result) {
+            // AUTOMATIC RECALCULATION when member status changes
+            if ($member_data && $member_data['equb_settings_id']) {
+                // Include the enhanced calculator
+                require_once '../../includes/enhanced_equb_calculator.php';
+                $calculator = getEnhancedEqubCalculator();
+                
+                // Recalculate the affected equb
+                $calculation_result = $calculator->calculateEqubPositions($member_data['equb_settings_id']);
+                
+                if ($calculation_result['success']) {
+                    $monthly_pool = $calculation_result['total_monthly_pool'];
+                    $stmt = $pdo->prepare("SELECT duration_months FROM equb_settings WHERE id = ?");
+                    $stmt->execute([$member_data['equb_settings_id']]);
+                    $duration = $stmt->fetchColumn();
+                    $new_total_pool = $monthly_pool * $duration;
+                    
+                    // Update equb settings with recalculated values
+                    $stmt = $pdo->prepare("
+                        UPDATE equb_settings 
+                        SET 
+                            current_members = (SELECT COUNT(*) FROM members WHERE equb_settings_id = ? AND is_active = 1),
+                            total_pool_amount = ?,
+                            updated_at = NOW()
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$member_data['equb_settings_id'], $new_total_pool, $member_data['equb_settings_id']]);
+                    
+                    // Update all active members' expected payouts
+                    foreach ($calculation_result['position_analysis'] as $member_analysis) {
+                        $stmt = $pdo->prepare("
+                            UPDATE members 
+                            SET 
+                                expected_payout = ?,
+                                position_coefficient = ?,
+                                updated_at = NOW()
+                            WHERE id = ?
+                        ");
+                        $stmt->execute([
+                            $member_analysis['expected_payout'],
+                            $member_analysis['position_coefficient'],
+                            $member_analysis['member_id']
+                        ]);
+                    }
+                }
+            }
+            
             $status_text = $status ? 'activated' : 'deactivated';
-            echo json_encode(['success' => true, 'message' => "Member {$status_text} successfully"]);
+            echo json_encode(['success' => true, 'message' => "Member {$status_text} successfully and equb values automatically recalculated"]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to update member status']);
         }

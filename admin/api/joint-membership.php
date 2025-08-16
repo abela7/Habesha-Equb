@@ -319,6 +319,16 @@ function deleteJointGroup() {
     try {
         $pdo->beginTransaction();
         
+        // Get joint group's equb assignment before deletion for recalculation
+        $stmt = $pdo->prepare("SELECT equb_settings_id FROM joint_membership_groups WHERE joint_group_id = ?");
+        $stmt->execute([$joint_group_id]);
+        $group_data = $stmt->fetch();
+        
+        if (!$group_data) {
+            $pdo->rollBack();
+            json_response(false, 'Joint group not found');
+        }
+        
         // Check if group has members
         $stmt = $pdo->prepare("
             SELECT COUNT(*) FROM members 
@@ -332,7 +342,7 @@ function deleteJointGroup() {
             json_response(false, 'Cannot delete joint group with active members');
         }
         
-        // Delete the joint group
+        // Delete the joint group (soft delete)
         $stmt = $pdo->prepare("
             UPDATE joint_membership_groups 
             SET is_active = 0 
@@ -345,9 +355,55 @@ function deleteJointGroup() {
             json_response(false, 'Joint group not found');
         }
         
+        // AUTOMATIC RECALCULATION when joint group is deleted
+        if ($group_data['equb_settings_id']) {
+            // Include the enhanced calculator
+            require_once '../../includes/enhanced_equb_calculator.php';
+            $calculator = getEnhancedEqubCalculator();
+            
+            // Recalculate the affected equb
+            $calculation_result = $calculator->calculateEqubPositions($group_data['equb_settings_id']);
+            
+            if ($calculation_result['success']) {
+                $monthly_pool = $calculation_result['total_monthly_pool'];
+                $stmt = $pdo->prepare("SELECT duration_months FROM equb_settings WHERE id = ?");
+                $stmt->execute([$group_data['equb_settings_id']]);
+                $duration = $stmt->fetchColumn();
+                $new_total_pool = $monthly_pool * $duration;
+                
+                // Update equb settings with recalculated values
+                $stmt = $pdo->prepare("
+                    UPDATE equb_settings 
+                    SET 
+                        current_members = (SELECT COUNT(*) FROM members WHERE equb_settings_id = ? AND is_active = 1),
+                        total_pool_amount = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$group_data['equb_settings_id'], $new_total_pool, $group_data['equb_settings_id']]);
+                
+                // Update all remaining active members' expected payouts
+                foreach ($calculation_result['position_analysis'] as $member_analysis) {
+                    $stmt = $pdo->prepare("
+                        UPDATE members 
+                        SET 
+                            expected_payout = ?,
+                            position_coefficient = ?,
+                            updated_at = NOW()
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $member_analysis['expected_payout'],
+                        $member_analysis['position_coefficient'],
+                        $member_analysis['member_id']
+                    ]);
+                }
+            }
+        }
+        
         $pdo->commit();
         
-        json_response(true, 'Joint group deleted successfully');
+        json_response(true, 'Joint group deleted successfully and equb values automatically recalculated for remaining members');
         
     } catch (Exception $e) {
         $pdo->rollBack();

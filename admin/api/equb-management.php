@@ -408,6 +408,143 @@ try {
             json_response(true, 'Statistics retrieved successfully', $stats);
             break;
             
+        case 'recalculate_all_values':
+            // Include the enhanced calculator
+            require_once '../../includes/enhanced_equb_calculator.php';
+            $calculator = getEnhancedEqubCalculator();
+            
+            $updated_equbs = 0;
+            $updated_members = 0;
+            $updated_positions = 0;
+            $total_pool_updated = 0;
+            $errors = [];
+            
+            // Get all equb settings
+            $stmt = $pdo->query("SELECT * FROM equb_settings ORDER BY id");
+            $equbs = $stmt->fetchAll();
+            
+            foreach ($equbs as $equb) {
+                try {
+                    // Calculate positions using enhanced calculator
+                    $calculation_result = $calculator->calculateEqubPositions($equb['id']);
+                    
+                    if ($calculation_result['success']) {
+                        $monthly_pool = $calculation_result['total_monthly_pool'];
+                        $duration = $equb['duration_months'];
+                        $new_total_pool = $monthly_pool * $duration;
+                        
+                        // Update equb settings with recalculated values
+                        $stmt = $pdo->prepare("
+                            UPDATE equb_settings 
+                            SET 
+                                total_pool_amount = ?,
+                                current_members = (
+                                    SELECT COUNT(*) FROM members 
+                                    WHERE equb_settings_id = ? AND is_active = 1
+                                ),
+                                collected_amount = (
+                                    SELECT COALESCE(SUM(p.amount), 0) 
+                                    FROM payments p 
+                                    JOIN members m ON p.member_id = m.id 
+                                    WHERE m.equb_settings_id = ? AND p.status = 'paid'
+                                ),
+                                distributed_amount = (
+                                    SELECT COALESCE(SUM(po.net_amount), 0) 
+                                    FROM payouts po 
+                                    JOIN members m ON po.member_id = m.id 
+                                    WHERE m.equb_settings_id = ? AND po.status = 'completed'
+                                ),
+                                updated_at = NOW()
+                            WHERE id = ?
+                        ");
+                        $stmt->execute([
+                            $new_total_pool,
+                            $equb['id'],
+                            $equb['id'],
+                            $equb['id'],
+                            $equb['id']
+                        ]);
+                        
+                        $updated_equbs++;
+                        $total_pool_updated += $new_total_pool;
+                        
+                        // Update member position coefficients and expected payouts
+                        foreach ($calculation_result['position_analysis'] as $member_analysis) {
+                            $stmt = $pdo->prepare("
+                                UPDATE members 
+                                SET 
+                                    expected_payout = ?,
+                                    position_coefficient = ?,
+                                    updated_at = NOW()
+                                WHERE id = ?
+                            ");
+                            $stmt->execute([
+                                $member_analysis['expected_payout'],
+                                $member_analysis['position_coefficient'],
+                                $member_analysis['member_id']
+                            ]);
+                            
+                            $updated_members++;
+                        }
+                        
+                        // Update payout positions table if exists
+                        $stmt = $pdo->prepare("
+                            UPDATE payout_positions pp
+                            JOIN members m ON pp.member_id = m.id
+                            SET 
+                                pp.expected_payout = m.expected_payout,
+                                pp.updated_at = NOW()
+                            WHERE m.equb_settings_id = ?
+                        ");
+                        $stmt->execute([$equb['id']]);
+                        $updated_positions += $stmt->rowCount();
+                        
+                    } else {
+                        $errors[] = "Failed to calculate equb {$equb['equb_name']}: " . ($calculation_result['error'] ?? 'Unknown error');
+                    }
+                    
+                } catch (Exception $e) {
+                    $errors[] = "Error processing equb {$equb['equb_name']}: " . $e->getMessage();
+                }
+            }
+            
+            // Update regular_payment_tier in equb_settings based on most common payment amount
+            $stmt = $pdo->query("
+                UPDATE equb_settings es
+                SET regular_payment_tier = (
+                    SELECT COALESCE(
+                        (SELECT monthly_payment 
+                         FROM members m 
+                         WHERE m.equb_settings_id = es.id 
+                           AND m.is_active = 1 
+                           AND m.membership_type = 'individual'
+                         GROUP BY monthly_payment 
+                         ORDER BY COUNT(*) DESC 
+                         LIMIT 1), 
+                        500.00
+                    )
+                )
+                WHERE id IN (SELECT DISTINCT equb_settings_id FROM members WHERE is_active = 1)
+            ");
+            
+            $message = "Recalculation completed! Updated {$updated_equbs} equb terms with total pool value of £" . number_format($total_pool_updated, 2);
+            
+            if (!empty($errors)) {
+                $message .= ". Some errors occurred: " . implode(', ', array_slice($errors, 0, 3));
+                if (count($errors) > 3) {
+                    $message .= " and " . (count($errors) - 3) . " more...";
+                }
+            }
+            
+            json_response(true, $message, [
+                'updated_equbs' => $updated_equbs,
+                'updated_members' => $updated_members,
+                'updated_positions' => $updated_positions,
+                'total_pool_updated' => $total_pool_updated,
+                'errors' => $errors
+            ]);
+            break;
+            
         default:
             json_response(false, 'Invalid action specified', null, 400);
     }

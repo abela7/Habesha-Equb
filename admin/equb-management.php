@@ -430,6 +430,10 @@ $csrf_token = generate_csrf_token();
                 <p class="page-subtitle"><?php echo t('equb_management.subtitle'); ?></p>
             </div>
             <div class="header-actions">
+                <button class="btn btn-warning me-2" onclick="recalculateAllValues()" id="recalculateBtn">
+                    <i class="fas fa-calculator me-2"></i>
+                    Recalculate All Values
+                </button>
                 <button class="btn btn-outline-secondary me-2" onclick="refreshData()">
                     <i class="fas fa-sync-alt me-2"></i>
                     <?php echo t('common.refresh'); ?>
@@ -1404,6 +1408,51 @@ $csrf_token = generate_csrf_token();
             });
 
             renderTable();
+        }
+
+        // Recalculate all values
+        async function recalculateAllValues() {
+            const btn = document.getElementById('recalculateBtn');
+            const originalText = btn.innerHTML;
+            
+            if (!confirm('This will recalculate ALL equb values, pool amounts, and member data based on current database information.\n\nThis process may take a few seconds. Continue?')) {
+                return;
+            }
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Recalculating...';
+            
+            try {
+                const response = await fetch('api/equb-management.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ 
+                        action: 'recalculate_all_values'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('success', `✅ Recalculation completed successfully!\n\n${data.message}\n\nUpdated: ${data.data.updated_equbs} equb terms, ${data.data.updated_members} members, ${data.data.updated_positions} positions`);
+                    
+                    // Refresh the data to show updated values
+                    await loadEqubData();
+                } else {
+                    showAlert('error', `❌ Recalculation failed: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error during recalculation:', error);
+                showAlert('error', '❌ Network error during recalculation. Please try again.');
+            } finally {
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
 
         // Utility functions
