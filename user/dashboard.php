@@ -155,10 +155,20 @@ if ($enhanced_calculation['success']) {
     $stmt->execute([$member['equb_settings_id']]);
     $total_monthly_pool = $stmt->fetchColumn() ?: 0;
     
-    $position_coefficient = $monthly_contribution / ($member['regular_payment_tier'] ?: 1000);
+    // Get actual regular payment tier from database instead of hardcoded fallback
+    $stmt = $pdo->prepare("SELECT regular_payment_tier FROM equb_settings WHERE id = ?");
+    $stmt->execute([$member['equb_settings_id']]);
+    $actual_regular_tier = $stmt->fetchColumn() ?: $monthly_contribution;
+    
+    $position_coefficient = $monthly_contribution / $actual_regular_tier;
     $gross_payout = $position_coefficient * $total_monthly_pool;
     $expected_payout = $gross_payout; // Show gross to member
-    $admin_fee = (float)$member['admin_fee'] ?: 20;
+    // Get actual admin fee from database instead of hardcoded fallback
+    $stmt = $pdo->prepare("SELECT admin_fee FROM equb_settings WHERE id = ?");
+    $stmt->execute([$member['equb_settings_id']]);
+    $actual_admin_fee = $stmt->fetchColumn() ?: 0;
+    
+    $admin_fee = (float)$member['admin_fee'] ?: $actual_admin_fee;
 }
 $expected_total_contribution = $monthly_contribution * (int)$member['expected_payment_months'];
 $contribution_progress = $expected_total_contribution > 0 ? min(100, ($total_contributed / $expected_total_contribution) * 100) : 0;
