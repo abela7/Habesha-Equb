@@ -109,22 +109,46 @@ try {
                 $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
             }
         } else {
-            // Basic fallback if calculator not available
-            $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+            // Basic fallback if calculator not available - USE DATABASE VALUES
+            $stmt = $pdo->prepare("
+                SELECT COALESCE(SUM(
+                    CASE 
+                        WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                        ELSE m.monthly_payment
+                    END
+                ), 0) as real_total_monthly_pool
+                FROM members m 
+                WHERE m.equb_settings_id = ? AND m.is_active = 1
+            ");
+            $stmt->execute([$member['equb_settings_id']]);
+            $total_monthly_pool = $stmt->fetchColumn() ?: 0;
+            
+            $position_coefficient = $member['position_coefficient'] ?? 1;
+            $gross_payout = $position_coefficient * $total_monthly_pool;
             $display_payout = $gross_payout - $member['admin_fee'];
             $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
-            $calculation_method = 'basic_fallback';
-            $position_coefficient = $member['position_coefficient'] ?? 1;
-            $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+            $calculation_method = 'basic_database_fallback';
         }
     } catch (Exception $e) {
-        // Final fallback calculation
-        $gross_payout = ($member['position_coefficient'] ?? 1) * ($member['regular_payment_tier'] ?? $member['monthly_payment']) * $member['total_equb_members'];
+        // Final fallback calculation - USE DATABASE VALUES
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                    ELSE m.monthly_payment
+                END
+            ), 0) as real_total_monthly_pool
+            FROM members m 
+            WHERE m.equb_settings_id = ? AND m.is_active = 1
+        ");
+        $stmt->execute([$member['equb_settings_id']]);
+        $total_monthly_pool = $stmt->fetchColumn() ?: 0;
+        
+        $position_coefficient = $member['position_coefficient'] ?? 1;
+        $gross_payout = $position_coefficient * $total_monthly_pool;
         $display_payout = $gross_payout - $member['admin_fee'];
         $net_payout = $gross_payout - $member['admin_fee'] - $member['monthly_payment'];
-        $calculation_method = 'error_fallback';
-        $position_coefficient = $member['position_coefficient'] ?? 1;
-        $total_monthly_pool = $member['regular_payment_tier'] * $member['total_equb_members'];
+        $calculation_method = 'error_database_fallback';
         error_log("Calculator error for member {$user_id}: " . $e->getMessage());
     }
     

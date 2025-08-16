@@ -140,9 +140,22 @@ if ($enhanced_calculation['success']) {
     $total_monthly_pool = $enhanced_calculation['calculation']['total_monthly_pool'];
     $admin_fee = $enhanced_calculation['calculation']['admin_fee'];
 } else {
-    // Dynamic fallback calculation - NO HARDCODED VALUES
-    $total_monthly_pool = $monthly_contribution * $total_equb_members;
-    $position_coefficient = $monthly_contribution / 1000; // Assuming £1000 regular tier
+    // Dynamic fallback calculation - USE REAL DATABASE VALUES (NO HARDCODE!)
+    // Get actual total monthly pool from current active members
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                ELSE m.monthly_payment
+            END
+        ), 0) as real_total_monthly_pool
+        FROM members m 
+        WHERE m.equb_settings_id = ? AND m.is_active = 1
+    ");
+    $stmt->execute([$member['equb_settings_id']]);
+    $total_monthly_pool = $stmt->fetchColumn() ?: 0;
+    
+    $position_coefficient = $monthly_contribution / ($member['regular_payment_tier'] ?: 1000);
     $gross_payout = $position_coefficient * $total_monthly_pool;
     $expected_payout = $gross_payout; // Show gross to member
     $admin_fee = (float)$member['admin_fee'] ?: 20;

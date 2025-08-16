@@ -136,16 +136,29 @@ try {
             'calculation_method' => $calculation_method
         ];
 } else {
-        // Enhanced fallback calculation
+        // Enhanced fallback calculation - USE REAL DATABASE VALUES (NO HARDCODE!)
+        // Get actual total monthly pool from database
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(
+                CASE 
+                    WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                    ELSE m.monthly_payment
+                END
+            ), 0) as real_total_monthly_pool
+            FROM members m 
+            WHERE m.equb_settings_id = ? AND m.is_active = 1
+        ");
+        $stmt->execute([$member['equb_settings_id']]);
+        $total_monthly_pool = $stmt->fetchColumn() ?: 0;
+        
         $position_coefficient = $monthly_contribution / ($member['regular_payment_tier'] ?? 1000);
-        $total_monthly_pool = $monthly_contribution * $total_equb_members;
         $gross_payout = $position_coefficient * $total_monthly_pool;
         $admin_fee = (float)($member['admin_fee'] ?? 20);
         $monthly_deduction = $monthly_contribution;
         $display_payout = $gross_payout - $admin_fee;
         $expected_payout = $display_payout;
         $real_net_payout = $gross_payout - $admin_fee - $monthly_deduction;
-        $calculation_method = 'fallback';
+        $calculation_method = 'database_fallback';
         $calculation_details = [
             'position_coefficient' => $position_coefficient,
             'total_monthly_pool' => $total_monthly_pool,
@@ -160,9 +173,22 @@ try {
     }
 } catch (Exception $e) {
     error_log("Enhanced calculator error: " . $e->getMessage());
-    // Basic fallback
+    // Basic fallback - USE REAL DATABASE VALUES (NO HARDCODE!)
+    // Get actual total monthly pool from database
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(
+            CASE 
+                WHEN m.membership_type = 'joint' THEN m.individual_contribution
+                ELSE m.monthly_payment
+            END
+        ), 0) as real_total_monthly_pool
+        FROM members m 
+        WHERE m.equb_settings_id = ? AND m.is_active = 1
+    ");
+    $stmt->execute([$member['equb_settings_id']]);
+    $total_monthly_pool = $stmt->fetchColumn() ?: 0;
+    
     $position_coefficient = 1;
-    $total_monthly_pool = $monthly_contribution * $total_equb_members;
     $gross_payout = $total_monthly_pool;
     $admin_fee = 20;
     $monthly_deduction = $monthly_contribution;
