@@ -5,7 +5,6 @@
  */
 
 require_once 'includes/db.php';
-require_once 'includes/security.php';
 
 try {
     echo "<h1>Pool Calculation Diagnostic</h1>";
@@ -92,9 +91,13 @@ try {
 
     // 7. API calculation check
     echo "<h2>7. API Calculation Check</h2>";
-    require_once 'admin/api/equb-management.php';
-    $api_total = calculate_total_pool();
-    echo "<p>API calculate_total_pool() result: £" . number_format($api_total, 2) . "</p>";
+    try {
+        require_once 'admin/api/equb-management.php';
+        $api_total = calculate_total_pool();
+        echo "<p>API calculate_total_pool() result: £" . number_format($api_total, 2) . "</p>";
+    } catch (Exception $e) {
+        echo "<p>API calculation error: " . htmlspecialchars($e->getMessage()) . "</p>";
+    }
 
     // 8. Expected vs Actual comparison
     echo "<h2>8. Expected vs Actual Comparison</h2>";
