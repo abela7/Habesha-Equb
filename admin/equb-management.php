@@ -105,7 +105,7 @@ $csrf_token = generate_csrf_token();
     <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
-        /* === EQUB MANAGEMENT PAGE STYLES === */
+        /* === EQUB MANAGEMENT PAGE STYLES - MODERN 2025 DESIGN === */
         
         /* Page Header */
         .page-header {
@@ -140,6 +140,7 @@ $csrf_token = generate_csrf_token();
             align-items: center;
             justify-content: center;
             color: white;
+            box-shadow: 0 8px 16px rgba(19, 102, 92, 0.2);
         }
         
         .page-subtitle {
@@ -149,28 +150,101 @@ $csrf_token = generate_csrf_token();
             font-weight: 400;
         }
 
-        /* Statistics Cards */
+        /* Modern Intro Card */
+        .intro-card {
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+            border-radius: 24px;
+            padding: 48px;
+            margin-bottom: 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(19, 102, 92, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .intro-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float-slow 8s ease-in-out infinite;
+        }
+
+        .intro-card::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float-slow 12s ease-in-out infinite reverse;
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+        }
+
+        .intro-content {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .intro-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .intro-text h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .intro-text p {
+            font-size: 16px;
+            margin: 0;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        /* Statistics Cards - Enhanced */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 24px;
             margin-bottom: 40px;
         }
 
         .stat-card {
             background: white;
-            border-radius: var(--radius-lg);
+            border-radius: 16px;
             padding: 32px;
             border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(48, 25, 67, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
         }
 
         .stat-card::before {
@@ -183,16 +257,21 @@ $csrf_token = generate_csrf_token();
             background: var(--color-teal);
         }
 
-        .stat-card.primary::before { background: var(--color-teal); }
-        .stat-card.success::before { background: var(--color-gold); }
-        .stat-card.warning::before { background: var(--color-light-gold); }
-        .stat-card.danger::before { background: var(--color-coral); }
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(48, 25, 67, 0.15);
+        }
+
+        .stat-card.primary::before { background: linear-gradient(90deg, var(--color-teal) 0%, #0F5147 100%); }
+        .stat-card.success::before { background: linear-gradient(90deg, var(--color-gold) 0%, #D4A72C 100%); }
+        .stat-card.warning::before { background: linear-gradient(90deg, var(--color-light-gold) 0%, #B8962F 100%); }
+        .stat-card.danger::before { background: linear-gradient(90deg, var(--color-coral) 0%, #D44638 100%); }
 
         .stat-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .stat-icon {
@@ -202,8 +281,9 @@ $csrf_token = generate_csrf_token();
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 28px;
             color: white;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
 
         .stat-icon.primary { background: linear-gradient(135deg, var(--color-teal), #0F5147); }
@@ -212,41 +292,43 @@ $csrf_token = generate_csrf_token();
         .stat-icon.danger { background: linear-gradient(135deg, var(--color-coral), #D44638); }
 
         .stat-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
         }
 
         .stat-value {
-            font-size: 36px;
-            font-weight: 700;
+            font-size: 40px;
+            font-weight: 800;
             color: var(--color-purple);
-            margin-bottom: 8px;
+            margin: 16px 0 8px 0;
             line-height: 1;
+            letter-spacing: -1px;
         }
 
         .stat-label {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
+            font-weight: 500;
         }
 
-        /* Quick Action Cards */
+        /* Quick Action Cards - Modern */
         .quick-actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 20px;
             margin-bottom: 40px;
         }
 
         .action-card {
             background: white;
-            border-radius: var(--radius-lg);
-            padding: 24px;
+            border-radius: 16px;
+            padding: 28px 24px;
             border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(48, 25, 67, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
             color: inherit;
             display: flex;
@@ -254,25 +336,40 @@ $csrf_token = generate_csrf_token();
             align-items: center;
             text-align: center;
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .action-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            text-decoration: none;
-            color: inherit;
+            transform: translateY(-6px);
+            box-shadow: 0 12px 32px rgba(48, 25, 67, 0.15);
+            border-color: var(--color-teal);
         }
 
         .action-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 28px;
             color: white;
             margin-bottom: 16px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
         }
 
         .action-icon.teal { background: linear-gradient(135deg, var(--color-teal), #0F5147); }
@@ -280,25 +377,30 @@ $csrf_token = generate_csrf_token();
         .action-icon.light-gold { background: linear-gradient(135deg, var(--color-light-gold), #B8962F); }
         .action-icon.purple { background: linear-gradient(135deg, var(--color-purple), #1a0d28); }
 
+        .action-card:hover .action-icon {
+            transform: scale(1.1) rotateY(10deg);
+        }
+
         .action-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 700;
             color: var(--color-purple);
             margin-bottom: 8px;
         }
 
         .action-description {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-secondary);
-            line-height: 1.4;
+            line-height: 1.5;
+            font-weight: 500;
         }
 
         /* Content Panel */
         .content-panel {
             background: white;
-            border-radius: var(--radius-lg);
+            border-radius: 16px;
             border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 4px 12px rgba(48, 25, 67, 0.08);
             overflow: hidden;
         }
 
@@ -311,12 +413,18 @@ $csrf_token = generate_csrf_token();
         }
 
         .panel-title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--color-purple);
             display: flex;
             align-items: center;
             gap: 12px;
+            margin: 0;
+        }
+
+        .panel-title i {
+            font-size: 24px;
+            color: var(--color-teal);
         }
 
         .panel-actions {
@@ -355,6 +463,9 @@ $csrf_token = generate_csrf_token();
             font-weight: 600;
             color: var(--color-purple);
             border-bottom: 2px solid var(--border-color);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .equb-table td {
@@ -363,8 +474,13 @@ $csrf_token = generate_csrf_token();
             vertical-align: middle;
         }
 
+        .equb-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
         .equb-table tbody tr:hover {
             background: #FEFFFE;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         /* Status Badges */
@@ -375,6 +491,7 @@ $csrf_token = generate_csrf_token();
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: inline-block;
         }
 
         .status-badge.planning { background: #E3F2FD; color: #1976D2; }
@@ -407,7 +524,8 @@ $csrf_token = generate_csrf_token();
         .btn-delete { background: var(--color-coral); color: white; }
 
         .btn-action:hover {
-            transform: scale(1.1);
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         /* Alert Messages */
@@ -423,11 +541,11 @@ $csrf_token = generate_csrf_token();
             padding: 16px 20px;
             border-radius: 12px;
             margin-bottom: 12px;
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 8px 24px rgba(48, 25, 67, 0.15);
             display: flex;
             align-items: center;
             gap: 12px;
-            animation: slideIn 0.3s ease;
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .alert-success { background: #E8F5E8; color: #2E7D32; border: 1px solid #4CAF50; }
@@ -441,13 +559,14 @@ $csrf_token = generate_csrf_token();
         /* Loading */
         .loading {
             text-align: center;
-            padding: 60px;
+            padding: 60px 20px;
             color: var(--text-secondary);
         }
 
         .loading i {
             animation: spin 1s linear infinite;
             margin-right: 8px;
+            font-size: 24px;
         }
 
         @keyframes spin {
@@ -463,12 +582,27 @@ $csrf_token = generate_csrf_token();
                 text-align: center;
             }
 
-            .stats-grid {
+            .intro-content {
                 grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .intro-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 32px;
+            }
+
+            .intro-card {
+                padding: 32px 24px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .quick-actions-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(3, 1fr);
             }
 
             .filters-grid {
@@ -489,8 +623,26 @@ $csrf_token = generate_csrf_token();
                 font-size: 24px;
             }
 
-            .quick-actions-grid {
+            .stat-value {
+                font-size: 32px;
+            }
+
+            .stats-grid {
                 grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+
+            .intro-card {
+                padding: 24px;
+            }
+
+            .intro-text h2 {
+                font-size: 20px;
             }
 
             .panel-header {
@@ -502,6 +654,10 @@ $csrf_token = generate_csrf_token();
             .panel-actions {
                 width: 100%;
                 flex-wrap: wrap;
+            }
+
+            .action-card {
+                padding: 20px 16px;
             }
         }
     </style>
@@ -540,6 +696,23 @@ $csrf_token = generate_csrf_token();
                     <i class="fas fa-plus me-2"></i>
                     <?php echo t('equb_management.create_new'); ?>
                 </button>
+            </div>
+        </div>
+
+        <!-- Modern Intro Card -->
+        <div class="intro-card">
+            <div class="intro-content">
+                <div class="intro-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="intro-text">
+                    <h2>Welcome to Equb Management</h2>
+                    <p>
+                        Manage your equb terms, members, and financial transactions efficiently.
+                        Use the powerful tools and features to ensure smooth operations and
+                        accurate financial reporting.
+                    </p>
+                </div>
             </div>
         </div>
 
