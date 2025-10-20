@@ -140,75 +140,69 @@ $csrf_token = generate_csrf_token();
             font-weight: 400;
         }
 
-        /* Enhanced Equb Management Card */
-        .equb-management-card {
-            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
-            border-radius: 16px;
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
             padding: 32px;
-            margin-bottom: 32px;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        .equb-management-header {
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--color-teal);
+        }
+
+        .stat-card.primary::before { background: var(--color-teal); }
+        .stat-card.success::before { background: var(--color-gold); }
+        .stat-card.warning::before { background: var(--color-light-gold); }
+        .stat-card.danger::before { background: var(--color-coral); }
+
+        .stat-header {
             display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
         }
 
-        .equb-management-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+        .stat-icon {
+            width: 56px;
+            height: 56px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 24px;
             color: white;
-            font-size: 28px;
         }
 
-        .equb-management-title {
-            flex: 1;
-        }
+        .stat-icon.primary { background: linear-gradient(135deg, var(--color-teal), #0F5147); }
+        .stat-icon.success { background: linear-gradient(135deg, var(--color-gold), #D4A72C); }
+        .stat-icon.warning { background: linear-gradient(135deg, var(--color-light-gold), #B8962F); }
+        .stat-icon.danger { background: linear-gradient(135deg, var(--color-coral), #D44638); }
 
-        .equb-management-title h2 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--color-purple);
-        }
-
-        .equb-management-title p {
-            margin: 8px 0 0 0;
-            color: var(--text-secondary);
-            font-size: 16px;
-        }
-
-        .equb-management-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        .equb-stat-item {
-            text-align: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-
-        .equb-stat-value {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--color-purple);
-            margin-bottom: 8px;
-        }
-
-        .equb-stat-label {
+        .stat-title {
             font-size: 14px;
             font-weight: 600;
             color: var(--text-secondary);
@@ -216,49 +210,17 @@ $csrf_token = generate_csrf_token();
             letter-spacing: 0.5px;
         }
 
-        .equb-management-actions {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .btn-equb-primary {
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-equb-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(15, 81, 71, 0.3);
-        }
-
-        .btn-equb-secondary {
-            background: rgba(255, 255, 255, 0.9);
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
             color: var(--color-purple);
-            border: 2px solid var(--color-teal);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 8px;
+            line-height: 1;
         }
 
-        .btn-equb-secondary:hover {
-            background: var(--color-teal);
-            color: white;
-            transform: translateY(-2px);
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
         }
 
         /* Content Panel */
