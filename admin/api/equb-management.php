@@ -116,22 +116,22 @@ function validate_equb_data($data) {
  */
 function calculate_total_pool($equb_id, $duration_months) {
     global $pdo;
-    
+
     // Calculate REAL monthly pool from actual member contributions
     $stmt = $pdo->prepare("
         SELECT COALESCE(SUM(
-            CASE 
+            CASE
                 WHEN m.membership_type = 'joint' THEN m.individual_contribution
                 ELSE m.monthly_payment
             END
         ), 0) as real_monthly_pool
-        FROM members m 
+        FROM members m
         WHERE m.equb_settings_id = ? AND m.is_active = 1
     ");
     $stmt->execute([$equb_id]);
     $real_monthly_pool = $stmt->fetchColumn() ?: 0;
-    
-    // Total pool = monthly pool × duration (from database)
+
+    // Total pool = monthly pool × duration (total contributions over entire term)
     return $real_monthly_pool * $duration_months;
 }
 
@@ -513,15 +513,15 @@ try {
                 UPDATE equb_settings es
                 SET regular_payment_tier = (
                     SELECT COALESCE(
-                        (SELECT monthly_payment 
-                         FROM members m 
-                         WHERE m.equb_settings_id = es.id 
-                           AND m.is_active = 1 
+                        (SELECT monthly_payment
+                         FROM members m
+                         WHERE m.equb_settings_id = es.id
+                           AND m.is_active = 1
                            AND m.membership_type = 'individual'
-                         GROUP BY monthly_payment 
-                         ORDER BY COUNT(*) DESC 
-                         LIMIT 1), 
-                        500.00
+                         GROUP BY monthly_payment
+                         ORDER BY COUNT(*) DESC
+                         LIMIT 1),
+                        (SELECT AVG(monthly_payment) FROM members WHERE equb_settings_id = es.id AND is_active = 1 AND membership_type = 'individual')
                     )
                 )
                 WHERE id IN (SELECT DISTINCT equb_settings_id FROM members WHERE is_active = 1)

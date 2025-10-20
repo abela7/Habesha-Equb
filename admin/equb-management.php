@@ -38,21 +38,20 @@ try {
     // Calculate correct pool amounts using enhanced calculator
     $calculator = getEnhancedEqubCalculator();
     $equbs = [];
-    
+
     foreach ($equbs_raw as $equb) {
         $equb_calculation = $calculator->calculateEqubPositions($equb['id']);
-        
+
         if ($equb_calculation['success']) {
-            // CORRECT: Total pool value = monthly pool × duration (total value over time)
-            // Monthly pool = what each position gets per month
-            // Total pool = total value handled over the entire EQUB duration
+            // CORRECT: Total pool value = total monthly contributions × duration
+            // This represents the total value contributed over the entire EQUB term
             $monthly_pool = $equb_calculation['total_monthly_pool'];
             $duration = $equb['duration_months']; // FROM DATABASE
             $equb['calculated_pool_amount'] = $monthly_pool * $duration;
         } else {
             $equb['calculated_pool_amount'] = 0;
         }
-        
+
         $equbs[] = $equb;
     }
     
