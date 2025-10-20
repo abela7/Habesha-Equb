@@ -1263,7 +1263,7 @@ $csrf_token = generate_csrf_token();
                                     </div>
                                 </td>
                                 <td>${equb.duration_months} months</td>
-                                <td>£${parseFloat(equb.calculated_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
+                                <td>£${parseFloat(equb.total_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td>
                                 <td>${formatDate(equb.start_date)}</td>
                                 <td>
                                     <div class="action-buttons">
@@ -1318,7 +1318,7 @@ $csrf_token = generate_csrf_token();
                     <div class="col-md-6">
                         <h6 class="text-primary mb-3">Financial Details</h6>
                         <table class="table table-borderless">
-                            <tr><td><strong>Total Pool:</strong></td><td>£${parseFloat(equb.calculated_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
+                            <tr><td><strong>Total Pool:</strong></td><td>£${parseFloat(equb.total_pool_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
                             <tr><td><strong>Collected:</strong></td><td>£${parseFloat(equb.collected_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
                             <tr><td><strong>Distributed:</strong></td><td>£${parseFloat(equb.distributed_amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2})}</td></tr>
                             <tr><td><strong>Payout Day:</strong></td><td>${equb.payout_day}th of each month</td></tr>
