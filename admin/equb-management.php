@@ -2,6 +2,15 @@
 /**
  * HabeshaEqub - Equb Management System
  * Comprehensive equb term management and financial administration
+ * 
+ * UI ENHANCEMENTS (Latest):
+ * - Removed redundant hero card section and consolidated into stat cards
+ * - Removed bloated feature cards (Financial Analytics, Joint Groups, etc.)
+ * - Removed duplicate "Additional Management Tools" section
+ * - Implemented clean Quick Action Cards grid with 6 essential actions
+ * - Mobile-first responsive design (4 cols desktop → 2 cols tablet → 1 col mobile)
+ * - Simple, clean layout focusing on core functionality without visual clutter
+ * - Maintains all functionality while reducing cognitive load on users
  */
 
 require_once '../includes/db.php';
@@ -223,6 +232,67 @@ $csrf_token = generate_csrf_token();
             color: var(--text-secondary);
         }
 
+        /* Quick Action Cards */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .action-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .action-icon.teal { background: linear-gradient(135deg, var(--color-teal), #0F5147); }
+        .action-icon.gold { background: linear-gradient(135deg, var(--color-gold), #D4A72C); }
+        .action-icon.light-gold { background: linear-gradient(135deg, var(--color-light-gold), #B8962F); }
+        .action-icon.purple { background: linear-gradient(135deg, var(--color-purple), #1a0d28); }
+
+        .action-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-purple);
+            margin-bottom: 8px;
+        }
+
+        .action-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
         /* Content Panel */
         .content-panel {
             background: white;
@@ -385,403 +455,6 @@ $csrf_token = generate_csrf_token();
             to { transform: rotate(360deg); }
         }
 
-        /* Enhanced Equb Management Hero Card */
-        .equb-management-hero-card {
-            background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
-            border-radius: 24px;
-            padding: 48px;
-            position: relative;
-            overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            box-shadow:
-                0 20px 40px rgba(0, 0, 0, 0.1),
-                0 8px 16px rgba(0, 0, 0, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        }
-
-        .hero-content {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 48px;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        .hero-icon-section {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .hero-icon-wrapper {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            box-shadow:
-                0 16px 32px rgba(15, 81, 71, 0.3),
-                0 8px 16px rgba(15, 81, 71, 0.2);
-        }
-
-        .hero-icon-wrapper i {
-            font-size: 48px;
-            color: white;
-            z-index: 1;
-        }
-
-        .icon-glow {
-            position: absolute;
-            top: -4px;
-            left: -4px;
-            right: -4px;
-            bottom: -4px;
-            background: linear-gradient(135deg, var(--color-teal), #0F5147);
-            border-radius: 28px;
-            opacity: 0.3;
-            filter: blur(8px);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.05); }
-        }
-
-        .hero-text-section {
-            text-align: center;
-        }
-
-        .hero-title {
-            margin-bottom: 16px;
-        }
-
-        .hero-title-main {
-            display: block;
-            font-size: 42px;
-            font-weight: 800;
-            color: var(--color-purple);
-            letter-spacing: -1px;
-            line-height: 1.1;
-            margin-bottom: 4px;
-        }
-
-        .hero-title-subtitle {
-            display: block;
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--color-teal);
-            letter-spacing: 0.5px;
-        }
-
-        .hero-description {
-            font-size: 16px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 24px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .hero-features {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
-
-        .feature-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--color-purple);
-            background: rgba(255, 255, 255, 0.8);
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-        }
-
-        .feature-item i {
-            color: var(--color-teal);
-        }
-
-        .hero-actions-section {
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-            align-items: center;
-        }
-
-        .action-buttons-group {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .btn-hero-primary {
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
-            color: white;
-            border: none;
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 16px rgba(15, 81, 71, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-hero-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(15, 81, 71, 0.4);
-        }
-
-        .btn-hero-secondary {
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--color-purple);
-            border: 2px solid var(--color-teal);
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-hero-secondary:hover {
-            background: var(--color-teal);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        .quick-stats {
-            display: flex;
-            gap: 24px;
-            justify-content: center;
-        }
-
-        .quick-stat-item {
-            text-align: center;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            min-width: 80px;
-        }
-
-        .stat-number {
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--color-purple);
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 4px;
-        }
-
-        .hero-background-pattern {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .pattern-circle {
-            position: absolute;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .pattern-circle-1 {
-            width: 200px;
-            height: 200px;
-            top: -100px;
-            right: -100px;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .pattern-circle-2 {
-            width: 150px;
-            height: 150px;
-            bottom: -75px;
-            left: -75px;
-            animation: float 8s ease-in-out infinite reverse;
-        }
-
-        .pattern-circle-3 {
-            width: 100px;
-            height: 100px;
-            top: 50%;
-            left: 20%;
-            animation: float 10s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(180deg); }
-        }
-
-        /* Enhanced Feature Cards */
-        .feature-card.enhanced {
-            background: white;
-            border-radius: 16px;
-            border: none;
-            box-shadow:
-                0 8px 24px rgba(0, 0, 0, 0.08),
-                0 4px 8px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s ease;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card.enhanced::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, transparent 0%, currentColor 50%, transparent 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .feature-card.enhanced:hover {
-            transform: translateY(-8px);
-            box-shadow:
-                0 16px 40px rgba(0, 0, 0, 0.12),
-                0 8px 16px rgba(0, 0, 0, 0.08);
-        }
-
-        .feature-card.enhanced:hover::before {
-            opacity: 1;
-        }
-
-        .feature-card .card-body {
-            padding: 32px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .feature-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-        }
-
-        .feature-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            position: relative;
-            color: currentColor;
-        }
-
-        .feature-icon .icon-accent {
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: currentColor;
-            border-radius: 18px;
-            opacity: 0.1;
-            z-index: -1;
-        }
-
-        .feature-badge {
-            background: linear-gradient(135deg, currentColor 0%, rgba(255, 255, 255, 0.2) 100%);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .feature-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--color-purple);
-            margin-bottom: 12px;
-            margin-top: 0;
-        }
-
-        .feature-description {
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 24px;
-            font-size: 14px;
-        }
-
-        .btn-feature {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, currentColor 0%, rgba(255, 255, 255, 0.1) 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
-        }
-
-        .btn-feature:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn-feature span {
-            transition: transform 0.3s ease;
-        }
-
-        .btn-feature:hover span {
-            transform: translateX(-2px);
-        }
-
-        .btn-feature i {
-            transition: transform 0.3s ease;
-        }
-
-        .btn-feature:hover i {
-            transform: translateX(4px);
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
             .page-header {
@@ -790,45 +463,12 @@ $csrf_token = generate_csrf_token();
                 text-align: center;
             }
 
-            .equb-management-hero-card {
-                padding: 32px 24px;
-            }
-
-            .hero-content {
-                grid-template-columns: 1fr;
-                gap: 32px;
-                text-align: center;
-            }
-
-            .hero-icon-section {
-                order: -1;
-            }
-
-            .hero-actions-section {
-                order: 1;
-            }
-
-            .hero-features {
-                justify-content: center;
-            }
-
-            .action-buttons-group {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .btn-hero-primary,
-            .btn-hero-secondary {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .quick-stats {
-                flex-wrap: wrap;
-            }
-
             .stats-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .filters-grid {
@@ -841,26 +481,27 @@ $csrf_token = generate_csrf_token();
         }
 
         @media (max-width: 576px) {
-            .hero-title-main {
-                font-size: 32px;
+            .page-header {
+                padding: 24px;
             }
 
-            .hero-features {
-                gap: 12px;
+            .page-title-section h1 {
+                font-size: 24px;
             }
 
-            .feature-item {
-                padding: 6px 12px;
-                font-size: 12px;
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
             }
 
-            .quick-stats {
-                gap: 12px;
+            .panel-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
             }
 
-            .quick-stat-item {
-                min-width: 60px;
-                padding: 12px;
+            .panel-actions {
+                width: 100%;
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -957,247 +598,57 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
 
-        <!-- Enhanced Financial Features Navigation -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="alert alert-info border-0" style="background: linear-gradient(135deg, var(--light-purple) 0%, #F8F6FF 100%); border-left: 4px solid var(--purple) !important;">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h5 class="mb-2">
-                                <i class="fas fa-star text-gold me-2"></i>
-                                <?php echo t('financial_audit.title'); ?> & <?php echo t('joint_membership.title'); ?> Features
-                            </h5>
-                            <p class="mb-2">Access advanced financial analytics, real-time payout calculations, and joint membership management.</p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                                                    <div class="btn-group" role="group">
-                            <a href="financial-analytics.php" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-chart-line me-1"></i>
-                                Financial Analytics
-                            </a>
-                            <a href="joint-groups.php" class="btn btn-outline-info btn-sm">
-                                <i class="fas fa-users me-1"></i>
-                                Joint Groups
-                            </a>
-                            <a href="payment-tiers.php" class="btn btn-outline-warning btn-sm">
-                                <i class="fas fa-coins me-1"></i>
-                                Payment Tiers
-                            </a>
-                            <a href="payout-positions.php" class="btn btn-outline-purple btn-sm">
-                                <i class="fas fa-sort-numeric-down me-1"></i>
-                                Payout Positions
-                            </a>
-                        </div>
-                        </div>
-                    </div>
+        <!-- Quick Action Cards -->
+        <div class="quick-actions-grid">
+            <div class="action-card" onclick="openCreateModal()">
+                <div class="action-icon teal">
+                    <i class="fas fa-plus"></i>
                 </div>
-            </div>
-        </div>
-
-        <!-- Enhanced Equb Management System Card -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="equb-management-hero-card">
-                    <div class="hero-content">
-                        <div class="hero-icon-section">
-                            <div class="hero-icon-wrapper">
-                                <i class="fas fa-crown"></i>
-                                <div class="icon-glow"></div>
-                            </div>
-                        </div>
-                        <div class="hero-text-section">
-                            <h2 class="hero-title">
-                                <span class="hero-title-main">Equb Management System</span>
-                                <span class="hero-title-subtitle">Advanced Financial Administration</span>
-                            </h2>
-                            <p class="hero-description">
-                                Comprehensive equb term management with real-time calculations, automated payouts,
-                                and advanced financial analytics. Manage traditional Ethiopian savings groups with
-                                modern precision and security.
-                            </p>
-                            <div class="hero-features">
-                                <div class="feature-item">
-                                    <i class="fas fa-shield-alt"></i>
-                                    <span>Enterprise Security</span>
-                                </div>
-                                <div class="feature-item">
-                                    <i class="fas fa-calculator"></i>
-                                    <span>Real-time Calculations</span>
-                                </div>
-                                <div class="feature-item">
-                                    <i class="fas fa-users"></i>
-                                    <span>Joint Membership Support</span>
-                                </div>
-                                <div class="feature-item">
-                                    <i class="fas fa-chart-line"></i>
-                                    <span>Financial Analytics</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="hero-actions-section">
-                            <div class="action-buttons-group">
-                                <button class="btn-hero-primary" onclick="openCreateModal()">
-                                    <i class="fas fa-plus-circle me-2"></i>
-                                    Create New Equb
-                                </button>
-                                <button class="btn-hero-secondary" onclick="recalculateAllValues()">
-                                    <i class="fas fa-sync-alt me-2"></i>
-                                    Recalculate Values
-                                </button>
-                            </div>
-                            <div class="quick-stats">
-                                <div class="quick-stat-item">
-                                    <div class="stat-number" id="hero-total-equbs"><?php echo $total_equbs; ?></div>
-                                    <div class="stat-label">Active Terms</div>
-                                </div>
-                                <div class="quick-stat-item">
-                                    <div class="stat-number" id="hero-total-pool">£<?php echo number_format($total_pool, 0); ?>K</div>
-                                    <div class="stat-label">Total Pool</div>
-                                </div>
-                                <div class="quick-stat-item">
-                                    <div class="stat-number" id="hero-total-members"><?php echo $total_members; ?></div>
-                                    <div class="stat-label">Members</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="hero-background-pattern">
-                        <div class="pattern-circle pattern-circle-1"></div>
-                        <div class="pattern-circle pattern-circle-2"></div>
-                        <div class="pattern-circle pattern-circle-3"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Enhanced Feature Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="feature-card enhanced" style="border-left: 4px solid var(--color-teal) !important;">
-                    <div class="card-body">
-                        <div class="feature-header">
-                            <div class="feature-icon">
-                                <i class="fas fa-calculator"></i>
-                                <div class="icon-accent"></div>
-                            </div>
-                            <div class="feature-badge">Core</div>
-                        </div>
-                        <h6 class="feature-title">Real-time Calculations</h6>
-                        <p class="feature-description">Accurate payout calculations using authentic traditional EQUB principles with position-based coefficients.</p>
-                        <a href="financial-analytics.php" class="btn-feature">
-                            <span>View Analytics</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
+                <div class="action-title">Create New Equb</div>
+                <div class="action-description">Set up a new equb term with custom settings</div>
             </div>
 
-            <div class="col-md-3">
-                <div class="feature-card enhanced" style="border-left: 4px solid var(--color-gold) !important;">
-                    <div class="card-body">
-                        <div class="feature-header">
-                            <div class="feature-icon">
-                                <i class="fas fa-users"></i>
-                                <div class="icon-accent"></div>
-                            </div>
-                            <div class="feature-badge">Advanced</div>
-                        </div>
-                        <h6 class="feature-title">Joint Groups</h6>
-                        <p class="feature-description">Manage joint memberships where multiple people share one position with proportional payouts.</p>
-                        <a href="joint-groups.php" class="btn-feature">
-                            <span>Manage Groups</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
+            <div class="action-card" onclick="recalculateAllValues()">
+                <div class="action-icon gold">
+                    <i class="fas fa-sync-alt"></i>
                 </div>
+                <div class="action-title">Recalculate Values</div>
+                <div class="action-description">Update all pool and payout calculations</div>
             </div>
 
-            <div class="col-md-3">
-                <div class="feature-card enhanced" style="border-left: 4px solid var(--color-light-gold) !important;">
-                    <div class="card-body">
-                        <div class="feature-header">
-                            <div class="feature-icon">
-                                <i class="fas fa-coins"></i>
-                                <div class="icon-accent"></div>
-                            </div>
-                            <div class="feature-badge">Config</div>
-                        </div>
-                        <h6 class="feature-title">Payment Tiers</h6>
-                        <p class="feature-description">Set up and customize payment tiers for each EQUB term with flexible contribution options.</p>
-                        <a href="payment-tiers.php" class="btn-feature">
-                            <span>Manage Tiers</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
+            <a href="financial-analytics.php" class="action-card">
+                <div class="action-icon light-gold">
+                    <i class="fas fa-chart-line"></i>
                 </div>
-            </div>
+                <div class="action-title">Financial Analytics</div>
+                <div class="action-description">View detailed financial reports</div>
+            </a>
 
-            <div class="col-md-3">
-                <div class="feature-card enhanced" style="border-left: 4px solid var(--color-purple) !important;">
-                    <div class="card-body">
-                        <div class="feature-header">
-                            <div class="feature-icon">
-                                <i class="fas fa-sort-numeric-down"></i>
-                                <div class="icon-accent"></div>
-                            </div>
-                            <div class="feature-badge">Premium</div>
-                        </div>
-                        <h6 class="feature-title">Payout Positions</h6>
-                        <p class="feature-description">Drag and drop to customize member payout positions and timing with visual management.</p>
-                        <a href="payout-positions.php" class="btn-feature">
-                            <span>Manage Positions</span>
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
+            <a href="joint-groups.php" class="action-card">
+                <div class="action-icon purple">
+                    <i class="fas fa-users"></i>
                 </div>
-            </div>
+                <div class="action-title">Joint Groups</div>
+                <div class="action-description">Manage joint memberships</div>
+            </a>
+
+            <a href="payment-tiers.php" class="action-card">
+                <div class="action-icon teal">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="action-title">Payment Tiers</div>
+                <div class="action-description">Configure contribution levels</div>
+            </a>
+
+            <a href="payout-positions.php" class="action-card">
+                <div class="action-icon gold">
+                    <i class="fas fa-sort-numeric-down"></i>
+                </div>
+                <div class="action-title">Payout Positions</div>
+                <div class="action-description">Manage payout order & timing</div>
+            </a>
         </div>
         
-        <!-- Additional Management Tools -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--gold) !important;">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle" style="background: rgba(218, 165, 32, 0.1); padding: 15px; margin-right: 15px;">
-                                <i class="fas fa-heartbeat" style="color: var(--gold);"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0">Financial Health Monitoring</h6>
-                                <small class="text-muted">Real-time financial insights</small>
-                            </div>
-                        </div>
-                        <p class="small text-muted mb-3">Monitor collection rates, distribution percentages, and financial integrity with comprehensive dashboards.</p>
-                        <a href="financial-analytics.php#health" class="btn btn-sm" style="background: var(--gold); color: white; border: none;">
-                            <i class="fas fa-chart-line me-1"></i>
-                            View Dashboard
-                        </a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid var(--gold) !important;">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle" style="background: rgba(218, 165, 32, 0.1); padding: 15px; margin-right: 15px;">
-                                <i class="fas fa-clipboard-check" style="color: var(--gold);"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0">Comprehensive Financial Audit</h6>
-                                <small class="text-muted">Detailed reporting system</small>
-                            </div>
-                        </div>
-                        <p class="small text-muted mb-3">Generate detailed financial audit reports with member calculations and verification status.</p>
-                        <a href="financial-analytics.php#audit" class="btn btn-sm" style="background: var(--gold); color: white; border: none;">
-                            <i class="fas fa-file-invoice me-1"></i>
-                            Run Audit
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Main Content Panel -->
         <div class="content-panel">
             <div class="panel-header">
