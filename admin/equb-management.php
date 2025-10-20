@@ -597,6 +597,37 @@ $csrf_token = generate_csrf_token();
                 padding: 32px 24px;
             }
 
+            .equb-hero-section {
+                padding: 32px 24px;
+            }
+
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .hero-subtitle {
+                font-size: 16px;
+            }
+
+            .hero-text-wrapper {
+                text-align: center;
+            }
+
+            .hero-actions {
+                justify-content: center;
+                flex-direction: column;
+            }
+
+            .btn-hero-action {
+                width: 100%;
+            }
+
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -645,6 +676,47 @@ $csrf_token = generate_csrf_token();
                 font-size: 20px;
             }
 
+            .equb-hero-section {
+                padding: 24px 16px;
+                margin-bottom: 30px;
+            }
+
+            .icon-container {
+                width: 80px;
+                height: 80px;
+                font-size: 40px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+                margin-bottom: 12px;
+            }
+
+            .hero-subtitle {
+                font-size: 14px;
+                margin-bottom: 18px;
+            }
+
+            .hero-badge {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .feature-chip {
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-hero-action {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+
             .panel-header {
                 flex-direction: column;
                 gap: 16px;
@@ -659,6 +731,178 @@ $csrf_token = generate_csrf_token();
             .action-card {
                 padding: 20px 16px;
             }
+        }
+
+        /* Enhanced Equb Management System Hero Card Styles */
+        .equb-hero-section {
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+            border-radius: 24px;
+            padding: 48px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(19, 102, 92, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .equb-hero-card {
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            border-radius: 24px;
+            z-index: -1;
+            opacity: 0.8;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            gap: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-icon-wrapper {
+            position: relative;
+            text-align: center;
+        }
+
+        .icon-container {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: white;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .icon-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0.5;
+            z-index: -1;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+
+        .hero-text-wrapper {
+            text-align: left;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 15px;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .hero-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .feature-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn-hero-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-hero-action.primary {
+            background: linear-gradient(135deg, var(--color-gold) 0%, #D4A72C 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-hero-action.secondary {
+            background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8962F 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-hero-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
         }
     </style>
 </head>
@@ -699,19 +943,52 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
 
-        <!-- Modern Intro Card -->
-        <div class="intro-card">
-            <div class="intro-content">
-                <div class="intro-icon">
-                    <i class="fas fa-info-circle"></i>
-                </div>
-                <div class="intro-text">
-                    <h2>Welcome to Equb Management</h2>
-                    <p>
-                        Manage your equb terms, members, and financial transactions efficiently.
-                        Use the powerful tools and features to ensure smooth operations and
-                        accurate financial reporting.
-                    </p>
+        <!-- Enhanced Equb Management System Hero Card -->
+        <div class="equb-hero-section mb-4">
+            <div class="equb-hero-card">
+                <div class="hero-background"></div>
+                <div class="hero-content">
+                    <!-- Left Icon Section -->
+                    <div class="hero-icon-wrapper">
+                        <div class="icon-container">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="icon-glow"></div>
+                    </div>
+
+                    <!-- Center Text Section -->
+                    <div class="hero-text-wrapper">
+                        <span class="hero-badge">Advanced Management System</span>
+                        <h2 class="hero-title">Equb Management System</h2>
+                        <p class="hero-subtitle">Professional financial administration for traditional Ethiopian savings groups</p>
+                        
+                        <div class="hero-features">
+                            <div class="feature-chip">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Enterprise Security</span>
+                            </div>
+                            <div class="feature-chip">
+                                <i class="fas fa-calculator"></i>
+                                <span>Real-time Calculations</span>
+                            </div>
+                            <div class="feature-chip">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Financial Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Action Section -->
+                    <div class="hero-actions">
+                        <button class="btn-hero-action primary" onclick="openCreateModal()">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Create New Equb</span>
+                        </button>
+                        <button class="btn-hero-action secondary" onclick="recalculateAllValues()">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Recalculate</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
