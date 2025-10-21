@@ -103,9 +103,15 @@ class EmailService {
         
         $html_content = file_get_contents($template_path);
         
-        // Replace variables
+        // Replace variables - don't escape body HTML, but escape other variables
         foreach ($variables as $key => $value) {
-            $html_content = str_replace('{{' . $key . '}}', htmlspecialchars($value), $html_content);
+            if ($key === 'body') {
+                // Body should be HTML - don't escape it
+                $html_content = str_replace('{{' . $key . '}}', $value, $html_content);
+            } else {
+                // Other variables should be escaped for security
+                $html_content = str_replace('{{' . $key . '}}', htmlspecialchars($value), $html_content);
+            }
         }
         
         // Extract subject from template
