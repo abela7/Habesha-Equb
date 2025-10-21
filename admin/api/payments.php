@@ -450,7 +450,7 @@ function verifyPayment() {
             $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
             // Ensure unique receipt token and URL
             try {
-                $token = bin2hex(random_bytes(16));
+                // Create table if not exists
                 $pdo->prepare("CREATE TABLE IF NOT EXISTS payment_receipts (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     payment_id INT NOT NULL,
@@ -460,14 +460,23 @@ function verifyPayment() {
                     CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")->execute();
                 
-                // INSERT token FIRST before using it
+                // Delete any existing receipt for this payment to avoid duplicates
+                $delTok = $pdo->prepare("DELETE FROM payment_receipts WHERE payment_id = ?");
+                $delTok->execute([$payment_id]);
+                
+                // Generate new token and insert
+                $token = bin2hex(random_bytes(16));
                 $insTok = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
-                $insTok->execute([$payment_id, $token]);
+                $insertResult = $insTok->execute([$payment_id, $token]);
+                
+                if (!$insertResult) {
+                    throw new Exception("Failed to insert receipt token");
+                }
                 
                 $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
             } catch (Throwable $te) {
                 error_log('Receipt token generation failed: ' . $te->getMessage());
-                $receiptUrl = '';
+                $receiptUrl = 'https://habeshaequb.com/user/dashboard.php'; // Fallback URL
             }
             $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
 
