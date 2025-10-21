@@ -909,7 +909,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 }
 
 .table td {
-    color: #000000 !important;
+    color: #301934 !important;
 }
 
 /* Enhanced Mobile Responsive Design */
