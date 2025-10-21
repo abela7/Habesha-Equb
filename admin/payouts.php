@@ -831,6 +831,9 @@ $csrf_token = generate_csrf_token();
                                 <label for="netAmount" class="form-label">
                                     Net Amount (£) *
                                     <small class="text-muted">What member gets</small>
+                                    <button type="button" class="btn btn-sm btn-outline-info ms-1" onclick="toggleNetAmountEdit()" id="netAmountToggle">
+                                        <i class="fas fa-lock"></i> <span id="netAmountToggleText">Auto</span>
+                                    </button>
                                 </label>
                                 <input type="number" class="form-control" id="netAmount" name="net_amount" step="0.01" min="0" readonly style="background-color: #e8f5e8;" required>
                             </div>
@@ -1132,6 +1135,9 @@ $csrf_token = generate_csrf_token();
                     document.getElementById('payoutNotes').value = payout.payout_notes || '';
                     // Ensure Actual Payout Date is editable for completed status
                     updateActualDateFieldState();
+                    
+                    // Reset net amount to auto-calculate mode when editing
+                    resetNetAmountToAuto();
                     
                     new bootstrap.Modal(document.getElementById('payoutModal')).show();
                     if (focusDate) {
@@ -1532,6 +1538,54 @@ $csrf_token = generate_csrf_token();
         });
     }
 
+    // Track whether net amount is in manual or auto mode
+    let netAmountManualMode = false;
+
+    // Reset net amount to auto-calculate mode (called when opening modal)
+    function resetNetAmountToAuto() {
+        netAmountManualMode = false;
+        const netAmountField = document.getElementById('netAmount');
+        const toggleIcon = document.querySelector('#netAmountToggle i');
+        const toggleText = document.getElementById('netAmountToggleText');
+        
+        netAmountField.setAttribute('readonly', 'readonly');
+        netAmountField.style.backgroundColor = '#e8f5e8';
+        netAmountField.style.borderColor = '';
+        netAmountField.style.borderWidth = '';
+        toggleIcon.className = 'fas fa-lock';
+        toggleText.textContent = 'Auto';
+    }
+
+    // Toggle net amount between auto-calculate and manual edit
+    function toggleNetAmountEdit() {
+        const netAmountField = document.getElementById('netAmount');
+        const toggleIcon = document.querySelector('#netAmountToggle i');
+        const toggleText = document.getElementById('netAmountToggleText');
+        
+        netAmountManualMode = !netAmountManualMode;
+        
+        if (netAmountManualMode) {
+            // Enable manual editing
+            netAmountField.removeAttribute('readonly');
+            netAmountField.style.backgroundColor = '#ffffff';
+            netAmountField.style.borderColor = '#ffc107';
+            netAmountField.style.borderWidth = '2px';
+            toggleIcon.className = 'fas fa-unlock';
+            toggleText.textContent = 'Manual';
+        } else {
+            // Enable auto-calculate
+            netAmountField.setAttribute('readonly', 'readonly');
+            netAmountField.style.backgroundColor = '#e8f5e8';
+            netAmountField.style.borderColor = '';
+            netAmountField.style.borderWidth = '';
+            toggleIcon.className = 'fas fa-lock';
+            toggleText.textContent = 'Auto';
+            
+            // Recalculate when switching back to auto
+            updateCalculatedAmounts();
+        }
+    }
+
     // 🚀 ENHANCED: Update calculated amounts when gross payout or admin fee changes
     function updateCalculatedAmounts() {
         const grossPayout = parseFloat(document.getElementById('grossPayout').value) || 0;
@@ -1542,15 +1596,19 @@ $csrf_token = generate_csrf_token();
         const totalAmount = grossPayout - adminFee;
         document.getElementById('totalAmount').value = totalAmount.toFixed(2);
         
-        // Calculate net amount (total - monthly payment)
-        const netAmount = totalAmount - monthlyPayment;
-        document.getElementById('netAmount').value = netAmount.toFixed(2);
+        // Only auto-calculate net amount if NOT in manual mode
+        if (!netAmountManualMode) {
+            // Calculate net amount (total - monthly payment)
+            const netAmount = totalAmount - monthlyPayment;
+            document.getElementById('netAmount').value = netAmount.toFixed(2);
+        }
         
         // Update breakdown display
         if (grossPayout > 0) {
+            const displayNetAmount = parseFloat(document.getElementById('netAmount').value) || 0;
             document.getElementById('grossBreakdown').innerHTML = `£${grossPayout.toFixed(2)}`;
             document.getElementById('deductionsBreakdown').innerHTML = `Admin: -£${adminFee.toFixed(2)} | Monthly: -£${monthlyPayment}`;
-            document.getElementById('netBreakdown').innerHTML = `£${netAmount.toFixed(2)} (final receipt amount)`;
+            document.getElementById('netBreakdown').innerHTML = `£${displayNetAmount.toFixed(2)} (final receipt amount)`;
             document.getElementById('calculationBreakdown').style.display = 'block';
         }
     }
