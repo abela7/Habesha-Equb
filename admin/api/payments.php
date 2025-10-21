@@ -596,9 +596,80 @@ function listPayments() {
     $stmt->execute($params);
     $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-
+    // Get unpaid members per month
+    $unpaidMembers = getUnpaidMembersByMonth($month, $member_id);
     
-    echo json_encode(['success' => true, 'payments' => $payments]);
+    echo json_encode([
+        'success' => true, 
+        'payments' => $payments,
+        'unpaid_members' => $unpaidMembers
+    ]);
+}
+
+/**
+ * Get members who haven't paid for each month
+ */
+function getUnpaidMembersByMonth($filterMonth = '', $filterMemberId = 0) {
+    global $pdo;
+    
+    // Get all active members
+    $memberQuery = "SELECT id, member_id, first_name, last_name, monthly_payment, email FROM members WHERE is_active = 1";
+    $memberParams = [];
+    
+    if ($filterMemberId) {
+        $memberQuery .= " AND id = ?";
+        $memberParams[] = $filterMemberId;
+    }
+    
+    $memberStmt = $pdo->prepare($memberQuery);
+    $memberStmt->execute($memberParams);
+    $allMembers = $memberStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get distinct months from payments (or use filter month)
+    $monthsToCheck = [];
+    if ($filterMonth) {
+        // User filtered by specific month
+        $monthsToCheck[] = $filterMonth;
+    } else {
+        // Get last 12 months including current
+        for ($i = 0; $i < 12; $i++) {
+            $monthsToCheck[] = date('Y-m', strtotime("-$i months"));
+        }
+    }
+    
+    $unpaidByMonth = [];
+    
+    foreach ($monthsToCheck as $monthKey) {
+        $monthDate = $monthKey . '-01'; // Convert YYYY-MM to YYYY-MM-01
+        
+        // Get members who have paid for this month
+        $paidQuery = "SELECT DISTINCT member_id FROM payments WHERE payment_month = ?";
+        $paidStmt = $pdo->prepare($paidQuery);
+        $paidStmt->execute([$monthDate]);
+        $paidMemberIds = $paidStmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Find unpaid members (members not in paid list)
+        $unpaidForMonth = [];
+        foreach ($allMembers as $member) {
+            if (!in_array($member['id'], $paidMemberIds)) {
+                $unpaidForMonth[] = [
+                    'member_id' => $member['id'],
+                    'member_code' => $member['member_id'],
+                    'first_name' => $member['first_name'],
+                    'last_name' => $member['last_name'],
+                    'monthly_payment' => $member['monthly_payment'],
+                    'email' => $member['email'],
+                    'month' => $monthKey
+                ];
+            }
+        }
+        
+        if (!empty($unpaidForMonth)) {
+            $unpaidByMonth[$monthKey] = $unpaidForMonth;
+        }
+    }
+    
+    return $unpaidByMonth;
 }
 
 /**

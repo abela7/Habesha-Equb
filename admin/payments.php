@@ -316,6 +316,44 @@ $csrf_token = generate_csrf_token();
             background: white;
         }
 
+        /* Unpaid Members Styling */
+        .payment-row-unpaid {
+            background-color: #fff3f3;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .payment-row-unpaid:hover {
+            background-color: #ffe5e5;
+        }
+        
+        .unpaid-avatar {
+            background: linear-gradient(135deg, #dc3545, #c82333) !important;
+        }
+        
+        .status-unpaid {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-add-payment {
+            background: linear-gradient(135deg, var(--color-teal), var(--color-purple));
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-add-payment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(19, 102, 92, 0.3);
+        }
+        
         /* Payments Table */
         .payments-table-container {
             background: white;
@@ -790,6 +828,7 @@ $csrf_token = generate_csrf_token();
                                 <option value=""><?php echo t('payments.all_status'); ?></option>
                                 <option value="paid"><?php echo t('payments.paid'); ?></option>
                                 <option value="pending"><?php echo t('payments.pending'); ?></option>
+                                <option value="unpaid">Unpaid (No Record)</option>
                                 <option value="late"><?php echo t('payments.late'); ?></option>
                                 <option value="missed"><?php echo t('payments.missed'); ?></option>
                             </select>
@@ -1198,6 +1237,48 @@ $csrf_token = generate_csrf_token();
             document.getElementById('receiptNumber').value = receiptNumber;
         }
 
+        // Add payment for specific member and month
+        function addPaymentForMember(memberId, monthKey) {
+            isEditMode = false;
+            currentPaymentId = null;
+            
+            // Reset form
+            document.getElementById('paymentForm').reset();
+            document.getElementById('paymentModalLabel').textContent = 'Add Payment';
+            document.getElementById('submitText').textContent = 'Add Payment';
+            document.getElementById('paymentId').value = '';
+            
+            // Pre-fill member and month
+            const memberSelect = document.getElementById('memberId');
+            memberSelect.value = memberId;
+            
+            // Set payment month to the specific month
+            const paymentMonthInput = document.getElementById('paymentMonth');
+            paymentMonthInput.value = monthKey; // YYYY-MM format
+            
+            // Set payment date to current date
+            document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+            
+            // Get member's expected payment amount
+            const memberOption = memberSelect.options[memberSelect.selectedIndex];
+            if (memberOption && memberOption.dataset.payment) {
+                document.getElementById('amount').value = memberOption.dataset.payment;
+            }
+            
+            // Reset other fields
+            document.getElementById('receiptNumber').readOnly = true;
+            document.getElementById('generateReceiptBtn').style.display = 'inline-block';
+            document.getElementById('paymentMethod').value = 'bank_transfer';
+            document.getElementById('status').value = 'pending';
+            
+            // Refresh CSRF token
+            refreshCSRFToken();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+        }
+        
         function editPayment(id) {
 
             isEditMode = true;
@@ -1418,92 +1499,151 @@ $csrf_token = generate_csrf_token();
                 cache: 'no-cache' // Ensure no caching
             })
                 .then(response => response.json())
-                            .then(data => {
-                if (data.success) {
-
-                    updatePaymentsTable(data.payments);
-                }
-            })
+                .then(data => {
+                    if (data.success) {
+                        updatePaymentsTable(data.payments, data.unpaid_members || {});
+                    } else {
+                        console.error('Error loading payments:', data.message);
+                        updatePaymentsTable([], {});
+                    }
+                })
                 .catch(error => {
                     console.error('Error loading payments:', error);
+                    updatePaymentsTable([], {});
                 });
         }
 
         // Update payments table
-        function updatePaymentsTable(payments) {
+        function updatePaymentsTable(payments, unpaidMembers = {}) {
             const acc = document.getElementById('paymentsAccordion');
             acc.innerHTML = '';
             
-            if (!payments || payments.length === 0) {
-                // Show empty grouped container with month filter still populated
-                acc.innerHTML = '<div class="p-4 text-center text-muted">No payments found.</div>';
-                populateMonthFilter([]);
-                return;
-            }
+            // Check if user is filtering for unpaid only
+            const statusFilter = document.getElementById('statusFilter').value;
+            const showOnlyUnpaid = statusFilter === 'unpaid';
             
             // Build month groups dynamically
             const monthMap = new Map(); // key: YYYY-MM, value: array of payments
-            payments.forEach(p => {
-                let key = '';
-                if (p.payment_month && p.payment_month !== '0000-00-00') {
-                    key = p.payment_month.toString().slice(0,7);
-                } else if (p.payment_date && p.payment_date !== '0000-00-00') {
-                    key = p.payment_date.toString().slice(0,7);
-                } else {
-                    key = 'Unknown';
-                }
-                if (!monthMap.has(key)) monthMap.set(key, []);
-                monthMap.get(key).push(p);
-            });
             
-            // Populate month filter dynamically (always, even before a filter is chosen)
+            // Only add payment data if we're not filtering for unpaid only
+            if (!showOnlyUnpaid && payments && payments.length > 0) {
+                payments.forEach(p => {
+                    let key = '';
+                    if (p.payment_month && p.payment_month !== '0000-00-00') {
+                        key = p.payment_month.toString().slice(0,7);
+                    } else if (p.payment_date && p.payment_date !== '0000-00-00') {
+                        key = p.payment_date.toString().slice(0,7);
+                    } else {
+                        key = 'Unknown';
+                    }
+                    if (!monthMap.has(key)) monthMap.set(key, []);
+                    monthMap.get(key).push(p);
+                });
+            }
+            
+            // Add months from unpaid members that might not have any payments
+            if (unpaidMembers) {
+                Object.keys(unpaidMembers).forEach(monthKey => {
+                    if (!monthMap.has(monthKey)) {
+                        monthMap.set(monthKey, []);
+                    }
+                });
+            }
+            
+            // Populate month filter dynamically
             populateMonthFilter(Array.from(monthMap.keys()));
+            
+            if (monthMap.size === 0) {
+                acc.innerHTML = '<div class="p-4 text-center text-muted">No payment data found.</div>';
+                return;
+            }
             
             // Sort months descending
             const sortedKeys = Array.from(monthMap.keys()).sort((a,b)=> (a>b?-1:1));
             
             sortedKeys.forEach((key, idx) => {
-                const group = monthMap.get(key);
+                const group = showOnlyUnpaid ? [] : (monthMap.get(key) || []);
+                const unpaidForMonth = unpaidMembers && unpaidMembers[key] ? unpaidMembers[key] : [];
                 const label = key === 'Unknown' ? 'Not Set' : new Date(key + '-01').toLocaleDateString('en-US',{year:'numeric',month:'long'});
                 const itemId = `paymon-${key.replace(/[^\dA-Za-z]/g,'')}-${idx}`;
                 
+                const totalMembers = group.length + unpaidForMonth.length;
+                const paidCount = group.length;
+                const unpaidCount = unpaidForMonth.length;
+                
+                // Skip months with no data to show
+                if (showOnlyUnpaid && unpaidCount === 0) {
+                    return;
+                }
+                
                 let rowsHtml = '';
+                
+                // Add paid members
                 group.forEach(payment => {
-                const initials = payment.first_name.charAt(0) + payment.last_name.charAt(0);
-                const paymentDate = (payment.payment_date && payment.payment_date !== '0000-00-00') 
+                    const initials = payment.first_name.charAt(0) + payment.last_name.charAt(0);
+                    const paymentDate = (payment.payment_date && payment.payment_date !== '0000-00-00') 
                         ? new Date(payment.payment_date).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
-                    : '<span class="text-muted">Not Set</span>';
-                const verifyButton = payment.status === 'pending' ? 
+                        : '<span class="text-muted">Not Set</span>';
+                    const verifyButton = payment.status === 'pending' ? 
                         `<button class=\"btn btn-action btn-verify\" onclick=\"openVerifyOptions(${payment.id})\" title=\"Verify Payment\"><i class=\"fas fa-check\"></i></button>` : '';
-                const verifiedBadge = payment.verified_by_admin ? 
+                    const verifiedBadge = payment.verified_by_admin ? 
                         '<span class="verified-badge verified-yes">Verified</span>' : '<span class="verified-badge verified-no">Unverified</span>';
                     rowsHtml += `
-                    <tr>
-                        <td>
-                            <div class="member-info">
-                                <div class="member-avatar">${initials}</div>
-                                <div class="member-details">
+                        <tr class="payment-row-paid">
+                            <td>
+                                <div class="member-info">
+                                    <div class="member-avatar">${initials}</div>
+                                    <div class="member-details">
                                         <div class="member-name"><a href="member-profile.php?id=${payment.member_db_id}" class="member-name-link">${payment.first_name} ${payment.last_name}</a></div>
-                                    <div class="member-id">${payment.member_code}</div>
+                                        <div class="member-id">${payment.member_code}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="payment-id">${payment.payment_id}</div>
-                            <div class="payment-method">${payment.payment_method ? payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Bank Transfer'}</div>
-                        </td>
+                            </td>
+                            <td>
+                                <div class="payment-id">${payment.payment_id}</div>
+                                <div class="payment-method">${payment.payment_method ? payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Bank Transfer'}</div>
+                            </td>
                             <td><div class="payment-amount">£${parseFloat(payment.amount).toLocaleString()}</div></td>
                             <td><div class="payment-date">${paymentDate}</div></td>
-                        <td><span class="status-badge status-${payment.status || 'pending'}">${getStatusTranslation(payment.status || 'pending')}</span></td>
-                        <td>${verifiedBadge}</td>
-                        <td>
-                            <div class="action-buttons">
+                            <td><span class="status-badge status-${payment.status || 'pending'}">${getStatusTranslation(payment.status || 'pending')}</span></td>
+                            <td>${verifiedBadge}</td>
+                            <td>
+                                <div class="action-buttons">
                                     <button class="btn btn-action btn-edit" onclick="editPayment(${payment.id})" title="Edit Payment"><i class="fas fa-edit"></i></button>
-                                ${verifyButton}
+                                    ${verifyButton}
                                     <button class="btn btn-action btn-delete" onclick="deletePayment(${payment.id})" title="Delete Payment"><i class="fas fa-trash"></i></button>
                                     <button class="btn btn-action btn-receipt" onclick="openPublicReceipt(${payment.id})" title="Open Public Receipt"><i class="fas fa-external-link-alt"></i></button>
-                            </div>
-                        </td>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                
+                // Add unpaid members
+                unpaidForMonth.forEach(member => {
+                    const initials = member.first_name.charAt(0) + member.last_name.charAt(0);
+                    rowsHtml += `
+                        <tr class="payment-row-unpaid">
+                            <td>
+                                <div class="member-info">
+                                    <div class="member-avatar unpaid-avatar">${initials}</div>
+                                    <div class="member-details">
+                                        <div class="member-name"><a href="member-profile.php?id=${member.member_id}" class="member-name-link">${member.first_name} ${member.last_name}</a></div>
+                                        <div class="member-id">${member.member_code}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="text-muted">No payment recorded</span></td>
+                            <td><div class="payment-amount text-muted">£${parseFloat(member.monthly_payment || 0).toLocaleString()} <small>(expected)</small></div></td>
+                            <td><span class="text-muted">—</span></td>
+                            <td><span class="status-badge status-unpaid">Unpaid</span></td>
+                            <td><span class="verified-badge verified-no">—</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-action btn-add-payment" onclick="addPaymentForMember(${member.member_id}, '${key}')" title="Add Payment">
+                                        <i class="fas fa-plus"></i> Add Payment
+                                    </button>
+                                </div>
+                            </td>
                         </tr>`;
                 });
                 
@@ -1511,7 +1651,12 @@ $csrf_token = generate_csrf_token();
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="h-${itemId}">
                             <button class="accordion-button ${idx>0?'collapsed':''}" type="button" data-bs-toggle="collapse" data-bs-target="#c-${itemId}" aria-expanded="${idx===0?'true':'false'}" aria-controls="c-${itemId}">
-                                ${label} <span class="ms-2 text-muted">(${group.length})</span>
+                                ${label} 
+                                <span class="ms-2">
+                                    <span class="badge bg-success">${paidCount} Paid</span>
+                                    ${unpaidCount > 0 ? `<span class="badge bg-danger">${unpaidCount} Unpaid</span>` : ''}
+                                    <span class="text-muted">(${totalMembers} total)</span>
+                                </span>
                             </button>
                         </h2>
                         <div id="c-${itemId}" class="accordion-collapse collapse ${idx===0?'show':''}" aria-labelledby="h-${itemId}">
@@ -1527,7 +1672,7 @@ $csrf_token = generate_csrf_token();
                                                 <th><?php echo t('payments.status'); ?></th>
                                                 <th><?php echo t('payments.verification'); ?></th>
                                                 <th><?php echo t('payments.actions'); ?></th>
-                    </tr>
+                                            </tr>
                                         </thead>
                                         <tbody>${rowsHtml}</tbody>
                                     </table>
