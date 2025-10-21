@@ -475,17 +475,17 @@ function verifyPayment() {
             $subject_en = ($monthText ? ($monthText . ' Payment Confirmation') : 'Payment Confirmation');
             $subject_am = ($monthText ? ('የ ' . $monthText . ' ወር ክፍያ ማረጋገጫ') : 'የክፍያ ማረጋገጫ');
             
-            // Format body for HTML email (convert \n to <br />)
-            $body_en = "Dear {$memberFirst},<br /><br />";
-            $body_en .= "you have successfully paid this month's Equb payment for {$monthText} on {$dateText}.<br /><br />";
-            $body_en .= "You can Access and Download your receipt on:<br />";
-            $body_en .= "<a href=\"{$receiptUrl}\">{$receiptUrl}</a><br /><br />";
+            // Format body for HTML email - DO NOT include <br /> tags, EmailService will handle formatting
+            $body_en = "Dear {$memberFirst},\n\n";
+            $body_en .= "you have successfully paid this month's Equb payment for {$monthText} on {$dateText}.\n\n";
+            $body_en .= "You can Access and Download your receipt on:\n";
+            $body_en .= "{$receiptUrl}\n\n";
             $body_en .= "Thanks for your payment.";
             
-            $body_am = "ውድ {$memberFirst},<br /><br />";
-            $body_am .= "የ {$monthText} ወር የእቁብ ክፍያዎን  በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።<br /><br />";
-            $body_am .= "ደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦<br />";
-            $body_am .= "<a href=\"{$receiptUrl}\">{$receiptUrl}</a><br /><br />";
+            $body_am = "ውድ {$memberFirst},\n\n";
+            $body_am .= "የ {$monthText} ወር የእቁብ ክፍያዎን  በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።\n\n";
+            $body_am .= "ደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦\n";
+            $body_am .= "{$receiptUrl}\n\n";
             $body_am .= "ስለ ክፍያዎ እናመሰግናለን።";
             
             $useSubj = $isAmharic ? $subject_am : $subject_en;

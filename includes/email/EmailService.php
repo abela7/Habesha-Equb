@@ -27,10 +27,18 @@ class EmailService {
         $subject = $title_en; // always English subject for deliverability
         $body = $isAmharic ? $body_am : $body_en;
 
+        // Convert newlines to HTML line breaks and make URLs clickable
+        $body_html = nl2br($body);
+        $body_html = preg_replace(
+            '/(https?:\/\/[^\s<]+)/',
+            '<a href="$1" style="color:#13665C;text-decoration:none;font-weight:bold;">$1</a>',
+            $body_html
+        );
+
         $vars = [
             'subject' => $subject,
             'title' => $subject,
-            'body' => nl2br($body),
+            'body' => $body_html,
             'app_name' => 'HabeshaEqub'
         ];
 
