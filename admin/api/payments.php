@@ -503,7 +503,15 @@ function verifyPayment() {
             $body_en .= "Payment Date: {$dateText}\n";
             $body_en .= "Amount: {$amountFormatted}\n\n";
             $body_en .= "View your receipt: {$receiptUrl}\n\n";
-            $body_en .= "Thank you,\nHabeshaEqub Team";
+            $body_en .= "Thank you,\nHabeshaEqub Team\n\n";
+            $body_en .= "---\n\n";
+            $body_en .= "Need more information about the equb?\n";
+            $body_en .= "Login to your portal to view:\n";
+            $body_en .= "• Your payment history\n";
+            $body_en .= "• Payout schedule and positions\n";
+            $body_en .= "• Member contributions\n";
+            $body_en .= "• Equb rules and updates\n\n";
+            $body_en .= "Member Portal: https://habeshaequb.com/user/login.php";
             
             // Same clean format for Amharic
             $body_am = "Dear {$memberFirst},\n\n";
@@ -511,7 +519,15 @@ function verifyPayment() {
             $body_am .= "Payment Date: {$dateText}\n";
             $body_am .= "Amount: {$amountFormatted}\n\n";
             $body_am .= "View your receipt: {$receiptUrl}\n\n";
-            $body_am .= "Thank you,\nHabeshaEqub Team";
+            $body_am .= "Thank you,\nHabeshaEqub Team\n\n";
+            $body_am .= "---\n\n";
+            $body_am .= "Need more information about the equb?\n";
+            $body_am .= "Login to your portal to view:\n";
+            $body_am .= "• Your payment history\n";
+            $body_am .= "• Payout schedule and positions\n";
+            $body_am .= "• Member contributions\n";
+            $body_am .= "• Equb rules and updates\n\n";
+            $body_am .= "Member Portal: https://habeshaequb.com/user/login.php";
             
             $useSubj = $isAmharic ? $subject_am : $subject_en;
             $useBody = $isAmharic ? $body_am : $body_en;
