@@ -449,33 +449,46 @@ function verifyPayment() {
             $dateText = (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') ? date('F j, Y', strtotime($payment['payment_date'])) : date('F j, Y', strtotime($payment['created_at'] ?? 'now'));
             $amountFormatted = '£' . number_format((float)$payment['amount'], 2);
             // Ensure unique receipt token and URL
+            $receiptUrl = '';
             try {
-                // Create table if not exists
-                $pdo->prepare("CREATE TABLE IF NOT EXISTS payment_receipts (
+                // Create table if not exists (only once)
+                $createTableSQL = "CREATE TABLE IF NOT EXISTS payment_receipts (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     payment_id INT NOT NULL,
                     token VARCHAR(64) NOT NULL UNIQUE,
                     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
                     INDEX idx_payment (payment_id),
                     CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")->execute();
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                $pdo->exec($createTableSQL);
                 
                 // Delete any existing receipt for this payment to avoid duplicates
-                $delTok = $pdo->prepare("DELETE FROM payment_receipts WHERE payment_id = ?");
-                $delTok->execute([$payment_id]);
+                $delStmt = $pdo->prepare("DELETE FROM payment_receipts WHERE payment_id = ?");
+                $delStmt->execute([$payment_id]);
                 
                 // Generate new token and insert
                 $token = bin2hex(random_bytes(16));
-                $insTok = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
-                $insertResult = $insTok->execute([$payment_id, $token]);
+                error_log("Generated token: $token (length: " . strlen($token) . ", encoding: " . mb_detect_encoding($token) . ")");
                 
-                if (!$insertResult) {
-                    throw new Exception("Failed to insert receipt token");
+                $insStmt = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
+                $insStmt->execute([$payment_id, $token]);
+                
+                // Verify the token was inserted
+                $verifyStmt = $pdo->prepare("SELECT token FROM payment_receipts WHERE payment_id = ? AND token = ?");
+                $verifyStmt->execute([$payment_id, $token]);
+                $verifiedToken = $verifyStmt->fetchColumn();
+                
+                if ($verifiedToken) {
+                    $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
+                    error_log("✓ Receipt token VERIFIED in DB: $token for payment $payment_id");
+                    error_log("Receipt URL: $receiptUrl");
+                } else {
+                    error_log("✗ Receipt token NOT FOUND in DB for payment $payment_id");
+                    $receiptUrl = 'https://habeshaequb.com/user/dashboard.php';
                 }
                 
-                $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
             } catch (Throwable $te) {
-                error_log('Receipt token generation failed: ' . $te->getMessage());
+                error_log('Receipt token generation failed: ' . $te->getMessage() . ' - ' . $te->getTraceAsString());
                 $receiptUrl = 'https://habeshaequb.com/user/dashboard.php'; // Fallback URL
             }
             $isAmharic = (int)($member['language_preference'] ?? 0) === 1;

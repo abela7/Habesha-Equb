@@ -31,11 +31,13 @@ class EmailService {
         $body_html = nl2br($body, false);
         
         // Make URLs clickable - match full URLs and create proper HTML links
+        // Do NOT use htmlspecialchars on URLs as it can corrupt them
         $body_html = preg_replace_callback(
-            '/(https?:\/\/[a-zA-Z0-9\-\._~:\/\?#\[\]@!$&\'\(\)\*\+,;=%]+)/',
+            '/(https?:\/\/[^\s<>"\']+)/',
             function($matches) {
-                $url = trim($matches[1]);
-                return '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" style="color:#13665C;text-decoration:underline;font-weight:600;word-break:break-all;">' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '</a>';
+                $url = $matches[1];
+                // Use URL as-is without encoding to prevent corruption
+                return '<a href="' . $url . '" style="color:#13665C;text-decoration:underline;font-weight:600;word-break:break-all;">' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '</a>';
             },
             $body_html
         );
@@ -261,15 +263,15 @@ class EmailService {
             $message .= "Auto-Submitted: auto-generated\r\n";
             $message .= "\r\n";
             
-            // Multipart content
+            // Multipart content - use 8bit encoding to avoid URL corruption
             $message .= "--boundary123\r\n";
             $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
-            $message .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
+            $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
             $message .= $text_content . "\r\n";
             
             $message .= "--boundary123\r\n";
             $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-            $message .= "Content-Transfer-Encoding: quoted-printable\r\n\r\n";
+            $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
             $message .= $html_content . "\r\n";
             
             $message .= "--boundary123--\r\n";

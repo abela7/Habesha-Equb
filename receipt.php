@@ -4,6 +4,8 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . '/includes/db.php';
 
 $token = $_GET['rt'] ?? '';
+error_log("Receipt lookup - Token received: '$token' (length: " . strlen($token) . ", encoding: " . mb_detect_encoding($token) . ")");
+
 if ($token === '') {
     http_response_code(400);
     echo 'Invalid receipt token';
@@ -19,6 +21,8 @@ try {
                            WHERE pr.token = ? LIMIT 1");
     $stmt->execute([$token]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    error_log("Payment receipt query result: " . ($row ? "FOUND (payment_id: {$row['id']})" : "NOT FOUND"));
+    
     if (!$row) {
         // Fallback: resolve as payout receipt
         $stmt2 = $pdo->prepare("SELECT po.*, m.first_name, m.last_name, m.member_id AS member_code, 'payout' AS receipt_kind
@@ -28,8 +32,14 @@ try {
                                 WHERE pr.token = ? LIMIT 1");
         $stmt2->execute([$token]);
         $row = $stmt2->fetch(PDO::FETCH_ASSOC);
+        error_log("Payout receipt query result: " . ($row ? "FOUND (payout_id: {$row['id']})" : "NOT FOUND"));
     }
-    if (!$row) { http_response_code(404); echo 'Receipt not found or expired.'; exit; }
+    if (!$row) { 
+        http_response_code(404); 
+        error_log("✗ Receipt NOT FOUND for token: $token");
+        echo 'Receipt not found or expired.'; 
+        exit; 
+    }
 
     $kind = $row['receipt_kind'];
     $memberName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
