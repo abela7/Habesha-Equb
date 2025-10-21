@@ -27,11 +27,16 @@ class EmailService {
         $subject = $title_en; // always English subject for deliverability
         $body = $isAmharic ? $body_am : $body_en;
 
-        // Convert newlines to HTML line breaks and make URLs clickable
-        $body_html = nl2br($body);
-        $body_html = preg_replace(
-            '/(https?:\/\/[^\s<]+)/',
-            '<a href="$1" style="color:#13665C;text-decoration:none;font-weight:bold;">$1</a>',
+        // Convert newlines to HTML line breaks
+        $body_html = nl2br($body, false);
+        
+        // Make URLs clickable - match full URLs and create proper HTML links
+        $body_html = preg_replace_callback(
+            '/(https?:\/\/[a-zA-Z0-9\-\._~:\/\?#\[\]@!$&\'\(\)\*\+,;=%]+)/',
+            function($matches) {
+                $url = trim($matches[1]);
+                return '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" style="color:#13665C;text-decoration:underline;font-weight:600;word-break:break-all;">' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '</a>';
+            },
             $body_html
         );
 

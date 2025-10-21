@@ -472,21 +472,24 @@ function verifyPayment() {
             $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
 
             // Title as month-specific confirmation
-            $subject_en = ($monthText ? ($monthText . ' Payment Confirmation') : 'Payment Confirmation');
-            $subject_am = ($monthText ? ('የ ' . $monthText . ' ወር ክፍያ ማረጋገጫ') : 'የክፍያ ማረጋገጫ');
+            $subject_en = 'Payment Confirmation - ' . $monthText;
+            $subject_am = 'Payment Confirmation - ' . $monthText; // Keep English for deliverability
             
-            // Format body for HTML email - DO NOT include <br /> tags, EmailService will handle formatting
+            // Clean, simple email body in English only to avoid spam filters
             $body_en = "Dear {$memberFirst},\n\n";
-            $body_en .= "you have successfully paid this month's Equb payment for {$monthText} on {$dateText}.\n\n";
-            $body_en .= "You can Access and Download your receipt on:\n";
-            $body_en .= "{$receiptUrl}\n\n";
-            $body_en .= "Thanks for your payment.";
+            $body_en .= "Your payment for {$monthText} has been successfully confirmed.\n\n";
+            $body_en .= "Payment Date: {$dateText}\n";
+            $body_en .= "Amount: {$amountFormatted}\n\n";
+            $body_en .= "View your receipt: {$receiptUrl}\n\n";
+            $body_en .= "Thank you,\nHabeshaEqub Team";
             
-            $body_am = "ውድ {$memberFirst},\n\n";
-            $body_am .= "የ {$monthText} ወር የእቁብ ክፍያዎን  በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።\n\n";
-            $body_am .= "ደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦\n";
-            $body_am .= "{$receiptUrl}\n\n";
-            $body_am .= "ስለ ክፍያዎ እናመሰግናለን።";
+            // Same clean format for Amharic
+            $body_am = "Dear {$memberFirst},\n\n";
+            $body_am .= "Your payment for {$monthText} has been successfully confirmed.\n\n";
+            $body_am .= "Payment Date: {$dateText}\n";
+            $body_am .= "Amount: {$amountFormatted}\n\n";
+            $body_am .= "View your receipt: {$receiptUrl}\n\n";
+            $body_am .= "Thank you,\nHabeshaEqub Team";
             
             $useSubj = $isAmharic ? $subject_am : $subject_en;
             $useBody = $isAmharic ? $body_am : $body_en;
