@@ -318,40 +318,61 @@ $csrf_token = generate_csrf_token();
 
         /* Unpaid Members Styling */
         .payment-row-unpaid {
-            background-color: #fff3f3;
+            background: linear-gradient(to right, #fff5f5, #ffffff);
             border-left: 4px solid #dc3545;
         }
         
         .payment-row-unpaid:hover {
-            background-color: #ffe5e5;
+            background: linear-gradient(to right, #ffebeb, #fff9f9);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.1);
         }
         
         .unpaid-avatar {
             background: linear-gradient(135deg, #dc3545, #c82333) !important;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
         }
         
         .status-unpaid {
             background: linear-gradient(135deg, #dc3545, #c82333);
             color: white;
             font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2);
         }
         
-        .btn-add-payment {
-            background: linear-gradient(135deg, var(--color-teal), var(--color-purple));
+        .unpaid-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-add-payment-compact {
+            background: linear-gradient(135deg, var(--color-teal), #13665C);
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 8px;
             font-weight: 600;
+            font-size: 14px;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(19, 102, 92, 0.2);
         }
         
-        .btn-add-payment:hover {
+        .btn-add-payment-compact:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(19, 102, 92, 0.3);
+            box-shadow: 0 4px 16px rgba(19, 102, 92, 0.4);
+            background: linear-gradient(135deg, #13665C, var(--color-teal));
+        }
+        
+        .btn-add-payment-compact:active {
+            transform: translateY(0);
         }
         
         /* Payments Table */
@@ -391,6 +412,14 @@ $csrf_token = generate_csrf_token();
             padding: 16px 20px;
             border: none;
             border-bottom: 2px solid var(--border-light);
+        }
+        
+        .payments-table thead th:last-child {
+            min-width: 200px;
+        }
+        
+        .payments-table tbody td:last-child {
+            min-width: 200px;
         }
 
         .payments-table tbody tr {
@@ -715,6 +744,15 @@ $csrf_token = generate_csrf_token();
 
             .payments-table tbody td {
                 padding: 16px 12px;
+            }
+            
+            .btn-add-payment-compact {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            .btn-add-payment-compact i {
+                display: none;
             }
         }
     </style>
@@ -1632,15 +1670,23 @@ $csrf_token = generate_csrf_token();
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="text-muted">No payment recorded</span></td>
-                            <td><div class="payment-amount text-muted">£${parseFloat(member.monthly_payment || 0).toLocaleString()} <small>(expected)</small></div></td>
+                            <td>
+                                <div class="unpaid-info">
+                                    <i class="fas fa-exclamation-circle text-danger"></i>
+                                    <span class="text-muted fw-semibold">No payment recorded</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="payment-amount text-danger fw-bold">£${parseFloat(member.monthly_payment || 0).toLocaleString()}</div>
+                                <small class="text-muted">Expected amount</small>
+                            </td>
+                            <td><span class="text-muted fst-italic">Not paid</span></td>
+                            <td><span class="status-badge status-unpaid"><i class="fas fa-times-circle me-1"></i>Unpaid</span></td>
                             <td><span class="text-muted">—</span></td>
-                            <td><span class="status-badge status-unpaid">Unpaid</span></td>
-                            <td><span class="verified-badge verified-no">—</span></td>
                             <td>
                                 <div class="action-buttons">
-                                    <button class="btn btn-action btn-add-payment" onclick="addPaymentForMember(${member.member_id}, '${key}')" title="Add Payment">
-                                        <i class="fas fa-plus"></i> Add Payment
+                                    <button class="btn btn-primary btn-add-payment-compact" onclick="addPaymentForMember(${member.member_id}, '${key}')" title="Record payment for this member">
+                                        <i class="fas fa-plus-circle me-1"></i> Record Payment
                                     </button>
                                 </div>
                             </td>
