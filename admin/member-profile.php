@@ -170,25 +170,40 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
     <style>
         /* === MEMBER PROFILE PAGE DESIGN === */
         
+        /* Main Content Wrapper */
+        .app-main {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .app-content {
+            max-width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
         /* Page Header */
         .profile-header {
             background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
             border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 40px;
+            padding: 30px;
+            margin-bottom: 30px;
             border: 1px solid var(--border-light);
             box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .profile-header-content {
             display: flex;
             align-items: center;
-            gap: 30px;
+            gap: 20px;
+            flex-wrap: wrap;
         }
         
         .profile-avatar {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%);
             color: white;
             border-radius: 20px;
@@ -196,28 +211,37 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 48px;
+            font-size: 40px;
             box-shadow: 0 8px 24px rgba(19, 102, 92, 0.3);
+            flex-shrink: 0;
+        }
+        
+        .profile-info {
+            flex: 1;
+            min-width: 0;
         }
         
         .profile-info h1 {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
             color: var(--color-purple);
             margin: 0 0 8px 0;
+            word-break: break-word;
         }
         
         .profile-meta {
             display: flex;
-            gap: 24px;
+            gap: 16px;
             margin-top: 12px;
+            flex-wrap: wrap;
         }
         
         .meta-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             color: var(--text-secondary);
+            font-size: 14px;
         }
         
         .meta-item i {
@@ -225,20 +249,21 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         }
         
         .profile-actions {
-            margin-left: auto;
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
         }
         
         /* Status Badge */
         .status-badge {
-            padding: 6px 16px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             display: inline-block;
+            white-space: nowrap;
         }
         
         .status-active {
@@ -264,17 +289,18 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         /* Statistics Cards */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
         
         .stat-card {
             background: white;
             border-radius: 16px;
-            padding: 24px;
+            padding: 20px;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            min-width: 0;
         }
         
         .stat-icon {
@@ -290,13 +316,14 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         
         .stat-icon.payments { background: rgba(19, 102, 92, 0.1); color: var(--color-teal); }
         .stat-icon.contributed { background: rgba(233, 196, 106, 0.1); color: var(--color-gold); }
-        .stat-icon.payout { background: rgba(139, 92, 246, 0.1); color: #7C3AED); }
+        .stat-icon.payout { background: rgba(139, 92, 246, 0.1); color: #7C3AED; }
         
         .stat-value {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--color-purple);
             margin: 0 0 4px 0;
+            word-break: break-word;
         }
         
         .stat-label {
@@ -309,29 +336,33 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         .section-card {
             background: white;
             border-radius: 16px;
-            padding: 30px;
+            padding: 24px;
             margin-bottom: 24px;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             padding-bottom: 16px;
             border-bottom: 2px solid var(--border-light);
+            flex-wrap: wrap;
+            gap: 12px;
         }
         
         .section-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--color-purple);
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         
         .section-title i {
@@ -341,18 +372,19 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         /* Info Grid */
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
         }
         
         .info-item {
             display: flex;
             flex-direction: column;
             gap: 6px;
+            min-width: 0;
         }
         
         .info-label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -360,20 +392,28 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         }
         
         .info-value {
-            font-size: 16px;
+            font-size: 15px;
             color: var(--color-purple);
             font-weight: 500;
+            word-break: break-word;
         }
         
         .info-value.highlight {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--color-gold);
         }
         
         /* Table Styling */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+        }
+        
         .data-table {
             width: 100%;
+            min-width: 800px;
             border-collapse: collapse;
         }
         
@@ -382,15 +422,16 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             padding: 12px 16px;
             text-align: left;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--color-purple);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 2px solid var(--border-light);
+            white-space: nowrap;
         }
         
         .data-table tbody td {
-            padding: 16px;
+            padding: 12px 16px;
             border-bottom: 1px solid var(--border-light);
             vertical-align: middle;
         }
@@ -404,10 +445,11 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             background: linear-gradient(135deg, var(--color-gold) 0%, #D4A72C 100%);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 10px;
             font-weight: 600;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
         
         .btn-edit:hover {
@@ -420,10 +462,11 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             background: white;
             color: var(--color-purple);
             border: 2px solid var(--border-light);
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 10px;
             font-weight: 600;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
         
         .btn-back:hover {
@@ -434,14 +477,16 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         /* Tabs */
         .nav-tabs {
             border-bottom: 2px solid var(--border-light);
+            flex-wrap: wrap;
         }
         
         .nav-tabs .nav-link {
             color: var(--text-secondary);
             border: none;
-            padding: 12px 24px;
+            padding: 12px 20px;
             font-weight: 600;
             transition: all 0.3s ease;
+            font-size: 14px;
         }
         
         .nav-tabs .nav-link:hover {
@@ -455,20 +500,59 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         }
         
         .tab-content {
-            padding: 24px 0;
+            padding: 20px 0;
         }
         
         /* Responsive */
+        @media (max-width: 992px) {
+            .profile-header {
+                padding: 20px;
+            }
+            
+            .profile-header-content {
+                gap: 16px;
+            }
+            
+            .profile-avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 32px;
+            }
+            
+            .profile-info h1 {
+                font-size: 24px;
+            }
+            
+            .info-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
         @media (max-width: 768px) {
+            .app-content {
+                padding: 15px;
+            }
+            
             .profile-header-content {
                 flex-direction: column;
                 text-align: center;
             }
             
             .profile-actions {
-                margin-left: 0;
-                flex-direction: column;
                 width: 100%;
+                justify-content: center;
+            }
+            
+            .profile-actions .btn {
+                flex: 1;
+            }
+            
+            .profile-meta {
+                justify-content: center;
             }
             
             .info-grid {
@@ -477,6 +561,40 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             
             .stats-row {
                 grid-template-columns: 1fr;
+            }
+            
+            .section-card {
+                padding: 16px;
+            }
+            
+            .section-title {
+                font-size: 16px;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .data-table {
+                min-width: 700px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .profile-meta {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            
+            .nav-tabs .nav-link i {
+                display: none;
             }
         }
     </style>
