@@ -139,117 +139,75 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
     <link rel="stylesheet" href="../assets/css/style.css">
     
     <style>
-        /* === SUPER CLEAN MODERN MEMBERS PAGE DESIGN === */
+        /* === TOP-TIER MEMBERS PAGE DESIGN === */
         
-        /* Variables for cleaner code */
-        :root {
-            --border-light: #E5DDD1;
-            --text-secondary: #5A4A6B;
-        }
-        
-        /* Page Header - Modern & Clean */
+        /* Page Header */
         .page-header {
             background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
             border-radius: 20px;
-            padding: 40px 48px;
+            padding: 40px;
             margin-bottom: 40px;
             border: 1px solid var(--border-light);
             box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .page-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(19, 102, 92, 0.05) 0%, transparent 70%);
-            border-radius: 50%;
-            transform: translate(30%, -30%);
-        }
-        
-        .page-title-section {
-            position: relative;
-            z-index: 1;
         }
         
         .page-title-section h1 {
-            font-size: 36px;
-            font-weight: 800;
+            font-size: 32px;
+            font-weight: 700;
             color: var(--color-purple);
             margin: 0 0 8px 0;
-            letter-spacing: -0.8px;
+            letter-spacing: -0.5px;
             display: flex;
             align-items: center;
             gap: 16px;
         }
-        
-        .page-title-section h1 svg {
-            color: var(--color-teal);
+
+        .page-title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
         }
         
         .page-subtitle {
-            font-size: 16px;
+            font-size: 18px;
             color: var(--text-secondary);
             margin: 0;
-            font-weight: 500;
-            line-height: 1.5;
-        }
-        
-        .page-subtitle strong {
-            color: var(--color-teal);
-            font-weight: 700;
-        }
-        
-        .page-actions {
-            display: flex;
-            gap: 12px;
-            position: relative;
-            z-index: 1;
+            font-weight: 400;
         }
 
         .page-actions .btn {
-            padding: 14px 28px;
+            padding: 12px 24px;
             font-weight: 600;
             border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             border: none;
-            box-shadow: 0 4px 16px rgba(19, 102, 92, 0.2);
-            font-size: 15px;
+            box-shadow: 0 4px 12px rgba(48, 25, 67, 0.15);
         }
 
         .btn-add-member {
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%);
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
             color: white;
+            font-size: 16px;
         }
 
         .btn-add-member:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(19, 102, 92, 0.35);
-            color: white;
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(233, 196, 106, 0.35);
+            box-shadow: 0 8px 25px rgba(48, 25, 67, 0.25);
             color: white;
         }
 
-        /* Statistics Dashboard - Clean Cards */
+        /* Statistics Dashboard */
         .stats-dashboard {
             margin-bottom: 40px;
         }
@@ -257,97 +215,69 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         .stat-card {
             background: white;
             border-radius: 16px;
-            padding: 28px;
+            padding: 24px;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
             height: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle, rgba(19, 102, 92, 0.03) 0%, transparent 70%);
-            border-radius: 50%;
-            transform: translate(30%, -30%);
         }
 
         .stat-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 40px rgba(48, 25, 67, 0.15);
-            border-color: var(--color-teal);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(48, 25, 67, 0.12);
         }
 
         .stat-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 1;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
         .stat-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .total-members .stat-icon { background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%); }
+        .total-members .stat-icon { background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%); }
         .active-members .stat-icon { background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); }
-        .completed-payouts .stat-icon { background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); }
-        .financial-stats .stat-icon { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+        .completed-payouts .stat-icon { background: linear-gradient(135deg, var(--color-light-gold) 0%, #B8941C 100%); }
 
         .stat-trend {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 6px 10px;
-            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
             background: rgba(34, 197, 94, 0.1);
             color: #059669;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
         }
 
         .stat-number {
-            font-size: 32px;
-            font-weight: 800;
+            font-size: 28px;
+            font-weight: 700;
             color: var(--color-purple);
-            margin: 0 0 8px 0;
+            margin: 0 0 4px 0;
             line-height: 1;
-            letter-spacing: -1px;
-            position: relative;
-            z-index: 1;
         }
 
         .stat-label {
             font-size: 14px;
             color: var(--text-secondary);
-            margin: 0 0 12px 0;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            position: relative;
-            z-index: 1;
+            margin: 0;
+            font-weight: 500;
         }
 
-        /* Search and Filter Section - Modern Clean Design */
+        /* Search and Filter Section */
         .search-filter-section {
             background: white;
             border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 32px;
+            padding: 24px;
+            margin-bottom: 30px;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
         }
@@ -359,63 +289,51 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
 
         .search-input {
             width: 100%;
-            padding: 14px 18px 14px 50px;
+            padding: 12px 16px 12px 48px;
             border: 2px solid var(--border-light);
             border-radius: 12px;
-            font-size: 15px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 16px;
+            transition: all 0.3s ease;
             background: var(--color-cream);
-            font-weight: 500;
         }
 
         .search-input:focus {
             outline: none;
             border-color: var(--color-teal);
-            box-shadow: 0 0 0 4px rgba(19, 102, 92, 0.08);
+            box-shadow: 0 0 0 3px rgba(19, 102, 92, 0.1);
             background: white;
-            transform: translateY(-1px);
         }
 
         .search-icon {
             position: absolute;
-            left: 18px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-secondary);
-            font-size: 18px;
-            pointer-events: none;
         }
 
         .filter-group {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             justify-content: flex-end;
-            flex-wrap: wrap;
         }
 
         .filter-select {
             padding: 12px 16px;
             border: 2px solid var(--border-light);
             border-radius: 12px;
-            background: white;
+            background: var(--color-cream);
             color: var(--color-purple);
             font-weight: 500;
-            min-width: 150px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            font-size: 14px;
+            min-width: 140px;
+            transition: all 0.3s ease;
         }
 
         .filter-select:focus {
             outline: none;
             border-color: var(--color-teal);
-            box-shadow: 0 0 0 4px rgba(19, 102, 92, 0.08);
+            box-shadow: 0 0 0 3px rgba(19, 102, 92, 0.1);
             background: white;
-            transform: translateY(-1px);
-        }
-        
-        .filter-select:hover {
-            border-color: var(--color-gold);
         }
 
         /* Members Table */
@@ -467,20 +385,12 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         }
 
         .members-table tbody td {
-            padding: 24px 20px;
+            padding: 20px;
             vertical-align: middle;
             border: none;
         }
-        
-        .members-table tbody td:first-child {
-            padding-left: 28px;
-        }
-        
-        .members-table tbody tr:last-child {
-            border-bottom: none;
-        }
 
-        /* Member Info Cell - Enhanced Design */
+        /* Member Info Cell */
         .member-info {
             display: flex;
             align-items: center;
@@ -488,31 +398,23 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         }
 
         .member-avatar {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%);
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--color-teal) 0%, #0F5147 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: 800;
-            font-size: 17px;
-            box-shadow: 0 4px 12px rgba(19, 102, 92, 0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .member-info:hover .member-avatar {
-            transform: scale(1.08);
-            box-shadow: 0 6px 16px rgba(19, 102, 92, 0.3);
+            font-weight: 700;
+            font-size: 16px;
         }
 
         .member-details .member-name {
-            font-weight: 700;
+            font-weight: 600;
             color: var(--color-purple);
-            margin: 0 0 6px 0;
-            font-size: 15px;
-            letter-spacing: -0.2px;
+            margin: 0 0 4px 0;
+            font-size: 16px;
         }
 
         .member-name-link {
@@ -528,186 +430,172 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         }
 
         .member-id {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
             margin: 0;
             font-family: 'Courier New', monospace;
-            font-weight: 600;
-            letter-spacing: 0.5px;
         }
 
         /* Contact Info */
         .contact-info .contact-email {
-            font-weight: 600;
+            font-weight: 500;
             color: var(--color-purple);
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
             font-size: 14px;
         }
 
         .contact-phone {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
             margin: 0;
-            font-weight: 500;
         }
 
-        /* Payment Info - Enhanced */
+        /* Payment Info */
         .payment-amount {
-            font-size: 20px;
-            font-weight: 800;
+            font-size: 18px;
+            font-weight: 700;
             color: var(--color-teal);
-            margin: 0 0 6px 0;
-            letter-spacing: -0.5px;
+            margin: 0 0 4px 0;
         }
 
         .payment-status {
-            font-size: 13px;
+            font-size: 14px;
             margin: 0;
-            color: var(--text-secondary);
-            font-weight: 500;
         }
 
-        /* Status Badges - Modern Design */
+        /* Status Badges */
         .status-badge {
-            padding: 7px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 12px;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            letter-spacing: 0.5px;
         }
 
         .status-active {
-            background: rgba(34, 197, 94, 0.12);
+            background: rgba(34, 197, 94, 0.1);
             color: #059669;
-            border: 1px solid rgba(34, 197, 94, 0.2);
         }
 
         .status-inactive {
-            background: rgba(239, 68, 68, 0.12);
+            background: rgba(239, 68, 68, 0.1);
             color: #DC2626;
-            border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
         .payout-badge {
-            padding: 7px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 12px;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            letter-spacing: 0.5px;
         }
 
         .payout-received {
-            background: rgba(34, 197, 94, 0.12);
+            background: rgba(34, 197, 94, 0.1);
             color: #059669;
-            border: 1px solid rgba(34, 197, 94, 0.2);
         }
 
         .payout-pending {
-            background: rgba(251, 191, 36, 0.12);
+            background: rgba(251, 191, 36, 0.1);
             color: #D97706;
-            border: 1px solid rgba(251, 191, 36, 0.2);
         }
 
-        /* Enhanced Action Buttons - Super Clean Design */
+        /* Enhanced Action Buttons */
         .action-buttons {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
             justify-content: flex-start;
         }
 
         .btn-action {
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
-            border: none;
+            border: 2px solid;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
             cursor: pointer;
             position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: white;
         }
 
         .btn-action i {
-            font-size: 15px;
+            font-size: 16px;
             transition: all 0.3s ease;
         }
 
         .btn-edit {
-            background: rgba(59, 130, 246, 0.1);
-            color: #2563EB;
+            border-color: var(--color-teal);
+            color: var(--color-teal);
         }
 
         .btn-edit:hover {
-            background: #2563EB;
+            background: var(--color-teal);
             color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(15, 81, 71, 0.3);
         }
 
         .btn-toggle {
-            background: rgba(233, 196, 106, 0.15);
+            border-color: var(--color-gold);
             color: var(--color-gold);
         }
 
         .btn-toggle:hover {
             background: var(--color-gold);
             color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(233, 196, 106, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .btn-delete {
-            background: rgba(239, 68, 68, 0.1);
-            color: #DC2626;
+            border-color: var(--color-coral);
+            color: var(--color-coral);
         }
 
         .btn-delete:hover {
-            background: #DC2626;
+            background: var(--color-coral);
             color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
         }
 
-        /* Enhanced Stat Cards - Secondary Style */
+        /* Enhanced Stat Cards */
         .stat-card-secondary {
-            background: linear-gradient(135deg, rgba(19, 102, 92, 0.03) 0%, rgba(233, 196, 106, 0.03) 100%);
-            border: 1px solid rgba(19, 102, 92, 0.15);
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.02) 0%, rgba(160, 82, 45, 0.02) 100%);
+            border: 1px solid rgba(139, 69, 19, 0.1);
         }
         
         .stat-card-secondary .stat-icon {
-            background: linear-gradient(135deg, rgba(19, 102, 92, 0.12) 0%, rgba(233, 196, 106, 0.12) 100%);
-            color: var(--color-teal);
-            box-shadow: 0 2px 8px rgba(19, 102, 92, 0.1);
-        }
-        
-        .stat-card-secondary:hover {
-            border-color: var(--color-teal);
+            background: rgba(139, 69, 19, 0.1);
+            color: var(--color-dark-purple);
         }
         
         .stat-breakdown {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(0, 0, 0, 0.06);
-            position: relative;
-            z-index: 1;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
         
         .stat-breakdown small {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
         }
         
-        .joint-groups .stat-icon,
-        .total-positions .stat-icon {
-            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+        .stat-card .stat-number {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 12px 0 8px 0;
+            background: linear-gradient(135deg, var(--color-purple), var(--color-dark-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .stat-card-secondary .stat-number {
@@ -765,65 +653,52 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
             transform: rotate(180deg);
         }
         
-        /* Bulk Actions - Modern Design */
+        /* Bulk Actions */
         .bulk-actions {
-            background: linear-gradient(135deg, rgba(233, 196, 106, 0.08) 0%, rgba(19, 102, 92, 0.08) 100%);
-            border: 2px solid var(--color-gold);
-            border-radius: 14px;
-            padding: 18px 24px;
-            margin-bottom: 24px;
+            background: var(--color-cream);
+            border: 1px solid var(--color-gold);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
             display: none;
             align-items: center;
-            gap: 16px;
-            box-shadow: 0 4px 16px rgba(233, 196, 106, 0.15);
+            gap: 15px;
         }
         
         .bulk-actions.active {
             display: flex;
-            animation: slideDown 0.3s ease;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
         
         .bulk-actions-text {
-            color: var(--color-purple);
-            font-weight: 700;
+            color: var(--color-dark-purple);
+            font-weight: 600;
             margin: 0;
-            font-size: 15px;
         }
         
         .bulk-action-btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 2px solid;
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             background: white;
+            margin-right: 12px;
         }
         
         .bulk-action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         
         .bulk-action-btn.activate {
-            background: rgba(34, 197, 94, 0.1);
-            color: #059669;
+            border-color: #10B981;
+            color: #10B981;
         }
         
         .bulk-action-btn.activate:hover {
@@ -832,17 +707,17 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         }
         
         .bulk-action-btn.deactivate {
-            background: rgba(239, 68, 68, 0.1);
-            color: #DC2626;
+            border-color: var(--color-coral);
+            color: var(--color-coral);
         }
         
         .bulk-action-btn.deactivate:hover {
-            background: #DC2626;
+            background: var(--color-coral);
             color: white;
         }
         
         .bulk-action-btn.export {
-            background: rgba(19, 102, 92, 0.1);
+            border-color: var(--color-teal);
             color: var(--color-teal);
         }
         
@@ -886,120 +761,71 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
         }
         
         .export-btn {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background: linear-gradient(135deg, #059669, #047857);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-weight: 700;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+            gap: 8px;
         }
         
         .export-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
         }
         
-        /* Page Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .page-header {
-            animation: fadeInUp 0.5s ease;
-        }
-        
-        .stats-dashboard {
-            animation: fadeInUp 0.6s ease;
-        }
-        
-        .search-filter-section {
-            animation: fadeInUp 0.7s ease;
-        }
-        
-        .members-table-container {
-            animation: fadeInUp 0.8s ease;
-        }
-        
-        /* Member Status Indicators - Enhanced */
+        /* Member Status Indicators */
         .member-status-indicators {
             display: flex;
             gap: 6px;
-            margin-top: 6px;
+            margin-top: 4px;
         }
         
         .status-indicator {
-            width: 9px;
-            height: 9px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             display: inline-block;
-            transition: all 0.3s ease;
         }
         
         .status-indicator.online {
             background: #10B981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-            }
-            50% {
-                box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.1);
-            }
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
         
         .status-indicator.recent {
             background: #F59E0B;
-            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
         }
         
         .status-indicator.never-logged {
             background: #EF4444;
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
         }
         
         .status-indicator.joint {
             background: #8B5CF6;
-            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
         }
         
-        /* Badge Styles - Modern */
+        /* Badge Styles */
         .badge {
-            padding: 5px 10px;
-            border-radius: 14px;
+            padding: 4px 8px;
+            border-radius: 12px;
             font-size: 10px;
-            font-weight: 700;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.5px;
             margin-left: 8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-        }
-        
-        .badge:hover {
-            transform: scale(1.05);
         }
         
         .badge-joint {
-            background: rgba(139, 92, 246, 0.12);
+            background: rgba(139, 92, 246, 0.1);
             color: #7C3AED;
-            border: 1px solid rgba(139, 92, 246, 0.25);
+            border: 1px solid rgba(139, 92, 246, 0.2);
         }
         
         /* Sortable Headers */
@@ -1061,47 +887,26 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
             gap: 4px;
         }
         
-        /* Responsive Design - Enhanced for All Devices */
+        /* Responsive Design */
         @media (max-width: 1200px) {
             .page-header {
                 flex-direction: column;
                 text-align: center;
-                gap: 24px;
-                padding: 36px 32px;
-            }
-            
-            .page-header::before {
-                opacity: 0.5;
-            }
-            
-            .page-actions {
-                width: 100%;
-                justify-content: center;
-                flex-wrap: wrap;
+                gap: 20px;
             }
             
             .stats-dashboard {
-                margin-bottom: 32px;
+                margin-bottom: 30px;
             }
         }
 
         @media (max-width: 768px) {
             .page-header {
-                padding: 28px 20px;
+                padding: 30px 20px;
             }
 
             .page-title-section h1 {
                 font-size: 28px;
-                gap: 12px;
-            }
-            
-            .page-title-section h1 svg {
-                width: 24px;
-                height: 24px;
-            }
-            
-            .page-subtitle {
-                font-size: 14px;
             }
 
             .search-filter-section {
@@ -1112,11 +917,6 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
                 flex-direction: column;
                 justify-content: flex-start;
                 margin-top: 16px;
-                width: 100%;
-            }
-            
-            .filter-select {
-                width: 100%;
             }
 
             .search-filter-section .row {
@@ -1130,76 +930,29 @@ $never_paid = count(array_filter($members, fn($m) => floatval($m['total_paid']) 
 
             .members-table-container {
                 overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
             }
 
             .members-table {
-                min-width: 900px;
+                min-width: 800px;
             }
 
             .stat-number {
-                font-size: 26px;
-            }
-            
-            .stat-card {
-                padding: 20px;
-            }
-            
-            .stat-icon {
-                width: 44px;
-                height: 44px;
-            }
-            
-            .action-buttons {
-                gap: 6px;
-            }
-            
-            .btn-action {
-                width: 36px;
-                height: 36px;
+                font-size: 24px;
             }
         }
 
         @media (max-width: 480px) {
             .page-header {
-                padding: 24px 16px;
-                margin-bottom: 24px;
-                border-radius: 16px;
-            }
-            
-            .page-title-section h1 {
-                font-size: 24px;
-                flex-direction: column;
-                gap: 8px;
+                padding: 20px;
+                margin-bottom: 30px;
             }
 
             .search-filter-section {
                 padding: 16px;
-                border-radius: 12px;
             }
 
             .members-table tbody td {
                 padding: 16px 12px;
-                font-size: 13px;
-            }
-            
-            .member-avatar {
-                width: 44px;
-                height: 44px;
-                font-size: 15px;
-            }
-            
-            .stat-number {
-                font-size: 24px;
-            }
-            
-            .payment-amount {
-                font-size: 18px;
-            }
-            
-            .page-actions .btn {
-                padding: 12px 20px;
-                font-size: 14px;
             }
         }
     </style>
