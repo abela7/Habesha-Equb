@@ -550,6 +550,10 @@ function listPayments() {
     $member_id = intval($_GET['member_id'] ?? 0);
     $month = sanitize_input($_GET['month'] ?? '');
     
+    // Get active equb settings to filter payments within equb period
+    $equbStmt = $pdo->query("SELECT start_date, end_date FROM equb_settings WHERE status = 'active' LIMIT 1");
+    $equbSettings = $equbStmt->fetch(PDO::FETCH_ASSOC);
+    
     // Build query
     $query = "
         SELECT p.*, 
@@ -562,6 +566,13 @@ function listPayments() {
     ";
     
     $params = [];
+    
+    // Filter by equb period if active equb exists
+    if ($equbSettings) {
+        $query .= " AND p.payment_month >= ? AND p.payment_month <= ?";
+        $params[] = $equbSettings['start_date'];
+        $params[] = $equbSettings['end_date'];
+    }
     
     // Apply filters
     if ($search) {
@@ -590,7 +601,7 @@ function listPayments() {
         $params[] = "$month%";
     }
     
-    $query .= " ORDER BY p.payment_date DESC, p.created_at DESC";
+    $query .= " ORDER BY p.payment_month DESC, p.payment_date DESC, p.created_at DESC";
     
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
@@ -612,6 +623,10 @@ function listPayments() {
 function getUnpaidMembersByMonth($filterMonth = '', $filterMemberId = 0) {
     global $pdo;
     
+    // Get active equb settings to determine payment months
+    $equbStmt = $pdo->query("SELECT start_date, duration_months, end_date FROM equb_settings WHERE status = 'active' LIMIT 1");
+    $equbSettings = $equbStmt->fetch(PDO::FETCH_ASSOC);
+    
     // Get all active members
     $memberQuery = "SELECT id, member_id, first_name, last_name, monthly_payment, email FROM members WHERE is_active = 1";
     $memberParams = [];
@@ -625,13 +640,32 @@ function getUnpaidMembersByMonth($filterMonth = '', $filterMemberId = 0) {
     $memberStmt->execute($memberParams);
     $allMembers = $memberStmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get distinct months from payments (or use filter month)
+    // Calculate months to check based on equb settings
     $monthsToCheck = [];
+    
     if ($filterMonth) {
         // User filtered by specific month
         $monthsToCheck[] = $filterMonth;
+    } else if ($equbSettings) {
+        // Calculate months from equb start date to current date (or end date if passed)
+        $startDate = new DateTime($equbSettings['start_date']);
+        $endDate = new DateTime($equbSettings['end_date']);
+        $currentDate = new DateTime();
+        
+        // Use the earlier of current date or end date
+        $lastMonth = ($currentDate < $endDate) ? $currentDate : $endDate;
+        
+        // Generate all months from start to current/end
+        $checkDate = clone $startDate;
+        while ($checkDate <= $lastMonth) {
+            $monthsToCheck[] = $checkDate->format('Y-m');
+            $checkDate->modify('+1 month');
+        }
+        
+        // Reverse to show most recent first
+        $monthsToCheck = array_reverse($monthsToCheck);
     } else {
-        // Get last 12 months including current
+        // Fallback: if no active equb, show last 12 months
         for ($i = 0; $i < 12; $i++) {
             $monthsToCheck[] = date('Y-m', strtotime("-$i months"));
         }
