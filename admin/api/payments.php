@@ -459,20 +459,35 @@ function verifyPayment() {
                     INDEX idx_payment (payment_id),
                     CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;")->execute();
-                $insTok = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?) ON DUPLICATE KEY UPDATE token = VALUES(token)");
+                
+                // INSERT token FIRST before using it
+                $insTok = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
                 $insTok->execute([$payment_id, $token]);
+                
                 $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
             } catch (Throwable $te) {
                 error_log('Receipt token generation failed: ' . $te->getMessage());
+                $receiptUrl = '';
             }
             $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
 
             // Title as month-specific confirmation
             $subject_en = ($monthText ? ($monthText . ' Payment Confirmation') : 'Payment Confirmation');
             $subject_am = ($monthText ? ('የ ' . $monthText . ' ወር ክፍያ ማረጋገጫ') : 'የክፍያ ማረጋገጫ');
-            // No generic dashboard link to avoid spam flags. Include unique receipt link only.
-            $body_en = "Dear {$memberFirst}, you have successfully paid this month's Equb payment for {$monthText} on {$dateText}.\n\nYou can Access and Download your receipt on: {$receiptUrl}\n\nThanks for your payment.";
-            $body_am = "ውድ {$memberFirst} የ {$monthText} ወር የእቁብ ክፍያዎን  በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።\n\nደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦ {$receiptUrl}\n\nስለ ክፍያዎ እናመሰግናለን።";
+            
+            // Format body for HTML email (convert \n to <br />)
+            $body_en = "Dear {$memberFirst},<br /><br />";
+            $body_en .= "you have successfully paid this month's Equb payment for {$monthText} on {$dateText}.<br /><br />";
+            $body_en .= "You can Access and Download your receipt on:<br />";
+            $body_en .= "<a href=\"{$receiptUrl}\">{$receiptUrl}</a><br /><br />";
+            $body_en .= "Thanks for your payment.";
+            
+            $body_am = "ውድ {$memberFirst},<br /><br />";
+            $body_am .= "የ {$monthText} ወር የእቁብ ክፍያዎን  በ{$dateText} በተሳካ ሁኔታ ከፍለዋል።<br /><br />";
+            $body_am .= "ደረሰኝዎን ለመመልከት እና ለመውሰድ እባክዎን የሚከተለውን ሊንክ ይጎብኙ፦<br />";
+            $body_am .= "<a href=\"{$receiptUrl}\">{$receiptUrl}</a><br /><br />";
+            $body_am .= "ስለ ክፍያዎ እናመሰግናለን።";
+            
             $useSubj = $isAmharic ? $subject_am : $subject_en;
             $useBody = $isAmharic ? $body_am : $body_en;
 
