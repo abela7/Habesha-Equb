@@ -155,7 +155,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             margin: 0;
             font-size: 15px;
         }
-        
+
         .add-member-btn {
             background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%);
             color: white;
@@ -310,7 +310,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
 
         .table {
             margin: 0;
-            min-width: 1000px;
+            min-width: 600px;
             width: 100%;
         }
 
@@ -500,11 +500,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             }
             
             .page-title-section h1 {
-                font-size: 24px;
-            }
-            
-            .table {
-                min-width: 900px;
+            font-size: 24px;
             }
         }
         
@@ -545,7 +541,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             
             .add-member-btn {
                 width: 100%;
-                padding: 12px 20px;
+            padding: 12px 20px;
             }
 
             .search-filter-section {
@@ -555,9 +551,9 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             .filter-group {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 10px;
-            }
-            
+            gap: 10px;
+        }
+        
             .filter-select {
                 width: 100%;
                 min-width: unset;
@@ -582,7 +578,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             }
 
             .table {
-                min-width: 800px;
+                min-width: 550px;
             }
             
             .table thead th {
@@ -597,27 +593,40 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         }
         
         @media (max-width: 480px) {
+            .app-content {
+                padding: 10px;
+            }
+            
+            .page-header {
+                padding: 16px;
+            }
+            
             .page-title-section h1 {
                 font-size: 20px;
             }
             
             .table {
-                min-width: 700px;
+                min-width: 480px;
             }
             
             .member-avatar {
                 width: 36px;
                 height: 36px;
-                font-size: 12px;
+            font-size: 12px;
             }
             
             .action-buttons {
-                gap: 6px;
+            gap: 4px;
+                flex-wrap: wrap;
             }
             
             .btn-action {
                 width: 32px;
                 height: 32px;
+            }
+            
+            .btn-action i {
+                font-size: 12px;
             }
         }
 
@@ -658,16 +667,16 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         <?php include 'includes/navigation.php'; ?>
 
         <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title-section">
+            <div class="page-header">
+                <div class="page-title-section">
                 <h1><i class="fas fa-users me-3"></i>Members Directory</h1>
                 <p>Manage and monitor all equb members</p>
-            </div>
+                </div>
             <button class="add-member-btn" onclick="showAddMemberModal()">
                 <i class="fas fa-user-plus me-2"></i>
                 Add New Member
-            </button>
-        </div>
+                    </button>
+            </div>
 
         <!-- Statistics Cards -->
         <div class="stats-container">
@@ -676,166 +685,148 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
                     <div class="stat-card">
                         <div class="stat-icon total">
                             <i class="fas fa-users"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $total_members; ?></div>
                         <div class="stat-label">Total Members</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon active">
                             <i class="fas fa-user-check"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $active_members; ?></div>
                         <div class="stat-label">Active Members</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon pending">
                             <i class="fas fa-clock"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $pending_approval; ?></div>
                         <div class="stat-label">Pending Approval</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon completed">
                             <i class="fas fa-hand-holding-usd"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $completed_payouts; ?></div>
                         <div class="stat-label">Completed Payouts</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon contributions">
                             <i class="fas fa-pound-sign"></i>
-                        </div>
+                    </div>
                         <div class="stat-number">£<?php echo number_format($total_contributions, 0); ?></div>
                         <div class="stat-label">Total Contributions</div>
+                </div>
                     </div>
                 </div>
             </div>
-        </div>
-
+            
         <!-- Search and Filter Section -->
-        <div class="search-filter-section">
-            <div class="row align-items-center">
+            <div class="search-filter-section">
+                <div class="row align-items-center">
                 <div class="col-lg-6 mb-3 mb-lg-0">
-                    <div class="search-bar">
+                        <div class="search-bar">
                         <i class="fas fa-search search-icon"></i>
                         <input type="text" class="search-input" id="memberSearch" placeholder="Search by name, email, or member ID...">
+                        </div>
                     </div>
-                </div>
                 <div class="col-lg-6">
-                    <div class="filter-group">
+                        <div class="filter-group">
                         <select class="filter-select" id="statusFilter">
                             <option value="">All Status</option>
                             <option value="1">Active</option>
                             <option value="0">Inactive</option>
-                        </select>
+                            </select>
                         <select class="filter-select" id="payoutFilter">
                             <option value="">All Payouts</option>
                             <option value="0">Pending Payout</option>
                             <option value="1">Completed Payout</option>
-                        </select>
+                            </select>
                         <select class="filter-select" id="membershipFilter">
-                            <option value="">All Types</option>
-                            <option value="individual">Individual</option>
-                            <option value="joint">Joint</option>
-                        </select>
+                                <option value="">All Types</option>
+                                <option value="individual">Individual</option>
+                                <option value="joint">Joint</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
+            
         <!-- Members Table -->
         <div class="table-container">
             <table class="table">
-                <thead>
-                    <tr>
+                            <thead>
+                                <tr>
                         <th>Member</th>
-                        <th>Contact</th>
-                        <th>Type</th>
-                        <th>Equb Term</th>
-                        <th>Position</th>
-                        <th>Contribution</th>
+                        <th>Monthly Contribution</th>
                         <th>Expected Payout</th>
                         <th>Status</th>
                         <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="membersTableBody">
+                                </tr>
+                            </thead>
+                            <tbody id="membersTableBody">
                     <?php foreach ($members as $member): ?>
                         <tr data-member-id="<?php echo $member['id']; ?>">
-                            <td>
-                                <div class="member-info">
-                                    <div class="member-avatar">
-                                        <?php echo strtoupper(substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1)); ?>
-                                    </div>
-                                    <div class="member-details">
-                                        <div class="member-name">
-                                            <a href="member-profile.php?id=<?php echo $member['id']; ?>" class="member-name-link">
-                                                <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
-                                            </a>
-                                        </div>
-                                        <div class="member-id"><?php echo htmlspecialchars($member['member_id']); ?></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div><?php echo htmlspecialchars($member['email']); ?></div>
-                                <div class="text-muted small"><?php echo htmlspecialchars($member['phone']); ?></div>
-                            </td>
-                            <td>
-                                <span class="status-badge badge-<?php echo $member['membership_type']; ?>">
-                                    <?php echo ucfirst($member['membership_type']); ?>
-                                </span>
-                                <?php if ($member['membership_type'] === 'joint' && $member['group_name']): ?>
-                                    <div class="text-muted small mt-1"><?php echo htmlspecialchars($member['group_name']); ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="fw-bold"><?php echo htmlspecialchars($member['equb_name'] ?? 'Not Assigned'); ?></div>
-                                <div class="text-muted small"><?php echo htmlspecialchars($member['equb_id'] ?? ''); ?></div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-secondary">#<?php echo $member['actual_payout_position'] ?? $member['payout_position']; ?></span>
-                            </td>
-                            <td>
-                                <div class="fw-bold">£<?php echo number_format($member['effective_monthly_payment'], 0); ?></div>
-                                <div class="text-muted small"><?php echo $member['total_payments']; ?> payments</div>
-                            </td>
-                            <td>
-                                <div class="fw-bold text-success">£<?php echo number_format($member['expected_payout'], 0); ?></div>
+                                        <td>
+                                            <div class="member-info">
+                                                <div class="member-avatar">
+                                                    <?php echo strtoupper(substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1)); ?>
+                                                </div>
+                                                <div class="member-details">
+                                                    <div class="member-name">
+                                                        <a href="member-profile.php?id=<?php echo $member['id']; ?>" class="member-name-link">
+                                                            <?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>
+                                                        </a>
+                                                    </div>
+                                                    <div class="member-id"><?php echo htmlspecialchars($member['member_id']); ?></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                <div class="fw-bold text-primary" style="font-size: 16px;">£<?php echo number_format($member['effective_monthly_payment'], 0); ?></div>
+                                <div class="text-muted small"><?php echo $member['total_payments']; ?> payments made</div>
+                                        </td>
+                                        <td>
+                                <div class="fw-bold text-success" style="font-size: 16px;">£<?php echo number_format($member['expected_payout'], 0); ?></div>
                             </td>
                             <td>
                                 <span class="status-badge status-<?php echo $member['is_active'] ? 'active' : 'inactive'; ?>">
                                     <?php echo $member['is_active'] ? 'Active' : 'Inactive'; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn-action btn-view" onclick="viewMember(<?php echo $member['id']; ?>)" title="View Details">
+                                                            </span>
+                                <?php if (!$member['is_approved']): ?>
+                                    <div class="mt-1">
+                                        <span class="status-badge" style="background: rgba(251, 191, 36, 0.1); color: #D97706;">Pending</span>
+                                                    </div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                    <button class="btn-action btn-view" onclick="viewMember(<?php echo $member['id']; ?>)" title="View Profile">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     <button class="btn-action btn-edit" onclick="editMember(<?php echo $member['id']; ?>)" title="Edit Member">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
                                     <button class="btn-action btn-toggle" onclick="toggleMemberStatus(<?php echo $member['id']; ?>, <?php echo $member['is_active'] ? 0 : 1; ?>)" title="Toggle Status">
                                         <i class="fas fa-power-off"></i>
-                                    </button>
+                                                </button>
                                     <button class="btn-action btn-delete" onclick="deleteMember(<?php echo $member['id']; ?>)" title="Delete Member">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
 
             <?php if (empty($members)): ?>
                 <div class="text-center py-5">
@@ -845,53 +836,53 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
                     <button class="btn btn-primary mt-3" onclick="showAddMemberModal()">
                         <i class="fas fa-user-plus me-2"></i>Add New Member
                     </button>
-                </div>
+                    </div>
             <?php endif; ?>
-        </div>
+                </div>
 
-    </div> <!-- End app-content -->
-</main> <!-- End app-main -->
+        </div> <!-- End app-content -->
+    </main> <!-- End app-main -->
 </div> <!-- End app-layout -->
 
-<!-- Add/Edit Member Modal -->
-<div class="modal fade" id="memberModal" tabindex="-1" aria-labelledby="memberModalLabel" aria-hidden="true">
+    <!-- Add/Edit Member Modal -->
+    <div class="modal fade" id="memberModal" tabindex="-1" aria-labelledby="memberModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-content">
+                <div class="modal-header">
                 <h5 class="modal-title" id="memberModalLabel">
                     <i class="fas fa-user-plus me-2"></i>Add New Member
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="memberForm">
-                <input type="hidden" id="memberId" name="member_id">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="memberForm">
+                        <input type="hidden" id="memberId" name="member_id">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                
+                        
                 <div class="modal-body">
-                    <!-- Personal Information -->
+                        <!-- Personal Information -->
                     <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Personal Information</h6>
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <label for="firstName" class="form-label">First Name *</label>
-                            <input type="text" class="form-control" id="firstName" name="first_name" required>
-                        </div>
-                        <div class="col-md-6">
+                                    <input type="text" class="form-control" id="firstName" name="first_name" required>
+                            </div>
+                            <div class="col-md-6">
                             <label for="lastName" class="form-label">Last Name *</label>
-                            <input type="text" class="form-control" id="lastName" name="last_name" required>
+                                    <input type="text" class="form-control" id="lastName" name="last_name" required>
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <label for="email" class="form-label">Email *</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
-                        </div>
-                        <div class="col-md-6">
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="col-md-6">
                             <label for="phone" class="form-label">Phone *</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                                    <input type="tel" class="form-control" id="phone" name="phone" required>
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <!-- Equb Assignment -->
                     <h6 class="mb-3 text-primary mt-4"><i class="fas fa-chart-line me-2"></i>Equb Assignment</h6>
                     <div class="row mb-4">
@@ -907,101 +898,101 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
                                         (<?php echo $term['current_members']; ?>/<?php echo $term['max_members']; ?> members)
                                     </option>
                                 <?php endforeach; ?>
-                            </select>
-                        </div>
+                    </select>
+                </div>
                         <div class="col-md-4">
                             <label for="membershipType" class="form-label">Membership Type *</label>
                             <select class="form-select" id="membershipType" name="membership_type" required onchange="toggleJointFields()">
                                 <option value="individual">Individual</option>
                                 <option value="joint">Joint</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
+                    </select>
+                </div>
+                <div class="col-md-4">
                             <label for="payoutPosition" class="form-label">Payout Position *</label>
                             <input type="number" class="form-control" id="payoutPosition" name="payout_position" min="1" required>
                             <small class="text-muted">Position in payout queue</small>
-                        </div>
-                    </div>
-
+                </div>
+            </div>
+            
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                <div class="col-md-6">
                             <label for="monthlyPayment" class="form-label">Monthly Payment (£) *</label>
                             <input type="number" class="form-control" id="monthlyPayment" name="monthly_payment" step="0.01" min="0" required>
-                        </div>
-                        <div class="col-md-6">
+                </div>
+                <div class="col-md-6">
                             <label for="payoutMonth" class="form-label">Payout Month</label>
                             <input type="month" class="form-control" id="payoutMonth" name="payout_month">
                             <small class="text-muted">Leave empty for auto-calculation</small>
-                        </div>
-                    </div>
+            </div>
+        </div>
 
                     <!-- Joint Membership Fields (Initially Hidden) -->
                     <div id="jointFields" style="display: none;">
                         <h6 class="mb-3 text-primary"><i class="fas fa-users me-2"></i>Joint Membership Details</h6>
                         <div class="row mb-4">
-                            <div class="col-md-6">
+            <div class="col-md-6">
                                 <label for="jointGroupName" class="form-label">Joint Group Name</label>
                                 <input type="text" class="form-control" id="jointGroupName" name="joint_group_name">
-                            </div>
-                            <div class="col-md-6">
+            </div>
+            <div class="col-md-6">
                                 <label for="individualContribution" class="form-label">Individual Contribution (£)</label>
                                 <input type="number" class="form-control" id="individualContribution" name="individual_contribution" step="0.01" min="0">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Guarantor Information -->
+                </div>
+            </div>
+        </div>
+                        
+                        <!-- Guarantor Information -->
                     <h6 class="mb-3 text-primary mt-4"><i class="fas fa-user-shield me-2"></i>Guarantor Information</h6>
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <label for="guarantorFirstName" class="form-label">Guarantor First Name</label>
                             <input type="text" class="form-control" id="guarantorFirstName" name="guarantor_first_name" value="Pending">
-                        </div>
-                        <div class="col-md-6">
+                            </div>
+                            <div class="col-md-6">
                             <label for="guarantorLastName" class="form-label">Guarantor Last Name</label>
                             <input type="text" class="form-control" id="guarantorLastName" name="guarantor_last_name" value="Pending">
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="guarantorPhone" class="form-label">Guarantor Phone</label>
                             <input type="tel" class="form-control" id="guarantorPhone" name="guarantor_phone" value="Pending">
-                        </div>
+                                </div>
                         <div class="col-md-6">
                             <label for="guarantorEmail" class="form-label">Guarantor Email</label>
-                            <input type="email" class="form-control" id="guarantorEmail" name="guarantor_email">
+                                    <input type="email" class="form-control" id="guarantorEmail" name="guarantor_email">
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <!-- Additional Settings -->
                     <h6 class="mb-3 text-primary mt-4"><i class="fas fa-cog me-2"></i>Additional Settings</h6>
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="goPublic" name="go_public" value="1" checked>
                                 <label class="form-check-label" for="goPublic">
                                     Profile Visibility (Go Public)
                                 </label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="swapTerms" name="swap_terms_allowed" value="1">
                                 <label class="form-check-label" for="swapTerms">
                                     Allow Position Swapping
                                 </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
                     <div class="row mb-4">
                         <div class="col-12">
                             <label for="notes" class="form-label">Notes</label>
                             <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any additional notes about this member..."></textarea>
-                        </div>
-                    </div>
-                </div>
+            </div>
+        </div>
+    </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -1012,17 +1003,17 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
                     </button>
                 </div>
             </form>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Custom JS -->
-<script src="../assets/js/auth.js"></script>
-
-<script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../assets/js/auth.js"></script>
+    
+    <script>
     // Global variables
     let isEditMode = false;
     let currentMemberId = null;
@@ -1048,16 +1039,16 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
     }
 
     // Filter members
-    function filterMembers() {
+        function filterMembers() {
         const search = document.getElementById('memberSearch').value.toLowerCase();
         const status = document.getElementById('statusFilter').value;
         const payout = document.getElementById('payoutFilter').value;
         const membership = document.getElementById('membershipFilter').value;
-
-        const rows = document.querySelectorAll('#membersTableBody tr');
-        
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
+            
+            const rows = document.querySelectorAll('#membersTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
             const matchesSearch = !search || text.includes(search);
             
             let matchesStatus = true;
@@ -1139,26 +1130,26 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             formData.append('member_id', id);
             
             const response = await fetch('api/members.php', {
-                method: 'POST',
+                    method: 'POST',
                 body: formData
             });
             
             const data = await response.json();
             
-            if (data.success) {
-                const member = data.member;
-                
+                if (data.success) {
+                    const member = data.member;
+                    
                 // Fill form with member data
-                document.getElementById('memberId').value = member.id;
-                document.getElementById('firstName').value = member.first_name;
-                document.getElementById('lastName').value = member.last_name;
-                document.getElementById('email').value = member.email;
-                document.getElementById('phone').value = member.phone;
+                    document.getElementById('memberId').value = member.id;
+                    document.getElementById('firstName').value = member.first_name;
+                    document.getElementById('lastName').value = member.last_name;
+                    document.getElementById('email').value = member.email;
+                    document.getElementById('phone').value = member.phone;
                 document.getElementById('equbTerm').value = member.equb_settings_id;
                 document.getElementById('membershipType').value = member.membership_type || 'individual';
                 document.getElementById('payoutPosition').value = member.payout_position;
                 document.getElementById('monthlyPayment').value = member.monthly_payment;
-                document.getElementById('payoutMonth').value = member.formatted_payout_month || '';
+                            document.getElementById('payoutMonth').value = member.formatted_payout_month || '';
                 document.getElementById('guarantorFirstName').value = member.guarantor_first_name || 'Pending';
                 document.getElementById('guarantorLastName').value = member.guarantor_last_name || 'Pending';
                 document.getElementById('guarantorPhone').value = member.guarantor_phone || 'Pending';
@@ -1171,17 +1162,17 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
                 toggleJointFields();
                 
                 // If joint membership, populate joint fields
-                if (member.membership_type === 'joint') {
+                    if (member.membership_type === 'joint') {
                     document.getElementById('jointGroupName').value = member.joint_group_id || '';
-                    document.getElementById('individualContribution').value = member.individual_contribution || '';
+                        document.getElementById('individualContribution').value = member.individual_contribution || '';
                 }
-                
-                new bootstrap.Modal(document.getElementById('memberModal')).show();
-            } else {
+                    
+                    new bootstrap.Modal(document.getElementById('memberModal')).show();
+                } else {
                 showAlert('error', data.message);
-            }
+                }
         } catch (error) {
-            console.error('Error:', error);
+                console.error('Error:', error);
             showAlert('error', 'An error occurred while fetching member data');
         }
     }
@@ -1239,21 +1230,21 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             
             const data = await response.json();
             
-            if (data.success) {
+                if (data.success) {
                 showAlert('success', data.message);
                 setTimeout(() => location.reload(), 1500);
-            } else {
+                } else {
                 showAlert('error', data.message);
-            }
+                }
         } catch (error) {
-            console.error('Error:', error);
+                console.error('Error:', error);
             showAlert('error', 'An error occurred while deleting member');
         }
     }
 
     // Form submission
     document.getElementById('memberForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+                e.preventDefault();
         
         const formData = new FormData(this);
         const action = isEditMode ? 'update' : 'add';
@@ -1261,21 +1252,21 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         
         try {
             const response = await fetch('api/members.php', {
-                method: 'POST',
+                    method: 'POST',
                 body: formData
             });
             
             const data = await response.json();
-            
-            if (data.success) {
+                    
+                    if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('memberModal')).hide();
                 showAlert('success', data.message);
                 setTimeout(() => location.reload(), 1500);
-            } else {
+                    } else {
                 showAlert('error', data.message);
-            }
+                    }
         } catch (error) {
-            console.error('Error:', error);
+                    console.error('Error:', error);
             showAlert('error', 'An error occurred while saving member');
         }
     });
@@ -1294,7 +1285,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         setTimeout(() => {
             alertDiv.remove();
         }, 5000);
-    }
-</script>
+        }
+    </script>
 </body>
-</html>
+</html> 
