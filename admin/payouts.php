@@ -663,8 +663,7 @@ $csrf_token = generate_csrf_token();
                     <tr>
                         <th><?php echo t('payouts.member'); ?></th>
                         <th><?php echo t('payouts.payout_details'); ?></th>
-                        <th><?php echo t('payouts.amount'); ?></th>
-                        <th><?php echo t('payouts.scheduled_date'); ?></th>
+                        <th><?php echo t('payouts.net_amount'); ?></th>
                         <th><?php echo t('payouts.actual_date'); ?></th>
                         <th><?php echo t('payouts.status'); ?></th>
                         <th><?php echo t('payouts.actions'); ?></th>
@@ -693,13 +692,10 @@ $csrf_token = generate_csrf_token();
                                 <div class="payout-method"><?php echo ucfirst(str_replace('_', ' ', $payout['payout_method'] ?? 'bank_transfer')); ?></div>
                             </td>
                             <td>
-                                <div class="payout-amount">£<?php echo number_format($payout['total_amount'], 0); ?></div>
+                                <div class="payout-amount fw-bold text-success">£<?php echo number_format($payout['net_amount'], 0); ?></div>
                                 <?php if ($payout['admin_fee'] > 0): ?>
-                                    <div class="payout-method">Fee: £<?php echo number_format($payout['admin_fee'], 0); ?></div>
+                                    <div class="payout-method text-muted">Fee: £<?php echo number_format($payout['admin_fee'], 0); ?></div>
                                 <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="payout-date"><?php echo date('M d, Y', strtotime($payout['scheduled_date'])); ?></div>
                             </td>
                             <td>
                                 <div class="payout-date">
@@ -1308,11 +1304,8 @@ $csrf_token = generate_csrf_token();
                         <div class="payout-method">${payout.payout_method ? getPaymentMethodTranslation(payout.payout_method) : '<?php echo t('payouts.bank_transfer'); ?>'}</div>
                     </td>
                     <td>
-                        <div class="payout-amount">£${parseFloat(payout.total_amount).toLocaleString()}</div>
-                        ${payout.admin_fee > 0 ? `<div class="payout-method">Fee: £${parseFloat(payout.admin_fee).toLocaleString()}</div>` : ''}
-                    </td>
-                    <td>
-                        <div class="payout-date">${scheduledDate}</div>
+                        <div class="payout-amount fw-bold text-success">£${parseFloat(payout.net_amount).toLocaleString()}</div>
+                        ${payout.admin_fee > 0 ? `<div class="payout-method text-muted">Fee: £${parseFloat(payout.admin_fee).toLocaleString()}</div>` : ''}
                     </td>
                     <td>
                         <div class="payout-date">${actualDate}</div>

@@ -979,7 +979,6 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                                     <th>Gross Amount</th>
                                     <th>Admin Fee</th>
                                                 <th>Net Amount</th>
-                                                <th>Scheduled Date</th>
                                     <th>Actual Date</th>
                                                 <th>Status</th>
                                     <th>Actions</th>
@@ -988,14 +987,13 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                                         <tbody>
                                             <?php foreach ($payouts as $payout): ?>
                                                 <tr>
-                                                    <td><?php echo htmlspecialchars($payout['payout_id']); ?></td>
-                                    <td class="fw-bold">£<?php echo number_format($payout['gross_payout'], 2); ?></td>
-                                    <td>£<?php echo number_format($payout['admin_fee'], 2); ?></td>
-                                    <td class="fw-bold text-success">£<?php echo number_format($payout['net_amount'], 2); ?></td>
-                                                    <td><?php echo date('M d, Y', strtotime($payout['scheduled_date'])); ?></td>
-                                    <td><?php echo $payout['actual_payout_date'] ? date('M d, Y', strtotime($payout['actual_payout_date'])) : 'Pending'; ?></td>
+                                                    <td style="font-size: 15px;"><?php echo htmlspecialchars($payout['payout_id']); ?></td>
+                                    <td class="fw-bold" style="font-size: 15px;">£<?php echo number_format($payout['gross_payout'], 2); ?></td>
+                                    <td style="font-size: 15px;">£<?php echo number_format($payout['admin_fee'], 2); ?></td>
+                                    <td class="fw-bold text-success" style="font-size: 15px;">£<?php echo number_format($payout['net_amount'], 2); ?></td>
+                                    <td style="font-size: 15px;"><?php echo $payout['actual_payout_date'] ? date('M d, Y', strtotime($payout['actual_payout_date'])) : 'Pending'; ?></td>
                                                     <td>
-                                        <span class="status-badge status-<?php echo $payout['status']; ?>">
+                                        <span class="status-badge status-<?php echo $payout['status']; ?>" style="font-size: 13px;">
                                                             <?php echo ucfirst($payout['status']); ?>
                                                         </span>
                                                     </td>
@@ -1105,33 +1103,34 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                     <!-- Payout Information -->
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="editPayoutGross" class="form-label">Gross Payout (£) *</label>
-                            <input type="number" class="form-control" id="editPayoutGross" name="gross_payout" step="0.01" min="0" required>
+                            <label for="editPayoutGross" class="form-label" style="font-size: 15px; font-weight: 600;">Gross Payout (£) *</label>
+                            <input type="number" class="form-control" id="editPayoutGross" name="gross_payout" step="0.01" min="0" style="font-size: 15px;" required>
                             <small class="text-muted">Full payout from coefficient calculation</small>
                         </div>
                         <div class="col-md-6">
-                            <label for="editPayoutAdminFee" class="form-label">Admin Fee (£) *</label>
-                            <input type="number" class="form-control" id="editPayoutAdminFee" name="admin_fee" step="0.01" min="0" required>
+                            <label for="editPayoutAdminFee" class="form-label" style="font-size: 15px; font-weight: 600;">Admin Fee (£) *</label>
+                            <input type="number" class="form-control" id="editPayoutAdminFee" name="admin_fee" step="0.01" min="0" style="font-size: 15px;" required>
                             <small class="text-muted">Service fee deducted from gross</small>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="editPayoutScheduledDate" class="form-label">Scheduled Date *</label>
-                            <input type="date" class="form-control" id="editPayoutScheduledDate" name="scheduled_date" required>
+                            <label for="editPayoutNetAmount" class="form-label" style="font-size: 15px; font-weight: 600;">Net Amount (£) *</label>
+                            <input type="number" class="form-control" id="editPayoutNetAmount" name="net_amount" step="0.01" min="0" style="font-size: 15px;" required>
+                            <small class="text-muted">Amount member actually receives</small>
                         </div>
                         <div class="col-md-6">
-                            <label for="editPayoutActualDate" class="form-label">Actual Payout Date</label>
-                            <input type="date" class="form-control" id="editPayoutActualDate" name="actual_payout_date">
+                            <label for="editPayoutActualDate" class="form-label" style="font-size: 15px; font-weight: 600;">Actual Payout Date</label>
+                            <input type="date" class="form-control" id="editPayoutActualDate" name="actual_payout_date" style="font-size: 15px;">
                             <small class="text-muted">Leave empty if not yet paid</small>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="editPayoutStatus" class="form-label">Status *</label>
-                            <select class="form-select" id="editPayoutStatus" name="status" required>
+                            <label for="editPayoutStatus" class="form-label" style="font-size: 15px; font-weight: 600;">Status *</label>
+                            <select class="form-select" id="editPayoutStatus" name="status" style="font-size: 15px;" required>
                                 <option value="scheduled">Scheduled</option>
                                 <option value="processing">Processing</option>
                                 <option value="completed">Completed</option>
@@ -1140,8 +1139,8 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="editPayoutMethod" class="form-label">Payout Method</label>
-                            <select class="form-select" id="editPayoutMethod" name="payout_method">
+                            <label for="editPayoutMethod" class="form-label" style="font-size: 15px; font-weight: 600;">Payout Method</label>
+                            <select class="form-select" id="editPayoutMethod" name="payout_method" style="font-size: 15px;">
                                 <option value="cash">Cash</option>
                                 <option value="bank_transfer">Bank Transfer</option>
                                 <option value="mobile_money">Mobile Money</option>
@@ -1152,16 +1151,16 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
 
                     <div class="row mb-3">
                         <div class="col-12">
-                            <label for="editPayoutNotes" class="form-label">Payout Notes</label>
-                            <textarea class="form-control" id="editPayoutNotes" name="payout_notes" rows="3" placeholder="Enter any notes about this payout (e.g., cash+transfer combinations, issues, special circumstances)"></textarea>
+                            <label for="editPayoutNotes" class="form-label" style="font-size: 15px; font-weight: 600;">Payout Notes</label>
+                            <textarea class="form-control" id="editPayoutNotes" name="payout_notes" rows="3" style="font-size: 15px;" placeholder="Enter any notes about this payout (e.g., cash+transfer combinations, issues, special circumstances)"></textarea>
                         </div>
                     </div>
 
                     <!-- Calculated Values Display -->
                     <div class="alert alert-secondary">
-                        <strong>Calculated Values:</strong><br>
-                        <div id="calculatedValues">
-                            <small class="text-muted">Enter Gross Payout and Admin Fee to see calculated values</small>
+                        <strong style="font-size: 15px;">Amount Summary:</strong><br>
+                        <div id="calculatedValues" style="font-size: 14px;">
+                            <small class="text-muted">Enter amounts above to see summary</small>
                         </div>
                     </div>
                 </div>
@@ -1395,7 +1394,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             document.getElementById('editPayoutId').value = payout.id;
             document.getElementById('editPayoutGross').value = payout.gross_payout;
             document.getElementById('editPayoutAdminFee').value = payout.admin_fee;
-            document.getElementById('editPayoutScheduledDate').value = payout.scheduled_date;
+            document.getElementById('editPayoutNetAmount').value = payout.net_amount;
             document.getElementById('editPayoutActualDate').value = payout.actual_payout_date || '';
             document.getElementById('editPayoutStatus').value = payout.status;
             document.getElementById('editPayoutMethod').value = payout.payout_method || 'bank_transfer';
@@ -1417,29 +1416,34 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
     function updateCalculatedValues() {
         const gross = parseFloat(document.getElementById('editPayoutGross').value) || 0;
         const adminFee = parseFloat(document.getElementById('editPayoutAdminFee').value) || 0;
+        const netAmount = parseFloat(document.getElementById('editPayoutNetAmount').value) || 0; // Changed from actual_payout_date
         const memberMonthlyPayment = <?php echo $member['monthly_payment']; ?>;
         
-        const totalAmount = gross - adminFee;
-        const netAmount = gross - adminFee - memberMonthlyPayment;
+        const grossPayout = gross;
+        const netAmountCalculated = gross - adminFee - memberMonthlyPayment;
         
         const calculatedDiv = document.getElementById('calculatedValues');
         calculatedDiv.innerHTML = `
-            • Total Amount (shown to member): <strong>£${totalAmount.toFixed(2)}</strong><br>
-            • Monthly Contribution Deduction: <strong>£${memberMonthlyPayment.toFixed(2)}</strong><br>
-            • Net Amount (member receives): <strong>£${netAmount.toFixed(2)}</strong>
+            • Gross Payout: <strong>£${grossPayout.toFixed(2)}</strong><br>
+            • Admin Fee: <strong>£${adminFee.toFixed(2)}</strong><br>
+            • Net Amount (member receives): <strong>£${netAmountCalculated.toFixed(2)}</strong>
         `;
     }
 
-    // Auto-update calculated values when gross or admin fee changes
+    // Auto-update calculated values when gross, admin fee, or net amount changes
     document.addEventListener('DOMContentLoaded', function() {
         const grossInput = document.getElementById('editPayoutGross');
         const adminFeeInput = document.getElementById('editPayoutAdminFee');
+        const netAmountInput = document.getElementById('editPayoutNetAmount'); // Added net amount input
         
         if (grossInput) {
             grossInput.addEventListener('input', updateCalculatedValues);
         }
         if (adminFeeInput) {
             adminFeeInput.addEventListener('input', updateCalculatedValues);
+        }
+        if (netAmountInput) { // Added net amount input listener
+            netAmountInput.addEventListener('input', updateCalculatedValues);
         }
     });
 
