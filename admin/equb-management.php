@@ -365,7 +365,7 @@ $csrf_token = generate_csrf_token();
             }
             
             .actions-grid {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(4, 1fr);
             }
         }
         
@@ -499,6 +499,30 @@ $csrf_token = generate_csrf_token();
                         <i class="fas fa-chart-bar"></i>
                     </div>
                     <div class="action-title"><?php echo t('admin.equb_management.actions.reports'); ?></div>
+                </div>
+                <div class="action-btn" onclick="window.location.href='payout-positions.php'">
+                    <div class="action-icon teal">
+                        <i class="fas fa-list-ol"></i>
+                    </div>
+                    <div class="action-title">Position Management</div>
+                </div>
+                <div class="action-btn" onclick="window.location.href='joint-groups.php'">
+                    <div class="action-icon gold">
+                        <i class="fas fa-people-group"></i>
+                    </div>
+                    <div class="action-title">Joint Management</div>
+                </div>
+                <div class="action-btn" onclick="window.location.href='payment-tiers.php'">
+                    <div class="action-icon purple">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="action-title">Payment Tiers</div>
+                </div>
+                <div class="action-btn" onclick="window.location.href='financial-analytics.php'">
+                    <div class="action-icon coral">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="action-title">Analytics</div>
                 </div>
             </div>
         </div>
