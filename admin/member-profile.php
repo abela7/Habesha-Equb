@@ -77,9 +77,9 @@ try {
 try {
     $stmt = $pdo->prepare("
         SELECT p.*, a.username as verified_by_name
-        FROM payments p
+        FROM payments p 
         LEFT JOIN admins a ON p.verified_by_admin_id = a.id
-        WHERE p.member_id = ?
+        WHERE p.member_id = ? 
         ORDER BY p.payment_month DESC
         LIMIT 10
     ");
@@ -193,7 +193,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             max-width: 100%;
             box-sizing: border-box;
         }
-        
+
         .profile-header-content {
             display: flex;
             align-items: center;
@@ -215,12 +215,12 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             box-shadow: 0 8px 24px rgba(19, 102, 92, 0.3);
             flex-shrink: 0;
         }
-        
+
         .profile-info {
             flex: 1;
             min-width: 0;
         }
-        
+
         .profile-info h1 {
             font-size: 28px;
             font-weight: 700;
@@ -253,7 +253,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             gap: 12px;
             flex-wrap: wrap;
         }
-        
+
         /* Status Badge */
         .status-badge {
             padding: 6px 12px;
@@ -382,7 +382,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             gap: 6px;
             min-width: 0;
         }
-        
+
         .info-label {
             font-size: 12px;
             font-weight: 600;
@@ -390,7 +390,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         .info-value {
             font-size: 15px;
             color: var(--color-purple);
@@ -609,15 +609,15 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
         <div class="profile-header">
             <div class="profile-header-content">
                 <div class="profile-avatar">
-                    <?php echo strtoupper(substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1)); ?>
-                </div>
+                            <?php echo strtoupper(substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1)); ?>
+                        </div>
                 <div class="profile-info">
                     <h1><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></h1>
                     <div class="profile-meta">
                         <div class="meta-item">
                             <i class="fas fa-id-card"></i>
                             <span><?php echo htmlspecialchars($member['member_id']); ?></span>
-                        </div>
+                            </div>
                         <div class="meta-item">
                             <i class="fas fa-envelope"></i>
                             <span><?php echo htmlspecialchars($member['email']); ?></span>
@@ -641,45 +641,45 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                 <div class="profile-actions">
                     <button class="btn btn-edit" onclick="showEditModal()">
                         <i class="fas fa-edit me-2"></i>Edit Profile
-                    </button>
+                            </button>
                     <a href="members.php" class="btn btn-back">
                         <i class="fas fa-arrow-left me-2"></i>Back to Members
                     </a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
         <!-- Statistics Cards -->
         <div class="stats-row">
             <div class="stat-card">
                 <div class="stat-icon payments">
                     <i class="fas fa-receipt"></i>
-                </div>
+                                </div>
                 <div class="stat-value"><?php echo $completed_payments; ?>/<?php echo $total_payments; ?></div>
                 <div class="stat-label">Payments Made</div>
-            </div>
+                            </div>
             <div class="stat-card">
                 <div class="stat-icon contributed">
                     <i class="fas fa-pound-sign"></i>
-                </div>
+                            </div>
                 <div class="stat-value">£<?php echo number_format($total_paid, 0); ?></div>
                 <div class="stat-label">Total Contributed</div>
-            </div>
+                            </div>
             <div class="stat-card">
                 <div class="stat-icon payout">
                     <i class="fas fa-hand-holding-usd"></i>
-                </div>
+                            </div>
                 <div class="stat-value">£<?php echo number_format($member['expected_payout'], 0); ?></div>
                 <div class="stat-label">Expected Payout</div>
-            </div>
+                            </div>
             <div class="stat-card">
                 <div class="stat-icon payout">
                     <i class="fas fa-calendar-check"></i>
-                </div>
+                            </div>
                 <div class="stat-value"><?php echo $completed_payouts; ?>/<?php echo $total_payouts; ?></div>
                 <div class="stat-label">Payouts Received</div>
-            </div>
-        </div>
+                        </div>
+                    </div>
 
         <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="profileTabs" role="tablist">
@@ -716,42 +716,42 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                             <i class="fas fa-user"></i>
                             Personal Information
                         </h2>
-                    </div>
+                                </div>
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Full Name</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Member ID</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['member_id']); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Username</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['username'] ?? 'N/A'); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Email</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['email']); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Phone</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['phone']); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Join Date</span>
                             <span class="info-value"><?php echo date('M d, Y', strtotime($member['join_date'])); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Language Preference</span>
                             <span class="info-value"><?php echo $member['language_preference'] ? 'Amharic' : 'English'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Email Verified</span>
                             <span class="info-value"><?php echo $member['email_verified'] ? 'Yes' : 'No'; ?></span>
-                        </div>
-                    </div>
-                </div>
+                            </div>
+                            </div>
+                            </div>
 
                 <!-- Equb Information -->
                 <div class="section-card">
@@ -760,84 +760,84 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                             <i class="fas fa-chart-line"></i>
                             Equb Information
                         </h2>
-                    </div>
+                            </div>
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Equb Term</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['equb_name'] ?? 'Not Assigned'); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Equb ID</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['equb_id'] ?? 'N/A'); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Membership Type</span>
                             <span class="info-value"><?php echo ucfirst($member['membership_type']); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Monthly Payment</span>
                             <span class="info-value highlight">£<?php echo number_format($member['monthly_payment'], 0); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Payout Position</span>
                             <span class="info-value">#<?php echo $member['actual_payout_position']; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Position Coefficient</span>
                             <span class="info-value"><?php echo $member['position_coefficient']; ?>x</span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Expected Payout</span>
                             <span class="info-value highlight">£<?php echo number_format($member['expected_payout'], 0); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Payout Month</span>
                             <span class="info-value"><?php echo $member['payout_month'] ? date('M Y', strtotime($member['payout_month'])) : 'Not Set'; ?></span>
-                        </div>
+                            </div>
                         <?php if ($member['membership_type'] === 'joint'): ?>
                         <div class="info-item">
                             <span class="info-label">Joint Group</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['group_name'] ?? $member['joint_group_id']); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Individual Contribution</span>
                             <span class="info-value">£<?php echo number_format($member['individual_contribution'], 0); ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Primary Member</span>
                             <span class="info-value"><?php echo $member['primary_joint_member'] ? 'Yes' : 'No'; ?></span>
-                        </div>
+                            </div>
                         <?php endif; ?>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Guarantor Information -->
+                    <!-- Guarantor Information -->
                 <div class="section-card">
                     <div class="section-header">
                         <h2 class="section-title">
                             <i class="fas fa-user-shield"></i>
                             Guarantor Information
                         </h2>
-                    </div>
+                                </div>
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Guarantor Name</span>
-                            <span class="info-value"><?php echo htmlspecialchars($member['guarantor_first_name'] . ' ' . $member['guarantor_last_name']); ?></span>
-                        </div>
+                                    <span class="info-value"><?php echo htmlspecialchars($member['guarantor_first_name'] . ' ' . $member['guarantor_last_name']); ?></span>
+                                </div>
                         <div class="info-item">
                             <span class="info-label">Guarantor Phone</span>
-                            <span class="info-value"><?php echo htmlspecialchars($member['guarantor_phone']); ?></span>
-                        </div>
+                                    <span class="info-value"><?php echo htmlspecialchars($member['guarantor_phone']); ?></span>
+                                </div>
                         <div class="info-item">
                             <span class="info-label">Guarantor Email</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['guarantor_email'] ?: 'N/A'); ?></span>
-                        </div>
+                                </div>
                         <div class="info-item">
-                            <span class="info-label">Relationship</span>
+                                    <span class="info-label">Relationship</span>
                             <span class="info-value"><?php echo htmlspecialchars($member['guarantor_relationship'] ?: 'N/A'); ?></span>
+                                </div>
                         </div>
                     </div>
-                </div>
 
                 <!-- Settings & Preferences -->
                 <div class="section-card">
@@ -846,42 +846,42 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                             <i class="fas fa-cog"></i>
                             Settings & Preferences
                         </h2>
-                    </div>
+                                </div>
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Profile Visibility</span>
                             <span class="info-value"><?php echo $member['go_public'] ? 'Public' : 'Private'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Email Notifications</span>
                             <span class="info-value"><?php echo $member['email_notifications'] ? 'Enabled' : 'Disabled'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Payment Reminders</span>
                             <span class="info-value"><?php echo $member['payment_reminders'] ? 'Enabled' : 'Disabled'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Position Swaps Allowed</span>
                             <span class="info-value"><?php echo $member['swap_terms_allowed'] ? 'Yes' : 'No'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Rules Agreed</span>
                             <span class="info-value"><?php echo $member['rules_agreed'] ? 'Yes' : 'No'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Account Status</span>
                             <span class="info-value"><?php echo $member['is_active'] ? 'Active' : 'Inactive'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Approval Status</span>
                             <span class="info-value"><?php echo $member['is_approved'] ? 'Approved' : 'Pending'; ?></span>
-                        </div>
+                            </div>
                         <div class="info-item">
                             <span class="info-label">Last Login</span>
                             <span class="info-value"><?php echo $member['last_login'] ? date('M d, Y H:i', strtotime($member['last_login'])) : 'Never'; ?></span>
+                            </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
                 <!-- Admin Notes -->
                 <?php if ($member['notes']): ?>
@@ -895,7 +895,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                     <p><?php echo nl2br(htmlspecialchars($member['notes'])); ?></p>
                 </div>
                 <?php endif; ?>
-            </div>
+                </div>
 
             <!-- Payments Tab -->
             <div class="tab-pane fade" id="payments" role="tabpanel">
@@ -908,54 +908,54 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                         <a href="payments.php?member=<?php echo $member_id; ?>" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-plus me-1"></i>Add Payment
                         </a>
-                    </div>
-                    
-                    <?php if (!empty($payments)): ?>
-                    <div class="table-responsive">
+                            </div>
+                            
+                            <?php if (!empty($payments)): ?>
+                                <div class="table-responsive">
                         <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Payment ID</th>
+                                        <thead>
+                                            <tr>
+                                                <th>Payment ID</th>
                                     <th>Month</th>
-                                    <th>Amount</th>
-                                    <th>Payment Date</th>
-                                    <th>Status</th>
-                                    <th>Verified By</th>
+                                                <th>Amount</th>
+                                                <th>Payment Date</th>
+                                                <th>Status</th>
+                                                <th>Verified By</th>
                                     <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($payments as $payment): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($payment['payment_id']); ?></td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($payments as $payment): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($payment['payment_id']); ?></td>
                                     <td><?php echo date('M Y', strtotime($payment['payment_month'])); ?></td>
                                     <td class="fw-bold">£<?php echo number_format($payment['amount'], 2); ?></td>
                                     <td><?php echo $payment['payment_date'] ? date('M d, Y', strtotime($payment['payment_date'])) : 'Pending'; ?></td>
                                     <td>
                                         <span class="status-badge status-<?php echo $payment['status']; ?>">
-                                            <?php echo ucfirst($payment['status']); ?>
-                                        </span>
-                                    </td>
+                                                            <?php echo ucfirst($payment['status']); ?>
+                                                        </span>
+                                                    </td>
                                     <td><?php echo htmlspecialchars($payment['verified_by_name'] ?? 'N/A'); ?></td>
                                     <td>
                                         <a href="payments.php?id=<?php echo $payment['id']; ?>" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php else: ?>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php else: ?>
                     <div class="text-center py-5">
                         <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No Payments Found</h5>
                         <p class="text-muted">This member has not made any payments yet.</p>
+                                </div>
+                            <?php endif; ?>
                     </div>
-                    <?php endif; ?>
                 </div>
-            </div>
 
             <!-- Payouts Tab -->
             <div class="tab-pane fade" id="payouts" role="tabpanel">
@@ -968,56 +968,59 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                         <a href="payouts.php?member=<?php echo $member_id; ?>" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-plus me-1"></i>Schedule Payout
                         </a>
-                    </div>
-                    
+                                </div>
+                                
                     <?php if (!empty($payouts)): ?>
-                    <div class="table-responsive">
+                                <div class="table-responsive">
                         <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Payout ID</th>
+                                        <thead>
+                                            <tr>
+                                                <th>Payout ID</th>
                                     <th>Gross Amount</th>
                                     <th>Admin Fee</th>
-                                    <th>Net Amount</th>
-                                    <th>Scheduled Date</th>
+                                                <th>Net Amount</th>
+                                                <th>Scheduled Date</th>
                                     <th>Actual Date</th>
-                                    <th>Status</th>
+                                                <th>Status</th>
                                     <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($payouts as $payout): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($payout['payout_id']); ?></td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($payouts as $payout): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($payout['payout_id']); ?></td>
                                     <td class="fw-bold">£<?php echo number_format($payout['gross_payout'], 2); ?></td>
                                     <td>£<?php echo number_format($payout['admin_fee'], 2); ?></td>
                                     <td class="fw-bold text-success">£<?php echo number_format($payout['net_amount'], 2); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($payout['scheduled_date'])); ?></td>
+                                                    <td><?php echo date('M d, Y', strtotime($payout['scheduled_date'])); ?></td>
                                     <td><?php echo $payout['actual_payout_date'] ? date('M d, Y', strtotime($payout['actual_payout_date'])) : 'Pending'; ?></td>
-                                    <td>
+                                                    <td>
                                         <span class="status-badge status-<?php echo $payout['status']; ?>">
-                                            <?php echo ucfirst($payout['status']); ?>
-                                        </span>
-                                    </td>
+                                                            <?php echo ucfirst($payout['status']); ?>
+                                                        </span>
+                                                    </td>
                                     <td>
-                                        <a href="payouts.php?id=<?php echo $payout['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewPayout(<?php echo $payout['id']; ?>)" title="View">
                                             <i class="fas fa-eye"></i>
-                                        </a>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="editPayout(<?php echo $payout['id']; ?>)" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                                     </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
                     <?php else: ?>
                     <div class="text-center py-5">
                         <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No Payouts Found</h5>
                         <p class="text-muted">This member has not received any payouts yet.</p>
-                    </div>
+                            </div>
                     <?php endif; ?>
-                </div>
-            </div>
+                        </div>
+                    </div>
 
             <!-- Position Swaps Tab -->
             <div class="tab-pane fade" id="swaps" role="tabpanel">
@@ -1027,7 +1030,7 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                             <i class="fas fa-exchange-alt"></i>
                             Position Swap Requests
                         </h2>
-                    </div>
+                                    </div>
                     
                     <?php if (!empty($swap_requests)): ?>
                     <div class="table-responsive">
@@ -1061,61 +1064,160 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
-                    </div>
+                                </div>
                     <?php else: ?>
                     <div class="text-center py-5">
                         <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No Swap Requests Found</h5>
                         <p class="text-muted">This member has not requested any position swaps.</p>
                     </div>
-                    <?php endif; ?>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
+    </div>
 
     </div> <!-- End app-content -->
 </main> <!-- End app-main -->
 </div> <!-- End app-layout -->
 
-<!-- Edit Member Modal -->
-<div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+<!-- Edit Payout Modal -->
+<div class="modal fade" id="editPayoutModal" tabindex="-1" aria-labelledby="editPayoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editMemberModalLabel">
-                    <i class="fas fa-edit me-2"></i>Edit Member Profile
+                <h5 class="modal-title" id="editPayoutModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Payout
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form id="editPayoutForm">
+                <input type="hidden" name="payout_id" id="editPayoutId">
+                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Calculation Formula:</strong><br>
+                        • Gross Payout = Position Coefficient × Total Monthly Pool<br>
+                        • Net Amount = Gross Payout - Admin Fee - Monthly Contribution
+                    </div>
+
+                    <!-- Payout Information -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editPayoutGross" class="form-label">Gross Payout (£) *</label>
+                            <input type="number" class="form-control" id="editPayoutGross" name="gross_payout" step="0.01" min="0" required>
+                            <small class="text-muted">Full payout from coefficient calculation</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPayoutAdminFee" class="form-label">Admin Fee (£) *</label>
+                            <input type="number" class="form-control" id="editPayoutAdminFee" name="admin_fee" step="0.01" min="0" required>
+                            <small class="text-muted">Service fee deducted from gross</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editPayoutScheduledDate" class="form-label">Scheduled Date *</label>
+                            <input type="date" class="form-control" id="editPayoutScheduledDate" name="scheduled_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPayoutActualDate" class="form-label">Actual Payout Date</label>
+                            <input type="date" class="form-control" id="editPayoutActualDate" name="actual_payout_date">
+                            <small class="text-muted">Leave empty if not yet paid</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editPayoutStatus" class="form-label">Status *</label>
+                            <select class="form-select" id="editPayoutStatus" name="status" required>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="processing">Processing</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="on_hold">On Hold</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPayoutMethod" class="form-label">Payout Method</label>
+                            <select class="form-select" id="editPayoutMethod" name="payout_method">
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="mobile_money">Mobile Money</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label for="editPayoutNotes" class="form-label">Payout Notes</label>
+                            <textarea class="form-control" id="editPayoutNotes" name="payout_notes" rows="3" placeholder="Enter any notes about this payout (e.g., cash+transfer combinations, issues, special circumstances)"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Calculated Values Display -->
+                    <div class="alert alert-secondary">
+                        <strong>Calculated Values:</strong><br>
+                        <div id="calculatedValues">
+                            <small class="text-muted">Enter Gross Payout and Admin Fee to see calculated values</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- Edit Member Modal -->
+<div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="editMemberModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Member Profile
+                </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             <form id="editMemberForm">
                 <input type="hidden" name="member_id" value="<?php echo $member_id; ?>">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                 
                 <div class="modal-body">
-                    <!-- Personal Information -->
+                        <!-- Personal Information -->
                     <h6 class="mb-3 text-primary"><i class="fas fa-user me-2"></i>Personal Information</h6>
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <label for="editFirstName" class="form-label">First Name *</label>
                             <input type="text" class="form-control" id="editFirstName" name="first_name" value="<?php echo htmlspecialchars($member['first_name']); ?>" required>
-                        </div>
-                        <div class="col-md-6">
+                            </div>
+                            <div class="col-md-6">
                             <label for="editLastName" class="form-label">Last Name *</label>
                             <input type="text" class="form-control" id="editLastName" name="last_name" value="<?php echo htmlspecialchars($member['last_name']); ?>" required>
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <label for="editEmail" class="form-label">Email *</label>
                             <input type="email" class="form-control" id="editEmail" name="email" value="<?php echo htmlspecialchars($member['email']); ?>" required>
-                        </div>
-                        <div class="col-md-6">
+                            </div>
+                            <div class="col-md-6">
                             <label for="editPhone" class="form-label">Phone *</label>
                             <input type="tel" class="form-control" id="editPhone" name="phone" value="<?php echo htmlspecialchars($member['phone']); ?>" required>
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <!-- Equb Assignment -->
                     <h6 class="mb-3 text-primary mt-4"><i class="fas fa-chart-line me-2"></i>Equb Assignment</h6>
                     <div class="row mb-4">
@@ -1129,47 +1231,47 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
+                                </div>
                         <div class="col-md-4">
                             <label for="editMonthlyPayment" class="form-label">Monthly Payment (£) *</label>
                             <input type="number" class="form-control" id="editMonthlyPayment" name="monthly_payment" value="<?php echo $member['monthly_payment']; ?>" step="0.01" min="0" required>
-                        </div>
+                            </div>
                         <div class="col-md-4">
                             <label for="editPayoutPosition" class="form-label">Payout Position *</label>
                             <input type="number" class="form-control" id="editPayoutPosition" name="payout_position" value="<?php echo $member['payout_position']; ?>" min="1" required>
-                        </div>
+                                </div>
                     </div>
 
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="editPayoutMonth" class="form-label">Payout Month</label>
                             <input type="month" class="form-control" id="editPayoutMonth" name="payout_month" value="<?php echo $member['formatted_payout_month']; ?>">
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Guarantor Information -->
+                        
+                        <!-- Guarantor Information -->
                     <h6 class="mb-3 text-primary mt-4"><i class="fas fa-user-shield me-2"></i>Guarantor Information</h6>
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                            <div class="col-md-6">
                             <label for="editGuarantorFirstName" class="form-label">Guarantor First Name</label>
                             <input type="text" class="form-control" id="editGuarantorFirstName" name="guarantor_first_name" value="<?php echo htmlspecialchars($member['guarantor_first_name']); ?>">
-                        </div>
-                        <div class="col-md-6">
+                            </div>
+                            <div class="col-md-6">
                             <label for="editGuarantorLastName" class="form-label">Guarantor Last Name</label>
                             <input type="text" class="form-control" id="editGuarantorLastName" name="guarantor_last_name" value="<?php echo htmlspecialchars($member['guarantor_last_name']); ?>">
+                            </div>
                         </div>
-                    </div>
-
+                        
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="editGuarantorPhone" class="form-label">Guarantor Phone</label>
                             <input type="tel" class="form-control" id="editGuarantorPhone" name="guarantor_phone" value="<?php echo htmlspecialchars($member['guarantor_phone']); ?>">
-                        </div>
+                                </div>
                         <div class="col-md-6">
                             <label for="editGuarantorEmail" class="form-label">Guarantor Email</label>
                             <input type="email" class="form-control" id="editGuarantorEmail" name="guarantor_email" value="<?php echo htmlspecialchars($member['guarantor_email']); ?>">
-                        </div>
-                    </div>
+                            </div>
+                                </div>
 
                     <!-- Settings -->
                     <h6 class="mb-3 text-primary mt-4"><i class="fas fa-cog me-2"></i>Settings</h6>
@@ -1188,10 +1290,10 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                                 <label class="form-check-label" for="editSwapTerms">
                                     Allow Position Swapping
                                 </label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
+                        
                     <div class="row mb-4">
                         <div class="col-12">
                             <label for="editNotes" class="form-label">Admin Notes</label>
@@ -1200,18 +1302,18 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
                     </div>
                 </div>
 
-                <div class="modal-footer">
+                    <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>Cancel
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-1"></i>Save Changes
                     </button>
-                </div>
-            </form>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -1267,6 +1369,107 @@ $completed_payouts = count(array_filter($payouts, fn($p) => $p['status'] === 'co
             alertDiv.remove();
         }, 5000);
     }
+
+    // ===== PAYOUT EDIT FUNCTIONALITY =====
+
+    // View payout details
+    function viewPayout(payoutId) {
+        window.location.href = 'payouts.php?id=' + payoutId;
+    }
+
+    // Edit payout
+    async function editPayout(payoutId) {
+        try {
+            // Fetch payout details
+            const response = await fetch(`api/payouts.php?action=get&id=${payoutId}`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                showAlert('error', data.message || 'Failed to fetch payout details');
+                return;
+            }
+            
+            const payout = data.payout;
+            
+            // Populate modal fields
+            document.getElementById('editPayoutId').value = payout.id;
+            document.getElementById('editPayoutGross').value = payout.gross_payout;
+            document.getElementById('editPayoutAdminFee').value = payout.admin_fee;
+            document.getElementById('editPayoutScheduledDate').value = payout.scheduled_date;
+            document.getElementById('editPayoutActualDate').value = payout.actual_payout_date || '';
+            document.getElementById('editPayoutStatus').value = payout.status;
+            document.getElementById('editPayoutMethod').value = payout.payout_method || 'bank_transfer';
+            document.getElementById('editPayoutNotes').value = payout.payout_notes || '';
+            
+            // Calculate and display values
+            updateCalculatedValues();
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('editPayoutModal')).show();
+            
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('error', 'An error occurred while fetching payout details');
+        }
+    }
+
+    // Update calculated values in the modal
+    function updateCalculatedValues() {
+        const gross = parseFloat(document.getElementById('editPayoutGross').value) || 0;
+        const adminFee = parseFloat(document.getElementById('editPayoutAdminFee').value) || 0;
+        const memberMonthlyPayment = <?php echo $member['monthly_payment']; ?>;
+        
+        const totalAmount = gross - adminFee;
+        const netAmount = gross - adminFee - memberMonthlyPayment;
+        
+        const calculatedDiv = document.getElementById('calculatedValues');
+        calculatedDiv.innerHTML = `
+            • Total Amount (shown to member): <strong>£${totalAmount.toFixed(2)}</strong><br>
+            • Monthly Contribution Deduction: <strong>£${memberMonthlyPayment.toFixed(2)}</strong><br>
+            • Net Amount (member receives): <strong>£${netAmount.toFixed(2)}</strong>
+        `;
+    }
+
+    // Auto-update calculated values when gross or admin fee changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const grossInput = document.getElementById('editPayoutGross');
+        const adminFeeInput = document.getElementById('editPayoutAdminFee');
+        
+        if (grossInput) {
+            grossInput.addEventListener('input', updateCalculatedValues);
+        }
+        if (adminFeeInput) {
+            adminFeeInput.addEventListener('input', updateCalculatedValues);
+        }
+    });
+
+    // Handle payout edit form submission
+    document.getElementById('editPayoutForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        formData.append('action', 'update');
+        
+        try {
+            const response = await fetch('api/payouts.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('success', data.message);
+                bootstrap.Modal.getInstance(document.getElementById('editPayoutModal')).hide();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('error', data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showAlert('error', 'An error occurred while updating payout');
+        }
+    });
 </script>
 </body>
-</html>
+</html> 

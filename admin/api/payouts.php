@@ -420,38 +420,69 @@ function updatePayout() {
     }
     
     try {
-        // Verify payout exists
-        $stmt = $pdo->prepare("SELECT id FROM payouts WHERE id = ?");
-    $stmt->execute([$payout_id]);
-        if (!$stmt->fetch()) {
+        // Verify payout exists and get member ID
+        $stmt = $pdo->prepare("SELECT id, member_id FROM payouts WHERE id = ?");
+        $stmt->execute([$payout_id]);
+        $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$payout) {
             http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Payout not found']);
-        return;
-    }
-    
+            echo json_encode(['success' => false, 'message' => 'Payout not found']);
+            return;
+        }
+        
         // Update fields
         $gross_payout = floatval($_POST['gross_payout'] ?? 0);
-    $admin_fee = floatval($_POST['admin_fee'] ?? 0);
+        $admin_fee = floatval($_POST['admin_fee'] ?? 0);
         $status = $_POST['status'] ?? 'scheduled';
         $payout_notes = $_POST['payout_notes'] ?? '';
         $actual_date = $_POST['actual_payout_date'] ?? null;
+        $scheduled_date = $_POST['scheduled_date'] ?? null;
+        $payout_method = $_POST['payout_method'] ?? 'bank_transfer';
+        
+        // If actual_date is empty string, set to NULL
+        if ($actual_date === '') {
+            $actual_date = null;
+        }
         
         // Recalculate derived amounts
         $total_amount = $gross_payout - $admin_fee;
         
-    $stmt = $pdo->prepare("
+        // Get member's monthly payment for net calculation
+        require_once '../../includes/enhanced_equb_calculator.php';
+        $calculator = getEnhancedEqubCalculator();
+        $calc_result = $calculator->calculateMemberFriendlyPayout($payout['member_id']);
+        
+        $monthly_deduction = 0;
+        if ($calc_result['success']) {
+            $monthly_deduction = $calc_result['calculation']['monthly_deduction'];
+        }
+        
+        $net_amount = $gross_payout - $admin_fee - $monthly_deduction;
+        
+        // Update payout
+        $stmt = $pdo->prepare("
             UPDATE payouts 
-            SET gross_payout = ?, total_amount = ?, admin_fee = ?, status = ?, 
-                payout_notes = ?, actual_payout_date = ?, updated_at = NOW()
-        WHERE id = ?
-    ");
-    
-    $stmt->execute([
-            $gross_payout, $total_amount, $admin_fee, $status, 
-            $payout_notes, $actual_date, $payout_id
+            SET gross_payout = ?, total_amount = ?, net_amount = ?, admin_fee = ?, 
+                status = ?, payout_notes = ?, actual_payout_date = ?, 
+                scheduled_date = ?, payout_method = ?, updated_at = NOW()
+            WHERE id = ?
+        ");
+        
+        $stmt->execute([
+            $gross_payout, $total_amount, $net_amount, $admin_fee, $status, 
+            $payout_notes, $actual_date, $scheduled_date, $payout_method, $payout_id
         ]);
         
-        echo json_encode(['success' => true, 'message' => 'Payout updated successfully']);
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Payout updated successfully',
+            'calculated_values' => [
+                'total_amount' => $total_amount,
+                'net_amount' => $net_amount,
+                'monthly_deduction' => $monthly_deduction
+            ]
+        ]);
         
     } catch (Exception $e) {
         error_log("Update Payout Error: " . $e->getMessage());
