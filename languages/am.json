@@ -1226,6 +1226,51 @@
     "terms": "የአገልግሎት ውሎች",
     "copyright": "ሁሉም መብቶች የተጠበቁ ናቸው"
   },
+  "admin": {
+    "equb_management": {
+      "page_title": "Equb Management",
+      "title": "Equb Management",
+      "subtitle": "Create, manage, and monitor all equb terms",
+      "create_new": "Create New Equb",
+      "quick_actions": "Quick Actions",
+      "equb_terms": "Equb Terms",
+      "no_equbs": "No Equb Terms Found",
+      "create_first": "Create your first equb term to get started",
+      "confirm_delete": "Are you sure you want to delete this equb term? This action cannot be undone.",
+      "months": "months",
+      "stats": {
+        "total_equbs": "Total Equbs",
+        "active_equbs": "Active Equbs",
+        "total_pool": "Total Pool",
+        "total_members": "Total Members"
+      },
+      "actions": {
+        "members": "Members",
+        "payments": "Payments",
+        "payouts": "Payouts",
+        "reports": "Reports",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "status": {
+        "active": "Active",
+        "planning": "Planning",
+        "completed": "Completed",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled"
+      },
+      "table": {
+        "name": "Equb Name",
+        "status": "Status",
+        "members": "Members",
+        "duration": "Duration",
+        "pool_amount": "Pool Amount",
+        "start_date": "Start Date",
+        "actions": "Actions"
+      }
+    }
+  },
   "common": {
     "cancel": "ይቅር",
     "confirm": "አረጋግጥ",
