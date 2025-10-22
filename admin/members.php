@@ -108,42 +108,65 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
     <style>
         /* === MEMBERS DIRECTORY PAGE DESIGN === */
         
+        /* Main Content Wrapper */
+        .app-main {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .app-content {
+            max-width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
         /* Page Header */
         .page-header {
             background: linear-gradient(135deg, var(--color-cream) 0%, #FAF8F5 100%);
             border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 40px;
+            padding: 30px;
+            margin-bottom: 30px;
             border: 1px solid var(--border-light);
             box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .page-title-section {
+            flex: 1;
+            min-width: 0;
         }
         
         .page-title-section h1 {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
             color: var(--color-purple);
             margin: 0 0 8px 0;
+            word-break: break-word;
         }
         
         .page-title-section p {
             color: var(--text-secondary);
             margin: 0;
-            font-size: 16px;
+            font-size: 15px;
         }
         
         .add-member-btn {
             background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%);
             color: white;
             border: none;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border-radius: 12px;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 15px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 16px rgba(19, 102, 92, 0.3);
+            white-space: nowrap;
         }
         
         .add-member-btn:hover {
@@ -154,17 +177,18 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
 
         /* Statistics Cards */
         .stats-container {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         .stat-card {
             background: white;
             border-radius: 16px;
-            padding: 28px;
+            padding: 24px;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
             transition: all 0.3s ease;
             height: 100%;
+            min-width: 0;
         }
 
         .stat-card:hover {
@@ -173,14 +197,14 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         }
 
         .stat-icon {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
-            font-size: 20px;
+            margin-bottom: 14px;
+            font-size: 18px;
         }
 
         .stat-icon.total { background: rgba(19, 102, 92, 0.1); color: var(--color-teal); }
@@ -190,15 +214,16 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         .stat-icon.contributions { background: rgba(233, 196, 106, 0.1); color: var(--color-gold); }
 
         .stat-number {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
             color: var(--color-purple);
             margin: 0 0 4px 0;
             line-height: 1;
+            word-break: break-word;
         }
 
         .stat-label {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
             margin: 0;
             font-weight: 500;
@@ -208,15 +233,18 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         .search-filter-section {
             background: white;
             border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 30px;
+            padding: 20px;
+            margin-bottom: 24px;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .search-bar {
             position: relative;
             flex: 1;
+            min-width: 0;
         }
 
         .search-input {
@@ -224,9 +252,10 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             padding: 12px 16px 12px 48px;
             border: 2px solid var(--border-light);
             border-radius: 12px;
-            font-size: 16px;
+            font-size: 15px;
             transition: all 0.3s ease;
             background: var(--color-cream);
+            box-sizing: border-box;
         }
 
         .search-input:focus {
@@ -247,17 +276,19 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
 
         .filter-group {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .filter-select {
-            min-width: 150px;
-            padding: 10px 16px;
+            min-width: 140px;
+            padding: 10px 14px;
             border: 2px solid var(--border-light);
             border-radius: 8px;
             background: white;
             transition: all 0.3s ease;
+            font-size: 14px;
         }
 
         .filter-select:focus {
@@ -270,13 +301,17 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         .table-container {
             background: white;
             border-radius: 16px;
-            overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             border: 1px solid var(--border-light);
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
+            max-width: 100%;
         }
 
         .table {
             margin: 0;
+            min-width: 1000px;
+            width: 100%;
         }
 
         .table thead th {
@@ -284,17 +319,19 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             border-bottom: 2px solid var(--border-light);
             color: var(--color-purple);
             font-weight: 600;
-            font-size: 14px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding: 20px 16px;
+            padding: 16px 12px;
             border-top: none;
+            white-space: nowrap;
         }
 
         .table tbody td {
-            padding: 20px 16px;
+            padding: 16px 12px;
             border-bottom: 1px solid var(--border-light);
             vertical-align: middle;
+            font-size: 14px;
         }
 
         .table tbody tr:hover {
@@ -310,6 +347,7 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             display: flex;
             align-items: center;
             gap: 12px;
+            min-width: 0;
         }
 
         .member-avatar {
@@ -323,13 +361,20 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             justify-content: center;
             font-weight: 600;
             font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .member-details {
+            min-width: 0;
+            flex: 1;
         }
 
         .member-details .member-name {
             font-weight: 600;
             color: var(--color-purple);
             margin: 0 0 4px 0;
-            font-size: 16px;
+            font-size: 15px;
+            word-break: break-word;
         }
 
         .member-name-link {
@@ -345,20 +390,22 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
         }
 
         .member-id {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
             font-family: 'Courier New', monospace;
+            word-break: break-all;
         }
 
         /* Status Badges */
         .status-badge {
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             display: inline-block;
+            white-space: nowrap;
         }
 
         .status-active {
@@ -449,35 +496,128 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             .page-header {
                 flex-direction: column;
                 text-align: center;
-                gap: 20px;
+                gap: 16px;
+            }
+            
+            .page-title-section h1 {
+                font-size: 24px;
+            }
+            
+            .table {
+                min-width: 900px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .app-content {
+                padding: 15px;
+            }
+            
+            .page-header {
+                padding: 24px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+            
+            .stat-number {
+                font-size: 22px;
             }
         }
 
         @media (max-width: 768px) {
+            .app-content {
+                padding: 12px;
+            }
+            
             .page-header {
-                padding: 30px 20px;
+                padding: 20px;
+            }
+            
+            .page-title-section h1 {
+                font-size: 22px;
+            }
+            
+            .page-title-section p {
+                font-size: 14px;
+            }
+            
+            .add-member-btn {
+                width: 100%;
+                padding: 12px 20px;
             }
 
             .search-filter-section {
-                padding: 20px 16px;
+                padding: 16px;
             }
 
             .filter-group {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 12px;
+                gap: 10px;
+            }
+            
+            .filter-select {
+                width: 100%;
+                min-width: unset;
             }
 
             .stat-card {
-                padding: 20px;
+                padding: 16px;
             }
-
-            .table-container {
-                overflow-x: auto;
+            
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            .stat-number {
+                font-size: 20px;
+            }
+            
+            .stat-label {
+                font-size: 12px;
             }
 
             .table {
                 min-width: 800px;
+            }
+            
+            .table thead th {
+                padding: 12px 10px;
+                font-size: 11px;
+            }
+            
+            .table tbody td {
+                padding: 12px 10px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .page-title-section h1 {
+                font-size: 20px;
+            }
+            
+            .table {
+                min-width: 700px;
+            }
+            
+            .member-avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 12px;
+            }
+            
+            .action-buttons {
+                gap: 6px;
+            }
+            
+            .btn-action {
+                width: 32px;
+                height: 32px;
             }
         }
 
