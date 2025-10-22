@@ -69,7 +69,7 @@ $csrf_token = generate_csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo __('admin.equb_management.page_title'); ?> - HabeshaEqub</title>
+    <title><?php echo t('admin.equb_management.page_title'); ?> - HabeshaEqub</title>
     
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
@@ -432,11 +432,11 @@ $csrf_token = generate_csrf_token();
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-title-section">
-                <h1><?php echo __('admin.equb_management.title'); ?></h1>
-                <p><?php echo __('admin.equb_management.subtitle'); ?></p>
+                <h1><?php echo t('admin.equb_management.title'); ?></h1>
+                <p><?php echo t('admin.equb_management.subtitle'); ?></p>
             </div>
             <button class="create-btn" onclick="window.location.href='equb-management.php?action=create'">
-                <i class="fas fa-plus me-2"></i><?php echo __('admin.equb_management.create_new'); ?>
+                <i class="fas fa-plus me-2"></i><?php echo t('admin.equb_management.create_new'); ?>
             </button>
         </div>
 
@@ -447,78 +447,78 @@ $csrf_token = generate_csrf_token();
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <div class="stat-value"><?php echo $total_equbs; ?></div>
-                <div class="stat-label"><?php echo __('admin.equb_management.stats.total_equbs'); ?></div>
+                <div class="stat-label"><?php echo t('admin.equb_management.stats.total_equbs'); ?></div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon gold">
                     <i class="fas fa-play-circle"></i>
                 </div>
                 <div class="stat-value"><?php echo $active_equbs; ?></div>
-                <div class="stat-label"><?php echo __('admin.equb_management.stats.active_equbs'); ?></div>
+                <div class="stat-label"><?php echo t('admin.equb_management.stats.active_equbs'); ?></div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon purple">
                     <i class="fas fa-pound-sign"></i>
                 </div>
                 <div class="stat-value">£<?php echo number_format($total_pool, 0); ?></div>
-                <div class="stat-label"><?php echo __('admin.equb_management.stats.total_pool'); ?></div>
+                <div class="stat-label"><?php echo t('admin.equb_management.stats.total_pool'); ?></div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon blue">
                     <i class="fas fa-users"></i>
                 </div>
                 <div class="stat-value"><?php echo $total_members; ?></div>
-                <div class="stat-label"><?php echo __('admin.equb_management.stats.total_members'); ?></div>
+                <div class="stat-label"><?php echo t('admin.equb_management.stats.total_members'); ?></div>
             </div>
         </div>
 
         <!-- Quick Actions -->
         <div class="quick-actions">
-            <h2 class="section-title"><?php echo __('admin.equb_management.quick_actions'); ?></h2>
+            <h2 class="section-title"><?php echo t('admin.equb_management.quick_actions'); ?></h2>
             <div class="actions-grid">
                 <div class="action-btn" onclick="window.location.href='members.php'">
                     <div class="action-icon teal">
                         <i class="fas fa-users"></i>
                     </div>
-                    <div class="action-title"><?php echo __('admin.equb_management.actions.members'); ?></div>
+                    <div class="action-title"><?php echo t('admin.equb_management.actions.members'); ?></div>
                 </div>
                 <div class="action-btn" onclick="window.location.href='payments.php'">
                     <div class="action-icon gold">
                         <i class="fas fa-money-bill-wave"></i>
                     </div>
-                    <div class="action-title"><?php echo __('admin.equb_management.actions.payments'); ?></div>
+                    <div class="action-title"><?php echo t('admin.equb_management.actions.payments'); ?></div>
                 </div>
                 <div class="action-btn" onclick="window.location.href='payouts.php'">
                     <div class="action-icon purple">
                         <i class="fas fa-hand-holding-usd"></i>
                     </div>
-                    <div class="action-title"><?php echo __('admin.equb_management.actions.payouts'); ?></div>
+                    <div class="action-title"><?php echo t('admin.equb_management.actions.payouts'); ?></div>
                 </div>
                 <div class="action-btn" onclick="window.location.href='reports.php'">
                     <div class="action-icon coral">
                         <i class="fas fa-chart-bar"></i>
                     </div>
-                    <div class="action-title"><?php echo __('admin.equb_management.actions.reports'); ?></div>
+                    <div class="action-title"><?php echo t('admin.equb_management.actions.reports'); ?></div>
                 </div>
             </div>
         </div>
 
         <!-- Equb List -->
         <div class="equb-list">
-            <h2 class="section-title"><?php echo __('admin.equb_management.equb_terms'); ?></h2>
+            <h2 class="section-title"><?php echo t('admin.equb_management.equb_terms'); ?></h2>
             
             <?php if (!empty($equbs)): ?>
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th><?php echo __('admin.equb_management.table.name'); ?></th>
-                                <th><?php echo __('admin.equb_management.table.status'); ?></th>
-                                <th><?php echo __('admin.equb_management.table.members'); ?></th>
-                                <th><?php echo __('admin.equb_management.table.duration'); ?></th>
-                                <th><?php echo __('admin.equb_management.table.pool_amount'); ?></th>
-                                <th><?php echo __('admin.equb_management.table.start_date'); ?></th>
-                                <th><?php echo __('admin.equb_management.table.actions'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.name'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.status'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.members'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.duration'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.pool_amount'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.start_date'); ?></th>
+                                <th><?php echo t('admin.equb_management.table.actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -530,22 +530,22 @@ $csrf_token = generate_csrf_token();
                                     </td>
                                     <td>
                                         <span class="badge-status badge-<?php echo $equb['status']; ?>">
-                                            <?php echo __(('admin.equb_management.status.' . $equb['status'])); ?>
+                                            <?php echo t('admin.equb_management.status.' . $equb['status']); ?>
                                         </span>
                                     </td>
                                     <td><?php echo $equb['current_members']; ?>/<?php echo $equb['max_members']; ?></td>
-                                    <td><?php echo $equb['duration_months']; ?> <?php echo __('admin.equb_management.months'); ?></td>
+                                    <td><?php echo $equb['duration_months']; ?> <?php echo t('admin.equb_management.months'); ?></td>
                                     <td class="fw-bold">£<?php echo number_format($equb['calculated_pool_amount'], 0); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($equb['start_date'])); ?></td>
                                     <td>
                                         <div class="d-flex gap-2">
-                                            <button class="btn-action btn-view" onclick="viewEqub(<?php echo $equb['id']; ?>)" title="<?php echo __('admin.equb_management.actions.view'); ?>">
+                                            <button class="btn-action btn-view" onclick="viewEqub(<?php echo $equb['id']; ?>)" title="<?php echo t('admin.equb_management.actions.view'); ?>">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn-action btn-edit" onclick="editEqub(<?php echo $equb['id']; ?>)" title="<?php echo __('admin.equb_management.actions.edit'); ?>">
+                                            <button class="btn-action btn-edit" onclick="editEqub(<?php echo $equb['id']; ?>)" title="<?php echo t('admin.equb_management.actions.edit'); ?>">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn-action btn-delete" onclick="deleteEqub(<?php echo $equb['id']; ?>)" title="<?php echo __('admin.equb_management.actions.delete'); ?>">
+                                            <button class="btn-action btn-delete" onclick="deleteEqub(<?php echo $equb['id']; ?>)" title="<?php echo t('admin.equb_management.actions.delete'); ?>">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -558,8 +558,8 @@ $csrf_token = generate_csrf_token();
             <?php else: ?>
                 <div class="text-center py-5">
                     <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
-                    <h4 style="color: var(--text-secondary);"><?php echo __('admin.equb_management.no_equbs'); ?></h4>
-                    <p style="color: var(--text-secondary);"><?php echo __('admin.equb_management.create_first'); ?></p>
+                    <h4 style="color: var(--text-secondary);"><?php echo t('admin.equb_management.no_equbs'); ?></h4>
+                    <p style="color: var(--text-secondary);"><?php echo t('admin.equb_management.create_first'); ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -584,7 +584,7 @@ $csrf_token = generate_csrf_token();
     }
 
     function deleteEqub(id) {
-        if (confirm('<?php echo __('admin.equb_management.confirm_delete'); ?>')) {
+        if (confirm('<?php echo t('admin.equb_management.confirm_delete'); ?>')) {
             // Implement delete logic
         }
     }
