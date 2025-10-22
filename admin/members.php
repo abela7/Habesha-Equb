@@ -25,10 +25,10 @@ try {
                    ELSE m.payout_position
                END as actual_payout_position,
                CASE 
-                   WHEN m.membership_type = 'joint' THEN jmg.total_monthly_payment
+                   WHEN m.membership_type = 'joint' THEN COALESCE(m.individual_contribution, m.monthly_payment)
                    ELSE m.monthly_payment
                END as effective_monthly_payment,
-               jmg.group_name, jmg.payout_split_method,
+               jmg.group_name, jmg.payout_split_method, jmg.total_monthly_payment as joint_total_payment,
                COUNT(p.id) as total_payments,
                COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0) as total_paid,
                es.equb_name, es.equb_id
@@ -685,41 +685,41 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
                     <div class="stat-card">
                         <div class="stat-icon active">
                             <i class="fas fa-user-check"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $active_members; ?></div>
                         <div class="stat-label">Active Members</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon pending">
                             <i class="fas fa-clock"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $pending_approval; ?></div>
                         <div class="stat-label">Pending Approval</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon completed">
                             <i class="fas fa-hand-holding-usd"></i>
-                        </div>
+                            </div>
                         <div class="stat-number"><?php echo $completed_payouts; ?></div>
                         <div class="stat-label">Completed Payouts</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon contributions">
                             <i class="fas fa-pound-sign"></i>
-                        </div>
+                            </div>
                         <div class="stat-number">£<?php echo number_format($total_contributions, 0); ?></div>
                         <div class="stat-label">Total Contributions</div>
+                        </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-</div>
-            
+                
         <!-- Search and Filter Section -->
             <div class="search-filter-section">
                 <div class="row align-items-center">
