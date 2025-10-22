@@ -683,51 +683,42 @@ $total_contributions = array_sum(array_column($members, 'total_paid'));
             <div class="row">
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
-                        <div class="stat-icon total">
-                            <i class="fas fa-users"></i>
-                            </div>
-                        <div class="stat-number"><?php echo $total_members; ?></div>
-                        <div class="stat-label">Total Members</div>
-                        </div>
-                        </div>
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
-                    <div class="stat-card">
                         <div class="stat-icon active">
                             <i class="fas fa-user-check"></i>
-                            </div>
+                        </div>
                         <div class="stat-number"><?php echo $active_members; ?></div>
                         <div class="stat-label">Active Members</div>
-                        </div>
-                        </div>
+                    </div>
+                </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon pending">
                             <i class="fas fa-clock"></i>
-                            </div>
+                        </div>
                         <div class="stat-number"><?php echo $pending_approval; ?></div>
                         <div class="stat-label">Pending Approval</div>
-                        </div>
-                        </div>
+                    </div>
+                </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon completed">
                             <i class="fas fa-hand-holding-usd"></i>
-                            </div>
+                        </div>
                         <div class="stat-number"><?php echo $completed_payouts; ?></div>
                         <div class="stat-label">Completed Payouts</div>
-                        </div>
-                        </div>
+                    </div>
+                </div>
                 <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
                     <div class="stat-card">
                         <div class="stat-icon contributions">
                             <i class="fas fa-pound-sign"></i>
-                    </div>
+                        </div>
                         <div class="stat-number">£<?php echo number_format($total_contributions, 0); ?></div>
                         <div class="stat-label">Total Contributions</div>
-                </div>
                     </div>
                 </div>
             </div>
+</div>
             
         <!-- Search and Filter Section -->
             <div class="search-filter-section">
