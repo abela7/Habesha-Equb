@@ -19,7 +19,7 @@ require_once 'includes/admin_auth_guard.php';
 
 // Redirect if already logged in
 if (is_admin_authenticated()) {
-    header('Location: dashboard.php');
+    header('Location: welcome_admin.php');
     exit;
 }
 
