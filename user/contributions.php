@@ -551,7 +551,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 .table th:nth-child(2), .table td:nth-child(2) { width: 32%; } /* Payment Month */
 .table th:nth-child(3), .table td:nth-child(3) { width: 20%; } /* Amount */
 .table th:nth-child(4), .table td:nth-child(4) { width: 18%; } /* Status */
-.table th:nth-child(5), .table td:nth-child(5) { width: 12%; } /* Actions */
+/* Actions column removed - rows are now clickable */
 
 /* Compact Code and Badge Styling */
 .table code {
@@ -652,12 +652,24 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     border-radius: 6px;
 }
 
-/* Center and compact the actions column */
-.table th:nth-child(5), 
-.table td:nth-child(5) { 
-    width: 12%; 
-    text-align: center !important;
-    padding: 8px 4px !important;
+/* Payment rows are now clickable - no actions column needed */
+.payment-row-clickable {
+    transition: background-color 0.2s ease;
+}
+
+.payment-row-clickable:hover {
+    background-color: rgba(218, 165, 32, 0.08) !important;
+    transform: translateX(2px);
+}
+
+@media (max-width: 768px) {
+    .payment-row-clickable {
+        cursor: pointer;
+    }
+    
+    .payment-row-clickable td {
+        padding: 12px 8px;
+    }
 }
 
 
@@ -1243,19 +1255,31 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                             <th><?php echo t('contributions.payment_month'); ?></th>
                             <th><?php echo t('contributions.amount'); ?></th>
                             <th><?php echo t('contributions.status'); ?></th>
-                            <th><?php echo t('contributions.actions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $rowIndex = 1; foreach ($payments as $payment): ?>
-                        <tr>
+                        <tr class="payment-row-clickable" 
+                            style="cursor: pointer;"
+                            data-payment-id="<?php echo htmlspecialchars($payment['payment_id'] ?? ''); ?>"
+                            data-payment-month="<?php echo htmlspecialchars($payment['payment_month_name'] ?? ''); ?>"
+                            data-payment-date="<?php echo htmlspecialchars($payment['formatted_date'] ?? ''); ?>"
+                            data-amount="<?php echo number_format($payment['amount'], 2); ?>"
+                            data-late-fee="<?php echo number_format($payment['late_fee'], 2); ?>"
+                            data-method="<?php echo t('contributions.' . $payment['payment_method']); ?>"
+                            data-status="<?php echo t('contributions.' . $payment['status']); ?>"
+                            data-verification="<?php echo $payment['verification_status']; ?>"
+                            data-receipt="<?php echo $payment['receipt_number'] ?? ''; ?>"
+                            data-created="<?php echo $payment['created_at'] ?? ''; ?>"
+                            data-member-name="<?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>"
+                            data-payment-db-id="<?php echo (int)$payment['id']; ?>">
                             <td>
                                 <?php echo $rowIndex++; ?>
                             </td>
                             <td class="fw-semibold">
                                 <?php 
                                 $month_name = $payment['payment_month_name'] ?? '';
-                                                                        echo htmlspecialchars($month_name); 
+                                echo htmlspecialchars($month_name); 
                                 ?>
                             </td>
                             <td class="fw-semibold text-success">
@@ -1271,24 +1295,6 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                     <?php echo t('contributions.' . $payment['status']); ?>
                                 </span>
                             </td>
-                                                         <td>
-                                 <button class="btn btn-sm btn-outline-secondary payment-details-btn" 
-                                         title="<?php echo t('contributions.payment_details'); ?>"
-                                         data-payment-id="<?php echo htmlspecialchars($payment['payment_id'] ?? ''); ?>"
-                                         data-payment-month="<?php echo htmlspecialchars($payment['payment_month_name'] ?? ''); ?>"
-                                         data-payment-date="<?php echo htmlspecialchars($payment['formatted_date'] ?? ''); ?>"
-                                         data-amount="<?php echo number_format($payment['amount'], 2); ?>"
-                                         data-late-fee="<?php echo number_format($payment['late_fee'], 2); ?>"
-                                         data-method="<?php echo t('contributions.' . $payment['payment_method']); ?>"
-                                         data-status="<?php echo t('contributions.' . $payment['status']); ?>"
-                                         data-verification="<?php echo $payment['verification_status']; ?>"
-                                         data-receipt="<?php echo $payment['receipt_number'] ?? ''; ?>"
-                                         data-created="<?php echo $payment['created_at'] ?? ''; ?>"
-                                         data-member-name="<?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?>"
-                                         data-payment-db-id="<?php echo (int)$payment['id']; ?>">
-                                     <i class="fas fa-eye"></i>
-                                 </button>
-                             </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -1470,13 +1476,18 @@ $cache_buster = time() . '_' . rand(1000, 9999);
 
         // Payment Details Modal
         const paymentModal = new bootstrap.Modal(document.getElementById('paymentDetailsModal'));
-        const detailButtons = document.querySelectorAll('.payment-details-btn');
+        const paymentRows = document.querySelectorAll('.payment-row-clickable');
         const openPublicBtn = document.getElementById('openPublicReceiptBtn');
         let currentPaymentDbId = null;
         
-        detailButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // Get data from button attributes
+        paymentRows.forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Prevent modal from opening if clicking on badge or other interactive elements
+                if (e.target.closest('.badge') || e.target.closest('a')) {
+                    return;
+                }
+                
+                // Get data from row attributes
                 const paymentId = this.dataset.paymentId;
                 const paymentMonth = this.dataset.paymentMonth;
                 const paymentDate = this.dataset.paymentDate;
