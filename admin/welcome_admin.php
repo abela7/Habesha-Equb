@@ -137,6 +137,9 @@ try {
     <link rel="icon" type="image/png" sizes="32x32" href="../Pictures/Icon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../Pictures/Icon/favicon-16x16.png">
     
+    <!-- PWA Support -->
+    <?php include '../includes/pwa-head.php'; ?>
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -994,5 +997,7 @@ try {
         console.log('💵 Collection Rate: <?php echo number_format($collection_rate, 1); ?>%');
     });
     </script>
+    <!-- PWA Footer -->
+    <?php include '../includes/pwa-footer.php'; ?>
 </body>
 </html>

@@ -60,6 +60,9 @@ $csrf_token = generate_csrf_token();
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="HabeshaEqub Admin">
     
+    <!-- PWA Support -->
+    <?php include '../includes/pwa-head.php'; ?>
+    
     <!-- Security headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
@@ -223,7 +226,7 @@ $csrf_token = generate_csrf_token();
         }
     </style>
     
-
-
+    <!-- PWA Footer -->
+    <?php include '../includes/pwa-footer.php'; ?>
 </body>
 </html> 

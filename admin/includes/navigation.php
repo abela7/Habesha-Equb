@@ -946,6 +946,10 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Security Settings</span>
             </a>
+            <a href="pwa-management.php" class="nav-item <?php echo ($current_page === 'pwa-management.php') ? 'active' : ''; ?>">
+                <i class="fas fa-mobile-alt nav-icon"></i>
+                <span class="nav-text">PWA Management</span>
+            </a>
 
             
             <!-- Language Selector -->
@@ -1000,7 +1004,8 @@ body.no-scroll {
                     'notifications.php' => t('navigation.notifications'),
                     'rules.php' => t('navigation.rules'),
                     'settings.php' => t('navigation.settings'),
-                    'security-settings.php' => 'Security Settings'
+                    'security-settings.php' => 'Security Settings',
+                    'pwa-management.php' => 'PWA Management'
                 ];
                 echo $page_titles[$current_page] ?? 'HabeshaEqub Admin';
                 ?>

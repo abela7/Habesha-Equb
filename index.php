@@ -97,10 +97,8 @@ exit();
     <link rel="apple-touch-icon" sizes="180x180" href="Pictures/Icon/apple-icon-180x180.png">
     <meta name="description" content="HabeshaEqub - Modern Ethiopian traditional savings group management system">
     
-    <!-- iPhone/mobile specific meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="HabeshaEqub">
+    <!-- PWA Support -->
+    <?php include 'includes/pwa-head.php'; ?>
     
     <!-- Security headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -470,6 +468,7 @@ exit();
             }
         }
     </style>
-
+    <!-- PWA Footer -->
+    <?php include 'includes/pwa-footer.php'; ?>
 </body>
 </html> 

@@ -70,6 +70,9 @@ if (isset($_GET['msg'])) {
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="../assets/img/favicon-32x32.png">
     
+    <!-- PWA Support -->
+    <?php include '../includes/pwa-head.php'; ?>
+    
     <!-- 🚀 TRULY TOP-TIER 2024/2025 DESIGN - Modern Split-Screen Layout -->
     <style>
         /* Your Stunning Color Palette - Used Creatively! */
@@ -1388,5 +1391,7 @@ if (isset($_GET['msg'])) {
             new UserAuthManager();
         });
     </script>
+    <!-- PWA Footer -->
+    <?php include '../includes/pwa-footer.php'; ?>
 </body>
 </html> 
