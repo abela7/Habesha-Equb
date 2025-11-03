@@ -750,6 +750,31 @@ $cache_buster = time() . '_' . rand(1000, 9999);
     background: rgba(218, 165, 32, 0.02);
 }
 
+.payment-row-hover {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.payment-row-hover:hover {
+    background: rgba(218, 165, 32, 0.08) !important;
+    transform: translateX(2px);
+}
+
+.payment-row-hover a {
+    display: block;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .payment-row-hover {
+        cursor: pointer;
+    }
+    
+    .payment-row-hover td {
+        padding: 12px 8px;
+    }
+}
+
 /* Enhanced Badges */
 .badge {
     border-radius: 8px;
@@ -2031,24 +2056,38 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                     </thead>
                     <tbody>
                         <?php foreach ($recent_payments as $payment): ?>
-                        <tr>
+                        <tr class="payment-row-hover" data-payment-id="<?php echo (int)$payment['id']; ?>">
                             <td>
-                                <code class="small"><?php echo htmlspecialchars($payment['payment_id']); ?></code>
+                                <a href="payment-details.php?id=<?php echo (int)$payment['id']; ?>" class="text-decoration-none text-dark">
+                                    <code class="small"><?php echo htmlspecialchars($payment['payment_id']); ?></code>
+                                </a>
                             </td>
                             <td class="fw-semibold text-success">
-                                £<?php echo number_format($payment['amount'], 2); ?>
+                                <a href="payment-details.php?id=<?php echo (int)$payment['id']; ?>" class="text-decoration-none text-success">
+                                    £<?php echo number_format($payment['amount'], 2); ?>
+                                </a>
                             </td>
-                            <td><?php echo htmlspecialchars($payment['payment_month_name']); ?></td>
-                            <td><?php echo htmlspecialchars($payment['formatted_date']); ?></td>
                             <td>
-                                <span class="badge bg-<?php echo $payment['status'] === 'paid' ? 'success' : 'warning'; ?>">
-                                    <?php echo $payment['status'] === 'paid' ? t('member_dashboard.paid') : t('member_dashboard.pending'); ?>
-                                </span>
-                                <?php if ($payment['verification_status'] === 'verified'): ?>
-                                    <br><small class="text-success"><i class="fas fa-check-circle me-1"></i><?php echo t('member_dashboard.verified'); ?></small>
-                                <?php elseif ($payment['verification_status'] === 'pending_verification'): ?>
-                                    <br><small class="text-warning"><i class="fas fa-clock me-1"></i><?php echo t('member_dashboard.pending'); ?></small>
-                                <?php endif; ?>
+                                <a href="payment-details.php?id=<?php echo (int)$payment['id']; ?>" class="text-decoration-none text-dark">
+                                    <?php echo htmlspecialchars($payment['payment_month_name']); ?>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="payment-details.php?id=<?php echo (int)$payment['id']; ?>" class="text-decoration-none text-dark">
+                                    <?php echo htmlspecialchars($payment['formatted_date']); ?>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="payment-details.php?id=<?php echo (int)$payment['id']; ?>" class="text-decoration-none text-dark d-inline-block">
+                                    <span class="badge bg-<?php echo $payment['status'] === 'paid' ? 'success' : 'warning'; ?>">
+                                        <?php echo $payment['status'] === 'paid' ? t('member_dashboard.paid') : t('member_dashboard.pending'); ?>
+                                    </span>
+                                    <?php if ($payment['verification_status'] === 'verified'): ?>
+                                        <br><small class="text-success"><i class="fas fa-check-circle me-1"></i><?php echo t('member_dashboard.verified'); ?></small>
+                                    <?php elseif ($payment['verification_status'] === 'pending_verification'): ?>
+                                        <br><small class="text-warning"><i class="fas fa-clock me-1"></i><?php echo t('member_dashboard.pending'); ?></small>
+                                    <?php endif; ?>
+                                </a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
