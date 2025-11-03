@@ -88,14 +88,17 @@ try {
         case 'get_csrf_token':
             echo json_encode(['success'=>true,'csrf_token'=>generate_csrf_token()]);
             break;
-        case 'history':
+        case 'get_history':
             getNotificationHistory();
             break;
-        case 'get_details':
-            getNotificationDetails();
+        case 'get_statistics':
+            getNotificationStatistics();
             break;
-        case 'export':
-            exportNotificationHistory();
+        case 'get_member_notifications':
+            getMemberNotifications();
+            break;
+        case 'get_member_stats':
+            getMemberStats();
             break;
         default:
             http_response_code(400);
@@ -392,297 +395,274 @@ function sendQuickSms(int $admin_id): void {
     ]);
 }
 
-/**
- * Get notification history with filters, pagination, and statistics
- */
 function getNotificationHistory(): void {
     global $pdo;
     
-    // Get filter parameters
-    $channel = $_GET['channel'] ?? '';
-    $type = $_GET['type'] ?? '';
-    $status = $_GET['status'] ?? '';
+    $channel = $_GET['channel'] ?? ''; // 'email', 'sms', 'both', or empty for all
+    $status = $_GET['status'] ?? ''; // 'pending', 'sent', 'delivered', 'failed', 'cancelled', or empty for all
     $recipient_type = $_GET['recipient_type'] ?? '';
-    $member_search = trim($_GET['member'] ?? '');
+    $type = $_GET['type'] ?? '';
+    $member_search = trim($_GET['member_search'] ?? '');
+    $member_id = (int)($_GET['member_id'] ?? 0);
     $date_from = $_GET['date_from'] ?? '';
     $date_to = $_GET['date_to'] ?? '';
     $page = max(1, (int)($_GET['page'] ?? 1));
-    $per_page = 50;
+    $per_page = max(1, min(100, (int)($_GET['per_page'] ?? 50)));
     $offset = ($page - 1) * $per_page;
     
     // Build WHERE clause
-    $where = ['1=1'];
+    $where = [];
     $params = [];
     
     if ($channel !== '') {
-        $where[] = 'channel = ?';
+        $where[] = "n.channel = ?";
         $params[] = $channel;
     }
     
-    if ($type !== '') {
-        $where[] = 'type = ?';
-        $params[] = $type;
-    }
-    
     if ($status !== '') {
-        $where[] = 'status = ?';
+        $where[] = "n.status = ?";
         $params[] = $status;
     }
     
     if ($recipient_type !== '') {
-        $where[] = 'recipient_type = ?';
+        $where[] = "n.recipient_type = ?";
         $params[] = $recipient_type;
     }
     
+    if ($type !== '') {
+        $where[] = "n.type = ?";
+        $params[] = $type;
+    }
+    
+    if ($member_search !== '') {
+        $where[] = "(m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR m.email LIKE ? OR m.phone LIKE ?)";
+        $searchParam = "%$member_search%";
+        $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
+    }
+    
     if ($date_from !== '') {
-        $where[] = 'DATE(sent_at) >= ?';
+        $where[] = "DATE(n.created_at) >= ?";
         $params[] = $date_from;
     }
     
     if ($date_to !== '') {
-        $where[] = 'DATE(sent_at) <= ?';
+        $where[] = "DATE(n.created_at) <= ?";
         $params[] = $date_to;
     }
     
-    // Build main query with member information
-    $sql = "SELECT 
-        n.id,
-        n.notification_id,
-        n.recipient_type,
-        n.recipient_id,
-        n.type,
-        n.channel,
-        n.subject,
-        n.message,
-        n.status,
-        n.sent_at,
-        n.created_at,
-        m.first_name,
-        m.last_name,
-        m.member_id as member_code,
-        CONCAT(m.first_name, ' ', m.last_name) as member_name
-        FROM notifications n
-        LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id
-        WHERE " . implode(' AND ', $where);
+    $whereClause = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
     
-    // Add member search if provided
-    $count_params = $params;
-    if ($member_search !== '') {
-        $sql .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR CONCAT(m.first_name, ' ', m.last_name) LIKE ?)";
-        $member_pattern = "%$member_search%";
-        $count_params[] = $member_pattern;
-        $count_params[] = $member_pattern;
-        $count_params[] = $member_pattern;
-        $count_params[] = $member_pattern;
-    }
+    // Get total count (need to join with members for member_search)
+    $countSql = "SELECT COUNT(*) as total 
+                 FROM notifications n
+                 LEFT JOIN members m ON n.recipient_id = m.id AND n.recipient_type = 'member'
+                 $whereClause";
+    $countStmt = $pdo->prepare($countSql);
+    $countStmt->execute($params);
+    $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
     
-    // Get total count for pagination (with member search)
-    $count_sql = "SELECT COUNT(*) FROM notifications n LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id WHERE " . implode(' AND ', $where);
-    if ($member_search !== '') {
-        $count_sql .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR CONCAT(m.first_name, ' ', m.last_name) LIKE ?)";
-    }
-    $count_stmt = $pdo->prepare($count_sql);
-    $count_stmt->execute($count_params);
-    $total = (int)$count_stmt->fetchColumn();
-    
-    // Build main query with member information (already started above)
-    
-    // Get statistics (all notifications regardless of filters)
-    $stats_sql = "SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN channel = 'email' THEN 1 ELSE 0 END) as email,
-        SUM(CASE WHEN channel = 'sms' THEN 1 ELSE 0 END) as sms,
-        SUM(CASE WHEN channel = 'both' THEN 1 ELSE 0 END) as both
-        FROM notifications";
-    $stats_stmt = $pdo->prepare($stats_sql);
-    $stats_stmt->execute();
-    $stats = $stats_stmt->fetch(PDO::FETCH_ASSOC);
-    
-    // Add member search parameters to main query params
-    if ($member_search !== '') {
-        $member_pattern = "%$member_search%";
-        $params[] = $member_pattern;
-        $params[] = $member_pattern;
-        $params[] = $member_pattern;
-        $params[] = $member_pattern;
-    }
-    
-    $sql .= " ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
-    $params[] = $per_page;
-    $params[] = $offset;
+    // Get notifications with member info
+    $sql = "SELECT n.*, 
+                   m.first_name, m.last_name, 
+                   CONCAT(m.first_name, ' ', m.last_name) as member_name,
+                   m.member_id as member_code, 
+                   m.email as member_email, 
+                   m.phone as member_phone,
+                   a.username as sent_by_username
+            FROM notifications n
+            LEFT JOIN members m ON n.recipient_id = m.id AND n.recipient_type = 'member'
+            LEFT JOIN admins a ON n.sent_by_admin_id = a.id
+            $whereClause
+            ORDER BY n.created_at DESC
+            LIMIT ? OFFSET ?";
     
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    $stmtParams = $params;
+    $stmtParams[] = $per_page;
+    $stmtParams[] = $offset;
+    $stmt->execute($stmtParams);
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Calculate pagination
-    $total_pages = ceil($total / $per_page);
     
     echo json_encode([
         'success' => true,
         'notifications' => $notifications,
-        'stats' => [
-            'total' => (int)($stats['total'] ?? 0),
-            'email' => (int)($stats['email'] ?? 0),
-            'sms' => (int)($stats['sms'] ?? 0),
-            'both' => (int)($stats['both'] ?? 0)
-        ],
+        'total' => $total,
         'pagination' => [
-            'current_page' => $page,
-            'total_pages' => $total_pages,
             'total' => $total,
-            'per_page' => $per_page
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => ceil($total / $per_page)
         ]
     ]);
 }
 
-/**
- * Get detailed notification information
- */
-function getNotificationDetails(): void {
+function getNotificationStatistics(): void {
     global $pdo;
     
-    $id = (int)($_GET['id'] ?? 0);
-    if (!$id) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'ID required']);
-        return;
-    }
-    
-    $sql = "SELECT 
-        n.*,
-        m.first_name,
-        m.last_name,
-        m.member_id as member_code,
-        CONCAT(m.first_name, ' ', m.last_name) as member_name
-        FROM notifications n
-        LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id
-        WHERE n.id = ?";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id]);
-    $notification = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$notification) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Notification not found']);
-        return;
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'notification' => $notification
-    ]);
-}
-
-/**
- * Export notification history as CSV
- */
-function exportNotificationHistory(): void {
-    global $pdo;
-    
-    // Get filter parameters (same as history)
     $channel = $_GET['channel'] ?? '';
-    $type = $_GET['type'] ?? '';
-    $status = $_GET['status'] ?? '';
     $recipient_type = $_GET['recipient_type'] ?? '';
-    $member_search = trim($_GET['member'] ?? '');
+    $status = $_GET['status'] ?? '';
+    $type = $_GET['type'] ?? '';
     $date_from = $_GET['date_from'] ?? '';
     $date_to = $_GET['date_to'] ?? '';
     
-    // Build WHERE clause (same as history)
-    $where = ['1=1'];
+    $where = [];
     $params = [];
     
     if ($channel !== '') {
-        $where[] = 'channel = ?';
+        $where[] = "channel = ?";
         $params[] = $channel;
     }
     
-    if ($type !== '') {
-        $where[] = 'type = ?';
-        $params[] = $type;
-    }
-    
-    if ($status !== '') {
-        $where[] = 'status = ?';
-        $params[] = $status;
-    }
-    
     if ($recipient_type !== '') {
-        $where[] = 'recipient_type = ?';
+        $where[] = "recipient_type = ?";
         $params[] = $recipient_type;
     }
     
+    if ($status !== '') {
+        $where[] = "status = ?";
+        $params[] = $status;
+    }
+    
+    if ($type !== '') {
+        $where[] = "type = ?";
+        $params[] = $type;
+    }
+    
     if ($date_from !== '') {
-        $where[] = 'DATE(sent_at) >= ?';
+        $where[] = "DATE(created_at) >= ?";
         $params[] = $date_from;
     }
     
     if ($date_to !== '') {
-        $where[] = 'DATE(sent_at) <= ?';
+        $where[] = "DATE(created_at) <= ?";
         $params[] = $date_to;
     }
     
-    $where_clause = implode(' AND ', $where);
+    $whereClause = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
     
-    // Build query
-    $sql = "SELECT 
-        n.notification_id as 'Code',
-        n.subject as 'Subject',
-        n.message as 'Message',
-        n.recipient_type as 'Recipient Type',
-        CONCAT(m.first_name, ' ', m.last_name) as 'Member Name',
-        m.member_id as 'Member Code',
-        n.channel as 'Channel',
-        n.type as 'Type',
-        n.status as 'Status',
-        n.sent_at as 'Sent At',
-        n.created_at as 'Created At'
-        FROM notifications n
-        LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id
-        WHERE $where_clause";
+    // Get channel counts (email, sms, both)
+    $stmt = $pdo->prepare("SELECT 
+        SUM(CASE WHEN channel = 'email' THEN 1 ELSE 0 END) as email,
+        SUM(CASE WHEN channel = 'sms' THEN 1 ELSE 0 END) as sms,
+        SUM(CASE WHEN channel = 'both' THEN 1 ELSE 0 END) as both
+    FROM notifications
+    $whereClause");
+    $stmt->execute($params);
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($member_search !== '') {
-        $sql .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ?)";
-        $member_pattern = "%$member_search%";
-        $params[] = $member_pattern;
-        $params[] = $member_pattern;
-        $params[] = $member_pattern;
+    echo json_encode([
+        'success' => true,
+        'statistics' => [
+            'email' => (int)($stats['email'] ?? 0),
+            'sms' => (int)($stats['sms'] ?? 0),
+            'both' => (int)($stats['both'] ?? 0)
+        ]
+    ]);
+}
+
+function getMemberNotifications(): void {
+    global $pdo;
+    
+    $member_id = (int)($_GET['member_id'] ?? 0);
+    if (!$member_id) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Member ID required']);
+        return;
     }
     
-    $sql .= " ORDER BY n.created_at DESC";
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $per_page = max(1, min(100, (int)($_GET['per_page'] ?? 50)));
+    $offset = ($page - 1) * $per_page;
     
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    // Get member info
+    $stmt = $pdo->prepare("SELECT id, first_name, last_name, member_id, email, phone FROM members WHERE id = ?");
+    $stmt->execute([$member_id]);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$member) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Member not found']);
+        return;
+    }
+    
+    // Get total count
+    $countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM notifications WHERE recipient_id = ? AND recipient_type = 'member'");
+    $countStmt->execute([$member_id]);
+    $total = (int)$countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get notifications
+    $stmt = $pdo->prepare("SELECT n.*, a.username as sent_by_username
+                           FROM notifications n
+                           LEFT JOIN admins a ON n.sent_by_admin_id = a.id
+                           WHERE n.recipient_id = ? AND n.recipient_type = 'member'
+                           ORDER BY n.created_at DESC
+                           LIMIT ? OFFSET ?");
+    $stmt->execute([$member_id, $per_page, $offset]);
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Set headers for CSV download
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="notification_history_' . date('Y-m-d') . '.csv"');
-    header('Pragma: no-cache');
-    header('Expires: 0');
+    echo json_encode([
+        'success' => true,
+        'member' => $member,
+        'notifications' => $notifications,
+        'pagination' => [
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => ceil($total / $per_page)
+        ]
+    ]);
+}
+
+function getMemberStats(): void {
+    global $pdo;
     
-    // Output CSV
-    $output = fopen('php://output', 'w');
-    
-    // Add BOM for UTF-8 Excel compatibility
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    if (!empty($notifications)) {
-        // Header row
-        fputcsv($output, array_keys($notifications[0]));
-        
-        // Data rows
-        foreach ($notifications as $row) {
-            fputcsv($output, $row);
-        }
-    } else {
-        fputcsv($output, ['No notifications found']);
+    $search = trim($_GET['search'] ?? '');
+    if (empty($search)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Search term required']);
+        return;
     }
     
-    fclose($output);
-    exit;
+    // Find member by search term
+    $stmt = $pdo->prepare("SELECT id, first_name, last_name, member_id, email, phone 
+                           FROM members 
+                           WHERE (first_name LIKE ? OR last_name LIKE ? OR member_id LIKE ? OR email LIKE ? OR phone LIKE ?)
+                           AND is_active = 1
+                           LIMIT 1");
+    $searchParam = "%$search%";
+    $stmt->execute([$searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$member) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Member not found']);
+        return;
+    }
+    
+    // Get notification counts by channel
+    $stmt = $pdo->prepare("SELECT 
+        COUNT(*) as total_notifications,
+        SUM(CASE WHEN channel = 'email' THEN 1 ELSE 0 END) as email_count,
+        SUM(CASE WHEN channel = 'sms' THEN 1 ELSE 0 END) as sms_count,
+        SUM(CASE WHEN channel = 'both' THEN 1 ELSE 0 END) as both_count
+    FROM notifications
+    WHERE recipient_id = ? AND recipient_type = 'member'");
+    $stmt->execute([$member['id']]);
+    $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    echo json_encode([
+        'success' => true,
+        'member_stats' => [
+            'member_id' => $member['id'],
+            'member_name' => trim($member['first_name'] . ' ' . $member['last_name']),
+            'member_code' => $member['member_id'],
+            'total_notifications' => (int)($stats['total_notifications'] ?? 0),
+            'email_count' => (int)($stats['email_count'] ?? 0),
+            'sms_count' => (int)($stats['sms_count'] ?? 0),
+            'both_count' => (int)($stats['both_count'] ?? 0)
+        ]
+    ]);
 }
 
 ?>
