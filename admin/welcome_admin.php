@@ -79,9 +79,7 @@ try {
     
     // Recent Activity (Enhanced)
     $recent_members = $pdo->query("
-        SELECT m.*, 
-               CONCAT(m.first_name, ' ', m.last_name) as full_name,
-               es.equb_name
+        SELECT m.*, es.equb_name
         FROM members m
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         ORDER BY m.created_at DESC 
@@ -89,9 +87,7 @@ try {
     ")->fetchAll();
     
     $recent_payments = $pdo->query("
-        SELECT p.amount, p.created_at, p.status, 
-               CONCAT(m.first_name, ' ', m.last_name) as full_name, 
-               es.equb_name
+        SELECT p.amount, p.created_at, p.status, m.full_name, es.equb_name
         FROM payments p 
         JOIN members m ON p.member_id = m.id 
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
@@ -236,7 +232,7 @@ try {
             padding: 30px;
             border: 1px solid var(--border-color);
             box-shadow: 0 8px 32px rgba(48, 25, 67, 0.08);
-            min-height: 400px;
+            height: 400px;
             display: flex;
             flex-direction: column;
         }
@@ -254,27 +250,7 @@ try {
         .chart-container {
             flex: 1;
             position: relative;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .chart-empty-state {
-            text-align: center;
-            color: var(--text-secondary);
-            padding: 40px 20px;
-        }
-        
-        .chart-empty-state i {
-            font-size: 48px;
-            color: var(--border-color);
-            margin-bottom: 16px;
-        }
-        
-        .chart-empty-state p {
-            margin: 0;
-            font-size: 14px;
+            height: 300px;
         }
         
         /* Financial Health Indicators */
@@ -304,15 +280,9 @@ try {
         /* Quick Actions Enhanced */
         .quick-actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 40px;
-        }
-        
-        @media (max-width: 768px) {
-            .quick-actions-grid {
-                grid-template-columns: 1fr;
-            }
         }
         
         .action-card {
@@ -325,9 +295,6 @@ try {
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
         }
         
         .action-card::before {
@@ -386,25 +353,11 @@ try {
             box-shadow: 0 4px 20px rgba(48, 25, 67, 0.06);
             transition: all 0.3s ease;
             height: 100%;
-            display: flex;
-            flex-direction: column;
         }
 
         .stat-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 12px 40px rgba(48, 25, 67, 0.12);
-        }
-        
-        /* Fix card alignment */
-        .stats-dashboard .row {
-            display: flex;
-            flex-wrap: wrap;
-        }
-        
-        .stats-dashboard .col-lg-3,
-        .stats-dashboard .col-md-6 {
-            display: flex;
-            flex-direction: column;
         }
 
         .stat-header {
@@ -699,14 +652,7 @@ try {
                             EQUB Financial Overview
                         </h3>
                         <div class="chart-container">
-                            <?php if ($equb_stats['total_pool_value'] > 0 || $financial_stats['total_collected'] > 0): ?>
-                                <canvas id="equbOverviewChart"></canvas>
-                            <?php else: ?>
-                                <div class="chart-empty-state">
-                                    <i class="fas fa-chart-pie"></i>
-                                    <p>No financial data available yet.<br>Data will appear as payments are processed.</p>
-                                </div>
-                            <?php endif; ?>
+                            <canvas id="equbOverviewChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -717,14 +663,7 @@ try {
                             Payment Status Distribution
                         </h3>
                         <div class="chart-container">
-                            <?php if ($financial_stats['completed_payments'] > 0 || $financial_stats['pending_payments'] > 0 || $financial_stats['late_payments'] > 0): ?>
-                                <canvas id="paymentStatusChart"></canvas>
-                            <?php else: ?>
-                                <div class="chart-empty-state">
-                                    <i class="fas fa-chart-bar"></i>
-                                    <p>No payment data available yet.<br>Data will appear as payments are recorded.</p>
-                                </div>
-                            <?php endif; ?>
+                            <canvas id="paymentStatusChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -809,7 +748,7 @@ try {
                             <?php foreach ($recent_members as $member): ?>
                                 <div class="activity-item">
                                     <div class="activity-text">
-                                        <strong><?php echo htmlspecialchars($member['full_name'] ?? ($member['first_name'] . ' ' . $member['last_name'])); ?></strong>
+                                        <strong><?php echo htmlspecialchars($member['full_name']); ?></strong>
                                         <?php echo t('admin_dashboard.applied_to_join'); ?>
                                     </div>
                                     <div>
@@ -840,7 +779,7 @@ try {
                             <?php foreach ($recent_payments as $payment): ?>
                                 <div class="activity-item">
                                     <div class="activity-text">
-                                        <strong><?php echo htmlspecialchars($payment['full_name'] ?? 'Unknown Member'); ?></strong>
+                                        <strong><?php echo htmlspecialchars($payment['full_name']); ?></strong>
                                         <?php echo t('admin_dashboard.paid'); ?> £<?php echo number_format($payment['amount'], 0); ?>
                                     </div>
                                     <div class="activity-time"><?php echo date('M j', strtotime($payment['created_at'])); ?></div>
@@ -901,10 +840,8 @@ try {
         console.log('🚀 HabeshaEqub TOP-TIER Admin Dashboard loaded successfully!');
         
         // EQUB Financial Overview Pie Chart
-        const equbOverviewChartEl = document.getElementById('equbOverviewChart');
-        if (equbOverviewChartEl) {
-            const equbOverviewCtx = equbOverviewChartEl.getContext('2d');
-            new Chart(equbOverviewCtx, {
+        const equbOverviewCtx = document.getElementById('equbOverviewChart').getContext('2d');
+        new Chart(equbOverviewCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Total Pool Value', 'Collected', 'Distributed', 'Outstanding'],
@@ -949,14 +886,11 @@ try {
                     }
                 }
             }
-            });
-        }
+        });
         
         // Payment Status Bar Chart
-        const paymentStatusChartEl = document.getElementById('paymentStatusChart');
-        if (paymentStatusChartEl) {
-            const paymentStatusCtx = paymentStatusChartEl.getContext('2d');
-            new Chart(paymentStatusCtx, {
+        const paymentStatusCtx = document.getElementById('paymentStatusChart').getContext('2d');
+        new Chart(paymentStatusCtx, {
             type: 'bar',
             data: {
                 labels: ['Completed', 'Pending', 'Late', 'Scheduled Payouts'],
@@ -1010,8 +944,7 @@ try {
                     }
                 }
             }
-            });
-        }
+        });
         
         // Auto-refresh statistics every 30 seconds
         setInterval(function() {
