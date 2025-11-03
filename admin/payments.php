@@ -1489,6 +1489,9 @@ $csrf_token = generate_csrf_token();
                 // Setup character counters
                 setupPaymentCharCounters();
                 
+                // Setup preview functionality
+                setupPaymentPreview();
+                
             } catch(err) {
                 console.error('Error loading payment:', err);
                 alert('Error loading payment data');
@@ -1541,6 +1544,7 @@ $csrf_token = generate_csrf_token();
                     document.getElementById('paymentBodyAm').value = t.body_am || '';
                     replacePaymentVariables();
                     updatePaymentCharCounts();
+                    updatePaymentPreview();
                 }
             } catch(err) {
                 console.error('Error loading template:', err);
@@ -1552,12 +1556,13 @@ $csrf_token = generate_csrf_token();
             if (!_currentPaymentData) return;
             
             document.getElementById('paymentTitleEn').value = 'Payment Confirmed';
-            document.getElementById('paymentTitleAm').value = 'ክፍያ ተረጋግጧል';
+            document.getElementById('paymentTitleAm').value = 'የክፍያ ማረጋገጫ';
             document.getElementById('paymentBodyEn').value = `Thank you for making this month's equb payment. Use this link to get your receipt: ${_receiptLink}`;
             document.getElementById('paymentBodyAm').value = `የዚህን ወር እቁብ ስለከፈሉ እናመሰግናለን። ደረሰኙን ለማግኘት ይሄንን ሊንክ ይጠቀሙ። ${_receiptLink}`;
             
             replacePaymentVariables();
             updatePaymentCharCounts();
+            updatePaymentPreview();
         }
 
         // Replace payment variables
@@ -1593,6 +1598,71 @@ $csrf_token = generate_csrf_token();
             ['paymentBodyEn', 'paymentBodyAm'].forEach(id => {
                 document.getElementById(id).addEventListener('input', updatePaymentCharCounts);
             });
+        }
+
+        // Setup preview functionality
+        function setupPaymentPreview() {
+            // Update preview when any field changes
+            ['paymentTitleEn', 'paymentTitleAm', 'paymentBodyEn', 'paymentBodyAm'].forEach(id => {
+                const field = document.getElementById(id);
+                if (field) {
+                    field.addEventListener('input', updatePaymentPreview);
+                }
+            });
+            
+            // Initial preview update
+            updatePaymentPreview();
+        }
+
+        // Update preview content
+        function updatePaymentPreview() {
+            if (!_currentPaymentData) return;
+            
+            const titleEn = document.getElementById('paymentTitleEn').value || '';
+            const titleAm = document.getElementById('paymentTitleAm').value || '';
+            const bodyEn = document.getElementById('paymentBodyEn').value || '';
+            const bodyAm = document.getElementById('paymentBodyAm').value || '';
+            
+            const isAmharic = _currentPaymentData.language_preference == 1;
+            const selectedTitle = isAmharic ? titleAm : titleEn;
+            const selectedBody = isAmharic ? bodyAm : bodyEn;
+            const memberName = `${_currentPaymentData.first_name} ${_currentPaymentData.last_name}`;
+            const memberPhone = _currentPaymentData.phone || 'N/A';
+            
+            const previewDiv = document.getElementById('paymentPreviewContent');
+            if (!previewDiv) return;
+            
+            let html = '<div class="preview-container">';
+            
+            // Show both languages
+            html += '<div class="mb-3">';
+            html += '<h6 class="text-muted mb-2"><i class="fas fa-language me-2"></i>English Version</h6>';
+            html += '<div class="p-3 bg-white border rounded">';
+            html += `<strong>${titleEn || '(No title)'}</strong>`;
+            html += '<br><br>';
+            html += `<div style="white-space: pre-wrap;">${bodyEn || '(No message)'}</div>`;
+            html += '</div>';
+            html += '</div>';
+            
+            html += '<div class="mb-3">';
+            html += '<h6 class="text-muted mb-2"><i class="fas fa-language me-2"></i>Amharic Version</h6>';
+            html += '<div class="p-3 bg-white border rounded">';
+            html += `<strong>${titleAm || '(No title)'}</strong>`;
+            html += '<br><br>';
+            html += `<div style="white-space: pre-wrap;">${bodyAm || '(No message)'}</div>`;
+            html += '</div>';
+            html += '</div>';
+            
+            // Show which version will be sent
+            html += '<div class="alert alert-info mb-0">';
+            html += `<i class="fas fa-info-circle me-2"></i>`;
+            html += `<strong>Member prefers:</strong> ${isAmharic ? 'Amharic' : 'English'}. `;
+            html += `Member: ${memberName} (${memberPhone})`;
+            html += '</div>';
+            
+            html += '</div>';
+            
+            previewDiv.innerHTML = html;
         }
 
         // Update character counts
