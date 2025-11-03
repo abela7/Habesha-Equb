@@ -49,10 +49,9 @@ class SmsService {
         $title = $isAmharic ? $title_am : $title_en;
         $body = $isAmharic ? $body_am : $body_en;
         
-        // Format SMS content (160 chars for standard, 70 for Unicode/Amharic)
-        // For Amharic, we need to be mindful of character limits
-        $greeting = $firstName ? ($isAmharic ? "ውድ $firstName, " : "Dear $firstName, ") : '';
-        $message = $greeting . $body;
+        // Send only the message body (no greeting prefix)
+        // User controls the exact message content
+        $message = $body;
         
         // If message is too long, truncate with ellipsis
         $maxLength = $isAmharic ? 300 : 500; // Allow for concatenated SMS
