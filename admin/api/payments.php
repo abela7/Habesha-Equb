@@ -587,7 +587,7 @@ function verifyWithNotification() {
     }
     
     // Get payment data
-    $stmt = $pdo->prepare("SELECT p.*, m.id as member_db_id, m.first_name, m.last_name, m.member_id, m.email, m.phone, m.language_preference, m.is_active, m.is_approved, m.email_notifications FROM payments p LEFT JOIN members m ON p.member_id = m.id WHERE p.id = ?");
+    $stmt = $pdo->prepare("SELECT p.*, m.id as member_db_id, m.first_name, m.last_name, m.member_id, m.email, m.phone, m.language_preference, m.is_active, m.is_approved, m.email_notifications, m.sms_notifications FROM payments p LEFT JOIN members m ON p.member_id = m.id WHERE p.id = ?");
     $stmt->execute([$payment_id]);
     $payment = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -697,6 +697,7 @@ function verifyWithNotification() {
         'is_active' => $payment['is_active'],
         'is_approved' => $payment['is_approved'],
         'email_notifications' => $payment['email_notifications'],
+        'sms_notifications' => $payment['sms_notifications'] ?? 1,
         'member_id' => $payment['member_id'] // Member code (e.g., "HEM-001")
     ];
     
@@ -712,7 +713,9 @@ function verifyWithNotification() {
     $now = date('Y-m-d H:i:s');
     
     // SMS
-    if (in_array('sms', $channels) && !empty($member['phone'])) {
+    if (in_array('sms', $channels) && !empty($member['phone']) && 
+        (int)$member['is_active'] === 1 && (int)$member['is_approved'] === 1 && 
+        (int)($member['sms_notifications'] ?? 1) === 1) {
         try {
             require_once '../../includes/sms/SmsService.php';
             $smsService = new SmsService($pdo);

@@ -980,6 +980,8 @@
     "email_notifications_desc": "Receive notifications about payments, payouts, and important updates via email",
     "sms_notifications": "SMS Notifications",
     "sms_notifications_desc": "Get text message alerts for critical updates and reminders",
+    "unsaved_changes": "Unsaved Changes",
+    "save_reminder": "Don't forget to click the Save button to apply your changes!",
     "payment_reminders": "Payment Reminders",
     "payment_reminders_desc": "Receive reminders before your monthly payment is due",
     "save_preferences": "Save Preferences",

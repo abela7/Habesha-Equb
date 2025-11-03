@@ -245,7 +245,7 @@ function createNotification(int $admin_id): void {
         }
         
         if ($send_channel === 'sms' || $send_channel === 'both') {
-            $sel = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference FROM members WHERE is_active=1 AND is_approved=1 AND phone IS NOT NULL AND phone<>''");
+            $sel = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference FROM members WHERE is_active=1 AND is_approved=1 AND sms_notifications=1 AND phone IS NOT NULL AND phone<>''");
             $sel->execute();
             while ($m = $sel->fetch(PDO::FETCH_ASSOC)) {
                 if (send_sms_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_sms++; } else { $failed_sms++; }
@@ -332,7 +332,7 @@ function sendQuickSms(int $admin_id): void {
     }
     
     // Get member details
-    $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference, is_active, is_approved, member_id FROM members WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference, is_active, is_approved, sms_notifications, member_id FROM members WHERE id = ?");
     $stmt->execute([$member_id]);
     $member = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -343,6 +343,11 @@ function sendQuickSms(int $admin_id): void {
     
     if (empty($member['phone'])) {
         echo json_encode(['success' => false, 'message' => 'Member has no phone number']);
+        return;
+    }
+    
+    if ((int)($member['sms_notifications'] ?? 0) !== 1) {
+        echo json_encode(['success' => false, 'message' => 'Member has disabled SMS notifications']);
         return;
     }
     

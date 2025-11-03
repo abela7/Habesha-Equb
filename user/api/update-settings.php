@@ -113,6 +113,7 @@ try {
         case 'unified':
             // Handle unified settings form - all settings in one request
             $email_notifications = isset($_POST['email_notifications']) ? 1 : 0;
+            $sms_notifications = isset($_POST['sms_notifications']) ? 1 : 0;
             $payment_reminders = isset($_POST['payment_reminders']) ? 1 : 0;
             $go_public = isset($_POST['go_public']) ? 1 : 0;
             $language_preference = (int)($_POST['language_preference'] ?? 0);
@@ -135,6 +136,7 @@ try {
             $stmt = $db->prepare("
                 UPDATE members 
                 SET email_notifications = ?,
+                    sms_notifications = ?,
                     payment_reminders = ?,
                     go_public = ?,
                     language_preference = ?,
@@ -144,7 +146,8 @@ try {
             ");
             
             $result = $stmt->execute([
-                $email_notifications, 
+                $email_notifications,
+                $sms_notifications,
                 $payment_reminders, 
                 $go_public, 
                 $language_preference,

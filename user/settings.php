@@ -40,6 +40,7 @@ try {
 
 // Get user preferences from database columns
 $email_notifications = (bool)($member['email_notifications'] ?? 1); // Default to 1 (enabled)
+$sms_notifications = (bool)($member['sms_notifications'] ?? 1); // Default to 1 (enabled)
 $payment_reminders = (bool)($member['payment_reminders'] ?? 1); // Default to 1 (enabled)
 $swap_terms_allowed = (bool)($member['swap_terms_allowed'] ?? 0); // Default to 0 (disabled)
 
@@ -768,8 +769,26 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                                 <div class="feature-toggle">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
+                                        <input class="form-check-input settings-toggle" type="checkbox" id="email_notifications" name="email_notifications" 
                                                <?php echo $email_notifications ? 'checked' : ''; ?>>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <div class="feature-content">
+                                    <div class="feature-title">
+                                        <i class="fas fa-sms text-info"></i>
+                                        <?php echo t('settings.sms_notifications'); ?>
+                                    </div>
+                                    <p class="feature-description">
+                                        <?php echo t('settings.sms_notifications_desc'); ?>
+                                    </p>
+                                </div>
+                                <div class="feature-toggle">
+                                    <div class="form-check">
+                                        <input class="form-check-input settings-toggle" type="checkbox" id="sms_notifications" name="sms_notifications" 
+                                               <?php echo $sms_notifications ? 'checked' : ''; ?>>
                                     </div>
                                 </div>
                             </div>
@@ -786,7 +805,7 @@ $cache_buster = time() . '_' . rand(1000, 9999);
                                 </div>
                                 <div class="feature-toggle">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="payment_reminders" name="payment_reminders"
+                                        <input class="form-check-input settings-toggle" type="checkbox" id="payment_reminders" name="payment_reminders"
                                                <?php echo $payment_reminders ? 'checked' : ''; ?>>
                                     </div>
                                 </div>
@@ -946,18 +965,81 @@ $cache_buster = time() . '_' . rand(1000, 9999);
             });
         }
 
-        // Enhanced form interactions
-        const switches = document.querySelectorAll('.form-check-input[type="checkbox"]');
+        // Enhanced form interactions with save reminder
+        let hasUnsavedChanges = false;
+        const saveBtn = document.querySelector('button[type="submit"]');
+        
+        const switches = document.querySelectorAll('.settings-toggle');
         switches.forEach(switchElement => {
+            const originalValue = switchElement.checked;
+            
             switchElement.addEventListener('change', function() {
+                // Visual feedback
                 this.parentNode.style.transform = 'scale(1.05)';
                 this.parentNode.style.transition = 'transform 0.2s ease';
                 
                 setTimeout(() => {
                     this.parentNode.style.transform = 'scale(1)';
                 }, 200);
+                
+                // Track changes
+                hasUnsavedChanges = true;
+                
+                // Show save reminder toast
+                if (hasUnsavedChanges && saveBtn) {
+                    showSaveReminder();
+                }
             });
         });
+        
+        // Show save reminder toast notification
+        function showSaveReminder() {
+            // Remove existing reminder if any
+            const existingReminder = document.getElementById('saveReminderToast');
+            if (existingReminder) {
+                existingReminder.remove();
+            }
+            
+            const reminderHtml = `
+                <div id="saveReminderToast" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+                    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header bg-warning text-dark">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong class="me-auto"><?php echo t('settings.unsaved_changes'); ?></strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            <?php echo t('settings.save_reminder'); ?>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', reminderHtml);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                const reminder = document.getElementById('saveReminderToast');
+                if (reminder) {
+                    const toast = reminder.querySelector('.toast');
+                    if (toast) {
+                        const bsToast = new bootstrap.Toast(toast);
+                        bsToast.hide();
+                        setTimeout(() => reminder.remove(), 300);
+                    }
+                }
+            }, 5000);
+        }
+        
+        // Reset unsaved changes flag on successful save
+        if (unifiedForm) {
+            unifiedForm.addEventListener('submit', function() {
+                hasUnsavedChanges = false;
+                const reminder = document.getElementById('saveReminderToast');
+                if (reminder) {
+                    reminder.remove();
+                }
+            });
+        }
         
         // Feature item hover effects
         const featureItems = document.querySelectorAll('.feature-item');
