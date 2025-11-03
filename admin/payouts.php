@@ -944,6 +944,108 @@ $csrf_token = generate_csrf_token();
     </div>
 </div>
 
+<!-- Enhanced Process Payout & Notification Modal -->
+<div class="modal fade" id="processPayoutModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Process Payout & Send Notification</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Payout Info -->
+        <div class="alert alert-info mb-3" id="payoutInfoCard">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Payout Details:</strong> <span id="payoutMemberName"></span> - <span id="payoutAmount"></span> - <span id="payoutDate"></span>
+        </div>
+
+        <!-- Template Selection -->
+        <div class="mb-3">
+          <label class="form-label"><i class="fas fa-file-alt me-2"></i>Notification Template</label>
+          <select class="form-select" id="payoutTemplateSelect">
+            <option value="">Loading templates...</option>
+          </select>
+          <small class="text-muted">Select a template or use default payout confirmation</small>
+        </div>
+
+        <!-- Channel Selection -->
+        <div class="mb-3">
+          <label class="form-label"><i class="fas fa-paper-plane me-2"></i>Send Via</label>
+          <div class="d-flex gap-3 flex-wrap">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="payoutOptSendSms" checked>
+              <label class="form-check-label" for="payoutOptSendSms">
+                <i class="fas fa-sms text-success me-1"></i>SMS
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="payoutOptSendEmail" checked>
+              <label class="form-check-label" for="payoutOptSendEmail">
+                <i class="fas fa-envelope text-primary me-1"></i>Email
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="payoutOptSendNotif" checked>
+              <label class="form-check-label" for="payoutOptSendNotif">
+                <i class="fas fa-bell text-warning me-1"></i>In-App
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message Preview & Edit -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Title (English)</label>
+            <input type="text" class="form-control" id="payoutTitleEn" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Title (Amharic)</label>
+            <input type="text" class="form-control" id="payoutTitleAm" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Message (English)</label>
+            <textarea class="form-control" id="payoutBodyEn" rows="4"></textarea>
+            <small class="text-muted" id="payoutCharCountEn">0 characters</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Message (Amharic)</label>
+            <textarea class="form-control" id="payoutBodyAm" rows="4"></textarea>
+            <small class="text-muted" id="payoutCharCountAm">0 characters</small>
+          </div>
+        </div>
+
+        <!-- Variables Info -->
+        <div class="alert alert-light mb-3">
+          <i class="fas fa-lightbulb me-2"></i>
+          <strong>Available Variables:</strong> 
+          <code>{first_name}</code>, <code>{last_name}</code>, <code>{amount}</code>, <code>{net_amount}</code>, <code>{payout_date}</code>, <code>{receipt_link}</code>, <code>{member_id}</code>
+        </div>
+
+        <!-- Preview -->
+        <div class="card bg-light mb-3">
+          <div class="card-header">
+            <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#payoutPreviewCollapse">
+              <i class="fas fa-eye me-2"></i>Preview Message
+            </button>
+          </div>
+          <div class="collapse" id="payoutPreviewCollapse">
+            <div class="card-body">
+              <div id="payoutPreviewContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-success" id="btnConfirmProcessPayout">
+          <i class="fas fa-check me-1"></i>Process Payout & Send
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -1149,47 +1251,344 @@ $csrf_token = generate_csrf_token();
             });
     }
 
-    // Process payout
-    function processPayout(id) {
-        if (confirm('Are you sure you want to process this payout? This will mark it as completed.')) {
-            const csrfToken = getCSRFToken();
-            if (!csrfToken) return;
+    // Enhanced: Process payout with notification modal
+    let _processPayoutId = null;
+    let _processPayoutModal = null;
+    let _currentPayoutData = null;
+    let _payoutReceiptLink = '';
+
+    async function processPayout(id){
+        _processPayoutId = id;
+        
+        // Fetch payout data
+        try {
+            const resp = await fetch(`api/payouts.php?action=get&payout_id=${id}`);
+            const data = await resp.json();
+            if (!data.success || !data.payout) {
+                alert('Failed to load payout data');
+                return;
+            }
             
-            fetch('api/payouts.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=process&payout_id=${id}&csrf_token=${encodeURIComponent(csrfToken)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Payout processed successfully!', 'success');
-                    // If API returns whatsapp_text, open export modal
-                    if (data.whatsapp_text) {
-                        const wa = { whatsapp_texts: [{ name: 'Member', language: 'en', text: data.whatsapp_text }] };
-                        if (typeof showWhatsappModal === 'function') {
-                            showWhatsappModal('Payout processed. WhatsApp message ready.', wa);
-                        } else {
-                            alert('WhatsApp:\n\n' + data.whatsapp_text);
-                        }
-                    }
-                    loadPayouts();
-                } else {
-                    if (data.message && data.message.includes('security token')) {
-                        if (confirm('Security token expired. Would you like to refresh the page and try again?')) {
-                            window.location.reload();
-                        }
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while processing payout');
-            });
+            _currentPayoutData = data.payout;
+            
+            // Update payout info card
+            document.getElementById('payoutMemberName').textContent = `${_currentPayoutData.first_name} ${_currentPayoutData.last_name}`;
+            document.getElementById('payoutAmount').textContent = `£${parseFloat(_currentPayoutData.net_amount || _currentPayoutData.total_amount || 0).toFixed(2)}`;
+            const payoutDate = _currentPayoutData.actual_payout_date || _currentPayoutData.scheduled_date || 'Not set';
+            document.getElementById('payoutDate').textContent = payoutDate !== 'Not set' ? new Date(payoutDate).toLocaleDateString() : 'Not set';
+            
+            // Get receipt link
+            const receiptResp = await fetch(`api/payouts.php?action=get_receipt_token&payout_id=${id}`);
+            const receiptData = await receiptResp.json();
+            if (receiptData.success && receiptData.receipt_url) {
+                _payoutReceiptLink = window.location.origin + receiptData.receipt_url;
+                console.log('Payout receipt link generated:', _payoutReceiptLink);
+            } else {
+                console.warn('Payout receipt token not available, using contributions page fallback');
+                _payoutReceiptLink = window.location.origin + '/user/contributions.php';
+            }
+            
+            // Load templates
+            await loadPayoutTemplates();
+            
+            // Load default payout confirmation message
+            loadDefaultPayoutMessage();
+            
+            // Show modal
+            _processPayoutModal = new bootstrap.Modal(document.getElementById('processPayoutModal'));
+            _processPayoutModal.show();
+            
+            // Setup character counters and preview
+            setupPayoutCharCounters();
+            setupPayoutPreview();
+            
+        } catch(err) {
+            console.error('Error loading payout:', err);
+            alert('Error loading payout data');
         }
     }
+
+    // Load payout templates
+    async function loadPayoutTemplates() {
+        try {
+            const resp = await fetch('api/sms-templates.php?action=list');
+            const data = await resp.json();
+            const select = document.getElementById('payoutTemplateSelect');
+            select.innerHTML = '<option value="">-- Use Default Payout Confirmation --</option>';
+            
+            if (data.success && Array.isArray(data.templates)) {
+                // Filter for payout templates - we'll use 'general' category for now since we don't have 'payout' category yet
+                // You can add 'payout' category later if needed
+                const payoutTemplates = data.templates.filter(t => 
+                    (t.category === 'general' || t.category === 'payment') && t.is_active == 1
+                );
+                payoutTemplates.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.template_name;
+                    select.appendChild(opt);
+                });
+            }
+            
+            // Add change handler
+            select.onchange = async function() {
+                if (this.value) {
+                    await loadPayoutTemplate(this.value);
+                } else {
+                    loadDefaultPayoutMessage();
+                }
+            };
+        } catch(err) {
+            console.error('Error loading templates:', err);
+        }
+    }
+
+    // Load specific template
+    async function loadPayoutTemplate(templateId) {
+        try {
+            const resp = await fetch(`api/sms-templates.php?action=get&id=${templateId}`);
+            const data = await resp.json();
+            if (data.success && data.template) {
+                const t = data.template;
+                document.getElementById('payoutTitleEn').value = t.title_en || '';
+                document.getElementById('payoutTitleAm').value = t.title_am || '';
+                document.getElementById('payoutBodyEn').value = t.body_en || '';
+                document.getElementById('payoutBodyAm').value = t.body_am || '';
+                replacePayoutVariables();
+                updatePayoutCharCounts();
+                updatePayoutPreview();
+            }
+        } catch(err) {
+            console.error('Error loading template:', err);
+        }
+    }
+
+    // Load default payout confirmation message
+    function loadDefaultPayoutMessage() {
+        if (!_currentPayoutData) return;
+        
+        const netAmount = parseFloat(_currentPayoutData.net_amount || _currentPayoutData.total_amount || 0).toFixed(2);
+        const payoutDate = _currentPayoutData.actual_payout_date || _currentPayoutData.scheduled_date || new Date().toISOString().split('T')[0];
+        const formattedDate = new Date(payoutDate).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        document.getElementById('payoutTitleEn').value = 'Congratulations — Your Equb payout is completed!';
+        document.getElementById('payoutTitleAm').value = 'እንኳን ደስ አላችሁ — እቁቡ ተጠናቋል!';
+        document.getElementById('payoutBodyEn').value = `Dear {first_name}, your Equb payout has been successfully completed on ${formattedDate}.\n\nNet payout: £${netAmount}\n\nYou can view and download your payout receipt here: ${_payoutReceiptLink}\n\nThank you.`;
+        document.getElementById('payoutBodyAm').value = `ውድ {first_name}፣ የእቁብ ክፍያዎ በ${formattedDate} በተሳካ ሁኔታ ተጠናቋል።\n\nየተጣራ ክፍያ: £${netAmount}\n\nየክፍያ ደረሰኝን ለማየት እና ለማውረድ እዚህ ይጫኑ። ${_payoutReceiptLink}\n\nእናመሰግናለን።`;
+        
+        replacePayoutVariables();
+        updatePayoutCharCounts();
+        updatePayoutPreview();
+    }
+
+    // Replace payout variables
+    function replacePayoutVariables() {
+        if (!_currentPayoutData) return;
+        
+        const netAmount = parseFloat(_currentPayoutData.net_amount || _currentPayoutData.total_amount || 0).toFixed(2);
+        const totalAmount = parseFloat(_currentPayoutData.total_amount || 0).toFixed(2);
+        const payoutDate = _currentPayoutData.actual_payout_date || _currentPayoutData.scheduled_date || new Date().toISOString().split('T')[0];
+        const formattedDate = payoutDate !== 'Not set' && payoutDate
+            ? new Date(payoutDate).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })
+            : new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        const vars = {
+            '{first_name}': _currentPayoutData.first_name || '',
+            '{last_name}': _currentPayoutData.last_name || '',
+            '{member_id}': _currentPayoutData.member_code || '',
+            '{amount}': '£' + totalAmount,
+            '{net_amount}': '£' + netAmount,
+            '{payout_date}': formattedDate,
+            '{receipt_link}': _payoutReceiptLink
+        };
+        
+        ['payoutTitleEn', 'payoutTitleAm', 'payoutBodyEn', 'payoutBodyAm'].forEach(id => {
+            const field = document.getElementById(id);
+            if (field) {
+                let text = field.value;
+                Object.keys(vars).forEach(key => {
+                    text = text.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), vars[key]);
+                });
+                field.value = text;
+            }
+        });
+        updatePayoutCharCounts();
+    }
+
+    // Setup character counters
+    function setupPayoutCharCounters() {
+        ['payoutBodyEn', 'payoutBodyAm'].forEach(id => {
+            const field = document.getElementById(id);
+            if (field) {
+                field.addEventListener('input', updatePayoutCharCounts);
+            }
+        });
+        updatePayoutCharCounts();
+    }
+
+    // Update character counts
+    function updatePayoutCharCounts() {
+        const enText = document.getElementById('payoutBodyEn').value || '';
+        const amText = document.getElementById('payoutBodyAm').value || '';
+        
+        document.getElementById('payoutCharCountEn').textContent = `${enText.length} characters`;
+        document.getElementById('payoutCharCountAm').textContent = `${amText.length} characters`;
+    }
+
+    // HTML escape function to prevent XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Setup preview functionality
+    function setupPayoutPreview() {
+        // Update preview when any field changes
+        ['payoutTitleEn', 'payoutTitleAm', 'payoutBodyEn', 'payoutBodyAm'].forEach(id => {
+            const field = document.getElementById(id);
+            if (field) {
+                field.addEventListener('input', updatePayoutPreview);
+            }
+        });
+        
+        // Initial preview update
+        updatePayoutPreview();
+    }
+
+    // Update preview content
+    function updatePayoutPreview() {
+        if (!_currentPayoutData) return;
+        
+        const titleEn = document.getElementById('payoutTitleEn').value || '';
+        const titleAm = document.getElementById('payoutTitleAm').value || '';
+        const bodyEn = document.getElementById('payoutBodyEn').value || '';
+        const bodyAm = document.getElementById('payoutBodyAm').value || '';
+        
+        const isAmharic = _currentPayoutData.language_preference == 1;
+        const selectedTitle = isAmharic ? titleAm : titleEn;
+        const selectedBody = isAmharic ? bodyAm : bodyEn;
+        const memberName = `${_currentPayoutData.first_name} ${_currentPayoutData.last_name}`;
+        const memberPhone = _currentPayoutData.phone || 'N/A';
+        
+        const previewDiv = document.getElementById('payoutPreviewContent');
+        if (!previewDiv) return;
+        
+        // Escape all user input to prevent XSS
+        const escapedTitleEn = escapeHtml(titleEn) || '(No title)';
+        const escapedTitleAm = escapeHtml(titleAm) || '(No title)';
+        const escapedBodyEn = escapeHtml(bodyEn) || '(No message)';
+        const escapedBodyAm = escapeHtml(bodyAm) || '(No message)';
+        const escapedMemberName = escapeHtml(memberName);
+        const escapedMemberPhone = escapeHtml(memberPhone);
+        
+        let html = '<div class="preview-container">';
+        
+        // Show both languages
+        html += '<div class="mb-3">';
+        html += '<h6 class="text-muted mb-2"><i class="fas fa-language me-2"></i>English Version</h6>';
+        html += '<div class="p-3 bg-white border rounded">';
+        html += `<strong>${escapedTitleEn}</strong>`;
+        html += '<br><br>';
+        html += `<div style="white-space: pre-wrap;">${escapedBodyEn}</div>`;
+        html += '</div>';
+        html += '</div>';
+        
+        html += '<div class="mb-3">';
+        html += '<h6 class="text-muted mb-2"><i class="fas fa-language me-2"></i>Amharic Version</h6>';
+        html += '<div class="p-3 bg-white border rounded">';
+        html += `<strong>${escapedTitleAm}</strong>`;
+        html += '<br><br>';
+        html += `<div style="white-space: pre-wrap;">${escapedBodyAm}</div>`;
+        html += '</div>';
+        html += '</div>';
+        
+        // Show which version will be sent
+        html += '<div class="alert alert-info mb-0">';
+        html += '<i class="fas fa-info-circle me-2"></i>';
+        html += `<strong>Member prefers:</strong> ${escapeHtml(isAmharic ? 'Amharic' : 'English')}. `;
+        html += `Member: ${escapedMemberName} (${escapedMemberPhone})`;
+        html += '</div>';
+        
+        html += '</div>';
+        
+        previewDiv.innerHTML = html;
+    }
+
+    // Confirm process payout handler
+    document.getElementById('btnConfirmProcessPayout').addEventListener('click', async function() {
+        if (!_processPayoutId || !_currentPayoutData) {
+            alert('Payout data not loaded');
+            return;
+        }
+        
+        // Get selected channels
+        const channels = [];
+        if (document.getElementById('payoutOptSendSms').checked) channels.push('sms');
+        if (document.getElementById('payoutOptSendEmail').checked) channels.push('email');
+        if (document.getElementById('payoutOptSendNotif').checked) channels.push('in_app');
+        
+        if (channels.length === 0) {
+            alert('Please select at least one notification channel');
+            return;
+        }
+        
+        // Get message content
+        const titleEn = document.getElementById('payoutTitleEn').value.trim();
+        const titleAm = document.getElementById('payoutTitleAm').value.trim();
+        const bodyEn = document.getElementById('payoutBodyEn').value.trim();
+        const bodyAm = document.getElementById('payoutBodyAm').value.trim();
+        
+        if (!titleEn || !bodyEn) {
+            alert('Title and message are required');
+            return;
+        }
+        
+        // Get CSRF token
+        const csrfToken = getCSRFToken();
+        if (!csrfToken) {
+            alert('Security token expired. Please refresh the page.');
+            return;
+        }
+        
+        // Disable button
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+        
+        try {
+            const formData = new FormData();
+            formData.append('action', 'process_with_notification');
+            formData.append('payout_id', _processPayoutId);
+            formData.append('channels', JSON.stringify(channels));
+            formData.append('title_en', titleEn);
+            formData.append('title_am', titleAm);
+            formData.append('body_en', bodyEn);
+            formData.append('body_am', bodyAm);
+            formData.append('csrf_token', csrfToken);
+            
+            const resp = await fetch('api/payouts.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await resp.json();
+            
+            if (data.success) {
+                showToast('Payout processed and notifications sent successfully!', 'success');
+                _processPayoutModal.hide();
+                loadPayouts();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to process payout'));
+            }
+        } catch(err) {
+            console.error('Error processing payout:', err);
+            alert('An error occurred while processing payout');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-check me-1"></i>Process Payout & Send';
+        }
+    });
 
     // Delete payout
     function deletePayout(id) {

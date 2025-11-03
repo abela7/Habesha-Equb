@@ -76,7 +76,11 @@ try {
             processPayout();
             break;
         case 'get_payout_receipt_token':
+        case 'get_receipt_token':
             getPayoutReceiptToken();
+            break;
+        case 'process_with_notification':
+            processWithNotification();
             break;
         case 'get_csrf_token':
             echo json_encode(['success' => true, 'csrf_token' => generate_csrf_token()]);
@@ -381,8 +385,17 @@ function getPayout() {
     $stmt = $pdo->prepare("
             SELECT 
                 p.*,
-                CONCAT(m.first_name, ' ', m.last_name) as member_name,
-                m.member_id as member_code
+                m.id as member_db_id,
+                m.first_name,
+                m.last_name,
+                m.member_id as member_code,
+                m.email,
+                m.phone,
+                m.language_preference,
+                m.is_active,
+                m.is_approved,
+                m.email_notifications,
+                CONCAT(m.first_name, ' ', m.last_name) as member_name
         FROM payouts p
         LEFT JOIN members m ON p.member_id = m.id
         WHERE p.id = ?
@@ -704,6 +717,244 @@ function getPayoutReceiptToken() {
         error_log('getPayoutReceiptToken error: '.$e->getMessage());
         echo json_encode(['success'=>false,'message'=>'Failed to generate receipt link']);
     }
+}
+
+/**
+ * PROCESS PAYOUT WITH NOTIFICATION - Enhanced version with multi-channel notifications
+ */
+function processWithNotification() {
+    global $pdo, $admin_id;
+    
+    $payout_id = intval($_POST['payout_id'] ?? 0);
+    $channels_json = $_POST['channels'] ?? '[]';
+    $title_en = trim($_POST['title_en'] ?? '');
+    $title_am = trim($_POST['title_am'] ?? '');
+    $body_en = trim($_POST['body_en'] ?? '');
+    $body_am = trim($_POST['body_am'] ?? '');
+    
+    if (!$payout_id) {
+        echo json_encode(['success' => false, 'message' => 'Payout ID is required']);
+        return;
+    }
+    
+    if (empty($title_en) || empty($body_en)) {
+        echo json_encode(['success' => false, 'message' => 'Title and message are required']);
+        return;
+    }
+    
+    $channels = json_decode($channels_json, true);
+    if (!is_array($channels) || empty($channels)) {
+        echo json_encode(['success' => false, 'message' => 'At least one channel must be selected']);
+        return;
+    }
+    
+    // Get payout data
+    $stmt = $pdo->prepare("SELECT p.*, m.id as member_db_id, m.first_name, m.last_name, m.member_id, m.email, m.phone, m.language_preference, m.is_active, m.is_approved, m.email_notifications FROM payouts p LEFT JOIN members m ON p.member_id = m.id WHERE p.id = ?");
+    $stmt->execute([$payout_id]);
+    $payout = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$payout) {
+        echo json_encode(['success' => false, 'message' => 'Payout not found']);
+        return;
+    }
+    
+    if ($payout['status'] === 'completed') {
+        echo json_encode(['success' => false, 'message' => 'Payout is already completed']);
+        return;
+    }
+    
+    // Process payout
+    $stmt = $pdo->prepare("UPDATE payouts SET status = 'completed', actual_payout_date = CURDATE(), processed_by_admin_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+    $stmt->execute([$admin_id, $payout_id]);
+    
+    if ($stmt->rowCount() === 0) {
+        echo json_encode(['success' => false, 'message' => 'Failed to process payout']);
+        return;
+    }
+    
+    // Update member's payout flag
+    syncMemberPayoutFlag($payout['member_db_id']);
+    
+    // Generate receipt link (same method as user portal - reuse existing token or create new)
+    $receiptUrl = '';
+    try {
+        // Ensure table exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS payout_receipts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            payout_id INT NOT NULL,
+            token VARCHAR(64) NOT NULL UNIQUE,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_payout (payout_id),
+            CONSTRAINT fk_receipt_payout FOREIGN KEY (payout_id) REFERENCES payouts(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        // Check if token already exists (reuse it instead of deleting)
+        $selStmt = $pdo->prepare("SELECT token FROM payout_receipts WHERE payout_id = ? LIMIT 1");
+        $selStmt->execute([$payout_id]);
+        $token = $selStmt->fetchColumn();
+        
+        if (!$token) {
+            // Create new token if none exists
+            $token = bin2hex(random_bytes(16));
+            $insStmt = $pdo->prepare("INSERT INTO payout_receipts (payout_id, token) VALUES (?, ?)");
+            $insStmt->execute([$payout_id, $token]);
+            error_log("Created new receipt token for payout $payout_id: $token");
+        } else {
+            error_log("Reusing existing receipt token for payout $payout_id: $token");
+        }
+        
+        // Verify token was saved correctly
+        $verifyStmt = $pdo->prepare("SELECT token FROM payout_receipts WHERE payout_id = ? AND token = ? LIMIT 1");
+        $verifyStmt->execute([$payout_id, $token]);
+        $verifiedToken = $verifyStmt->fetchColumn();
+        
+        if ($verifiedToken && $verifiedToken === $token) {
+            $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
+            error_log("✓ Receipt URL generated successfully for payout $payout_id: $receiptUrl");
+        } else {
+            error_log("⚠ Token verification failed, retrying for payout $payout_id");
+            $retrySel = $pdo->prepare("SELECT token FROM payout_receipts WHERE payout_id = ? LIMIT 1");
+            $retrySel->execute([$payout_id]);
+            $retryToken = $retrySel->fetchColumn();
+            
+            if ($retryToken) {
+                $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $retryToken;
+                error_log("✓ Receipt URL generated on retry: $receiptUrl");
+            } else {
+                error_log("✗ Failed to generate receipt token for payout $payout_id");
+                $receiptUrl = 'https://habeshaequb.com/user/contributions.php';
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('Payout receipt generation error: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+        $receiptUrl = 'https://habeshaequb.com/user/contributions.php';
+    }
+    
+    // Replace variables in messages
+    $netAmount = number_format((float)($payout['net_amount'] ?? $payout['total_amount'] ?? 0), 2);
+    $totalAmount = number_format((float)($payout['total_amount'] ?? 0), 2);
+    $payoutDate = $payout['actual_payout_date'] ?? $payout['scheduled_date'] ?? date('Y-m-d');
+    $formattedDate = date('F j, Y', strtotime($payoutDate));
+    
+    $vars = [
+        '{first_name}' => $payout['first_name'] ?? '',
+        '{last_name}' => $payout['last_name'] ?? '',
+        '{member_id}' => $payout['member_id'] ?? '',
+        '{amount}' => '£' . $totalAmount,
+        '{net_amount}' => '£' . $netAmount,
+        '{payout_date}' => $formattedDate,
+        '{receipt_link}' => $receiptUrl
+    ];
+    
+    foreach ($vars as $key => $value) {
+        $title_en = str_replace($key, $value, $title_en);
+        $title_am = str_replace($key, $value, $title_am);
+        $body_en = str_replace($key, $value, $body_en);
+        $body_am = str_replace($key, $value, $body_am);
+    }
+    
+    // Prepare member data
+    $member = [
+        'id' => $payout['member_db_id'],
+        'first_name' => $payout['first_name'],
+        'last_name' => $payout['last_name'],
+        'email' => $payout['email'],
+        'phone' => $payout['phone'],
+        'language_preference' => $payout['language_preference'],
+        'is_active' => $payout['is_active'],
+        'is_approved' => $payout['is_approved'],
+        'email_notifications' => $payout['email_notifications'],
+        'member_id' => $payout['member_id']
+    ];
+    
+    // Track results
+    $results = [
+        'sms' => ['sent' => 0, 'failed' => 0],
+        'email' => ['sent' => 0, 'failed' => 0],
+        'in_app' => ['sent' => 0, 'failed' => 0]
+    ];
+    
+    // Send notifications based on selected channels
+    $notification_code = 'PAYOUT-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    $now = date('Y-m-d H:i:s');
+    
+    // SMS
+    if (in_array('sms', $channels) && !empty($member['phone'])) {
+        try {
+            require_once '../../includes/sms/SmsService.php';
+            $smsService = new SmsService($pdo);
+            $smsResult = $smsService->sendProgramNotificationToMember($member, $title_en, $title_am, $body_en, $body_am);
+            if (!empty($smsResult['success'])) {
+                $results['sms']['sent'] = 1;
+            } else {
+                $results['sms']['failed'] = 1;
+            }
+        } catch (Throwable $e) {
+            error_log('Payout SMS error: ' . $e->getMessage());
+            $results['sms']['failed'] = 1;
+        }
+    }
+    
+    // Email
+    if (in_array('email', $channels) && !empty($member['email']) && 
+        (int)$member['is_active'] === 1 && (int)$member['is_approved'] === 1 && 
+        (int)$member['email_notifications'] === 1) {
+        try {
+            require_once '../../includes/email/EmailService.php';
+            $emailService = new EmailService($pdo);
+            $emailResult = $emailService->sendProgramNotificationToMember($member, $title_en, $title_am, $body_en, $body_am);
+            if (!empty($emailResult['success'])) {
+                $results['email']['sent'] = 1;
+            } else {
+                $results['email']['failed'] = 1;
+            }
+        } catch (Throwable $e) {
+            error_log('Payout Email error: ' . $e->getMessage());
+            $results['email']['failed'] = 1;
+        }
+    }
+    
+    // In-app notification
+    if (in_array('in_app', $channels)) {
+        try {
+            $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
+            $useTitle = $isAmharic ? $title_am : $title_en;
+            $useBody = $isAmharic ? $body_am : $body_en;
+            
+            // Build channel list - always include 'in_app' since we're in this block
+            $channelList = ['in_app'];
+            if (in_array('sms', $channels)) $channelList[] = 'sms';
+            if (in_array('email', $channels)) $channelList[] = 'email';
+            $channelStr = implode(',', $channelList);
+            
+            $ins = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?, 'member', ?, 'general', ?, ?, ?, ?, 'sent', ?, ?, ?, ?)");
+            $ins->execute([$notification_code, $member['id'], $channelStr, $useTitle, $useBody, ($isAmharic ? 'am' : 'en'), $now, $now, $now, $admin_id]);
+            $results['in_app']['sent'] = 1;
+        } catch (Throwable $e) {
+            error_log('Payout In-app notification error: ' . $e->getMessage());
+            $results['in_app']['failed'] = 1;
+        }
+    }
+    
+    // Build delivery report
+    $report = [];
+    if (in_array('sms', $channels)) {
+        $report[] = "SMS: {$results['sms']['sent']} sent, {$results['sms']['failed']} failed";
+    }
+    if (in_array('email', $channels)) {
+        $report[] = "Email: {$results['email']['sent']} sent, {$results['email']['failed']} failed";
+    }
+    if (in_array('in_app', $channels)) {
+        $report[] = "In-App: {$results['in_app']['sent']} sent, {$results['in_app']['failed']} failed";
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'message' => 'Payout processed and notifications sent',
+        'delivery_report' => implode("\n", $report),
+        'results' => $results,
+        'receipt_url' => $receiptUrl
+    ]);
 }
 
 /**
