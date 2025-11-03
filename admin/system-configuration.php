@@ -650,7 +650,14 @@ $default_categories = [
                 <i class="fas fa-user-cog me-2"></i>
                 Preferences
             </button>
-
+            <button class="category-tab" onclick="showCategory('email')">
+                <i class="fas fa-envelope me-2"></i>
+                Email
+            </button>
+            <button class="category-tab" onclick="showCategory('sms')">
+                <i class="fas fa-sms me-2"></i>
+                SMS
+            </button>
             <button class="category-tab" onclick="showCategory('currency')">
                 <i class="fas fa-dollar-sign me-2"></i>
                 Currency
@@ -851,7 +858,143 @@ $default_categories = [
             </div>
         </div>
 
+        <!-- Email Configuration -->
+        <div class="config-section" id="email-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-envelope"></i>
+                    Email Configuration
+                </h3>
+                <p class="section-description">SMTP settings for sending system emails</p>
+            </div>
+            <div class="section-content">
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Host</div>
+                        <div class="setting-description">SMTP server hostname (e.g., smtp-relay.brevo.com)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" class="form-control" name="smtp_host" value="<?php echo htmlspecialchars(getSetting('smtp_host')); ?>" data-category="email">
+                    </div>
+                </div>
 
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Port</div>
+                        <div class="setting-description">SMTP server port (587 for TLS, 465 for SSL)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="number" class="form-control" name="smtp_port" value="<?php echo htmlspecialchars(getSetting('smtp_port', '587')); ?>" data-category="email">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Username</div>
+                        <div class="setting-description">SMTP authentication username</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" class="form-control" name="smtp_username" value="<?php echo htmlspecialchars(getSetting('smtp_username')); ?>" data-category="email">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Password</div>
+                        <div class="setting-description">SMTP authentication password</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="password" class="form-control" name="smtp_password" value="<?php echo htmlspecialchars(getSetting('smtp_password')); ?>" data-category="email">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">From Email</div>
+                        <div class="setting-description">Email address used as sender</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="email" class="form-control" name="from_email" value="<?php echo htmlspecialchars(getSetting('from_email')); ?>" data-category="email">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">From Name</div>
+                        <div class="setting-description">Name displayed as sender</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" class="form-control" name="from_name" value="<?php echo htmlspecialchars(getSetting('from_name', 'HabeshaEqub')); ?>" data-category="email">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SMS Configuration -->
+        <div class="config-section" id="sms-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-sms"></i>
+                    SMS Configuration
+                </h3>
+                <p class="section-description">Brevo SMS API settings for sending SMS notifications</p>
+            </div>
+            <div class="section-content">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Setup Instructions:</strong> Get your Brevo API key from: Settings → SMTP & API → API Keys. 
+                    Make sure you have purchased SMS credits for UK (£0.04-0.06 per SMS).
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Enable SMS</div>
+                        <div class="setting-description">Enable SMS notifications system-wide</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="sms_enabled" data-category="sms" <?php echo isSettingChecked('sms_enabled') ? 'checked' : ''; ?>>
+                            <label class="form-check-label">Enable SMS functionality</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Brevo API Key</div>
+                        <div class="setting-description">Your Brevo API key (starts with xkeysib-)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="password" class="form-control" name="sms_api_key" value="<?php echo htmlspecialchars(getSetting('sms_api_key')); ?>" data-category="sms" placeholder="xkeysib-...">
+                        <small class="text-muted">Keep this secure! Get it from: app.brevo.com → SMTP & API → API Keys</small>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">SMS Sender Name</div>
+                        <div class="setting-description">Sender name (max 11 characters for UK)</div>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" class="form-control" name="sms_sender_name" value="<?php echo htmlspecialchars(getSetting('sms_sender_name', 'HabeshaEqub')); ?>" data-category="sms" maxlength="11">
+                        <small class="text-muted">Must be approved by Brevo (takes 24-48 hours)</small>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">Test Mode</div>
+                        <div class="setting-description">Log SMS without actually sending (for testing)</div>
+                    </div>
+                    <div class="setting-control">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="sms_test_mode" data-category="sms" <?php echo isSettingChecked('sms_test_mode') ? 'checked' : ''; ?>>
+                            <label class="form-check-label">Enable test mode</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Currency Settings -->
         <div class="config-section" id="currency-section">
@@ -967,6 +1110,7 @@ $default_categories = [
                                 <option value="defaults">Default Values</option>
                                 <option value="preferences">System Preferences</option>
                                 <option value="email">Email Configuration</option>
+                                <option value="sms">SMS Configuration</option>
                                 <option value="currency">Currency Settings</option>
                             </select>
                         </div>

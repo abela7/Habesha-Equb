@@ -36,6 +36,18 @@ function send_email_copy(PDO $pdo, array $member, string $title_en, string $titl
     }
 }
 
+function send_sms_copy(PDO $pdo, array $member, string $title_en, string $title_am, string $body_en, string $body_am): bool {
+    try {
+        require_once '../../includes/sms/SmsService.php';
+        $smsService = new SmsService($pdo);
+        $res = $smsService->sendProgramNotificationToMember($member, $title_en, $title_am, $body_en, $body_am);
+        return !empty($res['success']);
+    } catch (Throwable $e) {
+        error_log('Notif SMS send error: '.$e->getMessage());
+        return false;
+    }
+}
+
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 try {
@@ -170,13 +182,18 @@ function createNotification(int $admin_id): void {
     $title_am = trim($_POST['title_am'] ?? '');
     $body_en = trim($_POST['body_en'] ?? '');
     $body_am = trim($_POST['body_am'] ?? '');
-    $send_email = sanitize_bool($_POST['send_email'] ?? 0);
+    $send_channel = $_POST['send_channel'] ?? 'email'; // 'email', 'sms', or 'both'
     $export_whatsapp = sanitize_bool($_POST['export_whatsapp'] ?? 0);
 
     if ($title_en==='' || $title_am==='' || $body_en==='' || $body_am==='') {
         http_response_code(400);
         echo json_encode(['success'=>false,'message'=>'Both language titles and bodies are required']);
         return;
+    }
+
+    // Validate send_channel
+    if (!in_array($send_channel, ['email', 'sms', 'both'])) {
+        $send_channel = 'email';
     }
 
     // Build recipients
@@ -193,7 +210,7 @@ function createNotification(int $admin_id): void {
         }
         $member_ids = array_map('intval', $member_ids);
         $in = str_repeat('?,', count($member_ids)-1) . '?';
-        $q = $pdo->prepare("SELECT id, first_name, last_name, email, language_preference, is_active, is_approved, email_notifications FROM members WHERE id IN ($in)");
+        $q = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference, is_active, is_approved, email_notifications, notification_preferences FROM members WHERE id IN ($in)");
         $q->execute($member_ids);
         $targets = $q->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -201,23 +218,33 @@ function createNotification(int $admin_id): void {
     $now = date('Y-m-d H:i:s');
     $notification_code = 'NTF-' . date('Ymd') . '-' . str_pad((string)rand(1,999),3,'0',STR_PAD_LEFT);
 
-    $sent_emails = 0; $failed_emails = 0; $inserted = 0;
+    $sent_emails = 0; $failed_emails = 0; $sent_sms = 0; $failed_sms = 0; $inserted = 0;
     $wa_texts = [];
     $wa_broadcast = [];
 
     if ($audience === 'all_members') {
         // single broadcast row
         $ins = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?, 'sent', ?, ?, ?, ?)");
-        $ins->execute([$notification_code, 'all_members', null, 'general', ($send_email? 'both':'email'), $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
+        $ins->execute([$notification_code, 'all_members', null, 'general', $send_channel, $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
         $inserted = 1;
-        if ($send_email) {
-            // email to eligible members
-            $sel = $pdo->prepare("SELECT id, first_name, last_name, email, language_preference FROM members WHERE is_active=1 AND is_approved=1 AND email_notifications=1 AND email IS NOT NULL AND email<>''");
+        
+        // Send to eligible members based on channel
+        if ($send_channel === 'email' || $send_channel === 'both') {
+            $sel = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference FROM members WHERE is_active=1 AND is_approved=1 AND email_notifications=1 AND email IS NOT NULL AND email<>''");
             $sel->execute();
             while ($m = $sel->fetch(PDO::FETCH_ASSOC)) {
                 if (send_email_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_emails++; } else { $failed_emails++; }
             }
         }
+        
+        if ($send_channel === 'sms' || $send_channel === 'both') {
+            $sel = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference FROM members WHERE is_active=1 AND is_approved=1 AND phone IS NOT NULL AND phone<>''");
+            $sel->execute();
+            while ($m = $sel->fetch(PDO::FETCH_ASSOC)) {
+                if (send_sms_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_sms++; } else { $failed_sms++; }
+            }
+        }
+        
         if ($export_whatsapp) {
             $wa_broadcast = [
                 'en' => trim($title_en . "\n\n" . $body_en),
@@ -227,10 +254,17 @@ function createNotification(int $admin_id): void {
     } else { // specific members
         $ins = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?,?,?,?,?,?,?,?, 'sent', ?, ?, ?, ?)");
         foreach ($targets as $m) {
-            $ins->execute([$notification_code, 'member', (int)$m['id'], 'general', ($send_email? 'both':'email'), $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
+            $ins->execute([$notification_code, 'member', (int)$m['id'], 'general', $send_channel, $title_en, $body_en, 'en', $now, $now, $now, $admin_id]);
             $inserted++;
-            if ($send_email && (int)$m['is_active']===1 && (int)$m['is_approved']===1 && (int)$m['email_notifications']===1 && !empty($m['email'])) {
+            
+            // Send email if channel includes email
+            if (($send_channel === 'email' || $send_channel === 'both') && (int)$m['is_active']===1 && (int)$m['is_approved']===1 && (int)$m['email_notifications']===1 && !empty($m['email'])) {
                 if (send_email_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_emails++; } else { $failed_emails++; }
+            }
+            
+            // Send SMS if channel includes SMS
+            if (($send_channel === 'sms' || $send_channel === 'both') && (int)$m['is_active']===1 && (int)$m['is_approved']===1 && !empty($m['phone'])) {
+                if (send_sms_copy($pdo, $m, $title_en, $title_am, $body_en, $body_am)) { $sent_sms++; } else { $failed_sms++; }
             }
             if ($export_whatsapp) {
                 $first = trim(($m['first_name'] ?? ''));
@@ -254,8 +288,10 @@ function createNotification(int $admin_id): void {
         'success'=>true,
         'inserted'=>$inserted,
         'email_result'=>['sent'=>$sent_emails,'failed'=>$failed_emails],
+        'sms_result'=>['sent'=>$sent_sms,'failed'=>$failed_sms],
         'notification_code'=>$notification_code,
-        'email_preview'=>[
+        'send_channel'=>$send_channel,
+        'preview'=>[
             'title_en'=>$title_en,
             'title_am'=>$title_am,
             'body_en'=>$body_en,

@@ -83,13 +83,16 @@ $csrf = generate_csrf_token();
             </div>
 
             <div class="col-md-6">
-              <div class="form-check form-switch mt-2">
-                <input class="form-check-input" type="checkbox" id="sendEmail" name="send_email" value="1">
-                <label class="form-check-label" for="sendEmail">Send email copy to eligible members</label>
-              </div>
+              <label class="form-label">Send via</label>
+              <select class="form-select" name="send_channel" id="sendChannel" required>
+                <option value="email">Email only</option>
+                <option value="sms">SMS only</option>
+                <option value="both" selected>Both (Email + SMS)</option>
+              </select>
+              <small class="text-muted">Choose how to send this notification</small>
             </div>
             <div class="col-md-6">
-              <div class="form-check form-switch mt-2">
+              <div class="form-check form-switch mt-4">
                 <input class="form-check-input" type="checkbox" id="exportWhatsapp" name="export_whatsapp" value="1">
                 <label class="form-check-label" for="exportWhatsapp">Export WhatsApp text (copy after sending)</label>
               </div>
@@ -226,7 +229,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     const data = await resp.json();
     if (data.success){
       const totalEmails = (data.email_result?.sent||0)+(data.email_result?.failed||0);
-      const sentSummary = `Sent. Emails: ${data.email_result?.sent||0}/${totalEmails}`;
+      const totalSMS = (data.sms_result?.sent||0)+(data.sms_result?.failed||0);
+      let sentSummary = 'Notification sent successfully!\n\n';
+      
+      if (data.send_channel === 'email' || data.send_channel === 'both') {
+        sentSummary += `Emails: ${data.email_result?.sent||0}/${totalEmails} sent`;
+      }
+      if (data.send_channel === 'both') {
+        sentSummary += '\n';
+      }
+      if (data.send_channel === 'sms' || data.send_channel === 'both') {
+        sentSummary += `SMS: ${data.sms_result?.sent||0}/${totalSMS} sent`;
+      }
+      
       if (document.getElementById('exportWhatsapp').checked) {
         showWhatsappModal(sentSummary, data);
       } else {
