@@ -676,6 +676,23 @@ if (isset($_GET['msg'])) {
                 this.setButtonLoading(submitBtn, true);
                 this.clearAllAlerts();
 
+                // Refresh CSRF token before submission to prevent "Security token invalid" errors
+                // This handles cases where session regenerated between page load and submission
+                try {
+                    const tokenResponse = await fetch('api/auth.php?action=get_csrf_token');
+                    const tokenData = await tokenResponse.json();
+                    if (tokenData.success && tokenData.csrf_token) {
+                        // Update CSRF token in form
+                        const csrfInput = form.querySelector('input[name="csrf_token"]');
+                        if (csrfInput) {
+                            csrfInput.value = tokenData.csrf_token;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Failed to refresh CSRF token, using existing token:', error);
+                    // Continue with existing token - might still work if session didn't regenerate
+                }
+
                 const formData = new FormData(form);
                 formData.append('otp_code', otpCode);
 
@@ -693,6 +710,36 @@ if (isset($_GET['msg'])) {
                             window.location.href = result.redirect || 'dashboard.php';
                         }, 1000);
                     } else {
+                        // If CSRF error, try refreshing token and resubmitting once
+                        if (result.message && result.message.includes('Security token invalid')) {
+                            try {
+                                const retryTokenResponse = await fetch('api/auth.php?action=get_csrf_token');
+                                const retryTokenData = await retryTokenResponse.json();
+                                if (retryTokenData.success && retryTokenData.csrf_token) {
+                                    const csrfInput = form.querySelector('input[name="csrf_token"]');
+                                    if (csrfInput) {
+                                        csrfInput.value = retryTokenData.csrf_token;
+                                    }
+                                    // Retry submission
+                                    const retryFormData = new FormData(form);
+                                    retryFormData.append('otp_code', otpCode);
+                                    const retryResponse = await fetch('api/auth.php', {
+                                        method: 'POST',
+                                        body: retryFormData
+                                    });
+                                    const retryResult = await retryResponse.json();
+                                    if (retryResult.success) {
+                                        this.showAlert('success', retryResult.message || '<?php echo t('otp_verification.success'); ?>');
+                                        setTimeout(() => {
+                                            window.location.href = retryResult.redirect || 'dashboard.php';
+                                        }, 1000);
+                                        return;
+                                    }
+                                }
+                            } catch (retryError) {
+                                console.error('Retry failed:', retryError);
+                            }
+                        }
                         this.showAlert('error', result.message || '<?php echo t('otp_verification.error'); ?>');
                         this.clearOTPInputs();
                     }

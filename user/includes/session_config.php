@@ -34,10 +34,18 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Session regeneration (works with existing session too)
+// Preserve CSRF token across regeneration to prevent "Security token invalid" errors
+$csrf_token_backup = $_SESSION['csrf_token'] ?? null;
+
 if (!isset($_SESSION['last_regeneration'])) {
     $_SESSION['last_regeneration'] = time();
 } elseif (time() - $_SESSION['last_regeneration'] > 900) { // 15 minutes
     session_regenerate_id(true);
     $_SESSION['last_regeneration'] = time();
+    
+    // Restore CSRF token if it existed (preserve it across regeneration)
+    if ($csrf_token_backup !== null) {
+        $_SESSION['csrf_token'] = $csrf_token_backup;
+    }
 }
 ?> 

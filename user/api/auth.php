@@ -122,13 +122,37 @@ function generate_member_id($first_name, $last_name) {
 
 /**
  * Check CSRF token
+ * Also logs details for debugging CSRF failures
  */
 function check_csrf($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    $hasSessionToken = isset($_SESSION['csrf_token']);
+    $tokenMatch = $hasSessionToken && hash_equals($_SESSION['csrf_token'], $token);
+    
+    // Log CSRF check failures for debugging
+    if (!$tokenMatch) {
+        error_log("CSRF Check Failed - Session token exists: " . ($hasSessionToken ? 'yes' : 'no') . 
+                  ", Token provided: " . (!empty($token) ? 'yes' : 'no') . 
+                  ", Session ID: " . session_id());
+    }
+    
+    return $tokenMatch;
 }
 
 // Handle the request
-$action = $_POST['action'] ?? '';
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// Handle CSRF token refresh (GET request, no CSRF check needed)
+if ($action === 'get_csrf_token') {
+    // Generate new CSRF token if it doesn't exist
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    echo json_encode([
+        'success' => true,
+        'csrf_token' => $_SESSION['csrf_token']
+    ]);
+    exit;
+}
 
 // Route to different handlers based on action
 switch ($action) {
