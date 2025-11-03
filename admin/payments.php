@@ -1614,6 +1614,14 @@ $csrf_token = generate_csrf_token();
             updatePaymentPreview();
         }
 
+        // HTML escape function to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Update preview content
         function updatePaymentPreview() {
             if (!_currentPaymentData) return;
@@ -1632,32 +1640,40 @@ $csrf_token = generate_csrf_token();
             const previewDiv = document.getElementById('paymentPreviewContent');
             if (!previewDiv) return;
             
+            // Escape all user input to prevent XSS
+            const escapedTitleEn = escapeHtml(titleEn) || '(No title)';
+            const escapedTitleAm = escapeHtml(titleAm) || '(No title)';
+            const escapedBodyEn = escapeHtml(bodyEn) || '(No message)';
+            const escapedBodyAm = escapeHtml(bodyAm) || '(No message)';
+            const escapedMemberName = escapeHtml(memberName);
+            const escapedMemberPhone = escapeHtml(memberPhone);
+            
             let html = '<div class="preview-container">';
             
             // Show both languages
             html += '<div class="mb-3">';
             html += '<h6 class="text-muted mb-2"><i class="fas fa-language me-2"></i>English Version</h6>';
             html += '<div class="p-3 bg-white border rounded">';
-            html += `<strong>${titleEn || '(No title)'}</strong>`;
+            html += `<strong>${escapedTitleEn}</strong>`;
             html += '<br><br>';
-            html += `<div style="white-space: pre-wrap;">${bodyEn || '(No message)'}</div>`;
+            html += `<div style="white-space: pre-wrap;">${escapedBodyEn}</div>`;
             html += '</div>';
             html += '</div>';
             
             html += '<div class="mb-3">';
             html += '<h6 class="text-muted mb-2"><i class="fas fa-language me-2"></i>Amharic Version</h6>';
             html += '<div class="p-3 bg-white border rounded">';
-            html += `<strong>${titleAm || '(No title)'}</strong>`;
+            html += `<strong>${escapedTitleAm}</strong>`;
             html += '<br><br>';
-            html += `<div style="white-space: pre-wrap;">${bodyAm || '(No message)'}</div>`;
+            html += `<div style="white-space: pre-wrap;">${escapedBodyAm}</div>`;
             html += '</div>';
             html += '</div>';
             
             // Show which version will be sent
             html += '<div class="alert alert-info mb-0">';
-            html += `<i class="fas fa-info-circle me-2"></i>`;
-            html += `<strong>Member prefers:</strong> ${isAmharic ? 'Amharic' : 'English'}. `;
-            html += `Member: ${memberName} (${memberPhone})`;
+            html += '<i class="fas fa-info-circle me-2"></i>';
+            html += `<strong>Member prefers:</strong> ${escapeHtml(isAmharic ? 'Amharic' : 'English')}. `;
+            html += `Member: ${escapedMemberName} (${escapedMemberPhone})`;
             html += '</div>';
             
             html += '</div>';
