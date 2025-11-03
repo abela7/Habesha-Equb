@@ -88,6 +88,15 @@ try {
         case 'get_csrf_token':
             echo json_encode(['success'=>true,'csrf_token'=>generate_csrf_token()]);
             break;
+        case 'history':
+            getNotificationHistory();
+            break;
+        case 'get_details':
+            getNotificationDetails();
+            break;
+        case 'export':
+            exportNotificationHistory();
+            break;
         default:
             http_response_code(400);
             echo json_encode(['success'=>false,'message'=>'Invalid action']);
@@ -381,6 +390,299 @@ function sendQuickSms(int $admin_id): void {
             'body_am' => $body_am,
         ]
     ]);
+}
+
+/**
+ * Get notification history with filters, pagination, and statistics
+ */
+function getNotificationHistory(): void {
+    global $pdo;
+    
+    // Get filter parameters
+    $channel = $_GET['channel'] ?? '';
+    $type = $_GET['type'] ?? '';
+    $status = $_GET['status'] ?? '';
+    $recipient_type = $_GET['recipient_type'] ?? '';
+    $member_search = trim($_GET['member'] ?? '');
+    $date_from = $_GET['date_from'] ?? '';
+    $date_to = $_GET['date_to'] ?? '';
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $per_page = 50;
+    $offset = ($page - 1) * $per_page;
+    
+    // Build WHERE clause
+    $where = ['1=1'];
+    $params = [];
+    
+    if ($channel !== '') {
+        $where[] = 'channel = ?';
+        $params[] = $channel;
+    }
+    
+    if ($type !== '') {
+        $where[] = 'type = ?';
+        $params[] = $type;
+    }
+    
+    if ($status !== '') {
+        $where[] = 'status = ?';
+        $params[] = $status;
+    }
+    
+    if ($recipient_type !== '') {
+        $where[] = 'recipient_type = ?';
+        $params[] = $recipient_type;
+    }
+    
+    if ($date_from !== '') {
+        $where[] = 'DATE(sent_at) >= ?';
+        $params[] = $date_from;
+    }
+    
+    if ($date_to !== '') {
+        $where[] = 'DATE(sent_at) <= ?';
+        $params[] = $date_to;
+    }
+    
+    // Build main query with member information
+    $sql = "SELECT 
+        n.id,
+        n.notification_id,
+        n.recipient_type,
+        n.recipient_id,
+        n.type,
+        n.channel,
+        n.subject,
+        n.message,
+        n.status,
+        n.sent_at,
+        n.created_at,
+        m.first_name,
+        m.last_name,
+        m.member_id as member_code,
+        CONCAT(m.first_name, ' ', m.last_name) as member_name
+        FROM notifications n
+        LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id
+        WHERE " . implode(' AND ', $where);
+    
+    // Add member search if provided
+    $count_params = $params;
+    if ($member_search !== '') {
+        $sql .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR CONCAT(m.first_name, ' ', m.last_name) LIKE ?)";
+        $member_pattern = "%$member_search%";
+        $count_params[] = $member_pattern;
+        $count_params[] = $member_pattern;
+        $count_params[] = $member_pattern;
+        $count_params[] = $member_pattern;
+    }
+    
+    // Get total count for pagination (with member search)
+    $count_sql = "SELECT COUNT(*) FROM notifications n LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id WHERE " . implode(' AND ', $where);
+    if ($member_search !== '') {
+        $count_sql .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR CONCAT(m.first_name, ' ', m.last_name) LIKE ?)";
+    }
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($count_params);
+    $total = (int)$count_stmt->fetchColumn();
+    
+    // Build main query with member information (already started above)
+    
+    // Get statistics (all notifications regardless of filters)
+    $stats_sql = "SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN channel = 'email' THEN 1 ELSE 0 END) as email,
+        SUM(CASE WHEN channel = 'sms' THEN 1 ELSE 0 END) as sms,
+        SUM(CASE WHEN channel = 'both' THEN 1 ELSE 0 END) as both
+        FROM notifications";
+    $stats_stmt = $pdo->prepare($stats_sql);
+    $stats_stmt->execute();
+    $stats = $stats_stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Add member search parameters to main query params
+    if ($member_search !== '') {
+        $member_pattern = "%$member_search%";
+        $params[] = $member_pattern;
+        $params[] = $member_pattern;
+        $params[] = $member_pattern;
+        $params[] = $member_pattern;
+    }
+    
+    $sql .= " ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
+    $params[] = $per_page;
+    $params[] = $offset;
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculate pagination
+    $total_pages = ceil($total / $per_page);
+    
+    echo json_encode([
+        'success' => true,
+        'notifications' => $notifications,
+        'stats' => [
+            'total' => (int)($stats['total'] ?? 0),
+            'email' => (int)($stats['email'] ?? 0),
+            'sms' => (int)($stats['sms'] ?? 0),
+            'both' => (int)($stats['both'] ?? 0)
+        ],
+        'pagination' => [
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'total' => $total,
+            'per_page' => $per_page
+        ]
+    ]);
+}
+
+/**
+ * Get detailed notification information
+ */
+function getNotificationDetails(): void {
+    global $pdo;
+    
+    $id = (int)($_GET['id'] ?? 0);
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'ID required']);
+        return;
+    }
+    
+    $sql = "SELECT 
+        n.*,
+        m.first_name,
+        m.last_name,
+        m.member_id as member_code,
+        CONCAT(m.first_name, ' ', m.last_name) as member_name
+        FROM notifications n
+        LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id
+        WHERE n.id = ?";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$id]);
+    $notification = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$notification) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Notification not found']);
+        return;
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'notification' => $notification
+    ]);
+}
+
+/**
+ * Export notification history as CSV
+ */
+function exportNotificationHistory(): void {
+    global $pdo;
+    
+    // Get filter parameters (same as history)
+    $channel = $_GET['channel'] ?? '';
+    $type = $_GET['type'] ?? '';
+    $status = $_GET['status'] ?? '';
+    $recipient_type = $_GET['recipient_type'] ?? '';
+    $member_search = trim($_GET['member'] ?? '');
+    $date_from = $_GET['date_from'] ?? '';
+    $date_to = $_GET['date_to'] ?? '';
+    
+    // Build WHERE clause (same as history)
+    $where = ['1=1'];
+    $params = [];
+    
+    if ($channel !== '') {
+        $where[] = 'channel = ?';
+        $params[] = $channel;
+    }
+    
+    if ($type !== '') {
+        $where[] = 'type = ?';
+        $params[] = $type;
+    }
+    
+    if ($status !== '') {
+        $where[] = 'status = ?';
+        $params[] = $status;
+    }
+    
+    if ($recipient_type !== '') {
+        $where[] = 'recipient_type = ?';
+        $params[] = $recipient_type;
+    }
+    
+    if ($date_from !== '') {
+        $where[] = 'DATE(sent_at) >= ?';
+        $params[] = $date_from;
+    }
+    
+    if ($date_to !== '') {
+        $where[] = 'DATE(sent_at) <= ?';
+        $params[] = $date_to;
+    }
+    
+    $where_clause = implode(' AND ', $where);
+    
+    // Build query
+    $sql = "SELECT 
+        n.notification_id as 'Code',
+        n.subject as 'Subject',
+        n.message as 'Message',
+        n.recipient_type as 'Recipient Type',
+        CONCAT(m.first_name, ' ', m.last_name) as 'Member Name',
+        m.member_id as 'Member Code',
+        n.channel as 'Channel',
+        n.type as 'Type',
+        n.status as 'Status',
+        n.sent_at as 'Sent At',
+        n.created_at as 'Created At'
+        FROM notifications n
+        LEFT JOIN members m ON n.recipient_type = 'member' AND n.recipient_id = m.id
+        WHERE $where_clause";
+    
+    if ($member_search !== '') {
+        $sql .= " AND (m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ?)";
+        $member_pattern = "%$member_search%";
+        $params[] = $member_pattern;
+        $params[] = $member_pattern;
+        $params[] = $member_pattern;
+    }
+    
+    $sql .= " ORDER BY n.created_at DESC";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Set headers for CSV download
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="notification_history_' . date('Y-m-d') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+    
+    // Output CSV
+    $output = fopen('php://output', 'w');
+    
+    // Add BOM for UTF-8 Excel compatibility
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    if (!empty($notifications)) {
+        // Header row
+        fputcsv($output, array_keys($notifications[0]));
+        
+        // Data rows
+        foreach ($notifications as $row) {
+            fputcsv($output, $row);
+        }
+    } else {
+        fputcsv($output, ['No notifications found']);
+    }
+    
+    fclose($output);
+    exit;
 }
 
 ?>

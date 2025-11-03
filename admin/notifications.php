@@ -240,7 +240,12 @@ $csrf = generate_csrf_token();
       <div class="card card-modern">
         <div class="card-header d-flex align-items-center justify-content-between">
           <h5 class="mb-0"><i class="fas fa-inbox me-2 text-primary"></i>Recent Notifications</h5>
-          <button class="btn btn-sm btn-outline-secondary" id="btnRefresh"><i class="fas fa-rotate"></i></button>
+          <div class="d-flex gap-2">
+            <a href="notification-history.php" class="btn btn-sm btn-primary">
+              <i class="fas fa-history me-1"></i>View Full History
+            </a>
+            <button class="btn btn-sm btn-outline-secondary" id="btnRefresh"><i class="fas fa-rotate"></i></button>
+          </div>
         </div>
         <div class="card-body">
           <div class="d-flex gap-2 mb-2">
