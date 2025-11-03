@@ -172,8 +172,11 @@ function searchMembers(): void {
     if ($q !== '') {
         $sql .= " AND (first_name LIKE ? OR last_name LIKE ? OR member_id LIKE ? OR email LIKE ? OR phone LIKE ?)";
         $w = "%$q%"; $params = [$w,$w,$w,$w,$w];
+        $limit = 50; // Limit search results
+    } else {
+        $limit = 200; // Show more when viewing all members
     }
-    $sql .= " ORDER BY first_name, last_name LIMIT 50";
+    $sql .= " ORDER BY first_name, last_name LIMIT " . (int)$limit;
     $st = $pdo->prepare($sql); $st->execute($params);
     echo json_encode(['success'=>true,'members'=>$st->fetchAll(PDO::FETCH_ASSOC)]);
 }

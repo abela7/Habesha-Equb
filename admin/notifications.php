@@ -137,9 +137,14 @@ $csrf = generate_csrf_token();
                     </div>
                     <div class="card-body">
                       <div class="input-group mb-3">
-                        <input type="text" id="smsMemberSearch" class="form-control" placeholder="Search by name, code, email, or phone" />
-                        <button class="btn btn-outline-primary" type="button" id="btnSmsSearch"><i class="fas fa-search"></i></button>
+                        <input type="text" id="smsMemberSearch" class="form-control" placeholder="Search by name, code, email, or phone (leave empty to see all)" />
+                        <button class="btn btn-outline-primary" type="button" id="btnSmsSearch" title="Click to search or view all members">
+                          <i class="fas fa-search"></i>
+                        </button>
                       </div>
+                      <small class="text-muted d-block mb-2">
+                        <i class="fas fa-lightbulb me-1"></i>Tip: Leave search empty and click search to view all active members
+                      </small>
                       <div id="smsMemberResults" class="mb-2"></div>
                       <div id="smsSelectedMember" class="member-info-card d-none">
                         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -779,21 +784,32 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
 
-  // Search SMS member
+  // Search SMS member (shows all members if search is empty)
   async function searchSmsMember(){
     const q = document.getElementById('smsMemberSearch').value.trim();
-    if (!q) return;
+    const res = document.getElementById('smsMemberResults');
+    
+    // Show loading state
+    res.innerHTML = '<div class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading members...</div>';
     
     try {
       const url = new URL(window.location.origin + '/admin/api/notifications.php');
       url.searchParams.set('action','search_members');
-      url.searchParams.set('q', q);
+      if (q) {
+        url.searchParams.set('q', q);
+      }
       const resp = await fetch(url.toString());
       const data = await resp.json();
-      const res = document.getElementById('smsMemberResults');
       res.innerHTML = '';
       
       if (data.success && Array.isArray(data.members) && data.members.length > 0){
+        // Show count info
+        const info = document.createElement('div');
+        info.className = 'mb-2 small text-muted';
+        info.innerHTML = `<i class="fas fa-info-circle me-1"></i>Found ${data.members.length} ${q ? 'matching' : 'active'} member${data.members.length !== 1 ? 's' : ''}`;
+        res.appendChild(info);
+        
+        // Show members
         data.members.forEach(m => {
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -803,11 +819,11 @@ document.addEventListener('DOMContentLoaded',()=>{
           res.appendChild(btn);
         });
       } else {
-        res.innerHTML = '<div class="text-muted">No members found</div>';
+        res.innerHTML = '<div class="text-muted"><i class="fas fa-inbox me-2"></i>No members found</div>';
       }
     } catch(e){
       console.error('Search error:', e);
-      document.getElementById('smsMemberResults').innerHTML = '<div class="text-danger">Search error</div>';
+      res.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error loading members</div>';
     }
   }
 
