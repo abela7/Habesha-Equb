@@ -122,7 +122,7 @@ function getNotification(): void {
     global $pdo;
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'ID required']); return; }
-    $st = $pdo->prepare("SELECT id, subject, message, recipient_type, recipient_id, sent_at, created_at FROM notifications WHERE id = ? LIMIT 1");
+    $st = $pdo->prepare("SELECT id, notification_id, recipient_type, recipient_id, recipient_email, recipient_phone, type, channel, subject, message, language, status, sent_at, delivered_at, created_at, email_provider_response, sms_provider_response, notes FROM notifications WHERE id = ? LIMIT 1");
     $st->execute([$id]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     if (!$row) { http_response_code(404); echo json_encode(['success'=>false,'message'=>'Not found']); return; }
@@ -434,7 +434,10 @@ function getNotificationHistory(): void {
         $params[] = $type;
     }
     
-    if ($member_search !== '') {
+    if ($member_id > 0) {
+        $where[] = "n.recipient_id = ? AND n.recipient_type = 'member'";
+        $params[] = $member_id;
+    } else if ($member_search !== '') {
         $where[] = "(m.first_name LIKE ? OR m.last_name LIKE ? OR m.member_id LIKE ? OR m.email LIKE ? OR m.phone LIKE ?)";
         $searchParam = "%$member_search%";
         $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
