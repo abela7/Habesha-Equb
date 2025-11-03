@@ -1102,36 +1102,103 @@ $csrf_token = generate_csrf_token();
         </div>
     </div>
 
-    <!-- Verify Options Modal -->
+    <!-- Enhanced Verify Payment & Notification Modal -->
     <div class="modal fade" id="verifyOptionsModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-check me-2 text-success"></i>Verify Payment</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Verify Payment & Send Notification</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div class="form-check form-switch mb-2">
-              <input class="form-check-input" type="checkbox" id="optSendNotif" checked>
-              <label class="form-check-label" for="optSendNotif">Send in-app notification</label>
+            <!-- Payment Info -->
+            <div class="alert alert-info mb-3" id="paymentInfoCard">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Payment Details:</strong> <span id="paymentMemberName"></span> - <span id="paymentAmount"></span> - <span id="paymentDate"></span>
             </div>
-            <div class="form-check form-switch mb-2">
-              <input class="form-check-input" type="checkbox" id="optEmailCopy" checked>
-              <label class="form-check-label" for="optEmailCopy">Send email copy (only to active + approved + opted-in)</label>
+
+            <!-- Template Selection -->
+            <div class="mb-3">
+              <label class="form-label"><i class="fas fa-file-alt me-2"></i>Notification Template</label>
+              <select class="form-select" id="paymentTemplateSelect">
+                <option value="">Loading templates...</option>
+              </select>
+              <small class="text-muted">Select a template or use default payment confirmation</small>
             </div>
-            <div class="form-check form-switch mb-2">
-              <input class="form-check-input" type="checkbox" id="optWhatsapp" checked>
-              <label class="form-check-label" for="optWhatsapp">Return WhatsApp text to copy</label>
+
+            <!-- Channel Selection -->
+            <div class="mb-3">
+              <label class="form-label"><i class="fas fa-paper-plane me-2"></i>Send Via</label>
+              <div class="d-flex gap-3 flex-wrap">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="optSendSms" checked>
+                  <label class="form-check-label" for="optSendSms">
+                    <i class="fas fa-sms text-success me-1"></i>SMS
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="optSendEmail" checked>
+                  <label class="form-check-label" for="optSendEmail">
+                    <i class="fas fa-envelope text-primary me-1"></i>Email
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="optSendNotif" checked>
+                  <label class="form-check-label" for="optSendNotif">
+                    <i class="fas fa-bell text-warning me-1"></i>In-App
+                  </label>
+                </div>
+              </div>
             </div>
-            <div id="whatsappPreviewWrap" style="display:none;">
-              <label class="form-label mt-2">WhatsApp text</label>
-              <textarea class="form-control" id="whatsappPreview" rows="5" readonly></textarea>
-              <button class="btn btn-sm btn-outline-secondary mt-2" type="button" onclick="copyWhatsappText()"><i class="fas fa-copy me-1"></i>Copy</button>
+
+            <!-- Message Preview & Edit -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Title (English)</label>
+                <input type="text" class="form-control" id="paymentTitleEn" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Title (Amharic)</label>
+                <input type="text" class="form-control" id="paymentTitleAm" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Message (English)</label>
+                <textarea class="form-control" id="paymentBodyEn" rows="4"></textarea>
+                <small class="text-muted" id="paymentCharCountEn">0 characters</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Message (Amharic)</label>
+                <textarea class="form-control" id="paymentBodyAm" rows="4"></textarea>
+                <small class="text-muted" id="paymentCharCountAm">0 characters</small>
+              </div>
+            </div>
+
+            <!-- Variables Info -->
+            <div class="alert alert-light mb-3">
+              <i class="fas fa-lightbulb me-2"></i>
+              <strong>Available Variables:</strong> 
+              <code>{first_name}</code>, <code>{last_name}</code>, <code>{amount}</code>, <code>{payment_date}</code>, <code>{receipt_link}</code>, <code>{member_id}</code>
+            </div>
+
+            <!-- Preview -->
+            <div class="card bg-light mb-3">
+              <div class="card-header">
+                <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#paymentPreviewCollapse">
+                  <i class="fas fa-eye me-2"></i>Preview Message
+                </button>
+              </div>
+              <div class="collapse" id="paymentPreviewCollapse">
+                <div class="card-body">
+                  <div id="paymentPreviewContent"></div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button class="btn btn-primary" id="btnConfirmVerify"><i class="fas fa-check me-1"></i>Verify</button>
+            <button class="btn btn-success" id="btnConfirmVerify">
+              <i class="fas fa-check me-1"></i>Verify Payment & Send
+            </button>
           </div>
         </div>
       </div>
@@ -1371,44 +1438,253 @@ $csrf_token = generate_csrf_token();
 
         let _verifyPaymentId = null;
         let _verifyModal;
-        function openVerifyOptions(id){
+        let _currentPaymentData = null;
+        let _receiptLink = '';
+
+        // Enhanced: Open verify modal with payment data and templates
+        async function openVerifyOptions(id){
             _verifyPaymentId = id;
-            _verifyModal = new bootstrap.Modal(document.getElementById('verifyOptionsModal'));
-            document.getElementById('whatsappPreviewWrap').style.display = 'none';
-            document.getElementById('whatsappPreview').value = '';
-            _verifyModal.show();
+            
+            // Fetch payment data
+            try {
+                const resp = await fetch(`api/payments.php?action=get&payment_id=${id}`);
+                const data = await resp.json();
+                if (!data.success || !data.payment) {
+                    alert('Failed to load payment data');
+                    return;
+                }
+                
+                _currentPaymentData = data.payment;
+                
+                // Update payment info card
+                document.getElementById('paymentMemberName').textContent = `${_currentPaymentData.first_name} ${_currentPaymentData.last_name}`;
+                document.getElementById('paymentAmount').textContent = `£${parseFloat(_currentPaymentData.amount).toFixed(2)}`;
+                const paymentDate = _currentPaymentData.payment_date && _currentPaymentData.payment_date !== '0000-00-00' 
+                    ? new Date(_currentPaymentData.payment_date).toLocaleDateString() 
+                    : 'Not set';
+                document.getElementById('paymentDate').textContent = paymentDate;
+                
+                // Get receipt link - ensure it's generated for this payment
+                const receiptResp = await fetch(`api/payments.php?action=get_receipt_token&payment_id=${id}`);
+                const receiptData = await receiptResp.json();
+                if (receiptData.success && receiptData.receipt_url) {
+                    // Use full URL with domain
+                    _receiptLink = window.location.origin + receiptData.receipt_url;
+                } else {
+                    // Fallback: try to generate receipt token
+                    console.warn('Receipt token not found, using fallback');
+                    _receiptLink = window.location.origin + '/receipt.php?rt=generating...';
+                }
+                
+                // Load templates
+                await loadPaymentTemplates();
+                
+                // Load default payment confirmation message
+                loadDefaultPaymentMessage();
+                
+                // Show modal
+                _verifyModal = new bootstrap.Modal(document.getElementById('verifyOptionsModal'));
+                _verifyModal.show();
+                
+                // Setup character counters
+                setupPaymentCharCounters();
+                
+            } catch(err) {
+                console.error('Error loading payment:', err);
+                alert('Error loading payment data');
+            }
         }
 
-        document.getElementById('btnConfirmVerify').addEventListener('click', function(){
-            if (!_verifyPaymentId) return;
-            const csrfToken = getCSRFToken(); if (!csrfToken) return;
-            const sendNotif = document.getElementById('optSendNotif').checked ? 1 : 0;
-            const sendEmail = document.getElementById('optEmailCopy').checked ? 1 : 0;
-            const exportWhats = document.getElementById('optWhatsapp').checked ? 1 : 0;
-
-            fetch('api/payments.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=verify&payment_id=${_verifyPaymentId}&csrf_token=${encodeURIComponent(csrfToken)}&send_notif=${sendNotif}&send_email_copy=${sendEmail}&export_whatsapp=${exportWhats}`
-            })
-            .then(r=>r.json())
-            .then(d=>{
-                if (d && d.success){
-                    showToast('Payment verified successfully!', 'success');
-                    if (exportWhats && d.whatsapp_text){
-                        // Use the same WhatsApp export modal as notifications
-                        const data = { whatsapp_texts: [{ name: 'Member', language: 'en', text: d.whatsapp_text }], whatsapp_broadcast: null };
-                        showWhatsappModal('Payment verified. Email status not applicable.', data);
-                        _verifyModal.hide();
-                    } else {
-                        _verifyModal.hide();
-                    }
-                    loadPayments();
-                } else {
-                    alert(d && d.message ? d.message : 'Verification failed');
+        // Load payment templates
+        async function loadPaymentTemplates() {
+            try {
+                const resp = await fetch('api/sms-templates.php?action=list');
+                const data = await resp.json();
+                const select = document.getElementById('paymentTemplateSelect');
+                select.innerHTML = '<option value="">-- Use Default Payment Confirmation --</option>';
+                
+                if (data.success && Array.isArray(data.templates)) {
+                    const paymentTemplates = data.templates.filter(t => 
+                        t.category === 'payment' && t.is_active == 1
+                    );
+                    paymentTemplates.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.template_name;
+                        select.appendChild(opt);
+                    });
                 }
-            })
-            .catch(err=>{ console.error(err); alert('Network error'); });
+                
+                // Add change handler
+                select.onchange = async function() {
+                    if (this.value) {
+                        await loadPaymentTemplate(this.value);
+                    } else {
+                        loadDefaultPaymentMessage();
+                    }
+                };
+            } catch(err) {
+                console.error('Error loading templates:', err);
+            }
+        }
+
+        // Load specific template
+        async function loadPaymentTemplate(templateId) {
+            try {
+                const resp = await fetch(`api/sms-templates.php?action=get&id=${templateId}`);
+                const data = await resp.json();
+                if (data.success && data.template) {
+                    const t = data.template;
+                    document.getElementById('paymentTitleEn').value = t.title_en || '';
+                    document.getElementById('paymentTitleAm').value = t.title_am || '';
+                    document.getElementById('paymentBodyEn').value = t.body_en || '';
+                    document.getElementById('paymentBodyAm').value = t.body_am || '';
+                    replacePaymentVariables();
+                    updatePaymentCharCounts();
+                }
+            } catch(err) {
+                console.error('Error loading template:', err);
+            }
+        }
+
+        // Load default payment confirmation message
+        function loadDefaultPaymentMessage() {
+            if (!_currentPaymentData) return;
+            
+            document.getElementById('paymentTitleEn').value = 'Payment Confirmed';
+            document.getElementById('paymentTitleAm').value = 'ክፍያ ተረጋግጧል';
+            document.getElementById('paymentBodyEn').value = `Your this month equb payment has been made. Thanks for your payment. Click the link to download your receipt: ${_receiptLink}`;
+            document.getElementById('paymentBodyAm').value = `የዚህ ወር ኢኩብ ክፍያዎ ተከናውኗል። ክፍያዎን በመክፈል እናመሰግናለን። ሰነድዎን ለማውረድ አገናኙን ይጫኑ: ${_receiptLink}`;
+            
+            replacePaymentVariables();
+            updatePaymentCharCounts();
+        }
+
+        // Replace payment variables
+        function replacePaymentVariables() {
+            if (!_currentPaymentData) return;
+            
+            const vars = {
+                '{first_name}': _currentPaymentData.first_name || '',
+                '{last_name}': _currentPaymentData.last_name || '',
+                '{member_id}': _currentPaymentData.member_id || '',
+                '{amount}': '£' + parseFloat(_currentPaymentData.amount).toFixed(2),
+                '{payment_date}': _currentPaymentData.payment_date && _currentPaymentData.payment_date !== '0000-00-00'
+                    ? new Date(_currentPaymentData.payment_date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
+                '{receipt_link}': _receiptLink
+            };
+            
+            ['paymentTitleEn', 'paymentTitleAm', 'paymentBodyEn', 'paymentBodyAm'].forEach(id => {
+                const field = document.getElementById(id);
+                if (field) {
+                    let text = field.value;
+                    Object.keys(vars).forEach(key => {
+                        text = text.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), vars[key]);
+                    });
+                    field.value = text;
+                }
+            });
+            updatePaymentCharCounts();
+        }
+
+        // Setup character counters
+        function setupPaymentCharCounters() {
+            ['paymentBodyEn', 'paymentBodyAm'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updatePaymentCharCounts);
+            });
+        }
+
+        // Update character counts
+        function updatePaymentCharCounts() {
+            const enText = document.getElementById('paymentBodyEn').value;
+            const amText = document.getElementById('paymentBodyAm').value;
+            
+            document.getElementById('paymentCharCountEn').textContent = 
+                `${enText.length} characters (160 max for SMS)`;
+            document.getElementById('paymentCharCountEn').className = enText.length > 160 ? 'text-danger' : 'text-muted';
+            
+            document.getElementById('paymentCharCountAm').textContent = 
+                `${amText.length} characters (70 max for SMS)`;
+            document.getElementById('paymentCharCountAm').className = amText.length > 70 ? 'text-danger' : 'text-muted';
+        }
+
+        // Enhanced: Verify payment and send notifications
+        document.getElementById('btnConfirmVerify').addEventListener('click', async function(){
+            if (!_verifyPaymentId || !_currentPaymentData) return;
+            
+            const csrfToken = getCSRFToken();
+            if (!csrfToken) {
+                alert('Security token missing. Please refresh the page.');
+                return;
+            }
+            
+            const sendSms = document.getElementById('optSendSms').checked;
+            const sendEmail = document.getElementById('optSendEmail').checked;
+            const sendNotif = document.getElementById('optSendNotif').checked;
+            
+            if (!sendSms && !sendEmail && !sendNotif) {
+                alert('Please select at least one notification channel');
+                return;
+            }
+            
+            const titleEn = document.getElementById('paymentTitleEn').value.trim();
+            const titleAm = document.getElementById('paymentTitleAm').value.trim();
+            const bodyEn = document.getElementById('paymentBodyEn').value.trim();
+            const bodyAm = document.getElementById('paymentBodyAm').value.trim();
+            
+            if (!titleEn || !bodyEn) {
+                alert('Please fill in title and message');
+                return;
+            }
+            
+            // Build channels array
+            const channels = [];
+            if (sendSms) channels.push('sms');
+            if (sendEmail) channels.push('email');
+            if (sendNotif) channels.push('in_app');
+            
+            const fd = new FormData();
+            fd.append('action', 'verify_with_notification');
+            fd.append('payment_id', _verifyPaymentId);
+            fd.append('channels', JSON.stringify(channels));
+            fd.append('title_en', titleEn);
+            fd.append('title_am', titleAm);
+            fd.append('body_en', bodyEn);
+            fd.append('body_am', bodyAm);
+            fd.append('csrf_token', csrfToken);
+            
+            try {
+                const resp = await fetch('api/payments.php', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showToast('Payment verified and notifications sent!', 'success');
+                    
+                    // Show delivery report if available
+                    if (data.delivery_report) {
+                        setTimeout(() => {
+                            alert(`Notifications sent:\n${data.delivery_report}`);
+                        }, 500);
+                    }
+                    
+                    _verifyModal.hide();
+                    loadPayments();
+                    
+                    // Reset
+                    _verifyPaymentId = null;
+                    _currentPaymentData = null;
+                    _receiptLink = '';
+                } else {
+                    alert(data.message || 'Verification failed');
+                }
+            } catch(err) {
+                console.error('Error:', err);
+                alert('Network error occurred');
+            }
         });
 
         function copyWhatsappText(){

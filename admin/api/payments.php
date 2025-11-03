@@ -46,6 +46,9 @@ try {
         case 'verify':
             verifyPayment();
             break;
+        case 'verify_with_notification':
+            verifyWithNotification();
+            break;
         case 'list':
             listPayments();
             break;
@@ -552,6 +555,206 @@ function verifyPayment() {
 
     echo json_encode(['success' => true, 'message' => 'Payment verified successfully', 'whatsapp_text' => $whatsappText]);
     return;
+}
+
+/**
+ * Verify payment with enhanced multi-channel notifications
+ */
+function verifyWithNotification() {
+    global $pdo, $admin_id;
+    
+    $payment_id = intval($_POST['payment_id'] ?? 0);
+    $channels_json = $_POST['channels'] ?? '[]';
+    $title_en = trim($_POST['title_en'] ?? '');
+    $title_am = trim($_POST['title_am'] ?? '');
+    $body_en = trim($_POST['body_en'] ?? '');
+    $body_am = trim($_POST['body_am'] ?? '');
+    
+    if (!$payment_id) {
+        echo json_encode(['success' => false, 'message' => 'Payment ID is required']);
+        return;
+    }
+    
+    if (empty($title_en) || empty($body_en)) {
+        echo json_encode(['success' => false, 'message' => 'Title and message are required']);
+        return;
+    }
+    
+    $channels = json_decode($channels_json, true);
+    if (!is_array($channels) || empty($channels)) {
+        echo json_encode(['success' => false, 'message' => 'At least one channel must be selected']);
+        return;
+    }
+    
+    // Get payment data
+    $stmt = $pdo->prepare("SELECT p.*, m.first_name, m.last_name, m.member_id, m.email, m.phone, m.language_preference, m.is_active, m.is_approved, m.email_notifications FROM payments p LEFT JOIN members m ON p.member_id = m.id WHERE p.id = ?");
+    $stmt->execute([$payment_id]);
+    $payment = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$payment) {
+        echo json_encode(['success' => false, 'message' => 'Payment not found']);
+        return;
+    }
+    
+    if ($payment['status'] === 'paid') {
+        echo json_encode(['success' => false, 'message' => 'Payment is already verified']);
+        return;
+    }
+    
+    // Verify payment
+    $stmt = $pdo->prepare("UPDATE payments SET status = 'paid', verified_by_admin = 1, verified_by_admin_id = ?, verification_date = NOW(), updated_at = NOW() WHERE id = ?");
+    $stmt->execute([$admin_id, $payment_id]);
+    
+    // Update member's total contributed
+    $stmt = $pdo->prepare("UPDATE members SET total_contributed = total_contributed + ? WHERE id = ?");
+    $stmt->execute([$payment['amount'], $payment['member_id']]);
+    
+    // Generate receipt link
+    $receiptUrl = '';
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS payment_receipts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            payment_id INT NOT NULL,
+            token VARCHAR(64) NOT NULL UNIQUE,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_payment (payment_id),
+            CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        $delStmt = $pdo->prepare("DELETE FROM payment_receipts WHERE payment_id = ?");
+        $delStmt->execute([$payment_id]);
+        
+        $token = bin2hex(random_bytes(16));
+        $insStmt = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
+        $insStmt->execute([$payment_id, $token]);
+        
+        $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
+    } catch (Throwable $e) {
+        error_log('Receipt generation error: ' . $e->getMessage());
+        $receiptUrl = 'https://habeshaequb.com/user/dashboard.php';
+    }
+    
+    // Replace variables in messages
+    $vars = [
+        '{first_name}' => $payment['first_name'] ?? '',
+        '{last_name}' => $payment['last_name'] ?? '',
+        '{member_id}' => $payment['member_id'] ?? '',
+        '{amount}' => '£' . number_format((float)$payment['amount'], 2),
+        '{payment_date}' => (!empty($payment['payment_date']) && $payment['payment_date'] !== '0000-00-00') 
+            ? date('F j, Y', strtotime($payment['payment_date'])) 
+            : date('F j, Y'),
+        '{receipt_link}' => $receiptUrl
+    ];
+    
+    foreach ($vars as $key => $value) {
+        $title_en = str_replace($key, $value, $title_en);
+        $title_am = str_replace($key, $value, $title_am);
+        $body_en = str_replace($key, $value, $body_en);
+        $body_am = str_replace($key, $value, $body_am);
+    }
+    
+    // Prepare member data
+    $member = [
+        'id' => $payment['member_id'],
+        'first_name' => $payment['first_name'],
+        'last_name' => $payment['last_name'],
+        'email' => $payment['email'],
+        'phone' => $payment['phone'],
+        'language_preference' => $payment['language_preference'],
+        'is_active' => $payment['is_active'],
+        'is_approved' => $payment['is_approved'],
+        'email_notifications' => $payment['email_notifications'],
+        'member_id' => $payment['member_id']
+    ];
+    
+    // Track results
+    $results = [
+        'sms' => ['sent' => 0, 'failed' => 0],
+        'email' => ['sent' => 0, 'failed' => 0],
+        'in_app' => ['sent' => 0, 'failed' => 0]
+    ];
+    
+    // Send notifications based on selected channels
+    $notification_code = 'PAY-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    $now = date('Y-m-d H:i:s');
+    
+    // SMS
+    if (in_array('sms', $channels) && !empty($member['phone'])) {
+        try {
+            require_once '../../includes/sms/SmsService.php';
+            $smsService = new SmsService($pdo);
+            $smsResult = $smsService->sendProgramNotificationToMember($member, $title_en, $title_am, $body_en, $body_am);
+            if (!empty($smsResult['success'])) {
+                $results['sms']['sent'] = 1;
+            } else {
+                $results['sms']['failed'] = 1;
+            }
+        } catch (Throwable $e) {
+            error_log('Payment SMS error: ' . $e->getMessage());
+            $results['sms']['failed'] = 1;
+        }
+    }
+    
+    // Email
+    if (in_array('email', $channels) && !empty($member['email']) && 
+        (int)$member['is_active'] === 1 && (int)$member['is_approved'] === 1 && 
+        (int)$member['email_notifications'] === 1) {
+        try {
+            require_once '../../includes/email/EmailService.php';
+            $emailService = new EmailService($pdo);
+            $emailResult = $emailService->sendProgramNotificationToMember($member, $title_en, $title_am, $body_en, $body_am);
+            if (!empty($emailResult['success'])) {
+                $results['email']['sent'] = 1;
+            } else {
+                $results['email']['failed'] = 1;
+            }
+        } catch (Throwable $e) {
+            error_log('Payment Email error: ' . $e->getMessage());
+            $results['email']['failed'] = 1;
+        }
+    }
+    
+    // In-app notification
+    if (in_array('in_app', $channels)) {
+        try {
+            $isAmharic = (int)($member['language_preference'] ?? 0) === 1;
+            $useTitle = $isAmharic ? $title_am : $title_en;
+            $useBody = $isAmharic ? $body_am : $body_en;
+            
+            // Build channel list - always include 'in_app' since we're in this block
+            $channelList = ['in_app'];
+            if (in_array('sms', $channels)) $channelList[] = 'sms';
+            if (in_array('email', $channels)) $channelList[] = 'email';
+            $channelStr = implode(',', $channelList);
+            
+            $ins = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?, 'member', ?, 'payment_reminder', ?, ?, ?, ?, 'sent', ?, ?, ?, ?)");
+            $ins->execute([$notification_code, $member['id'], $channelStr, $useTitle, $useBody, ($isAmharic ? 'am' : 'en'), $now, $now, $now, $admin_id]);
+            $results['in_app']['sent'] = 1;
+        } catch (Throwable $e) {
+            error_log('Payment In-app notification error: ' . $e->getMessage());
+            $results['in_app']['failed'] = 1;
+        }
+    }
+    
+    // Build delivery report
+    $report = [];
+    if (in_array('sms', $channels)) {
+        $report[] = "SMS: {$results['sms']['sent']} sent, {$results['sms']['failed']} failed";
+    }
+    if (in_array('email', $channels)) {
+        $report[] = "Email: {$results['email']['sent']} sent, {$results['email']['failed']} failed";
+    }
+    if (in_array('in_app', $channels)) {
+        $report[] = "In-App: {$results['in_app']['sent']} sent, {$results['in_app']['failed']} failed";
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'message' => 'Payment verified and notifications sent',
+        'delivery_report' => implode("\n", $report),
+        'results' => $results,
+        'receipt_url' => $receiptUrl
+    ]);
 }
 
 /**
