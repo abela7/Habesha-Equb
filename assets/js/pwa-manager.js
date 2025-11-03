@@ -98,8 +98,13 @@ class PWAManager {
       // Clear dismissal flag
       localStorage.removeItem('pwa-install-dismissed');
       
-      // Track installation
-      this.trackInstallation();
+      // Track installation (only once per session)
+      // Check localStorage to prevent duplicate tracking if page was loaded
+      const tracked = sessionStorage.getItem('pwa-installation-tracked');
+      if (!tracked) {
+        sessionStorage.setItem('pwa-installation-tracked', 'true');
+        this.trackInstallation();
+      }
       
       // Show success message
       this.showToast('App installed successfully!', 'success');
@@ -470,7 +475,7 @@ class PWAManager {
     }, 3000);
   }
   
-  async trackInstallation() {
+  async trackInstallation(installationCompleted = true) {
     try {
       const deviceInfo = {
         platform: navigator.platform,
@@ -499,7 +504,9 @@ class PWAManager {
           is_standalone: deviceInfo.is_standalone,
           browser: browserInfo.browser,
           version: browserInfo.version,
-          os: browserInfo.os
+          os: browserInfo.os,
+          installation_completed: installationCompleted,
+          visit_only: !installationCompleted
         })
       });
       

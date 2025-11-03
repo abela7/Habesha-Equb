@@ -403,7 +403,9 @@ if (!isset($_SESSION['app_language'])) {
                 showStatus('✓ App installed successfully!', 'success');
                 deferredPrompt = null;
                 instructions.classList.remove('show');
-                trackInstallation(true); // Track as completed installation
+                // Note: Tracking is handled by pwa-manager.js globally via sessionStorage
+                // This prevents double tracking since both listeners would fire independently
+                // If already tracked in button click handler, pwa-manager.js will skip it
             });
             
             // If no automatic prompt after 2 seconds, show manual instructions
@@ -422,6 +424,13 @@ if (!isset($_SESSION['app_language'])) {
                 installBtn.disabled = true;
                 installBtnText.textContent = 'Installing...';
                 
+                // Set sessionStorage flag IMMEDIATELY before prompting to prevent race condition
+                // This ensures pwa-manager.js's appinstalled listener won't track if we're tracking here
+                if (!installationTracked && !sessionStorage.getItem('pwa-installation-tracked')) {
+                    sessionStorage.setItem('pwa-installation-tracked', 'true');
+                    installationTracked = true;
+                }
+                
                 try {
                     // Show the install prompt
                     deferredPrompt.prompt();
@@ -431,7 +440,10 @@ if (!isset($_SESSION['app_language'])) {
                     
                     if (outcome === 'accepted') {
                         showStatus('✓ Installation started!', 'success');
-                        await trackInstallation(true);
+                        // Track installation (flag already set above to prevent pwa-manager.js from tracking)
+                        if (installationTracked) {
+                            await trackInstallation(true);
+                        }
                     } else {
                         showStatus('Installation cancelled. Try the manual instructions below.', 'info');
                         installBtn.disabled = false;
@@ -461,11 +473,14 @@ if (!isset($_SESSION['app_language'])) {
             }
         });
         
+        // Track installation flag to prevent duplicate tracking in button handler
+        let installationTracked = false;
+        
         // Initialize on page load
         window.addEventListener('load', () => {
             checkInstallStatus();
-            // Track that someone visited the install page
-            trackInstallation(false);
+            // Don't track page visits automatically - it creates duplicates
+            // Only track when user actually installs
         });
     </script>
     

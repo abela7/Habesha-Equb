@@ -26,6 +26,7 @@ if ($action === 'record_installation') {
                 user_id INT NULL,
                 member_id VARCHAR(50) NULL,
                 admin_id INT NULL,
+                device_fingerprint VARCHAR(64) NULL,
                 device_info TEXT,
                 browser_info TEXT,
                 install_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -35,15 +36,29 @@ if ($action === 'record_installation') {
                 INDEX idx_user (user_id),
                 INDEX idx_member (member_id),
                 INDEX idx_admin (admin_id),
+                INDEX idx_fingerprint (device_fingerprint),
                 INDEX idx_install_date (install_date),
                 INDEX idx_active (is_active)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
         
+        // Generate device fingerprint for guest users
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $accept_language = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+        $screen_data = $input['screen'] ?? [];
+        $platform = $input['platform'] ?? '';
+        
+        // Create device fingerprint from multiple sources
+        $fingerprint_data = $user_agent . '|' . $accept_language . '|' . $platform;
+        if (!empty($screen_data)) {
+            $fingerprint_data .= '|' . ($screen_data['width'] ?? '') . 'x' . ($screen_data['height'] ?? '');
+        }
+        $device_fingerprint = 'pwa_' . substr(hash('sha256', $fingerprint_data), 0, 32);
+        
         $device_info = json_encode([
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-            'platform' => $input['platform'] ?? '',
-            'language' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
+            'user_agent' => $user_agent,
+            'platform' => $platform,
+            'language' => $accept_language,
             'screen' => $input['screen'] ?? null,
             'is_standalone' => $input['is_standalone'] ?? false,
             'visit_only' => $input['visit_only'] ?? false,
@@ -56,51 +71,95 @@ if ($action === 'record_installation') {
             'os' => $input['os'] ?? ''
         ]);
         
-        // Check if installation already exists for this user
-        $checkStmt = null;
+        // Only track actual installations, not page visits
+        // Explicit check: treat as installation only when installation_completed is explicitly true
+        // AND visit_only is NOT explicitly true
+        // This prevents default/empty requests from being treated as installations
+        $is_installation = !empty($input['installation_completed']) && 
+                           !(isset($input['visit_only']) && $input['visit_only'] === true);
+        
+        // Check for existing installation
+        // Priority: user_id/member_id/admin_id > device_fingerprint (for guests)
+        // Also check time window (within last 5 minutes to prevent rapid duplicates)
+        $checkSql = null;
+        $params = [];
+        
         if ($member_id) {
-            $checkStmt = $pdo->prepare("SELECT id, install_count FROM pwa_installations WHERE member_id = ? ORDER BY install_date DESC LIMIT 1");
-            $checkStmt->execute([$member_id]);
+            $checkSql = "SELECT id, install_count, install_date FROM pwa_installations WHERE member_id = ? AND install_date >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) ORDER BY install_date DESC LIMIT 1";
+            $params = [$member_id];
         } elseif ($user_id) {
-            $checkStmt = $pdo->prepare("SELECT id, install_count FROM pwa_installations WHERE user_id = ? ORDER BY install_date DESC LIMIT 1");
-            $checkStmt->execute([$user_id]);
+            $checkSql = "SELECT id, install_count, install_date FROM pwa_installations WHERE user_id = ? AND install_date >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) ORDER BY install_date DESC LIMIT 1";
+            $params = [$user_id];
         } elseif ($admin_id) {
-            $checkStmt = $pdo->prepare("SELECT id, install_count FROM pwa_installations WHERE admin_id = ? ORDER BY install_date DESC LIMIT 1");
-            $checkStmt->execute([$admin_id]);
+            $checkSql = "SELECT id, install_count, install_date FROM pwa_installations WHERE admin_id = ? AND install_date >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) ORDER BY install_date DESC LIMIT 1";
+            $params = [$admin_id];
+        } else {
+            // For guests, use device fingerprint
+            $checkSql = "SELECT id, install_count, install_date FROM pwa_installations WHERE device_fingerprint = ? AND device_fingerprint IS NOT NULL AND install_date >= DATE_SUB(NOW(), INTERVAL 5 MINUTE) ORDER BY install_date DESC LIMIT 1";
+            $params = [$device_fingerprint];
         }
         
-        $existing = $checkStmt ? $checkStmt->fetch(PDO::FETCH_ASSOC) : null;
+        $checkStmt = $pdo->prepare($checkSql);
+        $checkStmt->execute($params);
+        $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
         
         if ($existing) {
-            // Update existing installation
-            $updateStmt = $pdo->prepare("
-                UPDATE pwa_installations 
-                SET install_count = install_count + 1,
-                    last_seen = NOW(),
-                    is_active = 1,
-                    device_info = ?,
-                    browser_info = ?
-                WHERE id = ?
-            ");
-            $updateStmt->execute([$device_info, $browser_info, $existing['id']]);
+            // Update existing installation (only increment if it's an actual installation, not just a visit)
+            if ($is_installation) {
+                $updateStmt = $pdo->prepare("
+                    UPDATE pwa_installations 
+                    SET install_count = install_count + 1,
+                        last_seen = NOW(),
+                        is_active = 1,
+                        device_info = ?,
+                        browser_info = ?,
+                        device_fingerprint = COALESCE(device_fingerprint, ?)
+                    WHERE id = ?
+                ");
+                $updateStmt->execute([$device_info, $browser_info, $device_fingerprint, $existing['id']]);
+            } else {
+                // Just update last_seen for visits without incrementing count
+                $updateStmt = $pdo->prepare("
+                    UPDATE pwa_installations 
+                    SET last_seen = NOW(),
+                        device_info = ?,
+                        browser_info = ?,
+                        device_fingerprint = COALESCE(device_fingerprint, ?)
+                    WHERE id = ?
+                ");
+                $updateStmt->execute([$device_info, $browser_info, $device_fingerprint, $existing['id']]);
+            }
             
             echo json_encode([
                 'success' => true,
-                'message' => 'Installation updated',
-                'install_count' => $existing['install_count'] + 1
+                'message' => $is_installation ? 'Installation updated' : 'Visit tracked',
+                'install_count' => $existing['install_count'] + ($is_installation ? 1 : 0),
+                'existing' => true
             ]);
         } else {
+            // Only create new record for actual installations, not page visits
+            if (!$is_installation) {
+                // Just track visit without creating duplicate - silently succeed
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Visit tracked (no duplicate created)',
+                    'existing' => false
+                ]);
+                exit;
+            }
+            
             // Create new installation record
             $insertStmt = $pdo->prepare("
                 INSERT INTO pwa_installations 
-                (user_id, member_id, admin_id, device_info, browser_info, install_date, last_seen, install_count, is_active)
-                VALUES (?, ?, ?, ?, ?, NOW(), NOW(), 1, 1)
+                (user_id, member_id, admin_id, device_fingerprint, device_info, browser_info, install_date, last_seen, install_count, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), 1, 1)
             ");
             
             $insertStmt->execute([
                 $user_id ?: null,
                 $member_id ?: null,
                 $admin_id ?: null,
+                ($user_id || $member_id || $admin_id) ? null : $device_fingerprint, // Only use fingerprint for guests
                 $device_info,
                 $browser_info
             ]);
@@ -108,7 +167,8 @@ if ($action === 'record_installation') {
             echo json_encode([
                 'success' => true,
                 'message' => 'Installation recorded',
-                'install_id' => $pdo->lastInsertId()
+                'install_id' => $pdo->lastInsertId(),
+                'existing' => false
             ]);
         }
         
