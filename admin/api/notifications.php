@@ -56,6 +56,10 @@ try {
             if (!csrf_ok()) { http_response_code(403); echo json_encode(['success' => false, 'message' => 'Invalid security token']); break; }
             createNotification($admin_id);
             break;
+        case 'send_quick_sms':
+            if (!csrf_ok()) { http_response_code(403); echo json_encode(['success' => false, 'message' => 'Invalid security token']); break; }
+            sendQuickSms($admin_id);
+            break;
         case 'list':
             listNotifications();
             break;
@@ -163,11 +167,11 @@ function markAllRead(): void {
 function searchMembers(): void {
     global $pdo;
     $q = trim($_GET['q'] ?? '');
-    $sql = "SELECT id, first_name, last_name, member_id AS code, email, is_active, is_approved, email_notifications FROM members WHERE is_active=1";
+    $sql = "SELECT id, first_name, last_name, member_id AS code, member_id, email, phone, language_preference, is_active, is_approved, email_notifications FROM members WHERE is_active=1";
     $params = [];
     if ($q !== '') {
-        $sql .= " AND (first_name LIKE ? OR last_name LIKE ? OR member_id LIKE ? OR email LIKE ?)";
-        $w = "%$q%"; $params = [$w,$w,$w,$w];
+        $sql .= " AND (first_name LIKE ? OR last_name LIKE ? OR member_id LIKE ? OR email LIKE ? OR phone LIKE ?)";
+        $w = "%$q%"; $params = [$w,$w,$w,$w,$w];
     }
     $sql .= " ORDER BY first_name, last_name LIMIT 50";
     $st = $pdo->prepare($sql); $st->execute($params);
@@ -303,6 +307,72 @@ function createNotification(int $admin_id): void {
         if (!empty($wa_broadcast)) { $resp['whatsapp_broadcast'] = $wa_broadcast; }
     }
     echo json_encode($resp);
+}
+
+function sendQuickSms(int $admin_id): void {
+    global $pdo;
+    
+    $member_id = (int)($_POST['member_id'] ?? 0);
+    $title_en = trim($_POST['title_en'] ?? '');
+    $title_am = trim($_POST['title_am'] ?? '');
+    $body_en = trim($_POST['body_en'] ?? '');
+    $body_am = trim($_POST['body_am'] ?? '');
+    
+    if (!$member_id) {
+        echo json_encode(['success' => false, 'message' => 'Member ID required']);
+        return;
+    }
+    
+    if (empty($title_en) || empty($body_en)) {
+        echo json_encode(['success' => false, 'message' => 'Title and message required']);
+        return;
+    }
+    
+    // Get member details
+    $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, phone, language_preference, is_active, is_approved, member_id FROM members WHERE id = ?");
+    $stmt->execute([$member_id]);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$member) {
+        echo json_encode(['success' => false, 'message' => 'Member not found']);
+        return;
+    }
+    
+    if (empty($member['phone'])) {
+        echo json_encode(['success' => false, 'message' => 'Member has no phone number']);
+        return;
+    }
+    
+    // Send SMS
+    $sent = 0;
+    $failed = 0;
+    
+    if (send_sms_copy($pdo, $member, $title_en, $title_am, $body_en, $body_am)) {
+        $sent = 1;
+    } else {
+        $failed = 1;
+    }
+    
+    // Create notification record
+    $notification_code = 'SMS-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    $now = date('Y-m-d H:i:s');
+    
+    $ins = $pdo->prepare("INSERT INTO notifications (notification_id, recipient_type, recipient_id, type, channel, subject, message, language, status, sent_at, created_at, updated_at, sent_by_admin_id) VALUES (?, 'member', ?, 'general', 'sms', ?, ?, 'en', 'sent', ?, ?, ?, ?)");
+    $ins->execute([$notification_code, $member_id, $title_en, $body_en, $now, $now, $now, $admin_id]);
+    
+    echo json_encode([
+        'success' => true,
+        'message' => 'SMS sent successfully',
+        'sms_result' => ['sent' => $sent, 'failed' => $failed],
+        'send_channel' => 'sms',
+        'notification_code' => $notification_code,
+        'preview' => [
+            'title_en' => $title_en,
+            'title_am' => $title_am,
+            'body_en' => $body_en,
+            'body_am' => $body_am,
+        ]
+    ]);
 }
 
 ?>
