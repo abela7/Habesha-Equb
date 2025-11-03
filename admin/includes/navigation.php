@@ -946,7 +946,7 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Security Settings</span>
             </a>
-            <a href="pwa-management.php" class="nav-item <?php echo ($current_page === 'pwa-management.php') ? 'active' : ''; ?>">
+            <a href="pwa-management.php" class="nav-item <?php echo ($current_page === 'pwa-management.php' || $current_page === 'pwa-installations.php') ? 'active' : ''; ?>">
                 <i class="fas fa-mobile-alt nav-icon"></i>
                 <span class="nav-text">PWA Management</span>
             </a>

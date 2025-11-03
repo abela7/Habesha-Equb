@@ -98,6 +98,9 @@ class PWAManager {
       // Clear dismissal flag
       localStorage.removeItem('pwa-install-dismissed');
       
+      // Track installation
+      this.trackInstallation();
+      
       // Show success message
       this.showToast('App installed successfully!', 'success');
     });
@@ -465,6 +468,73 @@ class PWAManager {
         toast.remove();
       }, 300);
     }, 3000);
+  }
+  
+  async trackInstallation() {
+    try {
+      const deviceInfo = {
+        platform: navigator.platform,
+        screen: {
+          width: window.screen.width,
+          height: window.screen.height
+        },
+        is_standalone: window.matchMedia('(display-mode: standalone)').matches
+      };
+      
+      const browserInfo = {
+        browser: this.getBrowserName(),
+        version: this.getBrowserVersion(),
+        os: this.getOSName()
+      };
+      
+      const response = await fetch('/admin/api/pwa-installations.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'record_installation',
+          platform: deviceInfo.platform,
+          screen: deviceInfo.screen,
+          is_standalone: deviceInfo.is_standalone,
+          browser: browserInfo.browser,
+          version: browserInfo.version,
+          os: browserInfo.os
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        console.log('[PWA] Installation tracked:', data);
+      }
+    } catch (error) {
+      console.error('[PWA] Failed to track installation:', error);
+    }
+  }
+  
+  getBrowserName() {
+    const ua = navigator.userAgent;
+    if (ua.includes('Chrome')) return 'Chrome';
+    if (ua.includes('Firefox')) return 'Firefox';
+    if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+    if (ua.includes('Edge')) return 'Edge';
+    return 'Unknown';
+  }
+  
+  getBrowserVersion() {
+    const ua = navigator.userAgent;
+    const match = ua.match(/(Chrome|Firefox|Safari|Edge)\/(\d+)/);
+    return match ? match[2] : 'Unknown';
+  }
+  
+  getOSName() {
+    const ua = navigator.userAgent;
+    if (ua.includes('Windows')) return 'Windows';
+    if (ua.includes('Mac')) return 'macOS';
+    if (ua.includes('Linux')) return 'Linux';
+    if (ua.includes('Android')) return 'Android';
+    if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+    return 'Unknown';
   }
 }
 

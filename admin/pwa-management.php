@@ -381,6 +381,40 @@ if (file_exists($manifestPath)) {
                 </form>
             </div>
             
+            <!-- Installation Statistics Card -->
+            <div class="update-form-card">
+                <h3 style="color: #4D4052; margin-bottom: 20px;">
+                    <i class="fas fa-mobile-alt me-2"></i>
+                    Installation Statistics
+                </h3>
+                
+                <div id="installStats" class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalInstalls">-</div>
+                        <div class="stat-label">Total Installs</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="memberInstalls">-</div>
+                        <div class="stat-label">Members</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="adminInstalls">-</div>
+                        <div class="stat-label">Admins</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="recentInstalls">-</div>
+                        <div class="stat-label">Last 30 Days</div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="pwa-installations.php" class="btn btn-primary">
+                        <i class="fas fa-list me-2"></i>
+                        View All Installations
+                    </a>
+                </div>
+            </div>
+            
             <!-- Update History Card -->
             <div class="history-card">
                 <h3 style="color: #4D4052; margin-bottom: 20px;">
@@ -482,6 +516,28 @@ if (file_exists($manifestPath)) {
                 updateBtn.disabled = false;
                 updateBtn.innerHTML = '<i class="fas fa-rocket"></i> Update Now';
             }
+        });
+        
+        // Load installation statistics
+        async function loadInstallStats() {
+            try {
+                const response = await fetch('api/pwa-installations.php?action=get_statistics');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalInstalls').textContent = data.statistics.total || 0;
+                    document.getElementById('memberInstalls').textContent = data.statistics.members || 0;
+                    document.getElementById('adminInstalls').textContent = data.statistics.admins || 0;
+                    document.getElementById('recentInstalls').textContent = data.statistics.recent_30_days || 0;
+                }
+            } catch (error) {
+                console.error('Failed to load installation stats:', error);
+            }
+        }
+        
+        // Load stats on page load
+        window.addEventListener('load', () => {
+            loadInstallStats();
         });
         
         function showAlert(message, type) {

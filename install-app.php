@@ -386,6 +386,75 @@ if (!isset($_SESSION['app_language'])) {
             instructionsContent.innerHTML = html;
         }
         
+        // Track installation
+        async function trackInstallation() {
+            try {
+                const deviceInfo = {
+                    platform: navigator.platform,
+                    screen: {
+                        width: window.screen.width,
+                        height: window.screen.height
+                    },
+                    is_standalone: window.matchMedia('(display-mode: standalone)').matches
+                };
+                
+                const browserInfo = {
+                    browser: getBrowserName(),
+                    version: getBrowserVersion(),
+                    os: getOSName()
+                };
+                
+                const response = await fetch('admin/api/pwa-installations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'record_installation',
+                        platform: deviceInfo.platform,
+                        screen: deviceInfo.screen,
+                        is_standalone: deviceInfo.is_standalone,
+                        browser: browserInfo.browser,
+                        version: browserInfo.version,
+                        os: browserInfo.os
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    console.log('Installation tracked:', data);
+                }
+            } catch (error) {
+                console.error('Failed to track installation:', error);
+            }
+        }
+        
+        // Browser detection helpers
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Chrome')) return 'Chrome';
+            if (ua.includes('Firefox')) return 'Firefox';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+            if (ua.includes('Edge')) return 'Edge';
+            return 'Unknown';
+        }
+        
+        function getBrowserVersion() {
+            const ua = navigator.userAgent;
+            const match = ua.match(/(Chrome|Firefox|Safari|Edge)\/(\d+)/);
+            return match ? match[2] : 'Unknown';
+        }
+        
+        function getOSName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Windows')) return 'Windows';
+            if (ua.includes('Mac')) return 'macOS';
+            if (ua.includes('Linux')) return 'Linux';
+            if (ua.includes('Android')) return 'Android';
+            if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+            return 'Unknown';
+        }
+        
         // Install button click handler
         installBtn.addEventListener('click', async () => {
             if (!deferredPrompt) {
@@ -405,6 +474,8 @@ if (!isset($_SESSION['app_language'])) {
             
             if (outcome === 'accepted') {
                 showStatus('<i class="fas fa-check-circle"></i> Installation started!', 'success');
+                // Track installation
+                await trackInstallation();
             } else {
                 showStatus('<i class="fas fa-info-circle"></i> Installation cancelled. You can try again anytime.', 'info');
                 installBtn.disabled = false;
@@ -412,6 +483,11 @@ if (!isset($_SESSION['app_language'])) {
             }
             
             deferredPrompt = null;
+        });
+        
+        // Track installation when appinstalled event fires
+        window.addEventListener('appinstalled', () => {
+            trackInstallation();
         });
         
         // Copy share URL
