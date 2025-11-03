@@ -14,26 +14,24 @@ if (!$admin_id) {
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
-    $pdo = getDBConnection();
-    
     switch ($action) {
         case 'list':
-            listTemplates($pdo);
+            listTemplates();
             break;
         case 'get':
-            getTemplate($pdo);
+            getTemplate();
             break;
         case 'create':
-            createTemplate($pdo, $admin_id);
+            createTemplate($admin_id);
             break;
         case 'update':
-            updateTemplate($pdo, $admin_id);
+            updateTemplate($admin_id);
             break;
         case 'delete':
-            deleteTemplate($pdo, $admin_id);
+            deleteTemplate($admin_id);
             break;
         case 'increment_usage':
-            incrementUsage($pdo);
+            incrementUsage();
             break;
         default:
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -43,14 +41,16 @@ try {
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }
 
-function listTemplates(PDO $pdo): void {
+function listTemplates(): void {
+    global $pdo;
     $stmt = $pdo->prepare("SELECT id, template_name, title_en, title_am, body_en, body_am, category, usage_count, is_active, created_at FROM sms_templates ORDER BY usage_count DESC, created_at DESC");
     $stmt->execute();
     $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'templates' => $templates]);
 }
 
-function getTemplate(PDO $pdo): void {
+function getTemplate(): void {
+    global $pdo;
     $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'Template ID required']);
@@ -69,7 +69,8 @@ function getTemplate(PDO $pdo): void {
     echo json_encode(['success' => true, 'template' => $template]);
 }
 
-function createTemplate(PDO $pdo, int $admin_id): void {
+function createTemplate(int $admin_id): void {
+    global $pdo;
     $template_name = trim($_POST['template_name'] ?? '');
     $title_en = trim($_POST['title_en'] ?? '');
     $title_am = trim($_POST['title_am'] ?? '');
@@ -88,7 +89,8 @@ function createTemplate(PDO $pdo, int $admin_id): void {
     echo json_encode(['success' => true, 'message' => 'Template created', 'id' => $pdo->lastInsertId()]);
 }
 
-function updateTemplate(PDO $pdo, int $admin_id): void {
+function updateTemplate(int $admin_id): void {
+    global $pdo;
     $id = (int)($_POST['template_id'] ?? $_POST['id'] ?? 0);
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'Template ID required']);
@@ -122,7 +124,8 @@ function updateTemplate(PDO $pdo, int $admin_id): void {
     echo json_encode(['success' => true, 'message' => 'Template updated']);
 }
 
-function deleteTemplate(PDO $pdo, int $admin_id): void {
+function deleteTemplate(int $admin_id): void {
+    global $pdo;
     $id = (int)($_POST['id'] ?? 0);
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'Template ID required']);
@@ -145,7 +148,8 @@ function deleteTemplate(PDO $pdo, int $admin_id): void {
     echo json_encode(['success' => true, 'message' => 'Template deleted']);
 }
 
-function incrementUsage(PDO $pdo): void {
+function incrementUsage(): void {
+    global $pdo;
     $id = (int)($_POST['id'] ?? 0);
     if (!$id) return;
     
