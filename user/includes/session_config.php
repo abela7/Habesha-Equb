@@ -17,8 +17,18 @@ if (session_status() === PHP_SESSION_NONE) {
     // Session timeout and security
     // Keep server-side session available for 7 days to match remember-device
     ini_set('session.gc_maxlifetime', 604800); // 7 days
-    // Keep browser session cookie until browser close; auto-login will re-establish
-    ini_set('session.cookie_lifetime', 0);
+    
+    // Check if user wants to be remembered (via cookie from previous session or GET parameter)
+    // Note: We check cookie here because session hasn't started yet, so we can't check $_SESSION
+    $rememberDevice = isset($_COOKIE['device_token']) || isset($_GET['remember_device']);
+    
+    // If device_token exists, extend session cookie to 7 days for persistence
+    // Otherwise, session cookie expires when browser closes
+    if ($rememberDevice) {
+        ini_set('session.cookie_lifetime', 604800); // 7 days
+    } else {
+        ini_set('session.cookie_lifetime', 0); // Until browser close
+    }
     
     session_start();
 }

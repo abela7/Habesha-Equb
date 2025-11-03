@@ -118,10 +118,24 @@ function checkRememberedDevice() {
             $_SESSION['user_name'] = $result['first_name'] . ' ' . $result['last_name'];
             $_SESSION['member_id'] = $result['member_id'];
             $_SESSION['auto_login'] = true; // Flag to indicate automatic login
+            $_SESSION['remember_device'] = true; // Mark as remembered device
             // Ensure session timeouts work correctly with auth_guard
             $_SESSION['user_login_time'] = time();
             $_SESSION['user_last_activity'] = time();
             $_SESSION['user_role'] = 'user'; // CRITICAL: Role identifier for security
+            
+            // Extend session cookie lifetime to 7 days since device is remembered
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            $cookieParams = session_get_cookie_params();
+            // Regenerate session cookie with extended lifetime
+            setcookie(session_name(), session_id(), [
+                'expires' => time() + 604800, // 7 days
+                'path' => $cookieParams['path'],
+                'domain' => $cookieParams['domain'],
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
             
             // Reset device check attempts on successful login
             unset($_SESSION['device_check_attempts']);

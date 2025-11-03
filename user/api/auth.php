@@ -402,15 +402,24 @@ function handle_otp_verification($database) {
         $_SESSION['user_login_time'] = time(); // CRITICAL: Required by auth_guard.php
         $_SESSION['user_role'] = 'user'; // CRITICAL: Role identifier for security
         
-        // Force session write to ensure it's saved before redirect
-        session_write_close();
-        session_start(); // Restart session for any remaining operations
-        
-        // Debug logging
-        error_log("OTP Login Success - User ID: {$user['id']}, Email: {$user['email']}, Rules Agreed: {$user['rules_agreed']}");
-        
         // Handle device remembering (7 days) - with fallback for missing columns
         if ($remember_device) {
+            // Mark session as "remember me" so auth_guard knows to extend timeout
+            $_SESSION['remember_device'] = true;
+            
+            // Extend session cookie lifetime to 7 days manually (since session already started)
+            // This ensures the session cookie persists even after browser closes
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            $cookieParams = session_get_cookie_params();
+            setcookie(session_name(), session_id(), [
+                'expires' => time() + 604800, // 7 days
+                'path' => $cookieParams['path'],
+                'domain' => $cookieParams['domain'],
+                'secure' => $isSecure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            
             try {
                 // Check if device_tracking table has the new columns
                 $check_stmt = $database->prepare("SHOW COLUMNS FROM device_tracking LIKE 'device_token'");
@@ -441,8 +450,15 @@ function handle_otp_verification($database) {
                         $_SERVER['REMOTE_ADDR'] ?? ''
                     ]);
                     
-                    // Set device cookie
-                    setcookie('device_token', $device_token, strtotime('+7 days'), '/', '', true, true);
+                    // Set device cookie - work on both HTTP and HTTPS
+                    setcookie('device_token', $device_token, [
+                        'expires' => strtotime('+7 days'),
+                        'path' => '/',
+                        'domain' => '',
+                        'secure' => $isSecure,
+                        'httponly' => true,
+                        'samesite' => 'Lax'
+                    ]);
                 } else {
                     // Fallback to basic device tracking (old version)
                     $device_fp = 'dv_' . substr(md5($_SERVER['HTTP_USER_AGENT'] ?? 'unknown'), 0, 16);

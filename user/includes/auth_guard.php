@@ -144,7 +144,7 @@ function require_user_auth() {
 
     // Check session timeout. If user selected remember-device, extend to 7 days
     $timeoutHours = 24;
-    $hasRemember = (!empty($_SESSION['auto_login']) || isset($_COOKIE['device_token']));
+    $hasRemember = (!empty($_SESSION['auto_login']) || !empty($_SESSION['remember_device']) || isset($_COOKIE['device_token']));
     if ($hasRemember) { $timeoutHours = 24 * 7; }
     if (check_session_timeout($timeoutHours)) {
         error_log("Auth Guard - Session timeout, redirecting to login");
