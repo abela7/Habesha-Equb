@@ -31,7 +31,9 @@ class PWAManager {
   
   async registerServiceWorker() {
     try {
-      const registration = await navigator.serviceWorker.register('/service-worker.js', {
+      // Use absolute URL for service worker registration
+      const swUrl = window.location.origin + '/service-worker.js';
+      const registration = await navigator.serviceWorker.register(swUrl, {
         scope: '/'
       });
       
@@ -162,14 +164,25 @@ class PWAManager {
         </div>
       </div>
       <div class="pwa-install-banner-actions">
-        <button class="pwa-install-banner-btn" onclick="pwaManager.installApp()">
+        <button class="pwa-install-banner-btn" data-action="install">
           <i class="fas fa-download me-1"></i>Install
         </button>
-        <button class="pwa-install-dismiss-btn" onclick="pwaManager.dismissInstallBanner()" title="Dismiss">
+        <button class="pwa-install-dismiss-btn" data-action="dismiss" title="Dismiss">
           <i class="fas fa-times"></i>
         </button>
       </div>
     `;
+    
+    // Add event listeners instead of inline handlers
+    const installBtn = banner.querySelector('[data-action="install"]');
+    const dismissBtn = banner.querySelector('[data-action="dismiss"]');
+    
+    if (installBtn) {
+      installBtn.addEventListener('click', () => this.installApp());
+    }
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => this.dismissInstallBanner());
+    }
     
     document.body.appendChild(banner);
     
@@ -193,7 +206,7 @@ class PWAManager {
       installBtn.id = 'pwa-install-btn';
       installBtn.className = 'pwa-install-btn';
       installBtn.innerHTML = '<i class="fas fa-download"></i><span>Install App</span>';
-      installBtn.onclick = () => this.installApp();
+      installBtn.addEventListener('click', () => this.installApp());
       
       const installContainer = document.createElement('div');
       installContainer.className = 'pwa-install-container';
@@ -373,14 +386,25 @@ class PWAManager {
         <span>New version available! Update now to get the latest features.</span>
       </div>
       <div class="pwa-update-actions">
-        <button class="pwa-update-btn" onclick="pwaManager.updateApp()">
+        <button class="pwa-update-btn" data-action="update">
           <i class="fas fa-download me-1"></i>Update
         </button>
-        <button class="pwa-dismiss-btn" onclick="pwaManager.dismissUpdate()">
+        <button class="pwa-dismiss-btn" data-action="dismiss-update">
           <i class="fas fa-times"></i>
         </button>
       </div>
     `;
+    
+    // Add event listeners instead of inline handlers
+    const updateBtn = notification.querySelector('[data-action="update"]');
+    const dismissUpdateBtn = notification.querySelector('[data-action="dismiss-update"]');
+    
+    if (updateBtn) {
+      updateBtn.addEventListener('click', () => this.updateApp());
+    }
+    if (dismissUpdateBtn) {
+      dismissUpdateBtn.addEventListener('click', () => this.dismissUpdate());
+    }
     
     document.body.appendChild(notification);
     
@@ -446,14 +470,18 @@ class PWAManager {
 
 // Initialize PWA Manager when DOM is ready
 let pwaManager;
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+
+function initializePWAManager() {
+  if (!pwaManager) {
     pwaManager = new PWAManager();
-  });
-} else {
-  pwaManager = new PWAManager();
+    // Make it globally available after initialization
+    window.pwaManager = pwaManager;
+  }
 }
 
-// Make it globally available
-window.pwaManager = pwaManager;
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePWAManager);
+} else {
+  initializePWAManager();
+}
 

@@ -2,7 +2,7 @@
   "name": "HabeshaEqub",
   "short_name": "HabeshaEqub",
   "description": "Modern Ethiopian Traditional Savings Group Management System",
-  "start_url": "/",
+  "start_url": "/index.php",
   "display": "standalone",
   "background_color": "#F1ECE2",
   "theme_color": "#4D4052",

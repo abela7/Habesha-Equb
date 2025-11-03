@@ -10,7 +10,7 @@ const OFFLINE_PAGE = '/offline.html';
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
-  '/',
+  '/index.php',
   '/assets/css/style.css',
   '/Pictures/Main Logo.png',
   '/Pictures/Icon/favicon.ico',
@@ -80,6 +80,34 @@ self.addEventListener('fetch', (event) => {
   
   // Skip admin API calls
   if (url.pathname.includes('/admin/api/') || url.pathname.includes('/user/api/')) {
+    return;
+  }
+  
+  // For navigation requests (page loads), always try network first
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // If network succeeds, cache it and return
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Network failed, try cache
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // No cache, return offline page
+            return caches.match(OFFLINE_PAGE);
+          });
+        })
+    );
     return;
   }
   
