@@ -73,6 +73,13 @@ if ($device_status['pending']) {
     exit();
 }
 
+// Check if this is a PWA launch (splash screen)
+if (isset($_GET['pwa']) && $_GET['pwa'] == '1') {
+    // Show splash screen with page loader
+    require_once __DIR__ . '/splash.php';
+    exit();
+}
+
 // Check if this is an install page request
 // Handle /install route - show install page without redirect
 // MUST be checked AFTER pending status check to prevent bypass
