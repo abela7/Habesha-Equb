@@ -203,9 +203,10 @@ if (!isset($_SESSION['app_language'])) {
             }, 5000);
         }
         
-        // Track installation
-        async function trackInstallation() {
+        // Track installation - ensures every visit to /install is tracked
+        async function trackInstallation(installationCompleted = false) {
             try {
+                // Track both page visits and actual installations
                 await fetch('admin/api/pwa-installations.php', {
                     method: 'POST',
                     headers: {
@@ -221,7 +222,9 @@ if (!isset($_SESSION['app_language'])) {
                         is_standalone: window.matchMedia('(display-mode: standalone)').matches,
                         browser: getBrowserName(),
                         version: getBrowserVersion(),
-                        os: getOSName()
+                        os: getOSName(),
+                        installation_completed: installationCompleted,
+                        visit_only: !installationCompleted
                     })
                 });
             } catch (error) {
@@ -277,7 +280,7 @@ if (!isset($_SESSION['app_language'])) {
                 installBtnText.textContent = 'App Installed';
                 showStatus('✓ App installed successfully!', 'success');
                 deferredPrompt = null;
-                trackInstallation();
+                trackInstallation(true); // Track as completed installation
             });
         }
         
@@ -299,7 +302,7 @@ if (!isset($_SESSION['app_language'])) {
             
             if (outcome === 'accepted') {
                 showStatus('✓ Installation started!', 'success');
-                await trackInstallation();
+                await trackInstallation(true); // Track as completed installation
             } else {
                 showStatus('Installation cancelled. You can try again anytime.', 'info');
                 installBtn.disabled = false;
@@ -312,6 +315,8 @@ if (!isset($_SESSION['app_language'])) {
         // Initialize on page load
         window.addEventListener('load', () => {
             checkInstallStatus();
+            // Track that someone visited the install page
+            trackInstallation(false);
         });
     </script>
     

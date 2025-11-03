@@ -45,7 +45,9 @@ if ($action === 'record_installation') {
             'platform' => $input['platform'] ?? '',
             'language' => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
             'screen' => $input['screen'] ?? null,
-            'is_standalone' => $input['is_standalone'] ?? false
+            'is_standalone' => $input['is_standalone'] ?? false,
+            'visit_only' => $input['visit_only'] ?? false,
+            'installation_completed' => $input['installation_completed'] ?? false
         ]);
         
         $browser_info = json_encode([

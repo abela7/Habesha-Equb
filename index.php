@@ -64,11 +64,29 @@ function checkDevicePendingStatus() {
 }
 
 // Check if this device has a pending registration
+// IMPORTANT: Check this BEFORE allowing access to install page
 $device_status = checkDevicePendingStatus();
 
 if ($device_status['pending']) {
-    // Redirect to waiting approval page
+    // Redirect to waiting approval page (bypass install page for pending users)
     header("Location: user/waiting-approval.php?email=" . urlencode($device_status['email']));
+    exit();
+}
+
+// Check if this is an install page request
+// Handle /install route - show install page without redirect
+// MUST be checked AFTER pending status check to prevent bypass
+$request_uri = $_SERVER['REQUEST_URI'] ?? '';
+$query_string = $_SERVER['QUERY_STRING'] ?? '';
+
+// Check if path contains /install
+if (strpos($request_uri, '/install') !== false || 
+    isset($_GET['install']) || 
+    ($request_uri === '/install') || 
+    ($request_uri === '/install/') ||
+    ($query_string === 'install')) {
+    // Include install page directly (no redirect)
+    require_once __DIR__ . '/install-app.php';
     exit();
 }
 
