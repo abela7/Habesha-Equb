@@ -102,6 +102,15 @@ function checkRememberedDevice() {
             ");
             $login_stmt->execute([$result['id']]);
             
+            // SECURITY: Clear any conflicting admin session before setting user session
+            if (isset($_SESSION['admin_id']) || isset($_SESSION['admin_logged_in'])) {
+                unset($_SESSION['admin_id']);
+                unset($_SESSION['admin_logged_in']);
+                unset($_SESSION['login_time']);
+                unset($_SESSION['admin_username']);
+                error_log("SECURITY: Cleared conflicting admin session during device auth");
+            }
+            
             // Set session variables
             $_SESSION['user_id'] = $result['id'];
             $_SESSION['user_logged_in'] = true;
@@ -112,6 +121,7 @@ function checkRememberedDevice() {
             // Ensure session timeouts work correctly with auth_guard
             $_SESSION['user_login_time'] = time();
             $_SESSION['user_last_activity'] = time();
+            $_SESSION['user_role'] = 'user'; // CRITICAL: Role identifier for security
             
             // Reset device check attempts on successful login
             unset($_SESSION['device_check_attempts']);

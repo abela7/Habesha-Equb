@@ -112,11 +112,23 @@ switch ($action) {
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$admin) { json_response(false, 'Admin account not found or inactive'); }
             // Set session
+            // SECURITY: Clear any conflicting user session before setting admin session
+            if (isset($_SESSION['user_id']) || isset($_SESSION['user_logged_in'])) {
+                unset($_SESSION['user_id']);
+                unset($_SESSION['user_logged_in']);
+                unset($_SESSION['user_login_time']);
+                unset($_SESSION['user_email']);
+                unset($_SESSION['user_name']);
+                unset($_SESSION['member_id']);
+                error_log("SECURITY: Cleared conflicting user session during admin login");
+            }
+            
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_username'] = $admin['username'];
             $_SESSION['admin_email'] = $admin['email'];
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['login_time'] = time();
+            $_SESSION['user_role'] = 'admin'; // CRITICAL: Role identifier for security
             unset($_SESSION['admin_otp_id']); unset($_SESSION['admin_otp_email']);
             json_response(true, 'Login successful', ['redirect' => 'welcome_admin.php']);
         } catch (Throwable $e) {

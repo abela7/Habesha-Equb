@@ -384,6 +384,15 @@ function handle_otp_verification($database) {
         $stmt = $database->prepare("UPDATE members SET last_login = NOW() WHERE id = ?");
         $stmt->execute([$user['id']]);
         
+        // SECURITY: Clear any conflicting admin session before setting user session
+        if (isset($_SESSION['admin_id']) || isset($_SESSION['admin_logged_in'])) {
+            unset($_SESSION['admin_id']);
+            unset($_SESSION['admin_logged_in']);
+            unset($_SESSION['login_time']);
+            unset($_SESSION['admin_username']);
+            error_log("SECURITY: Cleared conflicting admin session during user login");
+        }
+        
         // Set up user session
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_logged_in'] = true;
@@ -391,6 +400,7 @@ function handle_otp_verification($database) {
         $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['member_id'] = $user['member_id'];
         $_SESSION['user_login_time'] = time(); // CRITICAL: Required by auth_guard.php
+        $_SESSION['user_role'] = 'user'; // CRITICAL: Role identifier for security
         
         // Force session write to ensure it's saved before redirect
         session_write_close();

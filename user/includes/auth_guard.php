@@ -25,12 +25,31 @@ if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
  * Check if user is properly authenticated
  */
 function is_user_authenticated() {
-    return isset($_SESSION['user_id']) && 
-           isset($_SESSION['user_logged_in']) && 
-           $_SESSION['user_logged_in'] === true &&
-           isset($_SESSION['user_login_time']) &&
-           is_numeric($_SESSION['user_id']) &&
-           $_SESSION['user_id'] > 0;
+    // Check basic user session variables
+    $hasUserSession = isset($_SESSION['user_id']) && 
+                      isset($_SESSION['user_logged_in']) && 
+                      $_SESSION['user_logged_in'] === true &&
+                      isset($_SESSION['user_login_time']) &&
+                      is_numeric($_SESSION['user_id']) &&
+                      $_SESSION['user_id'] > 0;
+    
+    if (!$hasUserSession) {
+        return false;
+    }
+    
+    // CRITICAL: Verify no conflicting admin session exists
+    if (isset($_SESSION['admin_id']) && isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+        error_log("SECURITY: Conflicting admin session detected in user authentication check");
+        return false;
+    }
+    
+    // Verify role is set correctly (if set)
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] !== 'user') {
+        error_log("SECURITY: Role mismatch in user authentication - expected 'user', got: " . $_SESSION['user_role']);
+        return false;
+    }
+    
+    return true;
 }
 
 /**
@@ -90,6 +109,18 @@ function logout_and_redirect($message = '') {
  * Require authentication - call this in all protected pages
  */
 function require_user_auth() {
+    // CRITICAL: Check for conflicting admin session (prevent role confusion)
+    if (isset($_SESSION['admin_id']) && isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+        // Admin session detected in user area - clear it and redirect
+        error_log("SECURITY: Admin session detected in user area. Admin must use admin portal.");
+        unset($_SESSION['admin_id']);
+        unset($_SESSION['admin_logged_in']);
+        unset($_SESSION['login_time']);
+        unset($_SESSION['admin_username']);
+        unset($_SESSION['user_role']);
+        logout_and_redirect('Admin accounts must access the admin portal. Please log in as a member.');
+    }
+    
     // Debug: Log authentication attempt
     error_log("Auth Guard - Authentication check for page: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
     error_log("Auth Guard - Session data: user_id=" . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set') . 
@@ -101,6 +132,15 @@ function require_user_auth() {
         error_log("Auth Guard - Authentication failed, redirecting to login");
         logout_and_redirect();
     }
+    
+    // Verify role consistency BEFORE setting - user pages must have user role or no role
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] !== 'user') {
+        error_log("SECURITY: Role mismatch detected. Expected 'user' or unset, got: " . $_SESSION['user_role']);
+        logout_and_redirect('Invalid session. Please log in again.');
+    }
+    
+    // Set explicit user role identifier (only if not already set or if it's correct)
+    $_SESSION['user_role'] = 'user';
 
     // Check session timeout. If user selected remember-device, extend to 7 days
     $timeoutHours = 24;
