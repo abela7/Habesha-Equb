@@ -764,7 +764,12 @@
     "grace_period": "Grace Period",
     "grace_period_days": "Grace Period (Days)",
     "payment": "payment",
-    "app_name": "HABESHA EQUB"
+    "app_name": "HABESHA EQUB",
+    "created_at": "Created At",
+    "verified_at": "Verified At",
+    "receipt_available": "Receipt Available",
+    "receipt_download_desc": "Click the button below to view and download your payment receipt.",
+    "receipt_pending_verification": "Receipt will be available once payment is verified."
   },
   "joint_membership": {
     "title": "Joint Membership",

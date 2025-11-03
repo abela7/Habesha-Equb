@@ -92,7 +92,7 @@ $cache_buster = time();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo t('member_dashboard.payment_details'); ?> - HabeshaEqub</title>
+    <title><?php echo t('contributions.payment_details'); ?> - HabeshaEqub</title>
     
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="../Pictures/Icon/favicon.ico">
@@ -324,7 +324,7 @@ $cache_buster = time();
             </a>
             <h1>
                 <i class="fas fa-receipt text-primary"></i>
-                <?php echo t('member_dashboard.payment_details'); ?>
+                <?php echo t('contributions.payment_details'); ?>
             </h1>
         </div>
     </div>
@@ -450,7 +450,7 @@ $cache_buster = time();
                                 <i class="fas fa-clock me-1"></i><?php echo t('member_dashboard.pending'); ?>
                             </span>
                         <?php else: ?>
-                            <span class="text-muted">Not Verified</span>
+                            <span class="text-muted"><?php echo t('contributions.not_verified'); ?></span>
                         <?php endif; ?>
                     </span>
                 </div>
@@ -459,7 +459,7 @@ $cache_buster = time();
                 <div class="detail-row">
                     <span class="detail-label">
                         <i class="fas fa-clock text-muted"></i>
-                        Created At
+                        <?php echo t('contributions.created_at'); ?>
                     </span>
                     <span class="detail-value text-muted">
                         <?php echo htmlspecialchars($payment['created_at_formatted']); ?>
@@ -471,7 +471,7 @@ $cache_buster = time();
                 <div class="detail-row">
                     <span class="detail-label">
                         <i class="fas fa-check-double text-success"></i>
-                        Verified At
+                        <?php echo t('contributions.verified_at'); ?>
                     </span>
                     <span class="detail-value text-success">
                         <?php echo htmlspecialchars($payment['verification_date_formatted']); ?>
@@ -485,9 +485,9 @@ $cache_buster = time();
             <div class="receipt-section">
                 <h5 class="mb-3">
                     <i class="fas fa-file-invoice text-success me-2"></i>
-                    Receipt Available
+                    <?php echo t('contributions.receipt_available'); ?>
                 </h5>
-                <p class="text-muted mb-4">Click the button below to view and download your payment receipt.</p>
+                <p class="text-muted mb-4"><?php echo t('contributions.receipt_download_desc'); ?></p>
                 <a href="<?php echo htmlspecialchars($receipt_url); ?>" target="_blank" class="receipt-btn">
                     <i class="fas fa-download"></i>
                     <?php echo t('contributions.view_receipt'); ?>
@@ -497,7 +497,7 @@ $cache_buster = time();
             <div class="receipt-section">
                 <p class="text-muted mb-0">
                     <i class="fas fa-info-circle me-2"></i>
-                    Receipt will be available once payment is verified.
+                    <?php echo t('contributions.receipt_pending_verification'); ?>
                 </p>
             </div>
             <?php endif; ?>

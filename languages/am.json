@@ -789,7 +789,12 @@
     "grace_period": "የቅንጡ ጊዜ",
     "grace_period_days": "የቅንጡ ጊዜ (ቀናት)",
     "payment": "ክፍያ",
-    "app_name": "ሀበሻ እቁብ"
+    "app_name": "ሀበሻ እቁብ",
+    "created_at": "የተፈጠረበት ቀን",
+    "verified_at": "የተረጋገጠበት ቀን",
+    "receipt_available": "ደረሰኙን ለማግኘት",
+    "receipt_download_desc": "የክፍያዎን ደረሰኝ ለማየት እና ለማውረድ ከዚህ በታች ያለውን ቁልፍ ይጫኑ።",
+    "receipt_pending_verification": "ክፍያ ከተረጋገጠ በኋላ ደረሰኝ ይገኛል።"
   },
   "joint_membership": {
     "title": "የጋራ አባልነት",
