@@ -587,7 +587,7 @@ function verifyWithNotification() {
     }
     
     // Get payment data
-    $stmt = $pdo->prepare("SELECT p.*, m.first_name, m.last_name, m.member_id, m.email, m.phone, m.language_preference, m.is_active, m.is_approved, m.email_notifications FROM payments p LEFT JOIN members m ON p.member_id = m.id WHERE p.id = ?");
+    $stmt = $pdo->prepare("SELECT p.*, m.id as member_db_id, m.first_name, m.last_name, m.member_id, m.email, m.phone, m.language_preference, m.is_active, m.is_approved, m.email_notifications FROM payments p LEFT JOIN members m ON p.member_id = m.id WHERE p.id = ?");
     $stmt->execute([$payment_id]);
     $payment = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -605,9 +605,9 @@ function verifyWithNotification() {
     $stmt = $pdo->prepare("UPDATE payments SET status = 'paid', verified_by_admin = 1, verified_by_admin_id = ?, verification_date = NOW(), updated_at = NOW() WHERE id = ?");
     $stmt->execute([$admin_id, $payment_id]);
     
-    // Update member's total contributed
+    // Update member's total contributed (use p.member_id which is the database ID)
     $stmt = $pdo->prepare("UPDATE members SET total_contributed = total_contributed + ? WHERE id = ?");
-    $stmt->execute([$payment['amount'], $payment['member_id']]);
+    $stmt->execute([$payment['amount'], $payment['member_db_id']]);
     
     // Generate receipt link
     $receiptUrl = '';
@@ -655,7 +655,7 @@ function verifyWithNotification() {
     
     // Prepare member data
     $member = [
-        'id' => $payment['member_id'],
+        'id' => $payment['member_db_id'], // Use database ID, not member code
         'first_name' => $payment['first_name'],
         'last_name' => $payment['last_name'],
         'email' => $payment['email'],
@@ -664,7 +664,7 @@ function verifyWithNotification() {
         'is_active' => $payment['is_active'],
         'is_approved' => $payment['is_approved'],
         'email_notifications' => $payment['email_notifications'],
-        'member_id' => $payment['member_id']
+        'member_id' => $payment['member_id'] // Member code (e.g., "HEM-001")
     ];
     
     // Track results

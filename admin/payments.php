@@ -1553,8 +1553,8 @@ $csrf_token = generate_csrf_token();
             
             document.getElementById('paymentTitleEn').value = 'Payment Confirmed';
             document.getElementById('paymentTitleAm').value = 'ክፍያ ተረጋግጧል';
-            document.getElementById('paymentBodyEn').value = `Your this month equb payment has been made. Thanks for your payment. Click the link to download your receipt: ${_receiptLink}`;
-            document.getElementById('paymentBodyAm').value = `የዚህ ወር ኢኩብ ክፍያዎ ተከናውኗል። ክፍያዎን በመክፈል እናመሰግናለን። ሰነድዎን ለማውረድ አገናኙን ይጫኑ: ${_receiptLink}`;
+            document.getElementById('paymentBodyEn').value = `Thank you for making this month's equb payment. Use this link to get your receipt: ${_receiptLink}`;
+            document.getElementById('paymentBodyAm').value = `የዚህን ወር እቁብ ስለከፈሉ እናመሰግናለን። ደረሰኙን ለማግኘት ይሄንን ሊንክ ይጠቀሙ። ${_receiptLink}`;
             
             replacePaymentVariables();
             updatePaymentCharCounts();
