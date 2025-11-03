@@ -8,7 +8,7 @@ class SmsService {
     private $pdo;
     private $api_key;
     private $sender_name;
-    private $api_endpoint = 'https://api.brevo.com/v3/transactionalSMS/sms';
+    private $api_endpoint = 'https://api.brevo.com/v3/transactionalSMS/send';
     
     public function __construct($pdo) {
         $this->pdo = $pdo;
@@ -100,12 +100,13 @@ class SmsService {
             ];
         }
         
-        // Prepare API request
+        // Prepare API request (matching Brevo documentation exactly)
         $payload = [
-            'type' => 'transactional',
             'sender' => $this->sender_name,
             'recipient' => $phone,
-            'content' => $message
+            'content' => $message,
+            'type' => 'transactional',
+            'unicodeEnabled' => true  // Important for Amharic support!
         ];
         
         // Send via Brevo API
@@ -129,6 +130,7 @@ class SmsService {
         
         // Handle response
         if ($curl_error) {
+            error_log("SMS CURL Error: " . $curl_error);
             return [
                 'success' => false,
                 'message' => 'SMS API connection error: ' . $curl_error,
@@ -138,9 +140,14 @@ class SmsService {
         
         $response_data = json_decode($response, true);
         
+        // Log the full response for debugging
+        error_log("SMS API Response - HTTP Code: $http_code, Response: " . $response);
+        
         if ($http_code === 201 || $http_code === 200) {
             // SMS sent successfully
             $this->updateRateLimit($phone);
+            
+            error_log("SMS sent successfully to $phone. Message ID: " . ($response_data['messageId'] ?? 'N/A'));
             
             return [
                 'success' => true,
@@ -150,14 +157,18 @@ class SmsService {
                 'credits_remaining' => $response_data['remainingCredits'] ?? null
             ];
         } else {
-            // SMS failed
-            $error_message = $response_data['message'] ?? 'Unknown error';
+            // SMS failed - get detailed error
+            $error_message = $response_data['message'] ?? $response_data['error'] ?? 'Unknown error';
+            $error_code = $response_data['code'] ?? 'N/A';
+            
+            error_log("SMS FAILED - HTTP: $http_code, Error: $error_message, Code: $error_code, Phone: $phone");
             
             return [
                 'success' => false,
                 'message' => 'SMS sending failed: ' . $error_message,
                 'delivery_time' => $delivery_time,
                 'http_code' => $http_code,
+                'error_code' => $error_code,
                 'response' => $response_data
             ];
         }
