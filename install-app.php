@@ -50,7 +50,7 @@ if (!isset($_SESSION['app_language'])) {
             background: white;
             border-radius: 20px;
             padding: 60px 40px;
-            max-width: 400px;
+            max-width: 500px;
             width: 100%;
             box-shadow: 0 8px 32px rgba(48, 25, 52, 0.1);
             text-align: center;
@@ -144,6 +144,43 @@ if (!isset($_SESSION['app_language'])) {
             border: 1px solid #bee5eb;
         }
         
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: #F1ECE2;
+            border-radius: 12px;
+            text-align: left;
+            display: none;
+        }
+        
+        .instructions.show {
+            display: block;
+        }
+        
+        .instructions h3 {
+            color: #4D4052;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+            color: #666;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .instructions strong {
+            color: #4D4052;
+        }
+        
         @media (max-width: 768px) {
             .install-container {
                 padding: 40px 30px;
@@ -177,6 +214,15 @@ if (!isset($_SESSION['app_language'])) {
         
         <!-- Status Message -->
         <div id="statusMessage" class="status-message"></div>
+        
+        <!-- Manual Instructions (shown when automatic install not available) -->
+        <div id="instructions" class="instructions">
+            <h3>
+                <i class="fas fa-info-circle"></i>
+                <span>Installation Instructions</span>
+            </h3>
+            <ol id="instructionsContent"></ol>
+        </div>
     </div>
     
     <script src="assets/js/pwa-manager.js"></script>
@@ -186,6 +232,29 @@ if (!isset($_SESSION['app_language'])) {
         const installBtn = document.getElementById('installBtn');
         const installBtnText = document.getElementById('installBtnText');
         const statusMessage = document.getElementById('statusMessage');
+        const instructions = document.getElementById('instructions');
+        const instructionsContent = document.getElementById('instructionsContent');
+        
+        // Detect browser and OS
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(ua);
+            const isAndroid = /Android/.test(ua);
+            const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua);
+            const isEdge = /Edg/.test(ua);
+            const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+            const isFirefox = /Firefox/.test(ua);
+            
+            return {
+                iOS: isIOS,
+                Android: isAndroid,
+                Chrome: isChrome,
+                Edge: isEdge,
+                Safari: isSafari,
+                Firefox: isFirefox,
+                mobile: isIOS || isAndroid
+            };
+        }
         
         // Check if app is already installed
         function isInstalled() {
@@ -201,6 +270,58 @@ if (!isset($_SESSION['app_language'])) {
             setTimeout(() => {
                 statusMessage.classList.remove('show');
             }, 5000);
+        }
+        
+        // Show manual installation instructions based on browser
+        function showManualInstructions() {
+            const browser = detectBrowser();
+            let html = '';
+            
+            if (browser.iOS && browser.Safari) {
+                html = `
+                    <li>Tap the <strong>Share</strong> button <i class="fas fa-share"></i> at the bottom of the screen</li>
+                    <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                    <li>Tap <strong>"Add"</strong> in the top right corner</li>
+                `;
+            } else if (browser.Android && browser.Chrome) {
+                html = `
+                    <li>Tap the <strong>menu</strong> button <i class="fas fa-ellipsis-vertical"></i> (three dots) in the top right</li>
+                    <li>Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></li>
+                    <li>Tap <strong>"Install"</strong> or <strong>"Add"</strong> to confirm</li>
+                `;
+            } else if (browser.Android) {
+                html = `
+                    <li>Tap the <strong>menu</strong> button <i class="fas fa-ellipsis-vertical"></i> in your browser</li>
+                    <li>Look for <strong>"Add to Home screen"</strong> or <strong>"Install"</strong> option</li>
+                    <li>Follow the prompts to install</li>
+                `;
+            } else if (browser.Chrome || browser.Edge) {
+                html = `
+                    <li>Look for the <strong>install icon</strong> <i class="fas fa-download"></i> in the address bar</li>
+                    <li>Or click the <strong>menu</strong> button <i class="fas fa-ellipsis-vertical"></i> (three dots) → <strong>"Install HabeshaEqub"</strong></li>
+                    <li>Click <strong>"Install"</strong> in the popup</li>
+                `;
+            } else if (browser.Safari) {
+                html = `
+                    <li>Click <strong>File</strong> → <strong>"Add to Dock"</strong> (Mac)</li>
+                    <li>Or use <strong>Bookmarks</strong> → <strong>"Add to Home Screen"</strong></li>
+                `;
+            } else if (browser.Firefox) {
+                html = `
+                    <li>Look for the <strong>install icon</strong> in the address bar</li>
+                    <li>Or use <strong>Menu</strong> → <strong>"Install"</strong></li>
+                    <li>Click <strong>"Install"</strong> to confirm</li>
+                `;
+            } else {
+                html = `
+                    <li>Look for an <strong>"Install"</strong> button or icon in your browser</li>
+                    <li>It may appear in the address bar or browser menu</li>
+                    <li>Follow your browser's prompts to install the app</li>
+                `;
+            }
+            
+            instructionsContent.innerHTML = html;
+            instructions.classList.add('show');
         }
         
         // Track installation - ensures every visit to /install is tracked
@@ -234,17 +355,17 @@ if (!isset($_SESSION['app_language'])) {
         
         // Browser detection helpers
         function getBrowserName() {
-            const ua = navigator.userAgent;
-            if (ua.includes('Chrome')) return 'Chrome';
-            if (ua.includes('Firefox')) return 'Firefox';
-            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
-            if (ua.includes('Edge')) return 'Edge';
+            const browser = detectBrowser();
+            if (browser.Chrome) return 'Chrome';
+            if (browser.Firefox) return 'Firefox';
+            if (browser.Safari) return 'Safari';
+            if (browser.Edge) return 'Edge';
             return 'Unknown';
         }
         
         function getBrowserVersion() {
             const ua = navigator.userAgent;
-            const match = ua.match(/(Chrome|Firefox|Safari|Edge)\/(\d+)/);
+            const match = ua.match(/(Chrome|Firefox|Safari|Edg)\/(\d+)/);
             return match ? match[2] : 'Unknown';
         }
         
@@ -267,11 +388,12 @@ if (!isset($_SESSION['app_language'])) {
                 return;
             }
             
-            // Listen for beforeinstallprompt event
+            // Listen for beforeinstallprompt event (Chrome, Edge, Firefox)
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
                 installBtn.style.display = 'inline-flex';
+                instructions.classList.remove('show'); // Hide manual instructions if automatic works
             });
             
             // Listen for appinstalled event
@@ -280,36 +402,63 @@ if (!isset($_SESSION['app_language'])) {
                 installBtnText.textContent = 'App Installed';
                 showStatus('✓ App installed successfully!', 'success');
                 deferredPrompt = null;
+                instructions.classList.remove('show');
                 trackInstallation(true); // Track as completed installation
             });
+            
+            // If no automatic prompt after 2 seconds, show manual instructions
+            setTimeout(() => {
+                if (!deferredPrompt && !isInstalled()) {
+                    // Show manual instructions for browsers that don't support automatic install
+                    showManualInstructions();
+                }
+            }, 2000);
         }
         
-        // Install button click handler
+        // Install button click handler - works for both automatic and manual installs
         installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) {
-                showStatus('Installation prompt not available. Please check your browser settings or try again later.', 'info');
-                return;
-            }
-            
-            installBtn.disabled = true;
-            installBtnText.textContent = 'Installing...';
-            
-            // Show the install prompt
-            deferredPrompt.prompt();
-            
-            // Wait for user response
-            const { outcome } = await deferredPrompt.userChoice;
-            
-            if (outcome === 'accepted') {
-                showStatus('✓ Installation started!', 'success');
-                await trackInstallation(true); // Track as completed installation
+            // If automatic install prompt is available, use it
+            if (deferredPrompt) {
+                installBtn.disabled = true;
+                installBtnText.textContent = 'Installing...';
+                
+                try {
+                    // Show the install prompt
+                    deferredPrompt.prompt();
+                    
+                    // Wait for user response
+                    const { outcome } = await deferredPrompt.userChoice;
+                    
+                    if (outcome === 'accepted') {
+                        showStatus('✓ Installation started!', 'success');
+                        await trackInstallation(true);
+                    } else {
+                        showStatus('Installation cancelled. Try the manual instructions below.', 'info');
+                        installBtn.disabled = false;
+                        installBtnText.textContent = 'Install App';
+                        showManualInstructions();
+                    }
+                    
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('Install prompt error:', error);
+                    showStatus('Automatic installation failed. Use the instructions below.', 'info');
+                    installBtn.disabled = false;
+                    installBtnText.textContent = 'Install App';
+                    showManualInstructions();
+                }
             } else {
-                showStatus('Installation cancelled. You can try again anytime.', 'info');
-                installBtn.disabled = false;
-                installBtnText.textContent = 'Install App';
+                // No automatic prompt available - show manual instructions
+                showManualInstructions();
+                installBtn.blur(); // Remove focus
+                
+                // Scroll instructions into view on mobile
+                if (window.innerWidth <= 768) {
+                    setTimeout(() => {
+                        instructions.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
             }
-            
-            deferredPrompt = null;
         });
         
         // Initialize on page load
