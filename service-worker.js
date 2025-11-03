@@ -18,7 +18,8 @@ const STATIC_ASSETS = [
   '/Pictures/Icon/apple-icon-180x180.png',
   '/languages/en.json',
   '/languages/am.json',
-  '/offline.html'
+  '/offline.html',
+  '/No Connection.lottie'
 ];
 
 // Install event - cache static assets

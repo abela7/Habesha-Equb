@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline - HabeshaEqub</title>
+    <!-- Lottie Player - with offline fallback -->
+    <script>
+        // Try to load Lottie player from CDN, fallback to cached version
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js';
+            script.onerror = function() {
+                // CDN failed, try to use cached version or show fallback
+                console.warn('Lottie player CDN unavailable, using fallback');
+                const container = document.querySelector('.lottie-container');
+                if (container) {
+                    container.innerHTML = '<div style="font-size: 80px; color: #4D4052;">📡</div>';
+                }
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
     <style>
         * {
             margin: 0;
@@ -30,10 +47,24 @@
             box-shadow: 0 8px 32px rgba(48, 25, 52, 0.1);
         }
         
-        .offline-icon {
-            font-size: 80px;
-            color: #4D4052;
+        .logo {
+            max-width: 150px;
             margin-bottom: 20px;
+        }
+        
+        .lottie-container {
+            width: 100%;
+            max-width: 300px;
+            height: 300px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        lottie-player {
+            width: 100%;
+            height: 100%;
         }
         
         h1 {
@@ -58,22 +89,46 @@
             font-size: 16px;
             cursor: pointer;
             transition: background 0.3s;
+            font-weight: 600;
         }
         
         .retry-btn:hover {
             background: #301934;
         }
         
-        .logo {
-            max-width: 150px;
-            margin-bottom: 20px;
+        .retry-btn:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
 <body>
     <div class="offline-container">
         <img src="/Pictures/Main Logo.png" alt="HabeshaEqub" class="logo">
-        <div class="offline-icon">📡</div>
+        <div class="lottie-container" id="animationContainer">
+            <lottie-player 
+                src="/No Connection.lottie" 
+                background="transparent" 
+                speed="1" 
+                loop 
+                autoplay
+                style="width: 100%; height: 100%;">
+            </lottie-player>
+        </div>
+        <script>
+            // Ensure animation loads after Lottie player is ready
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    const player = document.querySelector('lottie-player');
+                    if (!player || !player.shadowRoot) {
+                        // Lottie player didn't load, show fallback
+                        const container = document.getElementById('animationContainer');
+                        if (container) {
+                            container.innerHTML = '<div style="font-size: 80px; color: #4D4052;">📡</div>';
+                        }
+                    }
+                }, 1000);
+            });
+        </script>
         <h1>You're Offline</h1>
         <p>It looks like you're not connected to the internet. Please check your connection and try again.</p>
         <button class="retry-btn" onclick="window.location.reload()">Retry</button>
