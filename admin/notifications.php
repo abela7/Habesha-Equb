@@ -24,6 +24,8 @@ $csrf = generate_csrf_token();
     .chip .remove{cursor:pointer;color:var(--color-coral)}
     .aud-pill{border:1px dashed var(--border-light);border-radius:999px;padding:4px 10px;font-size:12px}
     .table td, .table th{vertical-align:middle}
+    .delivery-stats .card{border-radius:8px;overflow:hidden}
+    .delivery-stats h3{font-weight:700;font-size:2rem}
   </style>
 </head>
 <body>
@@ -228,25 +230,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     const resp = await fetch(api, { method:'POST', body: fd });
     const data = await resp.json();
     if (data.success){
-      const totalEmails = (data.email_result?.sent||0)+(data.email_result?.failed||0);
-      const totalSMS = (data.sms_result?.sent||0)+(data.sms_result?.failed||0);
-      let sentSummary = 'Notification sent successfully!\n\n';
-      
-      if (data.send_channel === 'email' || data.send_channel === 'both') {
-        sentSummary += `Emails: ${data.email_result?.sent||0}/${totalEmails} sent`;
-      }
-      if (data.send_channel === 'both') {
-        sentSummary += '\n';
-      }
-      if (data.send_channel === 'sms' || data.send_channel === 'both') {
-        sentSummary += `SMS: ${data.sms_result?.sent||0}/${totalSMS} sent`;
-      }
-      
-      if (document.getElementById('exportWhatsapp').checked) {
-        showWhatsappModal(sentSummary, data);
-      } else {
-        alert(sentSummary);
-      }
+      // Show detailed delivery report modal
+      showDeliveryReportModal(data);
       form.reset();
       document.getElementById('selectedMembers').innerHTML='';
       setAudienceUI();
@@ -256,8 +241,137 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
+  // Show detailed delivery report modal
+  function showDeliveryReportModal(data) {
+    let modal = document.getElementById('deliveryReportModal');
+    if (!modal) {
+      const html = `
+      <div class="modal fade" id="deliveryReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Notification Delivery Report</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="deliveryReportBody"></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary" id="exportWhatsappBtn" style="display:none;">
+                <i class="fab fa-whatsapp me-1"></i>Export WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      document.body.insertAdjacentHTML('beforeend', html);
+      modal = document.getElementById('deliveryReportModal');
+    }
+    
+    const body = modal.querySelector('#deliveryReportBody');
+    const exportBtn = modal.querySelector('#exportWhatsappBtn');
+    
+    // Build delivery report
+    const totalEmails = (data.email_result?.sent||0) + (data.email_result?.failed||0);
+    const totalSMS = (data.sms_result?.sent||0) + (data.sms_result?.failed||0);
+    
+    let html = '<div class="delivery-stats">';
+    
+    // Overall status
+    html += `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i><strong>Notification sent successfully!</strong></div>`;
+    
+    html += `<div class="row mb-3">`;
+    html += `<div class="col-md-6"><strong>Channel:</strong> ${data.send_channel ? data.send_channel.toUpperCase() : 'N/A'}</div>`;
+    html += `<div class="col-md-6"><strong>Notification ID:</strong> <code>${data.notification_code || 'N/A'}</code></div>`;
+    html += `</div>`;
+    
+    // Email stats
+    if (data.send_channel === 'email' || data.send_channel === 'both') {
+      html += `<div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+          <i class="fas fa-envelope me-2"></i>Email Delivery
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-4">
+              <h3 class="text-success mb-0">${data.email_result?.sent||0}</h3>
+              <small class="text-muted">Sent</small>
+            </div>
+            <div class="col-4">
+              <h3 class="text-danger mb-0">${data.email_result?.failed||0}</h3>
+              <small class="text-muted">Failed</small>
+            </div>
+            <div class="col-4">
+              <h3 class="text-info mb-0">${totalEmails}</h3>
+              <small class="text-muted">Total</small>
+            </div>
+          </div>
+          ${data.email_result?.failed > 0 ? `<div class="alert alert-warning mt-2 mb-0"><i class="fas fa-exclamation-triangle me-2"></i>${data.email_result.failed} emails failed. Check error logs for details.</div>` : ''}
+        </div>
+      </div>`;
+    }
+    
+    // SMS stats
+    if (data.send_channel === 'sms' || data.send_channel === 'both') {
+      html += `<div class="card mb-3">
+        <div class="card-header bg-success text-white">
+          <i class="fas fa-sms me-2"></i>SMS Delivery
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-4">
+              <h3 class="text-success mb-0">${data.sms_result?.sent||0}</h3>
+              <small class="text-muted">Sent</small>
+            </div>
+            <div class="col-4">
+              <h3 class="text-danger mb-0">${data.sms_result?.failed||0}</h3>
+              <small class="text-muted">Failed</small>
+            </div>
+            <div class="col-4">
+              <h3 class="text-info mb-0">${totalSMS}</h3>
+              <small class="text-muted">Total</small>
+            </div>
+          </div>
+          ${data.sms_result?.failed > 0 ? `<div class="alert alert-warning mt-2 mb-0"><i class="fas fa-exclamation-triangle me-2"></i>${data.sms_result.failed} SMS failed. Common reasons: invalid phone numbers, insufficient credits, or rate limits.</div>` : ''}
+        </div>
+      </div>`;
+    }
+    
+    // Message preview
+    if (data.preview) {
+      html += `<details class="mb-3">
+        <summary style="cursor:pointer;" class="fw-bold mb-2"><i class="fas fa-eye me-2"></i>Message Preview</summary>
+        <div class="card">
+          <div class="card-body">
+            <h6>English</h6>
+            <p class="mb-2"><strong>${data.preview.title_en}</strong></p>
+            <p class="text-muted">${data.preview.body_en}</p>
+            <hr>
+            <h6>Amharic</h6>
+            <p class="mb-2"><strong>${data.preview.title_am}</strong></p>
+            <p class="text-muted">${data.preview.body_am}</p>
+          </div>
+        </div>
+      </details>`;
+    }
+    
+    html += '</div>';
+    
+    body.innerHTML = html;
+    
+    // Show/hide WhatsApp export button
+    if (data.whatsapp_texts || data.whatsapp_broadcast) {
+      exportBtn.style.display = 'inline-block';
+      exportBtn.onclick = () => showWhatsappModal(data);
+    } else {
+      exportBtn.style.display = 'none';
+    }
+    
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+  }
+
   // Build a professional WhatsApp modal with proper newlines and copy buttons
-  function showWhatsappModal(summary, data){
+  function showWhatsappModal(data){
     let modal = document.getElementById('waExportModal');
     if (!modal) {
       const html = `
