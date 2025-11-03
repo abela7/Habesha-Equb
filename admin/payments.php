@@ -1464,16 +1464,17 @@ $csrf_token = generate_csrf_token();
                     : 'Not set';
                 document.getElementById('paymentDate').textContent = paymentDate;
                 
-                // Get receipt link - ensure it's generated for this payment
+                // Get receipt link using same method as user portal
                 const receiptResp = await fetch(`api/payments.php?action=get_receipt_token&payment_id=${id}`);
                 const receiptData = await receiptResp.json();
                 if (receiptData.success && receiptData.receipt_url) {
-                    // Use full URL with domain
+                    // Use full URL with domain - receipt.php will handle token lookup
                     _receiptLink = window.location.origin + receiptData.receipt_url;
+                    console.log('Receipt link generated:', _receiptLink);
                 } else {
-                    // Fallback: try to generate receipt token
-                    console.warn('Receipt token not found, using fallback');
-                    _receiptLink = window.location.origin + '/receipt.php?rt=generating...';
+                    // Fallback: direct to contributions page where they can access receipt
+                    console.warn('Receipt token not available, using contributions page fallback');
+                    _receiptLink = window.location.origin + '/user/contributions.php';
                 }
                 
                 // Load templates

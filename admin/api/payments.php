@@ -609,9 +609,10 @@ function verifyWithNotification() {
     $stmt = $pdo->prepare("UPDATE members SET total_contributed = total_contributed + ? WHERE id = ?");
     $stmt->execute([$payment['amount'], $payment['member_db_id']]);
     
-    // Generate receipt link
+    // Generate receipt link (same method as user portal - reuse existing token or create new)
     $receiptUrl = '';
     try {
+        // Ensure table exists
         $pdo->exec("CREATE TABLE IF NOT EXISTS payment_receipts (
             id INT AUTO_INCREMENT PRIMARY KEY,
             payment_id INT NOT NULL,
@@ -621,17 +622,49 @@ function verifyWithNotification() {
             CONSTRAINT fk_receipt_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         
-        $delStmt = $pdo->prepare("DELETE FROM payment_receipts WHERE payment_id = ?");
-        $delStmt->execute([$payment_id]);
+        // Check if token already exists (reuse it instead of deleting)
+        $selStmt = $pdo->prepare("SELECT token FROM payment_receipts WHERE payment_id = ? LIMIT 1");
+        $selStmt->execute([$payment_id]);
+        $token = $selStmt->fetchColumn();
         
-        $token = bin2hex(random_bytes(16));
-        $insStmt = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
-        $insStmt->execute([$payment_id, $token]);
+        if (!$token) {
+            // Create new token if none exists
+            $token = bin2hex(random_bytes(16));
+            $insStmt = $pdo->prepare("INSERT INTO payment_receipts (payment_id, token) VALUES (?, ?)");
+            $insStmt->execute([$payment_id, $token]);
+            error_log("Created new receipt token for payment $payment_id: $token");
+        } else {
+            error_log("Reusing existing receipt token for payment $payment_id: $token");
+        }
         
-        $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
+        // Verify token was saved correctly
+        $verifyStmt = $pdo->prepare("SELECT token FROM payment_receipts WHERE payment_id = ? AND token = ? LIMIT 1");
+        $verifyStmt->execute([$payment_id, $token]);
+        $verifiedToken = $verifyStmt->fetchColumn();
+        
+        if ($verifiedToken && $verifiedToken === $token) {
+            // Use shorter URL format (receipt.php handles token lookup)
+            $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $token;
+            error_log("✓ Receipt URL generated successfully for payment $payment_id: $receiptUrl");
+        } else {
+            // If verification fails, try one more time to get/create token
+            error_log("⚠ Token verification failed, retrying for payment $payment_id");
+            $retrySel = $pdo->prepare("SELECT token FROM payment_receipts WHERE payment_id = ? LIMIT 1");
+            $retrySel->execute([$payment_id]);
+            $retryToken = $retrySel->fetchColumn();
+            
+            if ($retryToken) {
+                $receiptUrl = 'https://habeshaequb.com/receipt.php?rt=' . $retryToken;
+                error_log("✓ Receipt URL generated on retry: $receiptUrl");
+            } else {
+                error_log("✗ Failed to generate receipt token for payment $payment_id");
+                // Fallback: direct to contributions page (they can access receipt there)
+                $receiptUrl = 'https://habeshaequb.com/user/contributions.php';
+            }
+        }
     } catch (Throwable $e) {
-        error_log('Receipt generation error: ' . $e->getMessage());
-        $receiptUrl = 'https://habeshaequb.com/user/dashboard.php';
+        error_log('Receipt generation error: ' . $e->getMessage() . ' - ' . $e->getTraceAsString());
+        $receiptUrl = 'https://habeshaequb.com/user/contributions.php';
     }
     
     // Replace variables in messages
