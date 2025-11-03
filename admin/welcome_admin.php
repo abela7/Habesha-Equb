@@ -86,7 +86,7 @@ try {
         LIMIT 5
     ")->fetchAll(PDO::FETCH_ASSOC);
     
-    // Recent Payments - FIXED: Use member's database ID, not member code
+    // Recent Payments - FIXED: payments.member_id (integer) references members.id (integer), not members.member_id (varchar)
     $recent_payments = $pdo->query("
         SELECT 
             p.amount, 
@@ -95,7 +95,7 @@ try {
             CONCAT(m.first_name, ' ', m.last_name) as full_name,
             es.equb_name
         FROM payments p 
-        JOIN members m ON p.member_id = m.member_id
+        JOIN members m ON p.member_id = m.id
         LEFT JOIN equb_settings es ON m.equb_settings_id = es.id
         ORDER BY p.created_at DESC 
         LIMIT 5
