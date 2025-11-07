@@ -908,7 +908,10 @@ body.no-scroll {
                 </svg>
                 <span class="nav-text">Payouts</span>
             </a>
-
+            <a href="financial-analytics.php" class="nav-item <?php echo ($current_page === 'financial-analytics.php') ? 'active' : ''; ?>">
+                <i class="fas fa-chart-line nav-icon"></i>
+                <span class="nav-text">Financial Analytics</span>
+            </a>
         </div>
         
         <!-- Communication -->
@@ -999,6 +1002,7 @@ body.no-scroll {
                     'position-swap-management.php' => t('swap_management.page_title'),
                     'payments.php' => t('navigation.payments'),
                     'payouts.php' => t('navigation.payouts'),
+                    'financial-analytics.php' => 'Financial Analytics',
                     'reports.php' => t('navigation.reports'),
                     'profile.php' => t('navigation.profile'),
                     'notifications.php' => t('navigation.notifications'),
