@@ -53,127 +53,155 @@ $monthly_trends = [];
 $payment_methods = [];
 $payment_status = [];
 
-// Fetch financial data if equb is selected
-if ($selected_equb_id) {
-    try {
-        // Overall payment statistics
+// Fetch financial data - show all data if no equb selected, filtered if equb selected
+try {
+    // Build WHERE clause based on equb selection
+    $equb_filter = $selected_equb_id ? "WHERE m.equb_settings_id = ?" : "";
+    $params = $selected_equb_id ? [$selected_equb_id] : [];
+    
+    // Overall payment statistics
+    $sql = "
+        SELECT 
+            COUNT(*) as total_payments,
+            COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as total_collected,
+            COALESCE(SUM(CASE WHEN p.status = 'pending' THEN p.amount ELSE 0 END), 0) as pending_amount,
+            COALESCE(SUM(CASE WHEN p.status = 'late' THEN p.amount ELSE 0 END), 0) as late_amount,
+            COUNT(CASE WHEN p.status IN ('paid', 'completed') THEN 1 END) as completed_payments,
+            COUNT(CASE WHEN p.status = 'pending' THEN 1 END) as pending_payments,
+            COUNT(CASE WHEN p.status = 'late' THEN 1 END) as late_payments,
+            COALESCE(AVG(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount END), 0) as avg_payment,
+            COALESCE(SUM(p.late_fee), 0) as total_late_fees
+        FROM payments p
+        INNER JOIN members m ON p.member_id = m.id
+        " . $equb_filter;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $payment_stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Payout statistics
+    $sql = "
+        SELECT 
+            COUNT(*) as total_payouts,
+            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.total_amount ELSE 0 END), 0) as total_distributed,
+            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.net_amount ELSE 0 END), 0) as total_net_distributed,
+            COALESCE(SUM(CASE WHEN po.status = 'completed' THEN po.admin_fee ELSE 0 END), 0) as total_admin_fees,
+            COALESCE(SUM(CASE WHEN po.status = 'scheduled' THEN po.total_amount ELSE 0 END), 0) as scheduled_amount,
+            COUNT(CASE WHEN po.status = 'completed' THEN 1 END) as completed_payouts,
+            COUNT(CASE WHEN po.status = 'scheduled' THEN 1 END) as scheduled_payouts,
+            COALESCE(AVG(CASE WHEN po.status = 'completed' THEN po.net_amount END), 0) as avg_payout
+        FROM payouts po
+        INNER JOIN members m ON po.member_id = m.id
+        " . $equb_filter;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $payout_stats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Monthly payment trends (last 12 months) - use payment_date if payment_month is null
+    $sql = "
+        SELECT 
+            DATE_FORMAT(COALESCE(p.payment_month, p.payment_date), '%Y-%m') as month,
+            COUNT(*) as payment_count,
+            COALESCE(SUM(CASE WHEN p.status IN ('paid', 'completed') THEN p.amount ELSE 0 END), 0) as collected_amount,
+            COALESCE(SUM(CASE WHEN p.status = 'pending' THEN p.amount ELSE 0 END), 0) as pending_amount
+        FROM payments p
+        INNER JOIN members m ON p.member_id = m.id
+        " . ($selected_equb_id ? "WHERE m.equb_settings_id = ? AND " : "WHERE ") . "
+        COALESCE(p.payment_month, p.payment_date) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(COALESCE(p.payment_month, p.payment_date), '%Y-%m')
+        ORDER BY month ASC
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $monthly_trends = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Payment methods breakdown
+    $sql = "
+        SELECT 
+            p.payment_method,
+            COUNT(*) as count,
+            COALESCE(SUM(p.amount), 0) as total_amount
+        FROM payments p
+        INNER JOIN members m ON p.member_id = m.id
+        " . ($selected_equb_id ? "WHERE m.equb_settings_id = ? AND " : "WHERE ") . "
+        p.status IN ('paid', 'completed')
+        GROUP BY p.payment_method
+        ORDER BY total_amount DESC
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $payment_methods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Payment status distribution
+    $sql = "
+        SELECT 
+            p.status,
+            COUNT(*) as count,
+            COALESCE(SUM(p.amount), 0) as total_amount
+        FROM payments p
+        INNER JOIN members m ON p.member_id = m.id
+        " . $equb_filter . "
+        GROUP BY p.status
+        ORDER BY count DESC
+    ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $payment_status = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Calculate collection rate - get expected total from actual payments or members
+    $expected_total = 0;
+    if ($selected_equb_id) {
         $stmt = $pdo->prepare("
             SELECT 
-                COUNT(*) as total_payments,
-                SUM(CASE WHEN status IN ('paid', 'completed') THEN amount ELSE 0 END) as total_collected,
-                SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount,
-                SUM(CASE WHEN status = 'late' THEN amount ELSE 0 END) as late_amount,
-                COUNT(CASE WHEN status IN ('paid', 'completed') THEN 1 END) as completed_payments,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_payments,
-                COUNT(CASE WHEN status = 'late' THEN 1 END) as late_payments,
-                AVG(CASE WHEN status IN ('paid', 'completed') THEN amount END) as avg_payment,
-                SUM(late_fee) as total_late_fees
-            FROM payments p
-            INNER JOIN members m ON p.member_id = m.id
-            WHERE m.equb_settings_id = ?
-        ");
-        $stmt->execute([$selected_equb_id]);
-        $payment_stats = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Payout statistics
-        $stmt = $pdo->prepare("
-            SELECT 
-                COUNT(*) as total_payouts,
-                SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) as total_distributed,
-                SUM(CASE WHEN status = 'completed' THEN net_amount ELSE 0 END) as total_net_distributed,
-                SUM(CASE WHEN status = 'completed' THEN admin_fee ELSE 0 END) as total_admin_fees,
-                SUM(CASE WHEN status = 'scheduled' THEN total_amount ELSE 0 END) as scheduled_amount,
-                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_payouts,
-                COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_payouts,
-                AVG(CASE WHEN status = 'completed' THEN net_amount END) as avg_payout
-            FROM payouts po
-            INNER JOIN members m ON po.member_id = m.id
-            WHERE m.equb_settings_id = ?
-        ");
-        $stmt->execute([$selected_equb_id]);
-        $payout_stats = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Monthly payment trends (last 12 months)
-        $stmt = $pdo->prepare("
-            SELECT 
-                DATE_FORMAT(payment_month, '%Y-%m') as month,
-                COUNT(*) as payment_count,
-                SUM(CASE WHEN status IN ('paid', 'completed') THEN amount ELSE 0 END) as collected_amount,
-                SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount
-            FROM payments p
-            INNER JOIN members m ON p.member_id = m.id
-            WHERE m.equb_settings_id = ?
-            AND payment_month >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(payment_month, '%Y-%m')
-            ORDER BY month ASC
-        ");
-        $stmt->execute([$selected_equb_id]);
-        $monthly_trends = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Payment methods breakdown
-        $stmt = $pdo->prepare("
-            SELECT 
-                payment_method,
-                COUNT(*) as count,
-                SUM(amount) as total_amount
-            FROM payments p
-            INNER JOIN members m ON p.member_id = m.id
-            WHERE m.equb_settings_id = ?
-            AND status IN ('paid', 'completed')
-            GROUP BY payment_method
-        ");
-        $stmt->execute([$selected_equb_id]);
-        $payment_methods = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Payment status distribution
-        $stmt = $pdo->prepare("
-            SELECT 
-                status,
-                COUNT(*) as count,
-                SUM(amount) as total_amount
-            FROM payments p
-            INNER JOIN members m ON p.member_id = m.id
-            WHERE m.equb_settings_id = ?
-            GROUP BY status
-        ");
-        $stmt->execute([$selected_equb_id]);
-        $payment_status = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Calculate collection rate
-        $expected_total = 0;
-        $stmt = $pdo->prepare("
-            SELECT SUM(monthly_payment) as total_monthly
+                COALESCE(SUM(monthly_payment), 0) as total_monthly,
+                COUNT(*) as member_count
             FROM members
             WHERE equb_settings_id = ? AND is_active = 1
         ");
         $stmt->execute([$selected_equb_id]);
         $monthly_total = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($monthly_total && $monthly_total['total_monthly']) {
-            $expected_total = $monthly_total['total_monthly'] * 12; // Approximate for 12 months
+        if ($monthly_total && $monthly_total['total_monthly'] > 0) {
+            // Get duration from equb_settings
+            $stmt = $pdo->prepare("SELECT duration_months FROM equb_settings WHERE id = ?");
+            $stmt->execute([$selected_equb_id]);
+            $equb_info = $stmt->fetch(PDO::FETCH_ASSOC);
+            $duration = $equb_info['duration_months'] ?? 12;
+            $expected_total = $monthly_total['total_monthly'] * $duration;
         }
-        
-        // Compile financial data
-        $financial_data = [
-            'total_collected' => floatval($payment_stats['total_collected'] ?? 0),
-            'total_distributed' => floatval($payout_stats['total_net_distributed'] ?? 0),
-            'pending_payments' => intval($payment_stats['pending_payments'] ?? 0),
-            'pending_amount' => floatval($payment_stats['pending_amount'] ?? 0),
-            'late_payments' => intval($payment_stats['late_payments'] ?? 0),
-            'late_amount' => floatval($payment_stats['late_amount'] ?? 0),
-            'completed_payouts' => intval($payout_stats['completed_payouts'] ?? 0),
-            'scheduled_payouts' => intval($payout_stats['scheduled_payouts'] ?? 0),
-            'admin_revenue' => floatval($payout_stats['total_admin_fees'] ?? 0),
-            'collection_rate' => $expected_total > 0 ? (floatval($payment_stats['total_collected'] ?? 0) / $expected_total) * 100 : 0,
-            'avg_payment' => floatval($payment_stats['avg_payment'] ?? 0),
-            'avg_payout' => floatval($payout_stats['avg_payout'] ?? 0),
-            'total_payments' => intval($payment_stats['total_payments'] ?? 0),
-            'completed_payments' => intval($payment_stats['completed_payments'] ?? 0),
-            'total_late_fees' => floatval($payment_stats['total_late_fees'] ?? 0)
-        ];
-        
-    } catch (PDOException $e) {
-        error_log("Error fetching financial data: " . $e->getMessage());
+    } else {
+        // For all equbs, calculate based on total expected
+        $stmt = $pdo->query("
+            SELECT 
+                COALESCE(SUM(m.monthly_payment * es.duration_months), 0) as total_expected
+            FROM members m
+            INNER JOIN equb_settings es ON m.equb_settings_id = es.id
+            WHERE m.is_active = 1
+        ");
+        $total_expected = $stmt->fetch(PDO::FETCH_ASSOC);
+        $expected_total = floatval($total_expected['total_expected'] ?? 0);
     }
+    
+    // Compile financial data
+    $financial_data = [
+        'total_collected' => floatval($payment_stats['total_collected'] ?? 0),
+        'total_distributed' => floatval($payout_stats['total_net_distributed'] ?? 0),
+        'pending_payments' => intval($payment_stats['pending_payments'] ?? 0),
+        'pending_amount' => floatval($payment_stats['pending_amount'] ?? 0),
+        'late_payments' => intval($payment_stats['late_payments'] ?? 0),
+        'late_amount' => floatval($payment_stats['late_amount'] ?? 0),
+        'completed_payouts' => intval($payout_stats['completed_payouts'] ?? 0),
+        'scheduled_payouts' => intval($payout_stats['scheduled_payouts'] ?? 0),
+        'admin_revenue' => floatval($payout_stats['total_admin_fees'] ?? 0),
+        'collection_rate' => $expected_total > 0 ? (floatval($payment_stats['total_collected'] ?? 0) / $expected_total) * 100 : 0,
+        'avg_payment' => floatval($payment_stats['avg_payment'] ?? 0),
+        'avg_payout' => floatval($payout_stats['avg_payout'] ?? 0),
+        'total_payments' => intval($payment_stats['total_payments'] ?? 0),
+        'completed_payments' => intval($payment_stats['completed_payments'] ?? 0),
+        'total_late_fees' => floatval($payment_stats['total_late_fees'] ?? 0)
+    ];
+    
+} catch (PDOException $e) {
+    error_log("Error fetching financial data: " . $e->getMessage());
+    // Keep default values on error
 }
 
 $csrf_token = generate_csrf_token();
@@ -397,7 +425,14 @@ $csrf_token = generate_csrf_token();
                             <i class="fas fa-chart-line"></i>
                             Financial Analytics
                         </h1>
-                        <p>Comprehensive financial insights and performance metrics</p>
+                        <p>
+                            Comprehensive financial insights and performance metrics
+                            <?php if ($selected_equb_id): ?>
+                                <span class="badge bg-teal ms-2">Filtered: <?php echo htmlspecialchars($all_equbs[array_search($selected_equb_id, array_column($all_equbs, 'id'))]['equb_name'] ?? 'Selected EQUB'); ?></span>
+                            <?php else: ?>
+                                <span class="badge bg-info ms-2">All EQUBs</span>
+                            <?php endif; ?>
+                        </p>
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -415,9 +450,9 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
 
-        <?php if ($selected_equb_id): ?>
-            <!-- Statistics Cards -->
-            <div class="stats-container">
+        <!-- Statistics Cards -->
+        <div class="stats-container">
+            <?php if ($financial_data['total_payments'] > 0 || $financial_data['completed_payouts'] > 0): ?>
                 <div class="row g-4">
                     <!-- Total Collected -->
                     <div class="col-lg-3 col-md-6">
@@ -540,6 +575,22 @@ $csrf_token = generate_csrf_token();
                     </div>
                 </div>
             </div>
+            <?php else: ?>
+                <!-- No Data Message -->
+                <div class="alert alert-warning border-0" style="border-radius: 16px;">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No Financial Data Found
+                    </h5>
+                    <p class="mb-0">
+                        <?php if ($selected_equb_id): ?>
+                            No payments or payouts found for the selected EQUB. Data will appear here once payments are recorded.
+                        <?php else: ?>
+                            No payments or payouts found in the system. Data will appear here once payments are recorded.
+                        <?php endif; ?>
+                    </p>
+                </div>
+            <?php endif; ?>
 
             <!-- Charts Section -->
             <div class="charts-section">
@@ -584,16 +635,6 @@ $csrf_token = generate_csrf_token();
                     </div>
                 </div>
             </div>
-        <?php else: ?>
-            <!-- No Equb Selected -->
-            <div class="alert alert-info border-0" style="border-radius: 16px;">
-                <h5 class="alert-heading">
-                    <i class="fas fa-info-circle me-2"></i>
-                    No EQUB Selected
-                </h5>
-                <p class="mb-0">Please select an EQUB from the dropdown above to view financial analytics.</p>
-            </div>
-        <?php endif; ?>
     </div>
 
     <!-- Bootstrap JS -->
