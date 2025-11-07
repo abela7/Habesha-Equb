@@ -181,6 +181,34 @@ if (!isset($_SESSION['app_language'])) {
             color: #4D4052;
         }
         
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(218, 165, 32, 0.4);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 10px rgba(218, 165, 32, 0);
+            }
+        }
+        
+        .ios-instructions {
+            background: linear-gradient(135deg, #DAA520 0%, #CDAF56 100%);
+            color: #4D4052;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 4px 16px rgba(218, 165, 32, 0.3);
+        }
+        
+        .ios-instructions i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
         @media (max-width: 768px) {
             .install-container {
                 padding: 40px 30px;
@@ -258,9 +286,14 @@ if (!isset($_SESSION['app_language'])) {
         
         // Check if app is already installed
         function isInstalled() {
-            return window.matchMedia('(display-mode: standalone)').matches ||
-                   window.navigator.standalone === true ||
-                   document.referrer.includes('android-app://');
+            // iOS Safari standalone mode check
+            const isIOSStandalone = window.navigator.standalone === true;
+            // Android/Chrome standalone mode check
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            // Android app referrer check
+            const isAndroidApp = document.referrer.includes('android-app://');
+            
+            return isStandalone || isIOSStandalone || isAndroidApp;
         }
         
         // Show status message
@@ -278,10 +311,22 @@ if (!isset($_SESSION['app_language'])) {
             let html = '';
             
             if (browser.iOS && browser.Safari) {
+                // Enhanced iOS instructions with visual guide
                 html = `
-                    <li>Tap the <strong>Share</strong> button <i class="fas fa-share"></i> at the bottom of the screen</li>
-                    <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-                    <li>Tap <strong>"Add"</strong> in the top right corner</li>
+                    <div class="ios-instructions">
+                        <i class="fas fa-share-square"></i>
+                        <p style="margin-bottom: 15px; font-size: 16px;">Follow these steps to install:</p>
+                    </div>
+                    <ol style="margin-top: 20px;">
+                        <li>Look for the <strong>Share</strong> button <i class="fas fa-share" style="color: #DAA520;"></i> at the <strong>bottom</strong> of your Safari browser</li>
+                        <li>Tap the Share button to open the share menu</li>
+                        <li>Scroll down in the share menu and find <strong>"Add to Home Screen"</strong> <i class="fas fa-plus-square" style="color: #DAA520;"></i></li>
+                        <li>Tap <strong>"Add to Home Screen"</strong></li>
+                        <li>Tap <strong>"Add"</strong> in the top right corner to confirm</li>
+                    </ol>
+                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #DAA520;">
+                        <strong><i class="fas fa-info-circle"></i> Tip:</strong> After installation, the app will appear on your home screen like a native app!
+                    </div>
                 `;
             } else if (browser.Android && browser.Chrome) {
                 html = `
@@ -388,7 +433,21 @@ if (!isset($_SESSION['app_language'])) {
                 return;
             }
             
-            // Listen for beforeinstallprompt event (Chrome, Edge, Firefox)
+            const browser = detectBrowser();
+            
+            // iOS Safari doesn't support beforeinstallprompt - show instructions immediately
+            if (browser.iOS && browser.Safari) {
+                // Change button text to guide iOS users
+                installBtnText.innerHTML = '<i class="fas fa-share"></i> Tap Share Button Below';
+                installBtn.style.cursor = 'default';
+                // Show instructions immediately for iOS
+                showManualInstructions();
+                // Track iOS visit
+                trackInstallation(false);
+                return;
+            }
+            
+            // Listen for beforeinstallprompt event (Chrome, Edge, Firefox - NOT iOS Safari)
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
@@ -408,9 +467,9 @@ if (!isset($_SESSION['app_language'])) {
                 // If already tracked in button click handler, pwa-manager.js will skip it
             });
             
-            // If no automatic prompt after 2 seconds, show manual instructions
+            // If no automatic prompt after 2 seconds, show manual instructions (for non-iOS browsers)
             setTimeout(() => {
-                if (!deferredPrompt && !isInstalled()) {
+                if (!deferredPrompt && !isInstalled() && !(browser.iOS && browser.Safari)) {
                     // Show manual instructions for browsers that don't support automatic install
                     showManualInstructions();
                 }
@@ -419,6 +478,27 @@ if (!isset($_SESSION['app_language'])) {
         
         // Install button click handler - works for both automatic and manual installs
         installBtn.addEventListener('click', async () => {
+            const browser = detectBrowser();
+            
+            // iOS Safari: Just show instructions (no programmatic install available)
+            if (browser.iOS && browser.Safari) {
+                showManualInstructions();
+                installBtn.blur(); // Remove focus
+                
+                // Scroll instructions into view
+                setTimeout(() => {
+                    instructions.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+                
+                // Highlight the instructions with a pulse animation
+                instructions.style.animation = 'pulse 2s ease-in-out';
+                setTimeout(() => {
+                    instructions.style.animation = '';
+                }, 2000);
+                
+                return;
+            }
+            
             // If automatic install prompt is available, use it
             if (deferredPrompt) {
                 installBtn.disabled = true;
@@ -476,11 +556,37 @@ if (!isset($_SESSION['app_language'])) {
         // Track installation flag to prevent duplicate tracking in button handler
         let installationTracked = false;
         
+        // Check if iOS user just installed the app (opened in standalone mode)
+        function checkIOSInstallation() {
+            const browser = detectBrowser();
+            if (browser.iOS && isInstalled()) {
+                // User opened the app in standalone mode - they installed it!
+                // Check if we already tracked this installation
+                const installTracked = sessionStorage.getItem('pwa-installation-tracked');
+                if (!installTracked) {
+                    sessionStorage.setItem('pwa-installation-tracked', 'true');
+                    trackInstallation(true);
+                    installBtn.disabled = true;
+                    installBtnText.textContent = 'App Installed';
+                    showStatus('✓ App installed successfully!', 'success');
+                }
+            }
+        }
+        
         // Initialize on page load
         window.addEventListener('load', () => {
             checkInstallStatus();
+            // Check if iOS user installed the app (opened in standalone mode)
+            checkIOSInstallation();
             // Don't track page visits automatically - it creates duplicates
             // Only track when user actually installs
+        });
+        
+        // Also check on page visibility change (when user switches back to the tab/app)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                checkIOSInstallation();
+            }
         });
     </script>
     
