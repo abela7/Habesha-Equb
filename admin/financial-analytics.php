@@ -49,9 +49,48 @@ try {
     error_log("Error fetching equbs: " . $e->getMessage());
 }
 
-// Initialize variables
+// Initialize variables with default values
 $equb_data = null;
-$financial_summary = [];
+$financial_summary = [
+    'total_positions' => 0,
+    'individual_positions' => 0,
+    'joint_positions' => 0,
+    'total_expected_contributions' => 0,
+    'total_paid_contributions' => 0,
+    'collection_percentage' => 0,
+    'total_net_payouts' => 0,
+    'admin_revenue' => 0,
+    'completed_payouts' => 0,
+    'remaining_payouts' => 0,
+    'monthly_pool' => 0,
+    'total_pool_value' => 0,
+    'duration_months' => 0,
+    'admin_fee_rate' => 0,
+    'payment_data' => [],
+    'payout_data' => [],
+    'trends_data' => [],
+    'methods_data' => [],
+    'financial_health_score' => 0,
+    'risk_assessment' => [
+        'risk_score' => 0,
+        'risk_level' => ['level' => 'Unknown', 'color' => 'info', 'icon' => 'info-circle']
+    ],
+    'predictive_analytics' => [
+        'completion_probability' => 0
+    ],
+    'advanced_metrics' => [
+        'roi_analysis' => ['gross_roi' => 0],
+        'volatility_metrics' => ['overall_volatility' => 0],
+        'efficiency_ratios' => ['collection_efficiency' => 0]
+    ],
+    'goal_tracking' => [
+        'collection_goals' => ['progress' => 0, 'on_track' => false]
+    ],
+    'comparative_analysis' => [
+        'vs_industry_benchmark' => ['collection_rate' => 0]
+    ],
+    'performance_alerts' => []
+];
 $member_payouts = [];
 $position_timeline = [];
 $admin_revenue = 0;
@@ -1270,8 +1309,8 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                     <div class="metric-label">Total Positions</div>
                     <div class="metric-change change-neutral">
                         <i class="fas fa-user me-1"></i>
-                        <?php echo $financial_summary['individual_positions']; ?> Individual + 
-                        <?php echo $financial_summary['joint_positions']; ?> Joint
+                        <?php echo $financial_summary['individual_positions'] ?? 0; ?> Individual + 
+                        <?php echo $financial_summary['joint_positions'] ?? 0; ?> Joint
                     </div>
                 </div>
                 
@@ -1378,13 +1417,18 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         </div>
                         <div id="metric-health-score" class="metric-value"><?php echo isset($financial_summary['financial_health_score']) ? number_format($financial_summary['financial_health_score'], 0) : '0'; ?></div>
                         <div class="metric-label">Financial Health Score</div>
-                        <div class="metric-change <?php echo $financial_summary['financial_health_score'] >= 70 ? 'change-positive' : ($financial_summary['financial_health_score'] >= 50 ? 'change-neutral' : 'change-negative'); ?>">
+                        <div class="metric-change <?php 
+                            $health_score = $financial_summary['financial_health_score'] ?? 0;
+                            echo $health_score >= 70 ? 'change-positive' : ($health_score >= 50 ? 'change-neutral' : 'change-negative'); 
+                        ?>">
                             <i class="fas fa-star me-1"></i>
-                            <?php if ($financial_summary['financial_health_score'] >= 80): ?>
+                            <?php 
+                            $health_score = $financial_summary['financial_health_score'] ?? 0;
+                            if ($health_score >= 80): ?>
                                 Excellent
-                            <?php elseif ($financial_summary['financial_health_score'] >= 70): ?>
+                            <?php elseif ($health_score >= 70): ?>
                                 Good
-                            <?php elseif ($financial_summary['financial_health_score'] >= 50): ?>
+                            <?php elseif ($health_score >= 50): ?>
                                 Fair
                             <?php else: ?>
                                 Poor
@@ -1394,12 +1438,18 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
     
                     <!-- Risk Assessment -->
                     <div class="metric-card" id="risk-assessment-metrics">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, <?php echo $financial_summary['risk_assessment']['risk_level']['color'] === 'success' ? '#10B981, #34D399' : ($financial_summary['risk_assessment']['risk_level']['color'] === 'warning' ? '#F59E0B, #FCD34D' : ($financial_summary['risk_assessment']['risk_level']['color'] === 'danger' ? '#EF4444, #F87171' : '#6B7280, #9CA3AF')); ?>); color: white;">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, <?php 
+                            $risk_color = $financial_summary['risk_assessment']['risk_level']['color'] ?? 'info';
+                            echo $risk_color === 'success' ? '#10B981, #34D399' : ($risk_color === 'warning' ? '#F59E0B, #FCD34D' : ($risk_color === 'danger' ? '#EF4444, #F87171' : '#6B7280, #9CA3AF')); 
+                        ?>); color: white;">
                             <i class="fas fa-shield-alt"></i>
                         </div>
                         <div id="metric-risk-score" class="metric-value"><?php echo isset($financial_summary['risk_assessment']['risk_score']) ? number_format($financial_summary['risk_assessment']['risk_score'], 0) : '0'; ?>%</div>
                         <div class="metric-label">Risk Level</div>
-                        <div class="metric-change <?php echo $financial_summary['risk_assessment']['risk_level']['color'] === 'success' ? 'change-positive' : ($financial_summary['risk_assessment']['risk_level']['color'] === 'warning' ? 'change-neutral' : 'change-negative'); ?>">
+                        <div class="metric-change <?php 
+                            $risk_color = $financial_summary['risk_assessment']['risk_level']['color'] ?? 'info';
+                            echo $risk_color === 'success' ? 'change-positive' : ($risk_color === 'warning' ? 'change-neutral' : 'change-negative'); 
+                        ?>">
                             <i class="fas fa-<?php echo $financial_summary['risk_assessment']['risk_level']['icon'] ?? 'info-circle'; ?> me-1"></i>
                             <?php echo $financial_summary['risk_assessment']['risk_level']['level'] ?? 'Unknown'; ?>
                         </div>
@@ -1423,9 +1473,15 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         <div class="metric-icon" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white;">
                             <i class="fas fa-percentage"></i>
                         </div>
-                        <div id="metric-completion-prob" class="metric-value"><?php echo isset($financial_summary['predictive_analytics']['completion_probability']) ? number_format($financial_summary['predictive_analytics']['completion_probability'] * 100, 0) : '0'; ?>%</div>
+                        <div id="metric-completion-prob" class="metric-value"><?php 
+                            $completion_prob = isset($financial_summary['predictive_analytics']['completion_probability']) ? $financial_summary['predictive_analytics']['completion_probability'] : 0;
+                            echo number_format($completion_prob * 100, 0); 
+                        ?>%</div>
                         <div class="metric-label">Completion Probability</div>
-                        <div class="metric-change <?php echo $financial_summary['predictive_analytics']['completion_probability'] >= 0.8 ? 'change-positive' : ($financial_summary['predictive_analytics']['completion_probability'] >= 0.6 ? 'change-neutral' : 'change-negative'); ?>">
+                        <div class="metric-change <?php 
+                            $completion_prob = isset($financial_summary['predictive_analytics']['completion_probability']) ? $financial_summary['predictive_analytics']['completion_probability'] : 0;
+                            echo $completion_prob >= 0.8 ? 'change-positive' : ($completion_prob >= 0.6 ? 'change-neutral' : 'change-negative'); 
+                        ?>">
                             <i class="fas fa-target me-1"></i>
                             Likelihood of Success
                         </div>
@@ -1436,9 +1492,15 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         <div class="metric-icon" style="background: linear-gradient(135deg, #0ea5e9, #38bdf8); color: white;">
                             <i class="fas fa-chart-pie"></i>
                         </div>
-                        <div id="metric-collection-efficiency" class="metric-value"><?php echo isset($financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency']) ? number_format($financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency'], 0) : '0'; ?>%</div>
+                        <div id="metric-collection-efficiency" class="metric-value"><?php 
+                            $collection_eff = isset($financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency']) ? $financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency'] : 0;
+                            echo number_format($collection_eff, 0); 
+                        ?>%</div>
                         <div class="metric-label">Collection Efficiency</div>
-                        <div class="metric-change <?php echo $financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency'] >= 80 ? 'change-positive' : ($financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency'] >= 60 ? 'change-neutral' : 'change-negative'); ?>">
+                        <div class="metric-change <?php 
+                            $collection_eff = isset($financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency']) ? $financial_summary['advanced_metrics']['efficiency_ratios']['collection_efficiency'] : 0;
+                            echo $collection_eff >= 80 ? 'change-positive' : ($collection_eff >= 60 ? 'change-neutral' : 'change-negative'); 
+                        ?>">
                             <i class="fas fa-tachometer-alt me-1"></i>
                             Target vs Actual
                         </div>
@@ -1449,9 +1511,15 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         <div class="metric-icon" style="background: linear-gradient(135deg, #DC2626, #F87171); color: white;">
                             <i class="fas fa-wave-square"></i>
                         </div>
-                        <div id="metric-volatility" class="metric-value"><?php echo isset($financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility']) ? number_format($financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility'], 0) : '0'; ?>%</div>
+                        <div id="metric-volatility" class="metric-value"><?php 
+                            $volatility = isset($financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility']) ? $financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility'] : 0;
+                            echo number_format($volatility, 0); 
+                        ?>%</div>
                         <div class="metric-label">Volatility Score</div>
-                        <div class="metric-change <?php echo $financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility'] <= 20 ? 'change-positive' : ($financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility'] <= 40 ? 'change-neutral' : 'change-negative'); ?>">
+                        <div class="metric-change <?php 
+                            $volatility = isset($financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility']) ? $financial_summary['advanced_metrics']['volatility_metrics']['overall_volatility'] : 0;
+                            echo $volatility <= 20 ? 'change-positive' : ($volatility <= 40 ? 'change-neutral' : 'change-negative'); 
+                        ?>">
                             <i class="fas fa-chart-area me-1"></i>
                             Payment Stability
                         </div>
@@ -1462,11 +1530,17 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         <div class="metric-icon" style="background: linear-gradient(135deg, #F59E0B, #FCD34D); color: white;">
                             <i class="fas fa-bullseye"></i>
                         </div>
-                        <div id="metric-goal-progress" class="metric-value"><?php echo isset($financial_summary['goal_tracking']['collection_goals']['progress']) ? number_format($financial_summary['goal_tracking']['collection_goals']['progress'], 0) : '0'; ?>%</div>
+                        <div id="metric-goal-progress" class="metric-value"><?php 
+                            $goal_progress = isset($financial_summary['goal_tracking']['collection_goals']['progress']) ? $financial_summary['goal_tracking']['collection_goals']['progress'] : 0;
+                            echo number_format($goal_progress, 0); 
+                        ?>%</div>
                         <div class="metric-label">Goal Progress</div>
-                        <div class="metric-change <?php echo $financial_summary['goal_tracking']['collection_goals']['on_track'] ? 'change-positive' : 'change-negative'; ?>">
+                        <div class="metric-change <?php 
+                            $on_track = isset($financial_summary['goal_tracking']['collection_goals']['on_track']) ? $financial_summary['goal_tracking']['collection_goals']['on_track'] : false;
+                            echo $on_track ? 'change-positive' : 'change-negative'; 
+                        ?>">
                             <i class="fas fa-flag-checkered me-1"></i>
-                            <?php echo $financial_summary['goal_tracking']['collection_goals']['on_track'] ? 'On Track' : 'Behind'; ?>
+                            <?php echo $on_track ? 'On Track' : 'Behind'; ?>
                         </div>
                     </div>
     
@@ -1475,9 +1549,12 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         <div class="metric-icon" style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;">
                             <i class="fas fa-balance-scale"></i>
                         </div>
-                        <div id="metric-benchmark" class="metric-value"><?php echo isset($financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate']) ? ($financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate'] >= 0 ? '+' : '') . number_format($financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate'], 1) : '0.0'; ?>%</div>
+                        <div id="metric-benchmark" class="metric-value"><?php 
+                            $benchmark = isset($financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate']) ? $financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate'] : 0;
+                            echo ($benchmark >= 0 ? '+' : '') . number_format($benchmark, 1); 
+                        ?>%</div>
                         <div class="metric-label">vs Industry Average</div>
-                        <div class="metric-change <?php echo (isset($financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate']) ? $financial_summary['comparative_analysis']['vs_industry_benchmark']['collection_rate'] : 0) >= 0 ? 'change-positive' : 'change-negative'; ?>">
+                        <div class="metric-change <?php echo $benchmark >= 0 ? 'change-positive' : 'change-negative'; ?>">
                             <i class="fas fa-chart-bar me-1"></i>
                             Performance Gap
                         </div>
