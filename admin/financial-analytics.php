@@ -184,12 +184,88 @@ if ($selected_equb_id) {
                 }
             }
             
+            // Get REAL-TIME payment statistics from database
+            $payment_stats = $pdo->prepare("
+                SELECT 
+                    COUNT(*) as total_payments,
+                    SUM(CASE WHEN status IN ('paid', 'completed') THEN amount ELSE 0 END) as total_collected,
+                    SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount,
+                    SUM(CASE WHEN status = 'late' THEN amount ELSE 0 END) as late_amount,
+                    SUM(CASE WHEN status = 'missed' THEN amount ELSE 0 END) as missed_amount,
+                    COUNT(CASE WHEN status IN ('paid', 'completed') THEN 1 END) as completed_payments,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_payments,
+                    COUNT(CASE WHEN status = 'late' THEN 1 END) as late_payments,
+                    COUNT(CASE WHEN status = 'missed' THEN 1 END) as missed_payments,
+                    AVG(CASE WHEN status IN ('paid', 'completed') THEN amount END) as avg_payment,
+                    SUM(late_fee) as total_late_fees
+                FROM payments p
+                INNER JOIN members m ON p.member_id = m.id
+                WHERE m.equb_settings_id = ?
+            ");
+            $payment_stats->execute([$selected_equb_id]);
+            $payment_data = $payment_stats->fetch(PDO::FETCH_ASSOC);
+            
+            // Get REAL-TIME payout statistics from database
+            $payout_stats = $pdo->prepare("
+                SELECT 
+                    COUNT(*) as total_payouts,
+                    SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) as total_distributed,
+                    SUM(CASE WHEN status = 'completed' THEN net_amount ELSE 0 END) as total_net_distributed,
+                    SUM(CASE WHEN status = 'completed' THEN admin_fee ELSE 0 END) as total_admin_fees_collected,
+                    SUM(CASE WHEN status = 'scheduled' THEN total_amount ELSE 0 END) as scheduled_amount,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_payouts,
+                    COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_payouts,
+                    COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_payouts,
+                    AVG(CASE WHEN status = 'completed' THEN net_amount END) as avg_payout
+                FROM payouts po
+                INNER JOIN members m ON po.member_id = m.id
+                WHERE m.equb_settings_id = ?
+            ");
+            $payout_stats->execute([$selected_equb_id]);
+            $payout_data = $payout_stats->fetch(PDO::FETCH_ASSOC);
+            
+            // Get monthly payment trends (last 12 months)
+            $monthly_trends = $pdo->prepare("
+                SELECT 
+                    DATE_FORMAT(payment_month, '%Y-%m') as month,
+                    COUNT(*) as payment_count,
+                    SUM(CASE WHEN status IN ('paid', 'completed') THEN amount ELSE 0 END) as collected_amount,
+                    SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount,
+                    SUM(late_fee) as late_fees
+                FROM payments p
+                INNER JOIN members m ON p.member_id = m.id
+                WHERE m.equb_settings_id = ?
+                AND payment_month >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                GROUP BY DATE_FORMAT(payment_month, '%Y-%m')
+                ORDER BY month ASC
+            ");
+            $monthly_trends->execute([$selected_equb_id]);
+            $trends_data = $monthly_trends->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Get payment method breakdown
+            $payment_methods = $pdo->prepare("
+                SELECT 
+                    payment_method,
+                    COUNT(*) as count,
+                    SUM(amount) as total_amount
+                FROM payments p
+                INNER JOIN members m ON p.member_id = m.id
+                WHERE m.equb_settings_id = ?
+                AND status IN ('paid', 'completed')
+                GROUP BY payment_method
+            ");
+            $payment_methods->execute([$selected_equb_id]);
+            $methods_data = $payment_methods->fetchAll(PDO::FETCH_ASSOC);
+            
             // Calculate DYNAMIC financial summary (NO HARDCODE!)
             $total_expected_contributions = array_sum(array_column($member_payouts, 'total_contributions'));
-            $total_paid_contributions = array_sum(array_column($member_payouts, 'total_contributed'));
-            $total_net_payouts = array_sum(array_column($member_payouts, 'net_payout'));
+            $total_paid_contributions = $payment_data['total_collected'] ?? array_sum(array_column($member_payouts, 'total_contributed'));
+            $total_net_payouts = $payout_data['total_net_distributed'] ?? array_sum(array_column($member_payouts, 'net_payout'));
             $total_positions = count($member_payouts);
-            $completed_payouts = count(array_filter($member_payouts, fn($p) => $p['has_received_payout']));
+            $completed_payouts = $payout_data['completed_payouts'] ?? count(array_filter($member_payouts, fn($p) => $p['has_received_payout']));
+            
+            // Update admin revenue from actual payouts
+            $admin_revenue = $payout_data['total_admin_fees_collected'] ?? $admin_revenue;
             
             // DYNAMIC VALUES from enhanced calculator
             $real_monthly_pool = $equb_calculation['total_monthly_pool'] ?? 0;
@@ -301,6 +377,12 @@ if ($selected_equb_id) {
                 'admin_revenue' => $admin_revenue,
                 'completed_payouts' => $completed_payouts,
                 'remaining_payouts' => $real_positions - $completed_payouts,
+                
+                // Payment statistics (REAL DATA)
+                'payment_data' => $payment_data ?? [],
+                'payout_data' => $payout_data ?? [],
+                'trends_data' => $trends_data ?? [],
+                'methods_data' => $methods_data ?? [],
                 
                 // Advanced Analytics
                 'financial_health_score' => $financial_health_score,
@@ -1181,7 +1263,7 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
             <div class="metrics-grid">
                 <!-- Total Positions -->
                 <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, var(--color-teal) 0%, #0F766E 100%); color: white;">
                         <i class="fas fa-users"></i>
                     </div>
                     <div id="metric-total-positions" class="metric-value"><?php echo $financial_summary['total_positions'] ?? 0; ?></div>
@@ -1190,6 +1272,97 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                         <i class="fas fa-user me-1"></i>
                         <?php echo $financial_summary['individual_positions']; ?> Individual + 
                         <?php echo $financial_summary['joint_positions']; ?> Joint
+                    </div>
+                </div>
+                
+                <!-- Total Collected -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #10B981, #34D399); color: white;">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['payment_data']['total_collected'] ?? 0, 2); ?></div>
+                    <div class="metric-label">Total Collected</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-check-circle me-1"></i>
+                        <?php echo $financial_summary['payment_data']['completed_payments'] ?? 0; ?> Payments
+                    </div>
+                </div>
+                
+                <!-- Total Distributed -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-light-gold) 100%); color: white;">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['payout_data']['total_net_distributed'] ?? 0, 2); ?></div>
+                    <div class="metric-label">Total Distributed</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-check me-1"></i>
+                        <?php echo $financial_summary['payout_data']['completed_payouts'] ?? 0; ?> Completed
+                    </div>
+                </div>
+                
+                <!-- Collection Rate -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['collection_percentage'] ?? 0, 1); ?>%</div>
+                    <div class="metric-label">Collection Rate</div>
+                    <div class="metric-change <?php echo ($financial_summary['collection_percentage'] ?? 0) >= 85 ? 'change-positive' : (($financial_summary['collection_percentage'] ?? 0) >= 70 ? 'change-neutral' : 'change-negative'); ?>">
+                        <i class="fas fa-chart-line me-1"></i>
+                        <?php echo number_format($financial_summary['total_paid_contributions'] ?? 0, 2); ?> / <?php echo number_format($financial_summary['total_expected_contributions'] ?? 0, 2); ?>
+                    </div>
+                </div>
+                
+                <!-- Pending Payments -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['payment_data']['pending_amount'] ?? 0, 2); ?></div>
+                    <div class="metric-label">Pending Payments</div>
+                    <div class="metric-change change-neutral">
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        <?php echo $financial_summary['payment_data']['pending_payments'] ?? 0; ?> Payments
+                    </div>
+                </div>
+                
+                <!-- Late Payments -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, var(--color-coral) 0%, #DC2626 100%); color: white;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['payment_data']['late_amount'] ?? 0, 2); ?></div>
+                    <div class="metric-label">Late Payments</div>
+                    <div class="metric-change change-negative">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        <?php echo $financial_summary['payment_data']['late_payments'] ?? 0; ?> Payments
+                    </div>
+                </div>
+                
+                <!-- Admin Revenue -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, var(--color-purple) 0%, #4D4052 100%); color: white;">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['admin_revenue'] ?? 0, 2); ?></div>
+                    <div class="metric-label">Admin Revenue</div>
+                    <div class="metric-change change-positive">
+                        <i class="fas fa-dollar-sign me-1"></i>
+                        <?php echo number_format($financial_summary['admin_fee_rate'] ?? 0, 2); ?> per payout
+                    </div>
+                </div>
+                
+                <!-- Scheduled Payouts -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #06B6D4, #22D3EE); color: white;">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="metric-value"><?php echo number_format($financial_summary['payout_data']['scheduled_amount'] ?? 0, 2); ?></div>
+                    <div class="metric-label">Scheduled Payouts</div>
+                    <div class="metric-change change-neutral">
+                        <i class="fas fa-calendar me-1"></i>
+                        <?php echo $financial_summary['payout_data']['scheduled_payouts'] ?? 0; ?> Scheduled
                     </div>
                 </div>
     
@@ -1514,6 +1687,30 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                     Cash Flow Waterfall
                 </h3>
                 <canvas id="waterfallChart"></canvas>
+            </div>
+
+            <!-- Payment Trends Chart (REAL DATA) -->
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <i class="fas fa-chart-line text-teal me-2"></i>
+                    Payment Trends (Last 12 Months)
+                </h3>
+                <canvas id="paymentTrendsChart"></canvas>
+                <div class="text-center small text-muted mt-2">
+                    Showing real payment data from database
+                </div>
+            </div>
+
+            <!-- Payment Methods Breakdown Chart (REAL DATA) -->
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <i class="fas fa-credit-card text-purple me-2"></i>
+                    Payment Methods Breakdown
+                </h3>
+                <canvas id="paymentMethodsChart"></canvas>
+                <div class="text-center small text-muted mt-2">
+                    Distribution by payment method
+                </div>
             </div>
 
             <!-- Inflows chart -->
@@ -2115,6 +2312,118 @@ function generatePerformanceAlerts($financial_summary, $risk_assessment, $goal_t
                                 ticks: {
                                     callback: function(value) {
                                         return '£' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Payment Trends Chart (REAL DATA)
+            const paymentTrendsCtx = document.getElementById('paymentTrendsChart');
+            if (paymentTrendsCtx) {
+                const trendsData = <?php echo json_encode($financial_summary['trends_data'] ?? []); ?>;
+                const months = trendsData.map(t => {
+                    const date = new Date(t.month + '-01');
+                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                });
+                const collected = trendsData.map(t => parseFloat(t.collected_amount || 0));
+                const pending = trendsData.map(t => parseFloat(t.pending_amount || 0));
+                
+                new Chart(paymentTrendsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: months.length > 0 ? months : ['No Data'],
+                        datasets: [{
+                            label: 'Collected',
+                            data: collected.length > 0 ? collected : [0],
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Pending',
+                            data: pending.length > 0 ? pending : [0],
+                            borderColor: 'rgb(245, 158, 11)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': £' + parseFloat(context.parsed.y).toLocaleString('en-US', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '£' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Payment Methods Breakdown Chart (REAL DATA)
+            const paymentMethodsCtx = document.getElementById('paymentMethodsChart');
+            if (paymentMethodsCtx) {
+                const methodsData = <?php echo json_encode($financial_summary['methods_data'] ?? []); ?>;
+                const methodLabels = methodsData.map(m => {
+                    const method = m.payment_method || 'unknown';
+                    return method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ');
+                });
+                const methodAmounts = methodsData.map(m => parseFloat(m.total_amount || 0));
+                const methodColors = [
+                    'rgba(19, 102, 92, 0.8)',   // Teal for cash
+                    'rgba(139, 92, 246, 0.8)',  // Purple for bank_transfer
+                    'rgba(233, 196, 106, 0.8)', // Gold for mobile_money
+                    'rgba(59, 130, 246, 0.8)',  // Blue for other
+                ];
+                
+                new Chart(paymentMethodsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: methodLabels.length > 0 ? methodLabels : ['No Data'],
+                        datasets: [{
+                            data: methodAmounts.length > 0 ? methodAmounts : [0],
+                            backgroundColor: methodColors.slice(0, methodLabels.length),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: { size: 12 }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = parseFloat(context.parsed || 0);
+                                        const total = methodAmounts.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return label + ': £' + value.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' (' + percentage + '%)';
                                     }
                                 }
                             }
